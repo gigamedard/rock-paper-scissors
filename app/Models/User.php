@@ -44,4 +44,15 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function challengesSent()
+    {
+        return $this->hasMany(Challenge::class, 'challenger_id');
+    }
+
+    public function challengesReceived()
+    {
+        return $this->hasMany(Challenge::class, 'challengee_id');
+    }
+
 }

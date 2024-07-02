@@ -6,7 +6,7 @@
     <title>Welcome</title>
 </head>
 <body>
-    <h1>Welcome to the Laravel Application!</h1>
+    <h1>hello Welcome to the Laravel Application!</h1>
     <a href="/game">Go to Game</a>
 </body>
 </html>
