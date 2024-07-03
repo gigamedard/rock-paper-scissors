@@ -1,49 +1,47 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Game; // Assuming you have a Game model
+use Auth;
 
 class GameController extends Controller
 {
     public function index()
     {
-        // Display the game interface
-        return view('game');
+        return view('game.index');
     }
 
     public function play(Request $request)
     {
-        // Game logic for Rock-Paper-Scissors
-        $playerMove = $request->input('move');
-        $computerMove = $this->generateComputerMove();
-        $result = $this->determineWinner($playerMove, $computerMove);
+        $validated = $request->validate([
+            'move' => 'required|string|in:rock,paper,scissors',
+            'opponent_id' => 'required|exists:users,id',
+        ]);
 
-        return view('result', compact('playerMove', 'computerMove', 'result'));
-    }
+        // Implement your game logic here
+        $userMove = $validated['move'];
+        $opponentMove = ['rock', 'paper', 'scissors'][array_rand(['rock', 'paper', 'scissors'])];
 
-    private function generateComputerMove()
-    {
-        $moves = ['rock', 'paper', 'scissors'];
-        return $moves[array_rand($moves)];
-    }
-
-    private function determineWinner($playerMove, $computerMove)
-    {
-        // Rock-Paper-Scissors logic
-        if ($playerMove === $computerMove) {
-            return 'draw';
+        if ($userMove === $opponentMove) {
+            $result = 'It\'s a tie!';
+        } elseif (
+            ($userMove === 'rock' && $opponentMove === 'scissors') ||
+            ($userMove === 'paper' && $opponentMove === 'rock') ||
+            ($userMove === 'scissors' && $opponentMove === 'paper')
+        ) {
+            $result = 'You win!';
+        } else {
+            $result = 'You lose!';
         }
 
-        $winningMoves = [
-            'rock' => 'scissors',
-            'paper' => 'rock',
-            'scissors' => 'paper',
-        ];
-
-        if ($winningMoves[$playerMove] === $computerMove) {
-            return 'win';
-        }
-
-        return 'lose';
+        return response()->json([
+            'user_move' => $userMove,
+            'opponent_move' => $opponentMove,
+            'result' => $result,
+        ]);
     }
 }
+
+
