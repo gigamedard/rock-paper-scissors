@@ -4,9 +4,31 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChallengeController;
 use App\Http\Controllers\DashboardController;
 
+use App\Models\Challenge;
+use App\Models\User;
+use App\Events\testevent;
+
 Route::get('/', function () {
     return view('welcome');
 });
+
+
+Route::get('/testevent', function () {
+
+    $challenge = new Challenge();
+    $challenge->sender_id = Auth::id();
+    $challenge->receiver_id = 2;
+    $challenge->status = 'pending';
+    $challenge->save();
+
+    event(new testevent());
+
+    return view('welcome');
+});
+
+
+
+
 
 // Dashboard route
 Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

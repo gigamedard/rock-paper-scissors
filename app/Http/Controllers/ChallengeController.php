@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use App\Models\Challenge;
 use App\Models\User;
 use Auth;
+use App\Events\testevent;
 
 class ChallengeController extends Controller
 {
@@ -13,6 +14,8 @@ class ChallengeController extends Controller
         if ($user->id == Auth::id()) {
             return redirect()->route('dashboard')->with('status', 'You cannot challenge yourself.');
         }
+
+        
 
         $existingChallenge = Challenge::where('sender_id', Auth::id())
             ->where('receiver_id', $user->id)
@@ -29,6 +32,10 @@ class ChallengeController extends Controller
         $challenge->status = 'pending';
         $challenge->save();
 
+        event(new testevent(Auth::user(),$challenge));
+
+       
+
         return redirect()->route('dashboard')->with('status', 'Challenge sent!');
     }
 
@@ -40,6 +47,8 @@ class ChallengeController extends Controller
 
         $invitation->status = 'accepted';
         $invitation->save();
+
+        event(new testevent(Auth::user(),$invitation));
 
         return redirect()->route('dashboard')->with('status', 'Challenge accepted!');
     }

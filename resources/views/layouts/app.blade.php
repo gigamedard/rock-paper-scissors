@@ -32,5 +32,28 @@
                 {{ $slot }}
             </main>
         </div>
+        <script>
+alert('my js is activated!');
+
+
+window.addEventListener("DOMContentLoaded",function(){
+    window.Echo.private("App.Models.User.1")
+    .listen("testevent",(event)=>{alert(event['message']);});
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+        </script>
     </body>
 </html>
