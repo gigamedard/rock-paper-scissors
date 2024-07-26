@@ -5,14 +5,22 @@ use Illuminate\Http\Request;
 use App\Models\Challenge;
 use App\Models\User;
 use Auth;
+use App\Events\testevent;
+use App\Events\ChallengeSent;
 
 class ChallengeController extends Controller
 {
-    public function sendChallenge(User $user)
-    {
+    public function sendChallenge($userId)
+    {   
+
+        $user = User::findOrFail($userId);
+
         if ($user->id == Auth::id()) {
-            return redirect()->route('dashboard')->with('status', 'You cannot challenge yourself.');
+            
+            return response()->json(['status' => 'You cannot challenge yourself.']);
         }
+
+        
 
         $existingChallenge = Challenge::where('sender_id', Auth::id())
             ->where('receiver_id', $user->id)
@@ -20,7 +28,7 @@ class ChallengeController extends Controller
             ->first();
 
         if ($existingChallenge) {
-            return redirect()->route('dashboard')->with('status', 'You already have a pending challenge with this user.');
+            return response()->json(['status' => 'You already have a pending challenge with this user.']);
         }
 
         $challenge = new Challenge();
@@ -28,20 +36,29 @@ class ChallengeController extends Controller
         $challenge->receiver_id = $user->id;
         $challenge->status = 'pending';
         $challenge->save();
+        
+     
+        event(new challengeSent(Auth::user(),$challenge, $user->name));  
+        //event(new testevent());
+        return response()->json(['status' => 'ok']);
 
-        return redirect()->route('dashboard')->with('status', 'Challenge sent!');
     }
 
-    public function acceptChallenge(Challenge $invitation)
-    {
+    public function acceptChallenge($invitationId)
+    {   
+
+        $invitation = Challenge::findOrFail($invitationId);
+
         if ($invitation->receiver_id !== Auth::id()) {
-            return redirect()->route('dashboard')->with('status', 'You are not authorized to accept this challenge.');
+            return response()->json(['status' => 'You are not authorized to accept this challenge.']);
         }
 
         $invitation->status = 'accepted';
         $invitation->save();
 
-        return redirect()->route('dashboard')->with('status', 'Challenge accepted!');
+        event(new testevent(Auth::user(),$invitation));
+
+        return response()->json(['status' => 'Challenge accepted!']);
     }
 
     public function store(Request $request)
