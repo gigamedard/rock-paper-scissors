@@ -32,5 +32,29 @@
                 {{ $slot }}
             </main>
         </div>
+        <script>
+//alert('my js is activated!');
+
+const userId = {{ Auth::user()->id }};
+
+const channelName = `App.Models.User.${userId}`;
+
+window.addEventListener("DOMContentLoaded",function(){
+    window.Echo.private(channelName)
+    .listen("testevent",(event)=>{alert(event.message);})
+    .listen('ChallengeSent', (chall) => {
+            // Assume there's a function to update the UI
+            updateSentInvitations(chall);
+            //alert(chall.challenge.status);
+        })
+        .listen('ChallengeAccepted', (event) => {
+            // Assume there's a function to update the UI
+            updateReceivedInvitations(event.challenge);
+        });
+})
+
+
+            
+        </script>
     </body>
 </html>
