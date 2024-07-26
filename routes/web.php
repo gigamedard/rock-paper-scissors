@@ -37,8 +37,8 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', [DashboardCon
 Route::middleware(['auth'])->group(function () {
     Route::post('/challenges', [ChallengeController::class, 'store'])->name('challenges.store');
     Route::put('/challenges/{challenge}', [ChallengeController::class, 'update'])->name('challenges.update');
-    Route::post('/challenge/send/{user}', [ChallengeController::class, 'sendChallenge'])->name('challenge.send');
-    Route::post('/challenge/accept/{invitation}', [ChallengeController::class, 'acceptChallenge'])->name('challenge.accept');
+    Route::post('/challenge/send/{userId}', [ChallengeController::class, 'sendChallenge'])->name('challenge.send');
+    Route::post('/challenge/accept/{invitationId}', [ChallengeController::class, 'acceptChallenge'])->name('challenge.accept');
 });
 
 // Profile routes
