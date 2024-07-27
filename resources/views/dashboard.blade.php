@@ -102,11 +102,13 @@
         }
 
         function updateReceivedInvitations(challenge) {
+
+            console.log(challenge);
             const receivedList = document.querySelector('#received-invitations-list');
             const newItem = document.createElement('li');
 
             // Create the sender name text
-            const senderText = document.createTextNode(`${challenge.sender.name} `);
+            const senderText = document.createTextNode(`${challenge.sender} `);
 
             // Create the accept button
             const acceptButton = document.createElement('button');

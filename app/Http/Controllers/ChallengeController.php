@@ -4,26 +4,29 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Challenge;
 use App\Models\User;
+
 use Auth;
 use App\Events\testevent;
 use App\Events\ChallengeSent;
+use App\Events\ReceivedInvitationEvent;
+
 
 class ChallengeController extends Controller
 {
     public function sendChallenge($userId)
     {   
 
-        $user = User::findOrFail($userId);
-
-        if ($user->id == Auth::id()) {
+        $challengedUser = User::findOrFail($userId);
+        $currentUser = Auth::user();
+        
+        if ($challengedUser->id == $currentUser->id) {
             
             return response()->json(['status' => 'You cannot challenge yourself.']);
         }
 
         
-
-        $existingChallenge = Challenge::where('sender_id', Auth::id())
-            ->where('receiver_id', $user->id)
+        $existingChallenge = Challenge::where('sender_id', $currentUser->id)
+            ->where('receiver_id', $challengedUser->id)
             ->where('status', 'pending')
             ->first();
 
@@ -32,13 +35,15 @@ class ChallengeController extends Controller
         }
 
         $challenge = new Challenge();
-        $challenge->sender_id = Auth::id();
-        $challenge->receiver_id = $user->id;
+        $challenge->sender_id = $currentUser->id;
+        $challenge->receiver_id = $challengedUser->id;
         $challenge->status = 'pending';
         $challenge->save();
         
+
      
-        event(new challengeSent(Auth::user(),$challenge, $user->name));  
+        event(new challengeSent($currentUser,$challenge, $challengedUser->name));
+        event(new ReceivedInvitationEvent($challengedUser,$challenge,$currentUser->name));    
         //event(new testevent());
         return response()->json(['status' => 'ok']);
 

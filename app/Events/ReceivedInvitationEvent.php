@@ -8,32 +8,30 @@ use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
-
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+
 
 use App\Models\Challenge;
 use App\Models\User;
 use Auth;
 
-class ChallengeSent implements shouldBroadcastNow
+class ReceivedInvitationEvent implements shouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
      * Create a new event instance.
-     * 
-     * 
      */
-
     public $challenge;
-    public $user; 
-    public $receiverName;
-    public function __construct(User $paramUser,Challenge $paramChallenge, $paramReceiverName)
-    {
+    public $receivingUser; 
+    public $senderName;
+
+    public function __construct(User $paramUser,Challenge $paramChallenge, $paramSenderName)
+    {  
         $this->challenge = $paramChallenge;
-        $this->user = $paramUser;
-        $this->receiverName = $paramReceiverName;
+        $this->receivingUser = $paramUser;
+        $this->senderName = $paramSenderName;
     }
 
     /**
@@ -44,9 +42,8 @@ class ChallengeSent implements shouldBroadcastNow
     public function broadcastOn(): array
     {   
         
-         $channel = 'App.Models.User.' . $this->user->id;
+         $channel = 'App.Models.User.' . $this->receivingUser->id;
 
-       
         return [
             new PrivateChannel($channel),
         ];
@@ -57,8 +54,8 @@ class ChallengeSent implements shouldBroadcastNow
     {   
         
         return  ['challenge' => $this->challenge->toArray(),
-                    'receiver'=>$this->receiverName,
-                    'sender'=>$this->user
+                'sender'=>$this->senderName,
+                'receiver'=>$this->receivingUser->toArray()
                 ];
     }
 }

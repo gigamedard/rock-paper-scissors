@@ -47,9 +47,10 @@ window.addEventListener("DOMContentLoaded",function(){
             updateSentInvitations(chall);
             //alert(chall.challenge.status);
         })
-        .listen('ChallengeAccepted', (event) => {
+    .listen('ReceivedInvitationEvent', (invitation) => {
             // Assume there's a function to update the UI
-            updateReceivedInvitations(event.challenge);
+            //alert("badaboom");
+            updateReceivedInvitations(invitation);
         });
 })
 
