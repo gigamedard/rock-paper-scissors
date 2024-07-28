@@ -34,7 +34,7 @@
                         <h3 class="font-semibold text-lg">Received Invitations</h3>
                         <ul id="received-invitations-list">
                             @foreach($receivedInvitations as $invitation)
-                                <li>
+                                <li id="received-invitation-{{ $invitation->id }}">
                                     {{ $invitation->sender->name }}
                                     <button class="bg-green-500 text-white px-2 py-1 rounded" onclick="acceptChallenge({{ $invitation->id }})">Accept</button>
                                 </li>
@@ -43,14 +43,13 @@
                     </div>
                 </div>
 
-
                 <!-- Sent Invitations Section -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900">
                         <h3 class="font-semibold text-lg">Sent Invitations</h3>
                         <ul id="sent-invitations-list">
                             @foreach($sentInvitations as $invitation)
-                                <li>
+                                <li id="sent-invitation-{{ $invitation->id }}">
                                     {{ $invitation->receiver->name }}
                                     <span class="text-gray-500">Pending</span>
                                 </li>
@@ -85,11 +84,34 @@
                 }
             })
             .then(response => response.json())
-            .then(data => alert(data.status))
+            .then(data => dropReceivedInvitationFromUI(invitationId))
             .catch(error => console.error('Error:', error));
         }
 
+        function dropReceivedInvitationFromUI(invId){
+            //console.log('drop receivedInvitation from UI...V2');
+            const element = document.getElementById(`received-invitation-${invId}`);
+            c//onsole.log(invId);
+            //console.log(element);
+            if (element) {
+                element.remove();
+            }
+            
+        }
 
+        function dropSentInvitationFromUI(){
+            console.log('drop sent invitation from UI...V2');
+            const element = document.getElementById(`sent-invitation-${invitationId}`);
+            if (element) {
+                element.remove();
+            }
+        }
+
+
+
+        function displayGamePad(){
+            console.log('display gamepad...');
+        }
         function updateSentInvitations(challenge) {
             // Update the sent invitations list dynamically
             const sentList = document.getElementById('sent-invitations-list');
@@ -101,28 +123,21 @@
 
         }
 
-        function updateReceivedInvitations(challenge) {
 
-            console.log(challenge);
-            const receivedList = document.querySelector('#received-invitations-list');
+
+        function updateReceivedInvitations(event) {
+            const receivedList = document.getElementById('received-invitations-list');
             const newItem = document.createElement('li');
-
-            // Create the sender name text
-            const senderText = document.createTextNode(`${challenge.sender} `);
-
-            // Create the accept button
+            newItem.id = `received-invitation-${event.challenge.id}`;
+            const senderText = document.createTextNode(`${event.sender} `);
             const acceptButton = document.createElement('button');
             acceptButton.classList.add('bg-green-500', 'text-white', 'px-2', 'py-1', 'rounded');
             acceptButton.textContent = 'Accept';
             acceptButton.onclick = function () {
-                acceptChallenge(challenge.id);
+                acceptChallenge(event.challenge.id);
             };
-
-            // Append sender name and button to the list item
             newItem.appendChild(senderText);
             newItem.appendChild(acceptButton);
-
-            // Append the new list item to the received invitations list
             receivedList.appendChild(newItem);
         }
 
