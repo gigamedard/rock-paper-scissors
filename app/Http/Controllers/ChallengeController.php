@@ -46,7 +46,7 @@ class ChallengeController extends Controller
         event(new challengeSent($currentUser,$challenge, $challengedUser->name));
         event(new ReceivedInvitationEvent($challengedUser,$challenge,$currentUser->name));    
         //event(new testevent());
-        return response()->json(['status' => 'ok','invitationId'=>$challenge->id]);
+        return response()->json(['status' => 'ok','invitationId'=>$challenge->id,"challengerId" => $challenge->receiver_id]);
 
     }
 

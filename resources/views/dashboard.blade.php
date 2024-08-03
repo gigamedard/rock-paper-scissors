@@ -19,7 +19,7 @@
                         <h3 class="font-semibold text-lg">Online Users</h3>
                         <ul>
                             @foreach($onlineUsers as $user)
-                                <li>
+                                <li id="user-{{ $user->id }}">
                                     {{ $user->name }}
                                     <button class="bg-blue-500 text-white px-2 py-1 rounded" onclick="sendChallenge({{ $user->id }})">Challenge</button>
                                 </li>
@@ -71,7 +71,7 @@
                 }
             })
             .then(response => response.json())
-            .then(data => console.log(data))
+            .then(data => removeUserAfterChallended(data))
             .catch(error => console.error('Error:', error));
         }
 
@@ -86,9 +86,9 @@
 
         function removeUserAfterChallended(data){
             if(data.status === 'ok'){
-            const element = document.getElementById(`received-invitation-${invId}`);
+            const element = document.getElementById(`user-${data.challengerId}`);
             //onsole.log(invId);
-            //console.log(element);
+            console.log(element);
             if (element) {
                 element.remove();
             }
