@@ -9,6 +9,7 @@ use Auth;
 use App\Events\testevent;
 use App\Events\ChallengeSent;
 use App\Events\ReceivedInvitationEvent;
+use App\Events\ChallengeAccepted;
 
 
 class ChallengeController extends Controller
@@ -45,7 +46,7 @@ class ChallengeController extends Controller
         event(new challengeSent($currentUser,$challenge, $challengedUser->name));
         event(new ReceivedInvitationEvent($challengedUser,$challenge,$currentUser->name));    
         //event(new testevent());
-        return response()->json(['status' => 'ok']);
+        return response()->json(['status' => 'ok','invitationId'=>$challenge->id]);
 
     }
 
@@ -61,7 +62,7 @@ class ChallengeController extends Controller
         $invitation->status = 'accepted';
         $invitation->save();
 
-        event(new testevent(Auth::user(),$invitation));
+        event(new ChallengeAccepted($invitation->sender_id,$invitationId));
 
         return response()->json(['status' => 'Challenge accepted!']);
     }

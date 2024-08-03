@@ -75,6 +75,26 @@
             .catch(error => console.error('Error:', error));
         }
 
+        function removechallengerFromOnlineUserList(paramData,userId){
+            const element = document.getElementById(`received-invitation-${invId}`);
+            //onsole.log(invId);
+            //console.log(element);
+            if (element) {
+                element.remove();
+            }
+        }
+
+        function removeUserAfterChallended(data){
+            if(data.status === 'ok'){
+            const element = document.getElementById(`received-invitation-${invId}`);
+            //onsole.log(invId);
+            //console.log(element);
+            if (element) {
+                element.remove();
+            }
+            }
+        }
+
         function acceptChallenge(invitationId) {
             fetch(`/challenge/accept/${invitationId}`, {
                 method: 'POST',
@@ -85,23 +105,25 @@
             })
             .then(response => response.json())
             .then(data => dropReceivedInvitationFromUI(invitationId))
-            .catch(error => console.error('Error:', error));
+            .catch(error => console.error('Error:',error));
         }
 
         function dropReceivedInvitationFromUI(invId){
             //console.log('drop receivedInvitation from UI...V2');
             const element = document.getElementById(`received-invitation-${invId}`);
-            c//onsole.log(invId);
-            //console.log(element);
+            //onsole.log(invId);
+            console.log(element);
             if (element) {
                 element.remove();
             }
             
         }
 
-        function dropSentInvitationFromUI(){
-            console.log('drop sent invitation from UI...V2');
-            const element = document.getElementById(`sent-invitation-${invitationId}`);
+        function dropSentInvitationFromUI(paramData){
+            console.log(paramData.invitationId);
+            const element = document.getElementById(`sent-invitation-${paramData.invitationId}`);
+            console.log(element);
+
             if (element) {
                 element.remove();
             }
@@ -116,6 +138,7 @@
             // Update the sent invitations list dynamically
             const sentList = document.getElementById('sent-invitations-list');
             const newItem = document.createElement('li');
+            newItem.id = `sent-invitation-${challenge.challenge.id}`
             newItem.textContent = `${challenge.receiver} - Pending`;
             sentList.appendChild(newItem);
             console.log('updateSentInvitations');
