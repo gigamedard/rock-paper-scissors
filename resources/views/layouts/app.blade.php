@@ -121,14 +121,17 @@ window.addEventListener("DOMContentLoaded",function(){
     })
     .listen('ChallengeAccepted', (invitationData) => {
             // Assume there's a function to update the UI
-            alert(invitationData.invitationId);
+            //alert(invitationData.invitationId);
             //updateReceivedInvitations(invitation);
+            console.log(invitationData);
             dropSentInvitationFromUI(invitationData);
+            showGamepadPopup();
+            fightId = invitationData.fightId;
         });
 })
 
 //-------------------------------------------------------------popup-------------------------------------------
-document.getElementById('openPopup').addEventListener('click', function() {
+/*document.getElementById('openPopup').addEventListener('click', function() {
             document.getElementById('popupContainer').style.display = 'flex';
         });
 
@@ -141,7 +144,7 @@ document.getElementById('openPopup').addEventListener('click', function() {
             if (e.target === this) {
                 this.style.display = 'none';
             }
-        });
+});*/
             
         </script>
     </body>

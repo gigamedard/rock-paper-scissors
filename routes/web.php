@@ -3,6 +3,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChallengeController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FightController;
 
 use App\Models\Challenge;
 use App\Models\User;
@@ -40,6 +41,20 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/challenge/send/{userId}', [ChallengeController::class, 'sendChallenge'])->name('challenge.send');
     Route::post('/challenge/accept/{invitationId}', [ChallengeController::class, 'acceptChallenge'])->name('challenge.accept');
 });
+
+
+
+// Fight routes
+Route::middleware(['auth'])->group(function () {
+    Route::post('/fight/{fightId}/{selectedMove}', [FightController::class, 'played'])->name('Fight.played');
+    
+});
+
+
+
+
+
+
 
 // Profile routes
 Route::middleware(['auth'])->group(function () {

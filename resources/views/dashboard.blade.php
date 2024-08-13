@@ -67,15 +67,17 @@
                         <button class="close-popup" onclick="hideGamepadPopup()">Close</button>
                         <div class="screen">
                             <video src="{{asset('videos/bg1.mp4')}}" autoplay loop muted></video>
+                            <div id="timer-display" class="timer">15</div>
+                            <div id="selection-display" class="selection"></div>
                         </div>
                         <div class="controls">
-                            <div class="button rock">
+                            <div class="button rock" onclick="selectMove('rock')">
                                 <i class="fas fa-hand-rock"></i>
                             </div>
-                            <div class="button paper">
+                            <div class="button paper" onclick="selectMove('paper')">
                                 <i class="fas fa-hand-paper"></i>
                             </div>
-                            <div class="button scissors">
+                            <div class="button scissors" onclick="selectMove('scissors')">
                                 <i class="fas fa-hand-scissors"></i>
                             </div>
                         </div>
@@ -178,109 +180,187 @@
         }
 
         .close-popup {
-            background: #ff5f5f;
-            color: white;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+                background: #ff5f5f;
+                color: white;
+                padding: 5px 10px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                z-index: 2;
+            }
+
+        #timer-display {
             position: absolute;
             top: 20px;
             right: 20px;
+            font-size: 3rem;
+            color: white;
+            z-index: 2;
+        }
+
+        #selection-display {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            color: white;
+            z-index: 2;
         }
     </style>
 
     <script>
-        function showGamepadPopup() {
-            document.getElementById('gamepad-popup').style.display = 'flex';
-        }
+let countdownInterval;
+let selectedMove = '';
+let fightId = null;
+let CurrentRequestData = null;
 
-        function hideGamepadPopup() {
-            document.getElementById('gamepad-popup').style.display = 'none';
-        }
+function showGamepadPopup() {
+    document.getElementById('gamepad-popup').style.display = 'flex';
+    startCountdown();
+}
 
-        function sendChallenge(userId) {
-            fetch(`/challenge/send/${userId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => removeUserAfterChallended(data))
-            .catch(error => console.error('Error:', error));
-        }
+function hideGamepadPopup() {
+    document.getElementById('gamepad-popup').style.display = 'none';
+    stopCountdown();
+    clearSelection();
+}
 
-        function removechallengerFromOnlineUserList(paramData, userId){
-            const element = document.getElementById(`received-invitation-${userId}`);
-            if (element) {
-                element.remove();
-            }
-        }
+function startCountdown() {
+    let timer = 15;
+    document.getElementById('timer-display').textContent = timer;
 
-        function removeUserAfterChallended(data){
-            if(data.status === 'ok'){
-                const element = document.getElementById(`user-${data.challengerId}`);
-                if (element) {
-                    element.remove();
-                }
-            }
-        }
+    countdownInterval = setInterval(() => {
+        timer--;
+        document.getElementById('timer-display').textContent = timer;
 
-        function acceptChallenge(invitationId) {
-            fetch(`/challenge/accept/${invitationId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => dropReceivedInvitationFromUI(invitationId))
-            .catch(error => console.error('Error:', error));
+        if (timer <= 0) {
+            clearInterval(countdownInterval);
+            // You can add any additional logic when the timer reaches zero
         }
+    }, 1000);
+}
 
-        function dropReceivedInvitationFromUI(invId){
-            const element = document.getElementById(`received-invitation-${invId}`);
-            if (element) {
-                element.remove();
-            }
-        }
+function stopCountdown() {
+    clearInterval(countdownInterval);
+}
 
-        function dropSentInvitationFromUI(paramData){
-            const element = document.getElementById(`sent-invitation-${paramData.invitationId}`);
-            if (element) {
-                element.remove();
-            }
-        }
+function selectMove(move) {
+    selectedMove = move;
+    document.getElementById('selection-display').textContent = selectedMove;
+    console.log(`selectedMove: ${selectedMove}`),
+    postRequest(`/fight/${fightId}/${selectedMove}`);
+}
 
-        function displayGamePad(){
-            console.log('display gamepad...');
-        }
+function clearSelection() {
+    selectedMove = '';
+    fightId = null;
+    document.getElementById('selection-display').textContent = selectedMove;
+}
 
-        function updateSentInvitations(challenge) {
-            const sentList = document.getElementById('sent-invitations-list');
-            const newItem = document.createElement('li');
-            newItem.id = `sent-invitation-${challenge.challenge.id}`;
-            newItem.textContent = `${challenge.receiver} - Pending`;
-            sentList.appendChild(newItem);
+function postRequest(url){
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
         }
+    })
+    .then(response => response.json())
+    .then(data => CurrentRequestData = data)
+    .catch(error => console.error('Error:', error));
+}
 
-        function updateReceivedInvitations(event) {
-            const receivedList = document.getElementById('received-invitations-list');
-            const newItem = document.createElement('li');
-            newItem.id = `received-invitation-${event.challenge.id}`;
-            const senderText = document.createTextNode(`${event.sender} `);
-            const acceptButton = document.createElement('button');
-            acceptButton.classList.add('bg-green-500', 'text-white', 'px-2', 'py-1', 'rounded');
-            acceptButton.textContent = 'Accept';
-            acceptButton.onclick = function () {
-                acceptChallenge(event.challenge.id);
-            };
-            newItem.appendChild(senderText);
-            newItem.appendChild(acceptButton);
-            receivedList.appendChild(newItem);
+function sendChallenge(userId) {
+    fetch(`/challenge/send/${userId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
         }
+    })
+    .then(response => response.json())
+    .then(data => removeUserAfterChallenged(data))
+    .catch(error => console.error('Error:', error));
+}
+
+function removechallengerFromOnlineUserList(paramData, userId){
+    const element = document.getElementById(`received-invitation-${userId}`);
+    if (element) {
+        element.remove();
+    }
+}
+
+function removeUserAfterChallenged(data){
+    if(data.status === 'ok'){
+        const element = document.getElementById(`user-${data.challengerId}`);
+        if (element) {
+            element.remove();
+        }
+    }
+}
+
+function acceptChallenge(invitationId) {
+    fetch(`/challenge/accept/${invitationId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => challengeAccepted(data,invitationId))
+    .catch(error => console.error('Error:', error));
+}
+function challengeAccepted(paramData,inv){
+    fightId = paramData.fightId;
+    console.log(`fightID: ${paramData.fightId}`)
+    dropReceivedInvitationFromUI(inv);
+    showGamepadPopup();
+}
+function dropReceivedInvitationFromUI(invId){
+    const element = document.getElementById(`received-invitation-${invId}`);
+    if (element) {
+        element.remove();
+    }
+}
+
+function dropSentInvitationFromUI(paramData){
+    const element = document.getElementById(`sent-invitation-${paramData.invitationId}`);
+    if (element) {
+        element.remove();
+    }
+}
+
+function displayGamePad(){
+   ;
+}
+
+function updateSentInvitations(challenge) {
+    const sentList = document.getElementById('sent-invitations-list');
+    const newItem = document.createElement('li');
+    newItem.id = `sent-invitation-${challenge.challenge.id}`;
+    newItem.textContent = `${challenge.receiver} - Pending`;
+    sentList.appendChild(newItem);
+}
+
+function updateReceivedInvitations(event) {
+    const receivedList = document.getElementById('received-invitations-list');
+    const newItem = document.createElement('li');
+    newItem.id = `received-invitation-${event.challenge.id}`;
+    const senderText = document.createTextNode(`${event.sender} `);
+    const acceptButton = document.createElement('button');
+    acceptButton.classList.add('bg-green-500', 'text-white', 'px-2', 'py-1', 'rounded');
+    acceptButton.textContent = 'Accept';
+    acceptButton.onclick = function () {
+        acceptChallenge(event.challenge.id);
+    };
+    newItem.appendChild(senderText);
+    newItem.appendChild(acceptButton);
+    receivedList.appendChild(newItem);
+}
     </script>
 </x-app-layout>

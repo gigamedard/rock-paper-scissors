@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Challenge;
 use App\Models\User;
+use App\Models\Fight;
 
 use Auth;
 use App\Events\testevent;
@@ -51,21 +52,31 @@ class ChallengeController extends Controller
     }
 
     public function acceptChallenge($invitationId)
-    {   
-
+    {
         $invitation = Challenge::findOrFail($invitationId);
-
+    
+        // Check if the authenticated user is the receiver of the challenge
         if ($invitation->receiver_id !== Auth::id()) {
             return response()->json(['status' => 'You are not authorized to accept this challenge.']);
         }
+    
+        // Delete the challenge after acceptance
 
-        $invitation->status = 'accepted';
-        $invitation->save();
-
-        event(new ChallengeAccepted($invitation->sender_id,$invitationId));
-
-        return response()->json(['status' => 'Challenge accepted!']);
+    
+        // Create a new fight
+        $fight = new Fight();
+        $fight->user1_id = $invitation->sender_id;
+        $fight->user2_id = $invitation->receiver_id;
+        $fight->status = 'waiting_for_both';  // Set the initial status of the fight
+        $fight->save();
+    
+        // Trigger the ChallengeAccepted event with the fight ID
+        event(new ChallengeAccepted($invitation->sender_id, $invitation->id,$fight->id));
+        $invitation->delete();
+        // Return the fight ID in the response
+        return response()->json(['status' => 'Challenge accepted!', 'fightId' => $fight->id]);
     }
+    
 
     public function store(Request $request)
     {

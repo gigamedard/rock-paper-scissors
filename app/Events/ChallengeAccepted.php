@@ -21,13 +21,15 @@ class ChallengeAccepted implements shouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $challengeId;
-    public $senderId; 
+    public $senderId;
+    public $fightId; 
    
 
-    public function __construct($senderId,$paramInvitationId)
+    public function __construct($senderId,$paramInvitationId,$paramFightId=0)
     {  
         $this->challengeId = $paramInvitationId;
         $this->senderId= $senderId;
+        $this->fightId = $paramFightId;
     }
 
     /**
@@ -49,7 +51,7 @@ class ChallengeAccepted implements shouldBroadcastNow
     public function broadcastWith(): array
     {   
         
-        return  ['invitationId' => $this->challengeId];
+        return  ['invitationId' => $this->challengeId, 'fightId'=>$this->fightId];
     }
 }
 
