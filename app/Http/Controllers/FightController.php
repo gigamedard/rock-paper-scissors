@@ -42,8 +42,11 @@ class FightController extends Controller
             $fight->status = 'waiting_for_result';
             $fight->save();
 
+            event(new VerdictIssuedEvent($fight->user1_id,$fight));
+            event(new VerdictIssuedEvent($fight->user2_id,$fight));            
             return response()->json(['status' => 'Fight completed!', 'result' => $fight->result]);
         }
+
 
         return response()->json(['status' => 'Move registered! Waiting for opponent.']);
     }

@@ -15,7 +15,7 @@ use App\Events\ChallengeAccepted;
 
 class ChallengeController extends Controller
 {
-    public function sendChallenge($userId)
+    public function sendChallenge($userId,$baseBetAmount, $maxBetAmount)
     {   
 
         $challengedUser = User::findOrFail($userId);
@@ -38,6 +38,8 @@ class ChallengeController extends Controller
 
         $challenge = new Challenge();
         $challenge->sender_id = $currentUser->id;
+        $challenge->base_bet_amount = $baseBetAmount;
+        $challenge->max_bet_amount = $maxBetAmount;
         $challenge->receiver_id = $challengedUser->id;
         $challenge->status = 'pending';
         $challenge->save();
@@ -67,6 +69,8 @@ class ChallengeController extends Controller
         $fight = new Fight();
         $fight->user1_id = $invitation->sender_id;
         $fight->user2_id = $invitation->receiver_id;
+        $fight->base_bet_amount = $invitation->base_bet_amount;
+        $fight->max_bet_amount = $invitation->max_bet_amount;
         $fight->status = 'waiting_for_both';  // Set the initial status of the fight
         $fight->save();
     

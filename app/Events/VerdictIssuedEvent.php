@@ -12,23 +12,21 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 
-use App\Models\Challenge;
+use App\Models\Fight;
 use App\Models\User;
 use Auth;
 
-class ChallengeAccepted implements shouldBroadcastNow
+class VerdictIssuedEvent implements shouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $challengeId;
-    public $senderId;
-    public $fightId; 
+    public $userId;
+    public $fight; 
    
 
-    public function __construct($senderId,$paramInvitationId,$paramFightId=0)
+    public function __construct(Fight $paramFight,$paramUserId)
     {  
-        $this->challengeId = $paramInvitationId;
-        $this->senderId= $senderId;
+        $this->userId= $paramUserId;
         $this->fightId = $paramFightId;
     }
 
@@ -40,7 +38,7 @@ class ChallengeAccepted implements shouldBroadcastNow
     public function broadcastOn(): array
     {   
         
-         $channel = 'App.Models.User.' . $this->senderId;
+         $channel = 'App.Models.User.' . $this->userId;
         
         return [
             new PrivateChannel($channel),
@@ -51,8 +49,6 @@ class ChallengeAccepted implements shouldBroadcastNow
     public function broadcastWith(): array
     {   
         
-        return  ['invitationId' => $this->challengeId, 'fightId'=>$this->fightId];
+        return  ['fight' => $this->fight, 'fightId'=>$this->fightId];
     }
 }
-
-

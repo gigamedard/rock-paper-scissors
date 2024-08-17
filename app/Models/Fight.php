@@ -28,6 +28,8 @@ class Fight extends Model
         'result',
         'user1_chosed',
         'user2_chosed',
+        'base_bet_amount',
+        'max_bet_amount',
     ];
 
     /**

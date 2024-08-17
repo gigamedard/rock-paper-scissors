@@ -36,4 +36,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Challenge::class, 'receiver_id');
     }
+
+    public function userSetting()
+    {
+        return $this->hasOne(UserSetting::class);
+    }
 }

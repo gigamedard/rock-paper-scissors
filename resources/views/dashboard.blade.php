@@ -21,6 +21,7 @@
                             @foreach($onlineUsers as $user)
                                 <li id="user-{{ $user->id }}">
                                     {{ $user->name }}
+                                    <input type="number" id="bet-amount-{{ $user->id }}" value="100" class="bet-amount-input" />
                                     <button class="bg-blue-500 text-white px-2 py-1 rounded" onclick="sendChallenge({{ $user->id }})">Challenge</button>
                                 </li>
                             @endforeach
@@ -34,11 +35,12 @@
                         <h3 class="font-semibold text-lg">Received Invitations</h3>
                         <ul id="received-invitations-list">
                             @foreach($receivedInvitations as $invitation)
-                                <li id="received-invitation-{{ $invitation->id }}">
-                                    {{ $invitation->sender->name }}
-                                    <button class="bg-green-500 text-white px-2 py-1 rounded" onclick="acceptChallenge({{ $invitation->id }})">Accept</button>
-                                </li>
+                            <li id="received-invitation-{{ $invitation->id }}">
+                                {{ $invitation->sender->name }}
+                                <button class="bg-green-500 text-white px-2 py-1 rounded" onclick="acceptChallenge({{ $invitation->id }})">Accept</button>
+                            </li>
                             @endforeach
+
                         </ul>
                     </div>
                 </div>
@@ -81,6 +83,31 @@
                                 <i class="fas fa-hand-scissors"></i>
                             </div>
                         </div>
+                        <button class="open-settings" onclick="showSettingsPopup()">Settings</button>
+                    </div>
+                </div>
+
+                <!-- Settings Popup -->
+                <div id="settings-popup">
+                    <div class="settings-container">
+                        <button class="close-popup" onclick="hideSettingsPopup()">Close</button>
+                        <h3>User Settings</h3>
+                        <form id="settings-form">
+                            <label for="base-bet-amount">Base Bet Amount:</label>
+                            <input type="number" id="base-bet-amount" name="base-bet-amount" required>
+                            
+                            <label for="same-bet-match">
+                                <input type="checkbox" id="same-bet-match" name="same-bet-match" checked onclick="toggleMaxBetInput()">
+                                Match only with users who want to bet the same amount
+                            </label>
+
+                            <div id="max-bet-amount-container" style="display: none;">
+                                <label for="max-bet-amount">Max Bet Proposition Amount:</label>
+                                <input type="number" id="max-bet-amount" name="max-bet-amount">
+                            </div>
+
+                            <button type="submit">Save</button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -111,6 +138,7 @@
             flex-direction: column;
             align-items: center;
             gap: 20px;
+            position: relative; /* To position the settings button */
         }
 
         .screen {
@@ -180,17 +208,17 @@
         }
 
         .close-popup {
-                background: #ff5f5f;
-                color: white;
-                padding: 5px 10px;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                z-index: 2;
-            }
+            background: #ff5f5f;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 2;
+        }
 
         #timer-display {
             position: absolute;
@@ -210,6 +238,77 @@
             color: white;
             z-index: 2;
         }
+
+        .open-settings {
+            background-color: #f0f0f0;
+            color: #333;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 2;
+        }
+
+        /* Settings Popup */
+        #settings-popup {
+            display: none; /* Hide by default */
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent background */
+            z-index: 1100; /* High z-index to ensure it overlays other elements */
+        }
+
+        .settings-container {
+            width: 40%;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 3px 5px 3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #settings-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        #settings-form input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #settings-form button {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .bet-amount-input {
+            width: 80px;
+            margin-left: 10px;
+            margin-right: 10px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
     </style>
 
     <script>
@@ -218,6 +317,122 @@ let selectedMove = '';
 let fightId = null;
 let CurrentRequestData = null;
 
+baseBetAmount = 0;
+maxBetAmount = 0;
+
+function showSettingsPopup() {
+    document.getElementById('settings-popup').style.display = 'flex';
+}
+
+// Function to toggle the visibility of the Max Bet Amount field
+/*
+function toggleMaxBetInput() {
+    const maxBetContainer = document.getElementById('max-bet-amount-container');
+    const matchSameBet = document.getElementById('same-bet-match').checked;
+    
+    // Show or hide the Max Bet Amount input based on the checkbox status
+    if (matchSameBet) {
+        maxBetContainer.style.display = 'none';
+    } else {
+        maxBetContainer.style.display = 'block';
+    }
+}*/
+
+// Make sure to trigger the toggle function on page load to apply the correct initial state
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+
+       // Fetch user settings when the popup is opened
+       function loadUserSettings() {
+        fetch('/user/settings')
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                // Persist the settings in localStorage
+                localStorage.setItem('base_bet_amount', data.base_bet_amount);
+                localStorage.setItem('same_bet_match', data.same_bet_match);
+                localStorage.setItem('max_bet_amount', data.max_bet_amount);
+
+
+
+                // Populate the form fields with the user's settings
+                document.getElementById('base-bet-amount').value = data.base_bet_amount;
+                document.getElementById('same-bet-match').checked = data.same_bet_match;
+                if (data.same_bet_match) {
+                    document.getElementById('max-bet-amount-container').style.display = 'none';
+                    document.getElementById('max-bet-amount').value = data.max_bet_amount;
+                } else {
+                    document.getElementById('max-bet-amount-container').style.display = 'block';
+                }
+            })
+            .catch(function(error) {
+                console.error('Error fetching settings:', error);
+            });
+        }
+
+    // Show or hide the max bet input based on the checkbox
+    document.getElementById('same-bet-match').addEventListener('change', function() {
+        toggleMaxBetInput();
+    });
+
+   function toggleMaxBetInput() {
+        const isChecked = document.getElementById('same-bet-match').checked;
+        document.getElementById('max-bet-amount-container').style.display = isChecked ? 'none' : 'block';
+    }
+
+    // Handle form submission for saving settings
+    document.getElementById('settings-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        // Gather form data
+        const formData = {
+            base_bet_amount: document.getElementById('base-bet-amount').value,
+            same_bet_match: document.getElementById('same-bet-match').checked ? 1 : 0,
+            max_bet_amount: document.getElementById('max-bet-amount').value
+        };
+
+        // Persist the settings in localStorage
+        localStorage.setItem('base_bet_amount', formData.base_bet_amount);
+        localStorage.setItem('same_bet_match', formData.same_bet_match);
+        localStorage.setItem('max_bet_amount', formData.max_bet_amount);
+
+        // Send a POST request to save the settings to the server
+        fetch('/user/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken // Include CSRF token in the request headers                
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            alert(data.status);
+            hideSettingsPopup();  // Close the popup after saving
+        })
+        .catch(function(error) {
+            console.error('Error saving settings:', error);
+        });
+    });
+
+    // Load user settings when the popup is shown
+    loadUserSettings();
+});
+
+
+function hideSettingsPopup() {
+    document.getElementById('settings-popup').style.display = 'none';
+}
 function showGamepadPopup() {
     document.getElementById('gamepad-popup').style.display = 'flex';
     startCountdown();
@@ -274,18 +489,6 @@ function postRequest(url){
     .catch(error => console.error('Error:', error));
 }
 
-function sendChallenge(userId) {
-    fetch(`/challenge/send/${userId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => removeUserAfterChallenged(data))
-    .catch(error => console.error('Error:', error));
-}
 
 function removechallengerFromOnlineUserList(paramData, userId){
     const element = document.getElementById(`received-invitation-${userId}`);
@@ -362,5 +565,27 @@ function updateReceivedInvitations(event) {
     newItem.appendChild(acceptButton);
     receivedList.appendChild(newItem);
 }
+
+function sendChallenge(userId) {
+        const betAmount = document.getElementById(`bet-amount-${userId}`).value;
+
+        baseBetAmount =parseFloat(localStorage.getItem('base_bet_amount'));
+        maxBetAmount = parseFloat(localStorage.getItem('max_bet_amount'));
+        
+        fetch(`/challenge/send/${userId}/${baseBetAmount}/${maxBetAmount}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                betAmount: betAmount
+            })
+        })
+        .then(response => response.json())
+        .then(data => removeUserAfterChallenged(data))
+        .catch(error => console.error('Error:', error));
+}
     </script>
+
 </x-app-layout>

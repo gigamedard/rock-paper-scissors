@@ -4,10 +4,12 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChallengeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FightController;
+use App\Http\Controllers\UserSettingsController;
 
 use App\Models\Challenge;
 use App\Models\User;
 use App\Events\testevent;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -38,7 +40,7 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', [DashboardCon
 Route::middleware(['auth'])->group(function () {
     Route::post('/challenges', [ChallengeController::class, 'store'])->name('challenges.store');
     Route::put('/challenges/{challenge}', [ChallengeController::class, 'update'])->name('challenges.update');
-    Route::post('/challenge/send/{userId}', [ChallengeController::class, 'sendChallenge'])->name('challenge.send');
+    Route::post('/challenge/send/{userId}/{baseBetAmount}/{maxBetAmount}', [ChallengeController::class, 'sendChallenge'])->name('challenge.send');
     Route::post('/challenge/accept/{invitationId}', [ChallengeController::class, 'acceptChallenge'])->name('challenge.accept');
 });
 
@@ -50,8 +52,11 @@ Route::middleware(['auth'])->group(function () {
     
 });
 
-
-
+// Users Settings routes
+Route::middleware('auth')->group(function() {
+    Route::get('/user/settings', [UserSettingsController::class, 'getUserSettings']);
+    Route::post('/user/settings', [UserSettingsController::class, 'saveUserSettings']);
+});
 
 
 
