@@ -113,7 +113,7 @@ window.addEventListener("DOMContentLoaded",function(){
             // Assume there's a function to update the UI
             updateSentInvitations(chall);
             //alert(chall.challenge.status);
-        })
+    })
     .listen('ReceivedInvitationEvent', (invitation) => {
         // Assume there's a function to update the UI
         //alert("badaboom");
@@ -127,7 +127,12 @@ window.addEventListener("DOMContentLoaded",function(){
             dropSentInvitationFromUI(invitationData);
             showGamepadPopup();
             fightId = invitationData.fightId;
-        });
+    })
+    .listen('verdictReadyEvent', (res) => {
+    // Assume there's a function to update the UI
+    //alert("badaboom");
+    console.log(res);
+    });
 })
 
 //-------------------------------------------------------------popup-------------------------------------------

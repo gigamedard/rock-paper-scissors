@@ -21,7 +21,7 @@
                             @foreach($onlineUsers as $user)
                                 <li id="user-{{ $user->id }}">
                                     {{ $user->name }}
-                                    <input type="number" id="bet-amount-{{ $user->id }}" value="100" class="bet-amount-input" />
+                                    <input type="number" id="bet-amount-{{ $user->id }}" value="{{ $currentUser->userSetting->base_bet_amount }}" class="bet-amount-input" />
                                     <button class="bg-blue-500 text-white px-2 py-1 rounded" onclick="sendChallenge({{ $user->id }})">Challenge</button>
                                 </li>
                             @endforeach
@@ -36,7 +36,7 @@
                         <ul id="received-invitations-list">
                             @foreach($receivedInvitations as $invitation)
                             <li id="received-invitation-{{ $invitation->id }}">
-                                {{ $invitation->sender->name }}
+                                {{ $invitation->sender->name }} : {{ $invitation->base_bet_amount }}
                                 <button class="bg-green-500 text-white px-2 py-1 rounded" onclick="acceptChallenge({{ $invitation->id }})">Accept</button>
                             </li>
                             @endforeach
@@ -317,8 +317,8 @@ let selectedMove = '';
 let fightId = null;
 let CurrentRequestData = null;
 
-baseBetAmount = 0;
-maxBetAmount = 0;
+let baseBetAmount = 0;
+let maxBetAmount = 0;
 
 function showSettingsPopup() {
     document.getElementById('settings-popup').style.display = 'flex';
@@ -358,7 +358,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('same_bet_match', data.same_bet_match);
                 localStorage.setItem('max_bet_amount', data.max_bet_amount);
 
-
+                baseBetAmount =parseFloat(localStorage.getItem('base_bet_amount'));
+                maxBetAmount = parseFloat(localStorage.getItem('max_bet_amount'));
 
                 // Populate the form fields with the user's settings
                 document.getElementById('base-bet-amount').value = data.base_bet_amount;
@@ -569,10 +570,9 @@ function updateReceivedInvitations(event) {
 function sendChallenge(userId) {
         const betAmount = document.getElementById(`bet-amount-${userId}`).value;
 
-        baseBetAmount =parseFloat(localStorage.getItem('base_bet_amount'));
-        maxBetAmount = parseFloat(localStorage.getItem('max_bet_amount'));
+
         
-        fetch(`/challenge/send/${userId}/${baseBetAmount}/${maxBetAmount}`, {
+        fetch(`/challenge/send/${userId}/${baseBetAmount}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

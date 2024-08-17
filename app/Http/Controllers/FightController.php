@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Fight;
 use Auth;
 
+use App\Events\verdictReadyEvent;
 class FightController extends Controller
 {
     public function played($fightId, $selectedMove)
@@ -42,8 +43,14 @@ class FightController extends Controller
             $fight->status = 'waiting_for_result';
             $fight->save();
 
-            event(new VerdictIssuedEvent($fight->user1_id,$fight));
-            event(new VerdictIssuedEvent($fight->user2_id,$fight));            
+
+            $user1Gain = $fight->user1Gain();
+            $user1Verdict = $fight->user1Verdict();
+            $user2Gain = $fight->user2Gain();
+            $user2Verdict = $fight->user2Verdict();
+
+            event(new verdictReadyEvent($fight,$fight->user1_id,$user1Gain,$user1Verdict));
+            event(new verdictReadyEvent($fight,$fight->user2_id,$user2Gain,$user2Verdict));            
             return response()->json(['status' => 'Fight completed!', 'result' => $fight->result]);
         }
 
