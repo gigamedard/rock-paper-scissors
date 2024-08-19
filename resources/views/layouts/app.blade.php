@@ -123,10 +123,13 @@ window.addEventListener("DOMContentLoaded",function(){
             // Assume there's a function to update the UI
             //alert(invitationData.invitationId);
             //updateReceivedInvitations(invitation);
+            fightCreatedAt = invitationData.createdAt;
             console.log(invitationData);
             dropSentInvitationFromUI(invitationData);
             showGamepadPopup();
             fightId = invitationData.fightId;
+
+            
     })
     .listen('verdictReadyEvent', (res) => {
     // Assume there's a function to update the UI

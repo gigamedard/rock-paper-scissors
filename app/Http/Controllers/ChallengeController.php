@@ -75,10 +75,10 @@ class ChallengeController extends Controller
         $fight->save();
     
         // Trigger the ChallengeAccepted event with the fight ID
-        event(new ChallengeAccepted($invitation->sender_id, $invitation->id,$fight->id));
+        event(new ChallengeAccepted($invitation->sender_id, $invitation->id,$fight->id, $fight->created_at->timestamp));
         $invitation->delete();
         // Return the fight ID in the response
-        return response()->json(['status' => 'Challenge accepted!', 'fightId' => $fight->id]);
+        return response()->json(['status' => 'Challenge accepted!', 'fightId' => $fight->id, 'createdAt' => $fight->created_at->timestamp]);
     }
     
 

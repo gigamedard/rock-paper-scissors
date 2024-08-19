@@ -22,14 +22,16 @@ class ChallengeAccepted implements shouldBroadcastNow
 
     public $challengeId;
     public $senderId;
-    public $fightId; 
+    public $fightId;
+    public $createdAt; 
    
 
-    public function __construct($senderId,$paramInvitationId,$paramFightId=0)
+    public function __construct($senderId,$paramInvitationId,$paramFightId=0,$paramfightCreatedAt)
     {  
         $this->challengeId = $paramInvitationId;
         $this->senderId= $senderId;
         $this->fightId = $paramFightId;
+        $this->createdAt = $paramfightCreatedAt;
     }
 
     /**
@@ -51,7 +53,7 @@ class ChallengeAccepted implements shouldBroadcastNow
     public function broadcastWith(): array
     {   
         
-        return  ['invitationId' => $this->challengeId, 'fightId'=>$this->fightId];
+        return  ['invitationId' => $this->challengeId, 'fightId'=>$this->fightId, 'createdAt'=>$this->createdAt];
     }
 }
 

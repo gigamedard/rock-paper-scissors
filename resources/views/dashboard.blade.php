@@ -312,9 +312,11 @@
     </style>
 
     <script>
+let differenceClientServerTimestamp = 0;
 let countdownInterval;
 let selectedMove = '';
 let fightId = null;
+let fightCreatedAt = 0;
 let CurrentRequestData = null;
 
 let baseBetAmount = 0;
@@ -322,6 +324,26 @@ let maxBetAmount = 0;
 
 function showSettingsPopup() {
     document.getElementById('settings-popup').style.display = 'flex';
+}
+
+
+function updateDifferenceClientServerTimestamp() {
+    fetch('/get_server_time') // Replace with your server endpoint
+        .then(response => response.json())
+        .then(data => {
+            // Assuming the server returns a JSON object with a 'timestamp' fieldme
+            let jsTimestamp = new Date(data.timestamp * 1000).getTime();
+
+            console.log(jsTimestamp);
+            
+
+            let currentTimestamp = new Date().getTime();
+            console.log(currentTimestamp);
+
+            differenceClientServerTimestamp = currentTimestamp - jsTimestamp; // Convert to JavaScript Date object
+
+            console.log(differenceClientServerTimestamp);
+        });
 }
 
 // Function to toggle the visibility of the Max Bet Amount field
@@ -446,7 +468,22 @@ function hideGamepadPopup() {
 }
 
 function startCountdown() {
-    let timer = 15;
+    updateDifferenceClientServerTimestamp();
+
+
+
+
+    const serverTime = new Date(fightCreatedAt * 1000).getTime(); // Convert timestamp to JS Date
+    const clientTime = new Date().getTime(); // Client's current time
+
+    // Calculate elapsed time in seconds
+    const elapsedTime = Math.floor((clientTime - serverTime) / 1000);
+
+    // Calculate starting time for countdown
+    let timer = Math.max(0, 15 - elapsedTime + differenceClientServerTimestamp/1000); // Ensures timer is not negative
+
+    console.log(`elapsedTime :${elapsedTime} differenceClientServerTimestamp: ${differenceClientServerTimestamp} timer:${timer}`)
+
     document.getElementById('timer-display').textContent = timer;
 
     countdownInterval = setInterval(() => {
@@ -521,6 +558,7 @@ function acceptChallenge(invitationId) {
 }
 function challengeAccepted(paramData,inv){
     fightId = paramData.fightId;
+    fightCreatedAt = paramData.createdAt;
     console.log(`fightID: ${paramData.fightId}`)
     dropReceivedInvitationFromUI(inv);
     showGamepadPopup();

@@ -31,7 +31,10 @@ Route::get('/testevent', function () {
 
 
 
-
+Route::get('/get_server_time', function () {
+    $timestamp = now()->timestamp; // Get the current timestamp
+    return response()->json(['timestamp' => $timestamp]);
+});
 
 // Dashboard route
 Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
