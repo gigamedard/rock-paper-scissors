@@ -35,13 +35,13 @@
                         <h3 class="font-semibold text-lg">Received Invitations</h3>
                         <ul id="received-invitations-list">
                             @foreach($receivedInvitations as $invitation)
-                            <li id="received-invitation-{{ $invitation->id }}">
+                            <li id="received-invitation-{{ $invitation->id }}" data-created-at="{{ $invitation->created_at->timestamp }}">
                                 {{ $invitation->sender->name }} : {{ $invitation->base_bet_amount }}
                                 <button class="bg-green-500 text-white px-2 py-1 rounded" onclick="acceptChallenge({{ $invitation->id }})">Accept</button>
                             </li>
                             @endforeach
-
                         </ul>
+
                     </div>
                 </div>
 
@@ -556,6 +556,25 @@ function acceptChallenge(invitationId) {
     .then(data => challengeAccepted(data,invitationId))
     .catch(error => console.error('Error:', error));
 }
+
+
+function deleteOldChallenges() {
+    fetch('/challenges/cleanup', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => console.log(data))
+    .catch(error => console.error('Error:', error));
+}
+
+
+
+
+
 function challengeAccepted(paramData,inv){
     fightId = paramData.fightId;
     fightCreatedAt = paramData.createdAt;
@@ -584,11 +603,18 @@ function displayGamePad(){
 function updateSentInvitations(challenge) {
     const sentList = document.getElementById('sent-invitations-list');
     const newItem = document.createElement('li');
+
+    let createdAt = new Date(challenge.challenge.created_at).getTime();
+    console.log(`challenge.challenge.created_at : ${challenge.challenge.created_at}`);
+    console.log(new Date('2024-08-22T22:55:31.000000Z').getTime()); // Should output a valid timestamp
+
+    newItem.setAttribute('data-created-at', createdAt); // Assuming event.challenge.created_at holds the timestamp
+
     newItem.id = `sent-invitation-${challenge.challenge.id}`;
     newItem.textContent = `${challenge.receiver} - Pending`;
     sentList.appendChild(newItem);
 }
-
+/*
 function updateReceivedInvitations(event) {
     const receivedList = document.getElementById('received-invitations-list');
     const newItem = document.createElement('li');
@@ -603,7 +629,60 @@ function updateReceivedInvitations(event) {
     newItem.appendChild(senderText);
     newItem.appendChild(acceptButton);
     receivedList.appendChild(newItem);
+}*/
+
+
+
+function updateReceivedInvitations(event) {
+    const receivedList = document.getElementById('received-invitations-list');
+
+    // Create a new list item
+    const newItem = document.createElement('li');
+
+    // Set the ID and data-created-at attributes
+    newItem.id = `received-invitation-${event.challenge.id}`;
+    let createdAt = new Date(event.challenge.created_at).getTime()
+    newItem.setAttribute('data-created-at', createdAt); // Assuming event.challenge.created_at holds the timestamp
+
+    // Create text node with the sender's name
+    const senderText = document.createTextNode(`${event.sender} : ${event.challenge.base_bet_amount} ` );
+
+    // Create the Accept button
+    const acceptButton = document.createElement('button');
+    acceptButton.classList.add('bg-green-500', 'text-white', 'px-2', 'py-1', 'rounded');
+    acceptButton.textContent = 'Accept';
+    acceptButton.onclick = function () {
+        acceptChallenge(event.challenge.id);
+    };
+
+    // Append the sender text and the Accept button to the list item
+    newItem.appendChild(senderText);
+    newItem.appendChild(acceptButton);
+
+    // Append the new list item to the received invitations list
+    receivedList.appendChild(newItem);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function sendChallenge(userId) {
         const betAmount = document.getElementById(`bet-amount-${userId}`).value;
@@ -624,6 +703,69 @@ function sendChallenge(userId) {
         .then(data => removeUserAfterChallenged(data))
         .catch(error => console.error('Error:', error));
 }
+
+
+function checkAndRemoveExpiredInvitations() {
+    const invitations = document.querySelectorAll('#received-invitations-list li');
+    const currentTime = new Date().getTime()/1000; // Current time in seconds
+
+    invitations.forEach(invitation => {
+        const createdAt = parseFloat(invitation.getAttribute('data-created-at')) / 1000;
+        console.log(`currentTime ${currentTime} createdAt :${createdAt}`);
+        if (currentTime - createdAt > 45) {
+            // Remove the expired invitation from the UI
+            invitation.remove();
+
+            console.log(`currentTime ${currentTime} createdAt :${createdAt} diff = ${currentTime - createdAt}`);
+        }
+    });
+}
+
+
+
+
+function checkAndRemoveExpiredInvitationsSent() {
+    const invitations = document.querySelectorAll('#sent-invitations-list li'); // Select all <li> elements within the container
+    const currentTime = new Date().getTime() / 1000; // Current time in seconds
+
+    invitations.forEach(invitation => {
+        let createdAt = invitation.getAttribute('data-created-at');
+
+        console.log(`Original createdAt attribute: ${createdAt}`);
+        
+        if (!createdAt) {
+            console.error('No data-created-at attribute found for this invitation:', invitation);
+            return; // Skip processing this element
+        }
+
+        createdAt = parseFloat(createdAt) / 1000; // Convert milliseconds to seconds
+        console.log(`Parsed createdAt in seconds: ${createdAt}`);
+        console.log(`Current Time in seconds: ${currentTime}`);
+
+        if (currentTime - createdAt > 45) { // If more than 45 seconds have passed
+            // Remove the expired invitation from the UI
+            invitation.remove();
+            console.log(`Removed invitation due to expiration. Time difference: ${currentTime - createdAt} seconds.`);
+        }
+    });
+}
+
+
+
+
+
+
+function routin(){
+    checkAndRemoveExpiredInvitations();
+    checkAndRemoveExpiredInvitationsSent();
+    deleteOldChallenges();
+
+}
+
+
+// Run the check every second
+setInterval(routin, 4000);
+
     </script>
 
 </x-app-layout>

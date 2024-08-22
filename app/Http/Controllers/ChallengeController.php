@@ -12,6 +12,10 @@ use App\Events\ChallengeSent;
 use App\Events\ReceivedInvitationEvent;
 use App\Events\ChallengeAccepted;
 
+use Illuminate\Support\Facades\DB;
+use Exception;
+use Illuminate\Support\Facades\Log;
+
 
 class ChallengeController extends Controller
 {
@@ -120,4 +124,45 @@ class ChallengeController extends Controller
 
         return redirect()->back()->with('status', 'Challenge status updated.');
     }
+
+    public function deleteOldChallenges()
+    {
+        // Start a database transaction
+        DB::beginTransaction();
+
+        $totlal = 0;
+    
+        try {
+            // Lock the rows that are selected for deletion using a FOR UPDATE lock
+            $challenges = Challenge::where('created_at', '<=', now()->subSeconds(15))
+                ->orderBy('created_at', 'asc')
+                ->limit(50) // Limit to 50 challenges as per your initial requirement
+                ->lockForUpdate() // This locks the selected rows for the duration of the transaction
+                ->get();
+    
+            if ($challenges->count() > 0) {
+                foreach ($challenges as $challenge) {
+                    try {
+                        // Attempt to delete each challenge
+                        $challenge->delete();
+                    } catch (Exception $e) {
+                        // Handle any exceptions during the deletion of a challenge
+                        Log::error("Failed to delete challenge ID {$challenge->id}: " . $e->getMessage());
+                    }
+                }
+
+                $totlal = $challenges->count();
+            }
+    
+            // Commit the transaction if all challenges were deleted successfully
+            DB::commit();
+        } catch (Exception $e) {
+            // Rollback the transaction if something goes wrong and log the error
+            DB::rollBack();
+            Log::error('Failed to delete old challenges: ' . $e->getMessage());
+        }
+    
+        return response()->json(['message' => ' '.$totlal.' Process completed. Check logs for any errors.']);
+    }
+    
 }

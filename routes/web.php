@@ -47,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/challenge/accept/{invitationId}', [ChallengeController::class, 'acceptChallenge'])->name('challenge.accept');
 });
 
+Route::get('/challenges/cleanup', [ChallengeController::class, 'deleteOldChallenges']);
 
 
 // Fight routes
