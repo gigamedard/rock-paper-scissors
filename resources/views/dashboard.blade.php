@@ -71,6 +71,9 @@
                             <video src="{{asset('videos/bg1.mp4')}}" autoplay loop muted></video>
                             <div id="timer-display" class="timer">15</div>
                             <div id="selection-display" class="selection"></div>
+                            <!-- New data display areas -->
+                            <div id="gain-display" class="gain">Gain: </div>
+                            <div id="verdict-display" class="verdict">Verdict: </div>
                         </div>
                         <div class="controls">
                             <div class="button rock" onclick="selectMove('rock')">
@@ -86,6 +89,7 @@
                         <button class="open-settings" onclick="showSettingsPopup()">Settings</button>
                     </div>
                 </div>
+
 
                 <!-- Settings Popup -->
                 <div id="settings-popup">
@@ -308,6 +312,34 @@
             border: 1px solid #ccc;
             border-radius: 5px;
         }
+/* Initially hide the elements */
+#gain-display, #verdict-display {
+    display: none; /* Hidden by default */
+    font-size: 24px; /* Set the font size to be clearly visible */
+    color: white; /* White text to stand out against dark backgrounds */
+    font-weight: bold; /* Make the text bold for emphasis */
+    text-align: center; /* Center text horizontally within the container */
+    margin-top: 10px; /* Add some space above for separation */
+}
+
+/* Position the gain-display element */
+#gain-display {
+    margin-top: 20px; /* Adjust margin for spacing from top */
+}
+
+/* Position the verdict-display element below the gain-display */
+#verdict-display {
+    margin-top: 40px; /* Space it further down from the gain-display */
+}
+
+/* Optional: Ensure the text is centered in its container */
+#gamepad-popup .screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center align horizontally */
+    justify-content: center; /* Center align vertically */
+}
+
 
     </style>
 
@@ -325,7 +357,15 @@ let maxBetAmount = 0;
 function showSettingsPopup() {
     document.getElementById('settings-popup').style.display = 'flex';
 }
-
+function updateGamepadScreen(data) {
+    // Update the content of the gain and verdict display
+    document.getElementById('gain-display').textContent = 'Gain: ' + data.gain;
+    document.getElementById('verdict-display').textContent = ': ' + data.verdict;
+    
+    // Show the elements by changing their display style
+    document.getElementById('gain-display').style.display = 'block';
+    document.getElementById('verdict-display').style.display = 'block';
+}
 
 function updateDifferenceClientServerTimestamp() {
     fetch('/get_server_time') // Replace with your server endpoint

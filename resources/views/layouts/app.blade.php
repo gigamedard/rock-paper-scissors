@@ -134,7 +134,9 @@ window.addEventListener("DOMContentLoaded",function(){
     .listen('verdictReadyEvent', (res) => {
     // Assume there's a function to update the UI
     //alert("badaboom");
-    console.log(res);
+    console.log(res.gain);
+    updateGamepadScreen(res);
+
     });
 })
 
