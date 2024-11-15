@@ -5,6 +5,7 @@ use App\Http\Controllers\ChallengeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FightController;
 use App\Http\Controllers\UserSettingsController;
+use App\Http\Controllers\AutoMatchController;
 
 use App\Models\Challenge;
 use App\Models\User;
@@ -71,6 +72,12 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// autoprocess routes
+
+Route::get('/triggermatching', [AutoMatchController::class, 'selectSliceInstenceForAllBetAmount']);// later add a unique use token in parameter for security
+
+
 
 // Auth routes
 require __DIR__.'/auth.php';

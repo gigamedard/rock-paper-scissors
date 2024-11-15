@@ -39,6 +39,8 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'autoplay_active' => $request->input('autoplay_active', false),
+            'status' => $request->input('status', 'available'),
         ]);
 
         event(new Registered($user));

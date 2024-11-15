@@ -29,9 +29,11 @@ class FightController extends Controller
         if ($fight->user1_id === Auth::id()) {
             $fight->user1_chosed = $selectedMove;
             $fight->status = $fight->user2_chosed === 'nothing' ? 'waiting_for_user2' : 'waiting_for_result';
+            User::where('id', $fight->user1_id)->update(['status' => 'in_fight']);
         } elseif ($fight->user2_id === Auth::id()) {
             $fight->user2_chosed = $selectedMove;
             $fight->status = $fight->user1_chosed === 'nothing' ? 'waiting_for_user1' : 'waiting_for_result';
+            User::where('id', $fight->user2_id)->update(['status' => 'in_fight']);
         }
 
         $fight->save();
@@ -48,6 +50,9 @@ class FightController extends Controller
             $user1Verdict = $fight->user1Verdict();
             $user2Gain = $fight->user2Gain();
             $user2Verdict = $fight->user2Verdict();
+
+            User::whereIn('id', [$fight->user1_id, $fight->user2_id])
+            ->update(['status' => 'available']);
 
             event(new verdictReadyEvent($fight,$fight->user1_id,$user1Gain,$user1Verdict));
             event(new verdictReadyEvent($fight,$fight->user2_id,$user2Gain,$user2Verdict));            

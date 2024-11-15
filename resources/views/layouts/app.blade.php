@@ -105,8 +105,10 @@
 const userId = {{ Auth::user()->id }};
 
 const channelName = `App.Models.User.${userId}`;
+console.log(window.Echo);
 
 window.addEventListener("DOMContentLoaded",function(){
+    
     window.Echo.private(channelName)
     .listen("testevent",(event)=>{alert(event.message);})
     .listen('ChallengeSent', (chall) => {
