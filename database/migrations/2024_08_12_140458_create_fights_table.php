@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user1_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('user2_id')->constrained('users')->onDelete('cascade');
-            $table->enum('status', ['waiting_for_both', 'waiting_for_user1', 'waiting_for_user2','waiting_for_result'])->default('waiting_for_both');
+            $table->enum('status', ['waiting_for_both', 'waiting_for_user1', 'waiting_for_user2','waiting_for_result','completed'])->default('waiting_for_both');
             $table->enum('result', [ 'user2_win', 'user1_win','draw'])->default('draw');
             $table->decimal('base_bet_amount', 10, 2)->default(0);
             $table->decimal('max_bet_amount', 10, 2)->default(0);

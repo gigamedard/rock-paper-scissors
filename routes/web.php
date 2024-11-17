@@ -76,6 +76,7 @@ Route::middleware(['auth'])->group(function () {
 // autoprocess routes
 
 Route::get('/triggermatching', [AutoMatchController::class, 'selectSliceInstenceForAllBetAmount']);// later add a unique use token in parameter for security
+Route::post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
 
 

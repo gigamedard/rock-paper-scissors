@@ -8,39 +8,22 @@ use Illuminate\Support\Facades\DB;
 class AutoMatchController extends Controller
 {   
     public function processAutoMatch($betAmount, $instanceNumber, $limit = 10)
-    {   
-        $depthLimit = config('game_settings.depth_limit');
-        $limit = config('game_settings.chunk_size');   // Chunk size
-        DB::transaction(function() use ($betAmount, $instanceNumber, $limit) {
-            // 1. Retrieve slice_table entry based on current instance number
+    {
+        $limit = config('game_settings.chunk_size');
+        DB::transaction(function () use ($betAmount, $instanceNumber, $limit) {
             $sliceData = DB::table('slice_table')
-                           ->where('instance_number', $instanceNumber)
-                           ->where('bet_amount', $betAmount)
-                           ->where('current_instance', true)
-                           ->first();
+                ->where('instance_number', $instanceNumber)
+                ->where('bet_amount', $betAmount)
+                ->where('current_instance', true)
+                ->first();
     
             if (!$sliceData) {
-                return; // No active instance found, exit function
+                return;
             }
     
-            // 2. Retrieve last processed user ID and ultimate ID from slice_data
             $lastUserId = $sliceData->last_user_id ?? 0;
-            $ultimeId = $sliceData->ultime_user_id ?? 0;
-
-            if($lastUserId == 0)
-            {
-                $users = User::where('autoplay_active', true)
-                ->where('bet_amount', $betAmount)
-                ->where('id', '>=', $lastUserId)
-                ->where('status', 'available')
-                ->orderBy('id')
-                ->limit($limit)
-                ->lockForUpdate()
-                ->get();                
-            }
-            else
-            {
-                $users = User::where('autoplay_active', true)
+    
+            $users = User::where('autoplay_active', true)
                 ->where('bet_amount', $betAmount)
                 ->where('id', '>', $lastUserId)
                 ->where('status', 'available')
@@ -48,38 +31,36 @@ class AutoMatchController extends Controller
                 ->limit($limit)
                 ->lockForUpdate()
                 ->get();
-            }
-
-
-            // Ensure an even number of users for pairing
+    
             if ($users->count() % 2 !== 0) {
-                $excludedUser = $users->pop();
-                DB::table('users')->where('id', $excludedUser->id)->update(['locked' => false]);
+                $users->pop(); // Ensure even count
             }
     
-            // 4. Update last_user_id if users are available
             if ($users->isNotEmpty()) {
                 $newLastUserId = $users->last()->id;
                 DB::table('slice_table')->where('instance_number', $instanceNumber)
                     ->update(['last_user_id' => $newLastUserId]);
+    
+                // Generate fights and process them
+                for ($i = 0; $i < $users->count(); $i += 2) {
+                    $fight = Fight::create([
+                        'user1_id' => $users[$i]->id,
+                        'user2_id' => $users[$i + 1]->id,
+                        'base_bet_amount' => $betAmount,
+                        'status' => 'waiting_for_result',
+                    ]);
+    
+                    // Use the built-in method to complete the fight
+                    $fight->handleAutoplayFight();
+                }
             }
     
-            // 5. Pair users and create fights
-            for ($i = 0; $i < $users->count(); $i += 2) {
-                Fight::create([
-                    'user1_id' => $users[$i]->id,
-                    'user2_id' => $users[$i + 1]->id,
-                    'bet_amount' => $betAmount,
-                    'status' => 'waiting_for_both'
-                ]);
-            }
-    
-            // 6. Increment the depth of the current instance after processing
             DB::table('slice_table')->where('instance_number', $instanceNumber)
-            ->where('bet_amount', $betAmount)
+                ->where('bet_amount', $betAmount)
                 ->increment('depth');
         });
     }
+    
 
     public function selectSliceInstence($betAmount)
     {   $depthLimit = config('game_settings.depth_limit');
@@ -131,5 +112,27 @@ class AutoMatchController extends Controller
         }
     }
 
+    public function storePreMoves(Request $request)
+    {
+        $validated = $request->validate([
+            'moves' => 'required|array',
+        ]);
+    
+        $nonce = bin2hex(random_bytes(16));
+        $hashedMoves = array_map(fn($move) => hash('sha256', $move . $nonce), $validated['moves']);
+    
+        DB::table('pre_moves')->updateOrInsert(
+            ['user_id' => auth()->id()],
+            [
+                'moves' => json_encode($validated['moves']),
+                'hashed_moves' => json_encode($hashedMoves),
+                'nonce' => $nonce,
+                'current_index' => 0,
+            ]
+        );
+    
+        return response()->json(['message' => 'Pre-moves stored successfully!']);
+    }
+    
 
 }

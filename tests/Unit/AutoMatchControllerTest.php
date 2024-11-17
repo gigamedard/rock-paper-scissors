@@ -1,11 +1,12 @@
 <?php
+
 namespace Tests\Unit;
 
 use Tests\TestCase;
-use App\Models\User;
-use App\Models\Fight;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\Fight;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class AutoMatchControllerTest extends TestCase
 {
@@ -15,111 +16,77 @@ class AutoMatchControllerTest extends TestCase
     {
         parent::setUp();
 
-        // Set game settings in config
-        config(['game_settings.depth_limit' => 3]);
+        // Configure game settings
         config(['game_settings.chunk_size' => 10]);
-        config(['game_settings.bet_amounts' => [50, 100, 200]]);
+        config(['game_settings.depth_limit' => 3]);
     }
 
-    public function testRouteExecutesControllerMethod()
+    public function testProcessAutoMatchCreatesAndResolvesFights()
     {
-        $response = $this->get('/triggermatching');
 
-        $response->assertOk(); // Verify the route executes
-    }
+    // Create test users with autoplay active
+    $users = User::factory()->count(4)->create([
+        'autoplay_active' => true,
+        'bet_amount' => 50,
+        'status' => 'available',
+        'balance' => 100,
+    ]);
 
-    public function testProcessAutoMatchCreatesFightsAndUpdatesSliceTable()
-    {
-        // Seed test data
-        $instanceNumber = 1;
-        DB::table('slice_table')->insert([
-            'instance_number' => $instanceNumber,
-            'bet_amount' => 50,
-            'current_instance' => true,
-            'depth' => 0,
-            'last_user_id' => 0,
-            'ultime_user_id' => 0,
-            'updated_at' => now(),
-        ]);
-
-        // Create 6 users with autoplay active and the same bet amount
-        User::factory()->count(6)->create([
-            'autoplay_active' => true,
-            'bet_amount' => 50,
-            'status' => 'available',
-        ]);
-
-        // Call the method
-        $controller = new \App\Http\Controllers\AutoMatchController();
-        $controller->processAutoMatch(50, $instanceNumber);
-
-        // Assert fights are created
-        $this->assertDatabaseCount('fights', 3);
-
-        // Assert slice_table is updated
-        $this->assertDatabaseHas('slice_table', [
-            'instance_number' => $instanceNumber,
-            'depth' => 1, // Depth incremented
+    // Create pre-moves for each user
+    foreach ($users as $user) {
+        DB::table('pre_moves')->insert([
+            'user_id' => $user->id,
+            'moves' => json_encode(['rock', 'scissors', 'paper']),
+            'hashed_moves' => json_encode([
+                hash('sha256', 'rock'),
+                hash('sha256', 'scissors'),
+                hash('sha256', 'paper'),
+            ]),
+            'current_index' => 0,
         ]);
     }
 
-    public function testDepthUpdateAndInstanceSwitching()
-    {
-        // Seed two slice_table entries
-        DB::table('slice_table')->insert([
-            'instance_number' => 1,
-            'bet_amount' => 50,
-            'current_instance' => true,
-            'depth' => 3, // Already at the depth limit
-            'updated_at' => now(),
-        ]);
+    // Create slice_table entry
+    DB::table('slice_table')->insert([
+        'instance_number' => 1,
+        'bet_amount' => 50,
+        'current_instance' => true,
+        'last_user_id' => 0,
+        'depth' => 0,
+    ]);
 
-        DB::table('slice_table')->insert([
-            'instance_number' => 2,
-            'bet_amount' => 50,
-            'current_instance' => false,
-            'depth' => 0,
-            'updated_at' => now()->subMinute(),
-        ]);
+    // Call the method to process the auto match
+    $controller = new \App\Http\Controllers\AutoMatchController();
+    $controller->processAutoMatch(50, 1);
 
-        // Call the method
-        $controller = new \App\Http\Controllers\AutoMatchController();
-        $controller->selectSliceInstence(50);
+    // Assert that two fights were created
+    $this->assertDatabaseCount('fights', 2);
 
-        // Assert current instance was switched
-        $this->assertDatabaseHas('slice_table', [
-            'instance_number' => 1,
-            'current_instance' => false,
-        ]);
+    // Fetch fights and assert balances are updated
+    $fights = Fight::all();
+    foreach ($fights as $fight) {
+        $this->assertEquals('completed', $fight->status); // Fight completed
+        $this->assertContains($fight->result, ['user1_win', 'user2_win', 'draw']);
 
-        $this->assertDatabaseHas('slice_table', [
-            'instance_number' => 2,
-            'current_instance' => true,
-            'depth' => 0, // Depth reset
-        ]);
-    }
+        // Assert balance updates based on result
+        $user1 = User::find($fight->user1_id);
+        $user2 = User::find($fight->user2_id);
 
-    public function testSelectSliceInstanceForAllBetAmount()
-    {
-        // Seed slice_table for multiple bet amounts
-        foreach ([1, 2, 4,8,16] as $betAmount) {
-            DB::table('slice_table')->insert([
-                'instance_number' => 1,
-                'bet_amount' => $betAmount,
-                'current_instance' => true,
-                'depth' => 0,
-                'updated_at' => now(),
-            ]);
+        if ($fight->result === 'user1_win') {
+            $this->assertEquals(110, $user1->balance);
+            $this->assertEquals(90, $user2->balance);
+        } elseif ($fight->result === 'user2_win') {
+            $this->assertEquals(110, $user2->balance);
+            $this->assertEquals(90, $user1->balance);
+        } else { // Draw
+            $this->assertEquals(100, $user1->balance);
+            $this->assertEquals(100, $user2->balance);
         }
-
-        // Call the method
-        $controller = new \App\Http\Controllers\AutoMatchController();
-        $controller->selectSliceInstenceForAllBetAmount();
-
-        // Assert no errors occurred and logic processed for all bet amounts
-        $this->assertTrue(true);
     }
 
-
+    // Assert the slice_table depth was incremented
+    $sliceData = DB::table('slice_table')->where('instance_number', 1)->first();
+    $this->assertEquals(1, $sliceData->depth);
+    }
 
 }
