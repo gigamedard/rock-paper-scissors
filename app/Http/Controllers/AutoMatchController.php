@@ -111,28 +111,41 @@ class AutoMatchController extends Controller
             $this->selectSliceInstence($betAmount);
         }
     }
-
+    
     public function storePreMoves(Request $request)
     {
         $validated = $request->validate([
-            'moves' => 'required|array',
+            'pre_moves' => 'required|array|min:1', // Array of moves
         ]);
-    
-        $nonce = bin2hex(random_bytes(16));
-        $hashedMoves = array_map(fn($move) => hash('sha256', $move . $nonce), $validated['moves']);
-    
+
+        $nonce = bin2hex(random_bytes(16)); // Generate a unique nonce
+        $preMoves = $validated['pre_moves'];
+
+        // Hash each move with the nonce
+        $hashedMoves = array_map(fn($move) => hash('sha3-256', $move . $nonce), $preMoves);
+
+        // Store in the database
         DB::table('pre_moves')->updateOrInsert(
             ['user_id' => auth()->id()],
             [
-                'moves' => json_encode($validated['moves']),
+                'moves' => json_encode($preMoves),
                 'hashed_moves' => json_encode($hashedMoves),
                 'nonce' => $nonce,
                 'current_index' => 0,
             ]
         );
-    
+
+        // Placeholder for storing hashed moves on blockchain
+        $this->storeOnBlockchain($hashedMoves);
+
         return response()->json(['message' => 'Pre-moves stored successfully!']);
     }
-    
+
+    // Placeholder method for blockchain interactions
+    private function storeOnBlockchain(array $hashedMoves)
+    {
+        // Implement blockchain storage logic here
+        // Example: Call smart contract to store the hashes
+    }
 
 }
