@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Fight;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class AutoMatchController extends Controller
 {   
@@ -116,10 +117,16 @@ class AutoMatchController extends Controller
     {
         $validated = $request->validate([
             'pre_moves' => 'required|array|min:1', // Array of moves
+            'user_id' => 'required|integer|exists:users,id', // Valid user ID
+            'bet_amount' => 'required|numeric|min:0.0001', // Decimal number with a minimum value
         ]);
+        
+        
+        
 
         $nonce = bin2hex(random_bytes(16)); // Generate a unique nonce
         $preMoves = $validated['pre_moves'];
+        $bet_amount = $validated['bet_amount'];
 
         // Hash each move with the nonce
         $hashedMoves = array_map(fn($move) => hash('sha3-256', $move . $nonce), $preMoves);
@@ -136,11 +143,52 @@ class AutoMatchController extends Controller
         );
 
         // Placeholder for storing hashed moves on blockchain
+        $this->registerForAutoplay($bet_amount);
         $this->storeOnBlockchain($hashedMoves);
 
-        return response()->json(['message' => 'Pre-moves stored successfully!']);
+        
+
+        return response()->json([
+            'message' => 'Pre-moves stored successfully!',
+            'hash' => hash('sha3-256', json_encode($hashedMoves)), // Return a hash of all hashed moves
+        ]);
     }
 
+    public function registerForAutoplay($bet_amount)
+    {
+
+        $user = auth()->user(); // Get the authenticated user
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        // Update user's autoplay settings
+        $user->update([
+            'autoplay_active' => true,
+            'bet_amount' => $bet_amount,
+            'status' => 'available', // Ensure the user is marked as available
+        ]);
+
+        return response()->json(['message' => 'User registered for autoplay successfully!']);
+    }
+
+    public function unregisterFromAutoplay()
+    {
+        $user = auth()->user();
+    
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+    
+        $user->update([
+            'autoplay_active' => false,
+            'status' => 'available', // Reset status
+        ]);
+    
+        return response()->json(['message' => 'User unregistered from autoplay successfully!']);
+    }
+    
     // Placeholder method for blockchain interactions
     private function storeOnBlockchain(array $hashedMoves)
     {

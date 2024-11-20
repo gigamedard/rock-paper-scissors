@@ -16,6 +16,19 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/autoplay', function () {
+    return view('autoplay');
+});
+
+Route::get('/autoplay2', function () {
+    return view('autoplay2');
+});
+
+
+Route::get('/autoplay3', function () {
+    return view('autoplay3');
+});
+
 
 Route::get('/testevent', function () {
 
@@ -63,6 +76,12 @@ Route::middleware('auth')->group(function() {
     Route::post('/user/settings', [UserSettingsController::class, 'saveUserSettings']);
 });
 
+Route::get('/user/balance', function () {
+    return response()->json([
+        'balance' => auth()->user()->balance,
+    ]);
+});
+
 
 
 
@@ -78,7 +97,7 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/triggermatching', [AutoMatchController::class, 'selectSliceInstenceForAllBetAmount']);// later add a unique use token in parameter for security
 Route::post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
-
+Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
 // Auth routes
 require __DIR__.'/auth.php';
