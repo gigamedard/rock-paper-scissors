@@ -17,9 +17,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/autoplay', function () {
-    return view('autoplay');
-});
+
 
 Route::get('/autoplay2', function () {
     return view('autoplay2');
@@ -97,7 +95,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/triggermatching', [AutoMatchController::class, 'selectSliceInstenceForAllBetAmount']);// later add a unique use token in parameter for security
 Route::post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
-
+Route::get('/autoplay', [AutoMatchController::class, 'index']);
 Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
 // wallet routes

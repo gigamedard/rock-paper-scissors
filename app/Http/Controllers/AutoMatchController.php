@@ -5,9 +5,23 @@ use App\Models\Fight;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AutoMatchController extends Controller
 {   
+
+
+
+    public function index()
+    {   
+        
+        if(!Auth::check()) {
+            return redirect('/');
+        }
+
+        return view('autoplay');
+    }
+
     public function processAutoMatch($betAmount, $instanceNumber, $limit = 10)
     {
         $limit = config('game_settings.chunk_size');
@@ -195,5 +209,8 @@ class AutoMatchController extends Controller
         // Implement blockchain storage logic here
         // Example: Call smart contract to store the hashes
     }
+    
 
+
+  
 }

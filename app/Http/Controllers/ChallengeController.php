@@ -18,7 +18,12 @@ use Illuminate\Support\Facades\Log;
 
 
 class ChallengeController extends Controller
-{
+{   
+
+
+
+
+
     public function sendChallenge($userId,$baseBetAmount/*, $maxBetAmount*/)
     {   
 
@@ -164,5 +169,7 @@ class ChallengeController extends Controller
     
         return response()->json(['message' => ' '.$totlal.' Process completed. Check logs for any errors.']);
     }
+
+
     
 }

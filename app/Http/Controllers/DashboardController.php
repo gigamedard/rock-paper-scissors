@@ -18,6 +18,6 @@ class DashboardController extends Controller
         $currentUser->is_online = true;
 
 
-        return view('dashboard', compact('onlineUsers', 'receivedInvitations', 'sentInvitations','currentUser'));
+        return view('welcome', compact('onlineUsers', 'receivedInvitations', 'sentInvitations','currentUser'));
     }
 }

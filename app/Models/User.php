@@ -17,7 +17,8 @@ class User extends Authenticatable
         'is_online',
         'autoplay_active',
         'status',
-        'bet_amount'
+        'bet_amount',
+        'wallet_address'
     ];
 
     protected $hidden = [

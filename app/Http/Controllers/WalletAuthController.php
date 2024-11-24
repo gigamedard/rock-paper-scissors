@@ -10,12 +10,20 @@ use Elliptic\EC;
 use kornrunner\Keccak;
 
 class WalletAuthController extends Controller
-{
+{   
+
+
+    private const EMAIL_DOMAIN = '';
+    private const MIN_USERNAME_LENGTH = 0;
+    private const MAX_USERNAME_LENGTH = 0;
     private $ec;
 
     public function __construct()
     {
         $this->ec = new EC('secp256k1');
+        $this->EMAIL_DOMAIN = 'game.web3';
+        $this->MIN_USERNAME_LENGTH = 9;
+        $this->MAX_USERNAME_LENGTH = 20;
     }
 
     public function generateMessage(Request $request)
@@ -46,14 +54,55 @@ class WalletAuthController extends Controller
 
         $message = "Sign this message to verify your wallet: $nonce";
 
-        try {
+        try
+        {
             $recoveredAddress = $this->recoverAddressFromSignature($message, $validated['signature']);
             
-            if (strtolower($recoveredAddress) === strtolower($validated['wallet_address'])) {
+            if (strtolower($recoveredAddress) === strtolower($validated['wallet_address']))
+            {
+
+                //=============================================================================================================
+
+                // Find or create user
+
+                $user = User::where('wallet_address', strtolower($recoveredAddress))->first();
+
+                if($user)
+                {
+                    // Update existing user
+                    $user->update([
+                        'is_online' => true,
+                    ]);
+                }
+                else
+                {
+                    // Generate username and email for new users
+                    $username = $this->generateReadableName($recoveredAddress);
+                    while (User::where('name', $username)->exists()) {
+                        $username = $this->generateReadableName($recoveredAddress);
+                    }
+
+                    $email = $this->fromUsername($username);
+
+                    $user = User::create([
+                        'wallet_address' => strtolower($recoveredAddress),
+                        'name' => $username,
+                        'email' => $email,
+                        'password' => '$2y$12$joxkkYZUOEw7vlqGxcTsxu3zCaCaplc7jSfWJaP03AJmPtNwcfLPW',
+                        'is_online' => true,
+                    ]);
+                }  
+                    
+                Auth::login($user);
+
+
+                //=============================================================================================================
+
                 return response()->json([
                     'message' => 'Authenticated successfully',
                     'recovered_address' => $recoveredAddress
                 ]);
+                
             }
             
             return response()->json(['message' => 'Invalid signature'], 401);
@@ -161,4 +210,61 @@ class WalletAuthController extends Controller
             ], 500);
         }
     }
+
+    //===========================================HELPERS =======================================================================================================
+
+    public function generateReadableName(string $walletAddress,string $prefix = 'user'): string 
+    {
+        // Get the first 6 characters of the address (excluding '0x')
+        $address = strtolower(trim(str_replace('0x', '', $walletAddress)));
+        $shortHash = substr($address, 0, 6);
+        
+        return $prefix . '_' . $shortHash.= rand(100, 999);
+    }
+
+
+    public function fromUsername(string $username,bool $includeRandomness = false): string
+    {
+        // Clean and validate username
+        $cleanUsername = $this->sanitizeUsername($username);
+        
+        if ($includeRandomness) {
+            $cleanUsername .= rand(100, 999);
+        }
+
+        return $this->generateEmail($cleanUsername);
+    }
+
+
+    public function generateEmail(string $username): string
+    {
+        return sprintf('%s@%s', $username, $this->EMAIL_DOMAIN);
+    }
+
+    public function sanitizeUsername(string $username): string
+    {
+        // Convert to lowercase and remove unwanted characters
+        $clean = strtolower(trim($username));
+        $clean = preg_replace('/[^a-z0-9.]/', '', $clean);
+        
+        // Validate length
+        if (strlen($clean) < $this->MIN_USERNAME_LENGTH) {
+            throw new \InvalidArgumentException(
+                sprintf('Username must be at least %d characters long', $this->MIN_USERNAME_LENGTH)
+            );
+        }
+
+        // Truncate if too long
+        if (strlen($clean) > $this->MAX_USERNAME_LENGTH) {
+            $clean = substr($clean, 0, $this->MAX_USERNAME_LENGTH);
+        }
+
+        return $clean;
+    }
+    //=======================================================================================================================================================
+
+
+
+
+
 }
