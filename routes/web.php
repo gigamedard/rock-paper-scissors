@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FightController;
 use App\Http\Controllers\UserSettingsController;
 use App\Http\Controllers\AutoMatchController;
+use App\Http\Controllers\WalletAuthController;
 
 use App\Models\Challenge;
 use App\Models\User;
@@ -98,6 +99,19 @@ Route::get('/triggermatching', [AutoMatchController::class, 'selectSliceInstence
 Route::post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
 Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
+
+// wallet routes
+Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateMessage']);
+Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySignature']);
+Route::post('/wallet/logout', [WalletAuthController::class, 'logout']);
+Route::get('/wallet/testrecovery', [WalletAuthController::class, 'testRecovery']);
+
+
+
+
+
+
+
 
 // Auth routes
 require __DIR__.'/auth.php';

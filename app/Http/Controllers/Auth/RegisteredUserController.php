@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Web3p\EthereumUtil\Util;
 
 class RegisteredUserController extends Controller
 {
@@ -49,4 +50,39 @@ class RegisteredUserController extends Controller
 
         return redirect(route('dashboard', absolute: false));
     }
+
+
+    public function verifySignature(Request $request)
+    {
+        $validated = $request->validate([
+            'wallet_address' => 'required|string',
+            'signature' => 'required|string',
+        ]);
+
+        $nonce = session('nonce');
+        if (!$nonce) {
+            return response()->json(['message' => 'Invalid session'], 400);
+        }
+
+        $message = "Sign this message to verify your wallet: $nonce";
+
+        // Recover the Ethereum address
+        $util = new Util();
+        $recoveredAddress = $util->personalEcRecover($message, $validated['signature']);
+
+        if (strtolower($recoveredAddress) !== strtolower($validated['wallet_address'])) {
+            return response()->json(['message' => 'Invalid signature'], 400);
+        }
+
+        // Register or authenticate the user
+        $user = User::firstOrCreate(
+            ['wallet_address' => $validated['wallet_address']],
+            ['name' => $validated['wallet_address']]
+        );
+
+        auth()->login($user);
+
+        return response()->json(['message' => 'Authenticated successfully']);
+    }
+
 }

@@ -3,9 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+
   <title>Rock Paper Scissors Game</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethereumjs-util/7.1.5/index.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <script src="https://unpkg.com/lucide@0.344.0"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+  <script src="https://bundle.run/secp256k1@4.0.3"></script>
+
+  
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -425,6 +433,14 @@
             </div>
           </div>
 
+          <div class="balance"onclick="loginWithWallet()">
+            <i data-lucide="wallet"></i>
+            <div>
+              <p class="balance-label" >Connect Wallet</p>
+           
+            </div>
+          </div>
+
           <div class="history">
             <div class="history-header">
               <i data-lucide="history"></i>
@@ -630,6 +646,97 @@
             alert('Failed to submit moves. Please try again.');
         }
     }
+
+//WEB 3.0=============================================================================================================
+    async function loginWithWallet() {
+      if (!window.ethereum) {
+        alert('Please install MetaMask!');
+        return;
+      }
+
+      const web3 = new Web3(window.ethereum);
+
+      try {
+        // Step 1: Connect Wallet
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await web3.eth.getAccounts();
+        const walletAddress = accounts[0];
+        console.log('Connected Wallet:', walletAddress);
+
+        // Step 2: Request signing message from the backend
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const messageResponse = await fetch('/wallet/generate-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken, },
+          body: JSON.stringify({ wallet_address: walletAddress }),
+        });
+
+        if (!messageResponse.ok) {
+          const error = await messageResponse.json();
+          alert(error.message);
+          return;
+        }
+
+        const { message } = await messageResponse.json();
+
+        // Step 3: Sign the message with the wallet
+        const signature = await web3.eth.personal.sign(message, walletAddress);
+        console.log("Signature:", signature);
+
+        //new version=====================================
+
+        const verifyResponse = await fetch('/wallet/verify-signature', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken,},
+          body: JSON.stringify({ wallet_address: walletAddress, signature }),
+        });
+
+        if (verifyResponse.ok) {
+          const data = await verifyResponse.json();
+          //alert(`Login successful! Welcome, ${data.user.name}`);
+          //console.log(data.user);
+          console.log(data);
+        } else {
+          const error = await verifyResponse.json();
+          alert(error.message);
+        }
+      } catch (error) {
+        console.error('Error during wallet authentication:', error);
+        alert('Authentication failed. Please try again.');
+      }
+    }
+
+    /*async function recoverPublicKey(message, signature) {
+      const web3 = new Web3(window.ethereum);
+
+      // Hash the message the same way Ethereum does before signing
+      const messageHash = web3.utils.sha3(
+        `\x19Ethereum Signed Message:\n${message.length}${message}`
+      );
+
+      // Recover the public key from the signature and hashed message
+      const publicKey = web3.eth.accounts.recover(messageHash, signature, true);
+
+      return publicKey;
+    }*/
+
+
+    function hexToBytes(hex) {
+      const bytes = [];
+      for (let i = 0; i < hex.length; i += 2) {
+        bytes.push(parseInt(hex.substr(i, 2), 16));
+      }
+      return new Uint8Array(bytes);
+    }
+
+    // Helper function to recover public key
+
+
+
+
+
+
+//====================================================================================================================    
     // Initialize
     document.querySelectorAll('.move-btn').forEach(btn => 
       btn.addEventListener('click', handleMoveClick)

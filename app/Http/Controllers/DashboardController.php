@@ -15,6 +15,8 @@ class DashboardController extends Controller
         $receivedInvitations = auth()->user()->challengesReceived()->where('status', 'pending')->get();
         $sentInvitations = auth()->user()->challengesSent()->where('status', 'pending')->get();
         $currentUser = Auth::user();
+        $currentUser->is_online = true;
+
 
         return view('dashboard', compact('onlineUsers', 'receivedInvitations', 'sentInvitations','currentUser'));
     }

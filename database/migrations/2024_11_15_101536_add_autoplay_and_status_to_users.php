@@ -9,7 +9,8 @@ class AddAutoplayAndStatusToUsers extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->decimal('balance', 10, 2)->default(0)->befor('autoplay_active');;
+            $table->decimal('balance', 10, 2)->default(0)->befor('autoplay_active');
+            $table->string('wallet_address')->unique()->nullable()->befor('email');;
             $table->boolean('autoplay_active')->default(false)->after('email');
             $table->string('status')->default('available')->after('autoplay_active');
             $table->decimal('bet_amount')->default(0.00001)->after('status'); // Example: available, locked

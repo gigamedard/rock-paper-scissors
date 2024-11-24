@@ -4,7 +4,6 @@
             {{ __('Dashboard') }}
         </h2>
     </x-slot>
-
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
@@ -791,6 +790,62 @@ function checkAndRemoveExpiredInvitationsSent() {
 }
 
 
+async function loginWithWallet() {
+  if (!window.ethereum) {
+    alert('Please install MetaMask!');
+    return;
+  }
+
+  const web3 = new Web3(window.ethereum);
+
+  try {
+    // Step 1: Connect Wallet
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const accounts = await web3.eth.getAccounts();
+    const walletAddress = accounts[0];
+    console.log('Connected Wallet:', walletAddress);
+
+    // Step 2: Request signing message from the backend
+    const messageResponse = await fetch('/wallet/generate-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet_address: walletAddress }),
+    });
+
+    if (!messageResponse.ok) {
+      const error = await messageResponse.json();
+      alert(error.message);
+      return;
+    }
+
+    const { message } = await messageResponse.json();
+
+    // Step 3: Sign the message with the wallet
+    const signature = await web3.eth.personal.sign(message, walletAddress);
+
+    // Step 4: Send the signature back to the backend for verification
+    const verifyResponse = await fetch('/wallet/verify-signature', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet_address: walletAddress, signature }),
+    });
+
+    if (verifyResponse.ok) {
+      const data = await verifyResponse.json();
+      alert(`Login successful! Welcome, ${data.user.name}`);
+      console.log(data.user);
+    } else {
+      const error = await verifyResponse.json();
+      alert(error.message);
+    }
+  } catch (error) {
+    console.error('Error during wallet authentication:', error);
+    alert('Authentication failed. Please try again.');
+  }
+}
+
+// Add this to a button in your frontend
+// <button onclick="loginWithWallet()">Connect Wallet</button>
 
 
 
