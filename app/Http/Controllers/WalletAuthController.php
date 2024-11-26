@@ -16,6 +16,9 @@ class WalletAuthController extends Controller
     private const EMAIL_DOMAIN = '';
     private const MIN_USERNAME_LENGTH = 0;
     private const MAX_USERNAME_LENGTH = 0;
+
+
+
     private $ec;
 
     public function __construct()
@@ -26,26 +29,29 @@ class WalletAuthController extends Controller
         $this->MAX_USERNAME_LENGTH = 20;
     }
 
-    public function generateMessage(Request $request)
+    public function _generateMessage(Request $request)
     {
         $validated = $request->validate([
-            'wallet_address' => 'required|string',
+            'wallet_address' => 'required|string|regex:/^0x[a-fA-F0-9]{40}$/',
         ]);
 
         $nonce = bin2hex(random_bytes(16));
         session(['nonce' => $nonce]);
+
+
         return response()->json([
             'message' => "Sign this message to verify your wallet: $nonce",
             'nonce' => $nonce,
         ]);
     }
 
-    public function verifySignature(Request $request)
+    public function _verifySignature(Request $request)
     {
         $validated = $request->validate([
-            'wallet_address' => 'required|string',
-            'signature' => 'required|string'
+            'wallet_address' => 'required|string|regex:/^0x[a-fA-F0-9]{40}$/',
+            'signature' => 'required|string|regex:/^0x[a-fA-F0-9]{130}$/'
         ]);
+        
 
         $nonce = session('nonce');
         if (!$nonce) {
@@ -54,11 +60,13 @@ class WalletAuthController extends Controller
 
         $message = "Sign this message to verify your wallet: $nonce";
 
+
+        session()->forget(['nonce']);
+
         try
         {
             $recoveredAddress = $this->recoverAddressFromSignature($message, $validated['signature']);
-            
-            if (strtolower($recoveredAddress) === strtolower($validated['wallet_address']))
+            if (hash_equals(strtolower($recoveredAddress), strtolower($validated['wallet_address'])))
             {
 
                 //=============================================================================================================
@@ -115,6 +123,99 @@ class WalletAuthController extends Controller
         }
     }
 
+    public function generateMessage(Request $request)
+    {
+        // Generate a random 16-byte nonce
+        $nonce = bin2hex(random_bytes(16));
+        $nonceHash = hash('sha256', $nonce);
+    
+        // Store the hashed nonce and a timestamp in the session
+        session([
+            'nonce_hash' => $nonceHash,           // Store hashed nonce for comparison
+            'nonce_timestamp' => time(),
+            'nonce' => $nonce         // Store the current time for expiration
+        ]);
+    
+        // Return the plaintext nonce to the client for signing
+        return response()->json([
+            'message' => "Sign this message to verify your wallet: $nonce",
+            'nonce' => $nonce,
+        ]);
+    }
+    
+    public function verifySignature(Request $request)
+    {
+        $validated = $request->validate([
+            'wallet_address' => 'required|string|regex:/^0x[a-fA-F0-9]{40}$/',
+            'signature' => 'required|string|regex:/^0x[a-fA-F0-9]{130}$/'
+        ]);
+    
+        // Retrieve session data
+        $nonceHash = session('nonce_hash');
+        $nonceTimestamp = session('nonce_timestamp');
+    
+        // Check nonce validity and expiration (5 minutes)
+        if (!$nonceHash || !$nonceTimestamp || (time() - $nonceTimestamp > 300)) {
+            return response()->json(['message' => 'Nonce expired or invalid'], 400);
+        }
+    
+        // Recreate the message for verification
+        $nonce = session('nonce'); // Original nonce (only exists on server)
+        $message = "Sign this message to verify your wallet: $nonce";
+    
+        // Hash the nonce from the session and compare it with the stored hash
+        if (!hash_equals($nonceHash, hash('sha256', $nonce))) {
+            return response()->json(['message' => 'Invalid or tampered nonce'], 400);
+        }
+    
+        // Clear session data after use
+        session()->forget(['nonce', 'nonce_hash', 'nonce_timestamp']);
+    
+        try {
+            // Recover the wallet address from the signature
+            $recoveredAddress = $this->recoverAddressFromSignature($message, $validated['signature']);
+    
+            if (hash_equals(strtolower($recoveredAddress), strtolower($validated['wallet_address']))) {
+                // Find or create the user
+                $user = User::where('wallet_address', strtolower($recoveredAddress))->first();
+    
+                if ($user) {
+                    $user->update(['is_online' => true]);
+                } else {
+                    $username = $this->generateReadableName($recoveredAddress);
+                    while (User::where('name', $username)->exists()) {
+                        $username = $this->generateReadableName($recoveredAddress);
+                    }
+    
+                    $email = $this->fromUsername($username);
+    
+                    $user = User::create([
+                        'wallet_address' => strtolower($recoveredAddress),
+                        'name' => $username,
+                        'email' => $email,
+                        'password' => bcrypt(hash('sha256', $recoveredAddress)),
+                        'is_online' => true,
+                    ]);
+                }
+    
+                Auth::login($user);
+    
+                return response()->json([
+                    'message' => 'Authenticated successfully',
+                    'recovered_address' => $recoveredAddress
+                ]);
+            }
+    
+            return response()->json(['message' => 'Invalid signature'], 401);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Verification failed',
+                'error' => $e->getMessage()
+            ], 400);
+        }
+    }
+    
+    
     public function logout()
     {
         Auth::logout();

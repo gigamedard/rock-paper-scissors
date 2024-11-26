@@ -100,9 +100,12 @@ Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class
 
 // wallet routes
 Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateMessage']);
+//Route::post('/verify-signature', [WalletAuthController::class, 'verifySignature'])->middleware('throttle:10,1'); // 10 requests per minute
 Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySignature']);
 Route::post('/wallet/logout', [WalletAuthController::class, 'logout']);
 Route::get('/wallet/testrecovery', [WalletAuthController::class, 'testRecovery']);
+
+    
 
 
 
