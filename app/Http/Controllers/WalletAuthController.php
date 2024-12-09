@@ -8,6 +8,10 @@ use App\Models\User;
 use Web3\Utils;
 use Elliptic\EC;
 use kornrunner\Keccak;
+use Illuminate\Support\Facades\Log;
+
+
+
 
 class WalletAuthController extends Controller
 {   
@@ -364,7 +368,32 @@ class WalletAuthController extends Controller
     }
     //=======================================================================================================================================================
 
-
+    public function counter(Request $request)
+    {   Log::info('started validation');
+        // Validate incoming data
+        $validated = $request->validate([
+            'action' => 'required|string',
+            'counter' => 'required|numeric',
+        ]);
+        Log::info('Incoming request data:', $request->all());
+        // Example logic for updating the database
+        try {
+           Log::info('on the try block');
+            $user = User::where('id', 1)->first();
+    
+            $user->update(['bet_amount' => $validated['counter']]);
+           
+            return response()->json([
+                'success' => true,
+                'message' => 'Counter updated successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update counter: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 
 
 

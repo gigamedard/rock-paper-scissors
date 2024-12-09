@@ -1,9 +1,9 @@
-// app/Providers/RouteServiceProvider.php
+<?php
 namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
-
+// app/Providers/RouteServiceProvider.php
 class RouteServiceProvider extends ServiceProvider
 {
     /**
