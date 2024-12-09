@@ -732,7 +732,28 @@
     // Helper function to recover public key
 
 
-
+async function updatedb(params) {
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      let counter  = 88.88;
+    try {
+        const response = await fetch('http://127.0.0.1:8000/blockchain-update-database-counter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken, },
+            body: JSON.stringify({
+                action: 'counter_updated',
+                counter
+            }),
+        });
+  
+        if (response.ok) {
+            console.log('Database updated successfully.');
+        } else {
+            console.error('Failed to update database:', response.statusText);
+        }
+    } catch (error) {
+        console.error('Error updating database:', error.message);
+    }
+}
 
 
 
@@ -759,6 +780,10 @@
     renderBalance();
     updateSubmitButton();
     console.log()
+
+    setTimeout(() => {
+      updatedb();
+    }, 5000);
   </script>
 </body>
 </html>

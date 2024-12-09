@@ -7,6 +7,10 @@ use App\Http\Controllers\FightController;
 use App\Http\Controllers\UserSettingsController;
 use App\Http\Controllers\AutoMatchController;
 use App\Http\Controllers\WalletAuthController;
+use App\Http\Controllers\BlockchainController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 use App\Models\Challenge;
 use App\Models\User;
@@ -17,6 +21,24 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/counter', function (Request $request) {
+    // Validate the incoming request
+    $validated = $request->validate([
+        'action' => 'required|string',
+        'counter' => 'required|numeric',
+    ]);
+
+    // Log the action
+    Log::info("Counter Updated via API: Action: {$validated['action']}, Counter: {$validated['counter']}");
+
+    DB::table('counters')->updateOrInsert(
+        ['id' => 1], // Replace '1' with a unique identifier, if needed
+        ['value' => $validated['counter']]
+    );
+
+    // Return a JSON response
+    return response()->json(['message' => 'Counter updated successfully'], 200);
+});
 
 
 Route::get('/autoplay2', function () {
@@ -48,6 +70,16 @@ Route::get('/get_server_time', function () {
     $timestamp = now()->timestamp; // Get the current timestamp
     return response()->json(['timestamp' => $timestamp]);
 });
+
+Route::get('/csrf-token', function () {
+    Log::info('started csrf-token');
+    return response()->json(['csrfToken' => csrf_token()]);
+});
+
+
+
+
+
 
 // Dashboard route
 Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -104,6 +136,9 @@ Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateM
 Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySignature']);
 Route::post('/wallet/logout', [WalletAuthController::class, 'logout']);
 Route::get('/wallet/testrecovery', [WalletAuthController::class, 'testRecovery']);
+Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
+
+
 
     
 
