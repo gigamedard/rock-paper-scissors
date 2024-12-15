@@ -1,30 +1,50 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Traits\UserBalanceTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BlockchainController extends Controller
 {
-    public function updateCounter(Request $request)
+    use UserBalanceTrait; // Include the trait
+
+    public function updateUserBalance(Request $request)
     {
-        // Validate the incoming request
         $validated = $request->validate([
-            'action' => 'required|string',
-            'counter' => 'required|numeric',
+            'wallet_address' => 'required|string',
+            'balance' => 'required|numeric|min:0',
         ]);
 
-        // Log the action
-        Log::info(" log::info Counter Updated via API: Action: {$validated['action']}, Counter: {$validated['counter']}");
-        dump(" dump Counter Updated via API: Action: {$validated['action']}, Counter: {$validated['counter']}");
-        
-        // Update the database
-        DB::table('counters')->updateOrInsert(
-            ['id' => 1], // Replace '1' with a unique identifier, if needed
-            ['value' => $validated['counter']]
-        );
+        $walletAddress = strtolower($validated['wallet_address']);
+        $balance = $validated['balance'];
 
-        return response()->json(['message' => 'Counter updated successfully'], 200);
+        try {
+            $user = User::where('wallet_address', $walletAddress)->first();
+
+            if ($user) {
+                $this->updateUserBalanceInDb($user, $balance); // From the trait
+            } else {
+                $user = $this->createNewUser($walletAddress, $balance); // From the trait
+            }
+
+            Log::info("User balance updated: Address: {$walletAddress}, Balance: {$balance}");
+
+            return response()->json([
+                'message' => 'User balance updated successfully.',
+                'address' => $walletAddress,
+                'balance' => $balance,
+            ], 200);
+
+        } catch (\Throwable $e) {
+            Log::error("Error updating user balance: {$e->getMessage()}");
+
+            return response()->json([
+                'message' => 'Error updating user balance.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

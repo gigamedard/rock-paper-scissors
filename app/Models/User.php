@@ -18,7 +18,8 @@ class User extends Authenticatable
         'autoplay_active',
         'status',
         'bet_amount',
-        'wallet_address'
+        'wallet_address',
+        'balance'
     ];
 
     protected $hidden = [

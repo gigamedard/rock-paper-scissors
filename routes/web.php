@@ -137,6 +137,7 @@ Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySig
 Route::post('/wallet/logout', [WalletAuthController::class, 'logout']);
 Route::get('/wallet/testrecovery', [WalletAuthController::class, 'testRecovery']);
 Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
+Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
 
 
 
