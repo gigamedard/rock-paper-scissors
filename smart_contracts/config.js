@@ -63,7 +63,7 @@ export const localHardhatUrl = "http://127.0.0.1:8545";
 export const contractAddress2 = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 
 export const privateKey3 = "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
-export const contractAddress3 = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
+export const contractAddress3 = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 export const abi3 = [
     {
       "anonymous": false,

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Traits\UserBalanceTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Events\testevent;
 
 class BlockchainController extends Controller
 {
@@ -32,6 +33,14 @@ class BlockchainController extends Controller
 
             Log::info("User balance updated: Address: {$walletAddress}, Balance: {$balance}");
 
+            try {
+              event(new testevent(1,$balance));
+            } catch (\Throwable $e) {
+                Log::error("Error emit event: {$e->getMessage()}");
+            }
+            
+
+
             return response()->json([
                 'message' => 'User balance updated successfully.',
                 'address' => $walletAddress,
@@ -47,4 +56,20 @@ class BlockchainController extends Controller
             ], 500);
         }
     }
+
+    public function getArtefacts()
+    {
+        // Retrieve ABI and contract address from the config
+        $abi = Config('game_settings.abi');
+        $address = Config('game_settings.contractAddress');
+
+        // Return them as a JSON response
+        return response()->json([
+            'abi' => $abi,
+            'address' => $address,
+        ]);
+    }
+
+    
+
 }

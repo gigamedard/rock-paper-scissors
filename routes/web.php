@@ -16,6 +16,8 @@ use App\Models\Challenge;
 use App\Models\User;
 use App\Events\testevent;
 
+use App\Events\BalanceUpdated;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -53,13 +55,14 @@ Route::get('/autoplay3', function () {
 
 Route::get('/testevent', function () {
 
-    $challenge = new Challenge();
+    /*$challenge = new Challenge();
     $challenge->sender_id = Auth::id();
     $challenge->receiver_id = 2;
     $challenge->status = 'pending';
-    $challenge->save();
-
-    event(new testevent());
+    $challenge->save();*/
+    event(new BalanceUpdated(1, 8));
+    event(new testevent(1,8.8));
+    
 
     return view('welcome');
 });
@@ -138,6 +141,7 @@ Route::post('/wallet/logout', [WalletAuthController::class, 'logout']);
 Route::get('/wallet/testrecovery', [WalletAuthController::class, 'testRecovery']);
 Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
 Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
+Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
 
 
 
