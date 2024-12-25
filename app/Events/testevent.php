@@ -14,6 +14,7 @@ use Illuminate\Queue\SerializesModels;
 
 use App\Models\Challenge;
 use App\Models\User;
+use Auth;
 
 
 
@@ -26,13 +27,15 @@ class testevent implements shouldBroadcastNow
      * 
      */
 
-    public $challenge;
-    public $user;
+    public $balance;
+    public $userId;
 
-    public function __construct(/*User $paramUser,$paramChallenge*/)
+    public function __construct($userId,$balance)
     {
-        /*$this->challenge = $paramChallenge;
-        $this->user = $paramUser;*/
+        $this->balance = $balance;
+        //$this->user = Auth::user(); do not forget to un comment this line once the test is over
+
+        $this->userId = $userId;// using this line of code for testing purpose
     }
 
     /**
@@ -43,7 +46,8 @@ class testevent implements shouldBroadcastNow
     public function broadcastOn(): array
     {   
         return [
-            new PrivateChannel('App.Models.User.1'/*`challengechannel.{$this->challenge->id}`*/),
+            //new PrivateChannel('App.Models.User.'.$this->user->id/*`challengechannel.{$this->challenge->id}`*/),
+            new PrivateChannel('App.Models.User.'.$this->userId/*`challengechannel.{$this->challenge->id}`*/),
         ];
 /*
         return [
@@ -53,6 +57,6 @@ class testevent implements shouldBroadcastNow
 
     public function broadcastWith(): array
     {
-        return ['message'=>'GOD CODE ACTIVATED'];
+        return ['balance'=>$this->balance];
     }
 }

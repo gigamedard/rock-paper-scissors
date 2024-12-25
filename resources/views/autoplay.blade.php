@@ -12,7 +12,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
   <script src="https://bundle.run/secp256k1@4.0.3"></script>
 
-  
+  @vite(['resources/css/app.css', 'resources/js/app.js','resources/js/echo.js'])
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -372,7 +372,7 @@
 </head>
 <body>
     <!-- Inject the User ID into a Hidden Input -->
-    <input type="hidden" id="user-id" value="{{ auth()->user()->id }}">
+  <input type="hidden" id="user-id" value="{{ auth()->user()->id }}">
   <div class="bg-gradient">
     <div class="container">
       <h1 class="title">Rock Paper Scissors</h1>
@@ -472,318 +472,513 @@
 
   <script>    
 
-    // Game state
-    const gameState = {
-      selectedMoves: [],
-      selectedBet: 1,
-      balance: 1000,
-      history: []
-    };
-    const userId = document.getElementById('user-id').value;
+      // Game state
+      const gameState = {
+        selectedMoves: [],
+        selectedBet: 1,
+        balance: "--",
+        history: []
+      };
+      const userId = document.getElementById('user-id').value;
 
-    // Utility functions
-    function generateHash(moves) {
-      return CryptoJS.SHA256(moves.join('')).toString();
-    }
-
-    function calculateBudget(betAmount) {
-      const baseBudget = 200 * betAmount;
-      const fees = Math.ceil(baseBudget * 0.05);
-      return baseBudget + fees;
-    }
-
-    function getMoveIcon(move) {
-      switch (move) {
-        case 'rock': return 'circle';
-        case 'paper': return 'file';
-        case 'scissors': return 'scissors';
-        default: return '';
+      // Utility functions
+      function generateHash(moves) {
+        return CryptoJS.SHA256(moves.join('')).toString();
       }
-    }
 
-    // UI functions
-    function renderMoves() {
-      const movesList = document.getElementById('moves-list');
-      const movesCount = document.querySelector('.moves-count');
-      
-      movesCount.textContent = `${gameState.selectedMoves.length}/100`;
-      
-      if (gameState.selectedMoves.length === 0) {
-        movesList.innerHTML = '<p class="empty-moves">No moves selected</p>';
-        return;
+      function calculateBudget(betAmount) {
+        const baseBudget = 200 * betAmount;
+        const fees = Math.ceil(baseBudget * 0.05);
+        return baseBudget + fees;
       }
-      
-      movesList.innerHTML = gameState.selectedMoves
-        .map((move, index) => `
-            <div class="move-chip">
-                <span class="move-index">${index + 1}.</span>
-                <i data-lucide="${getMoveIcon(move)}"></i>
-                <span>${move}</span>
-                <button onclick="handleMoveRemove(${index})">×</button>
-            </div>
-        `)
-        .join('');
+
+      function getMoveIcon(move) {
+        switch (move) {
+          case 'rock': return 'circle';
+          case 'paper': return 'file';
+          case 'scissors': return 'scissors';
+          default: return '';
+        }
+      }
+
+      // UI functions
+      function renderMoves() {
+        const movesList = document.getElementById('moves-list');
+        const movesCount = document.querySelector('.moves-count');
         
-      lucide.createIcons();
-    }
+        movesCount.textContent = `${gameState.selectedMoves.length}/100`;
+        
+        if (gameState.selectedMoves.length === 0) {
+          movesList.innerHTML = '<p class="empty-moves">No moves selected</p>';
+          return;
+        }
+        
+        movesList.innerHTML = gameState.selectedMoves
+          .map((move, index) => `
+              <div class="move-chip">
+                  <span class="move-index">${index + 1}.</span>
+                  <i data-lucide="${getMoveIcon(move)}"></i>
+                  <span>${move}</span>
+                  <button onclick="handleMoveRemove(${index})">×</button>
+              </div>
+          `)
+          .join('');
+          
+        lucide.createIcons();
+      }
 
-    function renderHistory() {
-      const historyList = document.getElementById('history-list');
-      
-      historyList.innerHTML = gameState.history
-        .map(game => `
-          <div class="history-item">
-            <div>
-              <p class="history-time">${game.timestamp.toLocaleTimeString()}</p>
-              <p>Bet: ${game.betAmount}× (${game.moves.length} moves)</p>
+      function renderHistory() {
+        const historyList = document.getElementById('history-list');
+        
+        historyList.innerHTML = gameState.history
+          .map(game => `
+            <div class="history-item">
+              <div>
+                <p class="history-time">${game.timestamp.toLocaleTimeString()}</p>
+                <p>Bet: ${game.betAmount}× (${game.moves.length} moves)</p>
+              </div>
+              <p class="history-result ${game.result > 0 ? 'win' : game.result < 0 ? 'loss' : ''}">
+                ${game.result > 0 ? '+' : ''}${game.result}
+              </p>
             </div>
-            <p class="history-result ${game.result > 0 ? 'win' : game.result < 0 ? 'loss' : ''}">
-              ${game.result > 0 ? '+' : ''}${game.result}
-            </p>
-          </div>
-        `)
-        .join('');
-    }
+          `)
+          .join('');
+      }
 
-    function renderBalance() {
-      const balanceAmount = document.querySelector('.balance-amount');
-      balanceAmount.textContent = `${gameState.balance} credits`;
-    }
+      function renderBalance() {
+        const balanceAmount = document.querySelector('.balance-amount');
+        balanceAmount.textContent = `${gameState.balance} ETH`;
+      }
+      function updateBalance(pBalance){
+        console.log("updating balance");
+        gameState.balance = pBalance;
+        renderBalance();
+      }
 
-    function updateSubmitButton() {
-      const submitBtn = document.getElementById('submit-btn');
-      const budget = calculateBudget(gameState.selectedBet);
-      
-      submitBtn.disabled = 
-        gameState.selectedMoves.length === 0 || 
-        budget > gameState.balance;
-    }
+      function updateSubmitButton() {
+        const submitBtn = document.getElementById('submit-btn');
+        const budget = calculateBudget(gameState.selectedBet);
+        
+        submitBtn.disabled = 
+          gameState.selectedMoves.length === 0 || 
+          budget > gameState.balance;
+      }
 
-    // Event handlers
-    function handleMoveClick(e) {
-      const move = e.target.closest('.move-btn').dataset.move;
-      if (gameState.selectedMoves.length < 100) {
-        gameState.selectedMoves.push(move);
+      // Event handlers
+      function handleMoveClick(e) {
+        const move = e.target.closest('.move-btn').dataset.move;
+        if (gameState.selectedMoves.length < 100) {
+          gameState.selectedMoves.push(move);
+          renderMoves();
+          updateSubmitButton();
+        }
+      }
+
+      function handleMoveRemove(index) {
+        gameState.selectedMoves.splice(index, 1);
         renderMoves();
         updateSubmitButton();
       }
-    }
+      window.handleMoveRemove = handleMoveRemove;
 
-    function handleMoveRemove(index) {
-      gameState.selectedMoves.splice(index, 1);
-      renderMoves();
-      updateSubmitButton();
-    }
-    window.handleMoveRemove = handleMoveRemove;
+      function handleBetClick(e) {
+        const bet = parseFloat(e.target.dataset.bet);
+        gameState.selectedBet = bet;
+        document.querySelectorAll('.bet-btn').forEach(btn => {
+          btn.classList.toggle('active', parseFloat(btn.dataset.bet) === bet);
+        });
+        updateSubmitButton();
+      }
 
-    function handleBetClick(e) {
-      const bet = parseFloat(e.target.dataset.bet);
-      gameState.selectedBet = bet;
-      document.querySelectorAll('.bet-btn').forEach(btn => {
-        btn.classList.toggle('active', parseFloat(btn.dataset.bet) === bet);
+      function handleSubmit() {
+        const budget = calculateBudget(gameState.selectedBet);
+        document.getElementById('budget-amount').textContent = budget;
+        document.getElementById('confirmation-modal').classList.remove('hidden');
+      }
+
+      function handleConfirm() {
+        const budget = calculateBudget(gameState.selectedBet);
+        const hash = generateHash(gameState.selectedMoves);
+        sendPayment(2);
+        // Simulate game result
+        const result = Math.floor(Math.random() * 3 - 1) * budget;
+        
+        gameState.balance += result;
+        gameState.history.unshift({
+          id: hash,
+          timestamp: new Date(),
+          moves: [...gameState.selectedMoves],
+          betAmount: gameState.selectedBet,
+          result
+        });
+        
+        submitPreMoves();
+        //gameState.selectedMoves = [];
+        document.getElementById('confirmation-modal').classList.add('hidden');
+        
+        renderMoves();
+        renderHistory();
+        renderBalance();
+        updateSubmitButton();
+      }
+      async function submitPreMoves() {
+          const moves = gameState.selectedMoves;
+
+          try {
+              const response = await fetch('/user/pre-moves', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRF-TOKEN': "{{ csrf_token() }}",
+              },
+              body: JSON.stringify({
+                  user_id: userId, // Send the User ID
+                  pre_moves: moves,
+                  bet_amount: gameState.selectedBet,
+              }),
+              });
+
+              const data = await response.json();
+              if (response.ok) {
+              //alert(data.message);
+              //gameState.selectedMoves = []; // Clear selected moves
+              renderMoves(); // Update UI
+              } else {
+              //alert(data.message || 'An error occurred.');
+              }
+          } catch (error) {
+              console.error('Error submitting moves:', error);
+              //alert('Failed to submit moves. Please try again.');
+          }
+      }
+
+      //WEB 3.0=============================================================================================================
+
+      let ABI = [];
+      let CONTRACT_ADDRESS="";
+      let WALLET_ADDRESS="";
+
+      async function getArtefacts() {
+      try
+      {
+      // Fetch the contract information from the server
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      const response = await fetch('/artefacts', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+        },
       });
-      updateSubmitButton();
+
+      if (!response.ok) {
+        throw new Error('Failed to retrieve contract information.');
+      }
+
+      const { abi, address } = await response.json();
+
+      // Update ABI and Contract Address
+      ABI = abi;
+      CONTRACT_ADDRESS = address;
+
+      console.log('Contract ABI:', ABI);
+      console.log('Contract Address:', CONTRACT_ADDRESS);
+
+      } catch (error) 
+      {
+      console.error('Error fetching contract info:', error.message);
+      }
+      }
+
+      // Call the function when the page loads
+
+      async function connectWallet() {
+        
+        const web3 = new Web3(window.ethereum);
+
+        try {
+          // Step 1: Connect Wallet
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const accounts = await web3.eth.getAccounts();
+          WALLET_ADDRESS = accounts[0];
+          console.log('Connected Wallet:', WALLET_ADDRESS);
+        }catch (error) {
+          console.error('Error during wallet authentication:', error);
+          alert('Authentication failed. Please try again.');
+        }
+
+      }
+
+      async function loginWithWallet() {
+        if (!window.ethereum) {
+          alert('Please install MetaMask!');
+          return;
+        }
+
+        const web3 = new Web3(window.ethereum);
+
+        try {
+          // Step 1: Connect Wallet
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const accounts = await web3.eth.getAccounts();
+          WALLET_ADDRESS = accounts[0];
+          console.log('Connected Wallet:', WALLET_ADDRESS);
+
+          // Step 2: Request signing message from the backend
+          const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+          const messageResponse = await fetch('/wallet/generate-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken, },
+            body: JSON.stringify({ wallet_address: WALLET_ADDRESS }),
+          });
+
+          if (!messageResponse.ok) {
+            const error = await messageResponse.json();
+            alert(error.message);
+            return;
+          }
+
+          const { message } = await messageResponse.json();
+
+          // Step 3: Sign the message with the wallet
+          const signature = await web3.eth.personal.sign(message, WALLET_ADDRESS);
+          console.log("Signature:", signature);
+
+          //new version=====================================
+
+          const verifyResponse = await fetch('/wallet/verify-signature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken,},
+            body: JSON.stringify({ wallet_address: WALLET_ADDRESS, signature }),
+          });
+
+          if (verifyResponse.ok) {
+            const data = await verifyResponse.json();
+            //alert(`Login successful! Welcome, ${data.user.name}`);
+            console.log(data);
+          } else {
+            const error = await verifyResponse.json();
+            alert(error.message);
+          }
+        } catch (error) {
+          console.error('Error during wallet authentication:', error);
+          alert('Authentication failed. Please try again.');
+        }
+      }
+
+// Define the deposit function signature
+  const DEPOSIT_FUNCTION_SIGNATURE = '0xd0e30db0'; // This is the keccak256 hash of "deposit()"
+
+async function sendPayment(amount) {
+  connectWallet();
+  try {
+    // Ensure provider exists
+    if (!window.ethereum) {
+      throw new Error('Please install MetaMask or another web3 wallet');
+    }
+    //loginWithWallet();
+    // Convert amount to Wei and then to hex
+    const amountInWei = BigInt(Math.floor(amount * 1e18)).toString(16);
+
+    // Get current gas price
+    const gasPrice = await window.ethereum.request({
+      method: 'eth_gasPrice'
+    });
+    
+    
+
+    const nonce = await window.ethereum.request({
+    method: 'eth_getTransactionCount',
+    params: [WALLET_ADDRESS, 'latest']
+});
+
+
+
+
+
+
+console.log("nonce ", nonce);
+
+    // Create transaction parameters
+    const transactionParameters = {
+      to: CONTRACT_ADDRESS,
+      from: WALLET_ADDRESS,
+      value: '0x' + amountInWei,
+      nonce: nonce,
+      data: DEPOSIT_FUNCTION_SIGNATURE  // Using the predefined function signature
+    };
+
+
+
+
+
+
+
+
+
+console.log(transactionParameters.from);
+    // Estimate gas for the transaction
+    const gasEstimate = await window.ethereum.request({
+      method: 'eth_estimateGas',
+      params: [transactionParameters]
+    });
+
+    // Add gas parameters to transaction
+    transactionParameters.gas = gasEstimate;
+    transactionParameters.gasPrice = gasPrice;
+
+    // Request account access if needed
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+    // Send the transaction
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [transactionParameters],
+    });
+
+    console.log('Transaction hash:', txHash);
+    
+    // Wait for transaction confirmation
+    const receipt = await waitForTransaction(txHash);
+    
+    if (receipt.status === '0x1') {
+      console.log('Transaction confirmed:', receipt);
+      return {
+        success: true,
+        hash: txHash,
+        receipt: receipt
+      };
+    } else {
+      throw new Error('Transaction failed');
+    }
+  } catch (err) {
+    console.error('Error submitting payment:', err);
+    throw err;
+  }
+}
+
+// Helper function to wait for transaction confirmation
+async function waitForTransaction(txHash) {
+  const maxAttempts = 50;
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    const receipt = await window.ethereum.request({
+      method: 'eth_getTransactionReceipt',
+      params: [txHash],
+    });
+
+    if (receipt) {
+      return receipt;
     }
 
-    function handleSubmit() {
-      const budget = calculateBudget(gameState.selectedBet);
-      document.getElementById('budget-amount').textContent = budget;
-      document.getElementById('confirmation-modal').classList.remove('hidden');
-    }
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+    attempts++;
+  }
 
-    function handleConfirm() {
-      const budget = calculateBudget(gameState.selectedBet);
-      const hash = generateHash(gameState.selectedMoves);
-      
-      // Simulate game result
-      const result = Math.floor(Math.random() * 3 - 1) * budget;
-      
-      gameState.balance += result;
-      gameState.history.unshift({
-        id: hash,
-        timestamp: new Date(),
-        moves: [...gameState.selectedMoves],
-        betAmount: gameState.selectedBet,
-        result
-      });
-      
-      submitPreMoves();
-      //gameState.selectedMoves = [];
-      document.getElementById('confirmation-modal').classList.add('hidden');
-      
+  throw new Error('Transaction confirmation timeout');
+}
+      /*async function recoverPublicKey(message, signature) {
+        const web3 = new Web3(window.ethereum);
+
+        // Hash the message the same way Ethereum does before signing
+        const messageHash = web3.utils.sha3(
+          `\x19Ethereum Signed Message:\n${message.length}${message}`
+        );
+
+        // Recover the public key from the signature and hashed message
+        const publicKey = web3.eth.accounts.recover(messageHash, signature, true);
+
+        return publicKey;
+      }*/
+
+
+      function hexToBytes(hex) {
+        const bytes = [];
+        for (let i = 0; i < hex.length; i += 2) {
+          bytes.push(parseInt(hex.substr(i, 2), 16));
+        }
+        return new Uint8Array(bytes);
+      }
+
+      // Helper function to recover public key
+
+
+      async function updatedb(params) {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        let counter  = 88.88;
+      try {
+          const response = await fetch('http://127.0.0.1:8000/blockchain-update-database-counter', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken, },
+              body: JSON.stringify({
+                  action: 'counter_updated',
+                  counter
+              }),
+          });
+
+          if (response.ok) {
+              console.log('Database updated successfully.');
+          } else {
+              console.error('Failed to update database:', response.statusText);
+          }
+      } catch (error) {
+          console.error('Error updating database:', error.message);
+      }
+      }
+
+
+
+
+
+      //====================================================================================================================    
+      // Initialize
+      document.querySelectorAll('.move-btn').forEach(btn => 
+        btn.addEventListener('click', handleMoveClick)
+      );
+
+      document.querySelectorAll('.bet-btn').forEach(btn => 
+        btn.addEventListener('click', handleBetClick)
+      );
+
+      document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+      document.getElementById('confirm-btn').addEventListener('click', handleConfirm);
+      document.getElementById('cancel-btn').addEventListener('click', () => 
+        document.getElementById('confirmation-modal').classList.add('hidden')
+      );
+
+      // Initialize UI
+      lucide.createIcons();
       renderMoves();
       renderHistory();
       renderBalance();
       updateSubmitButton();
-    }
-    async function submitPreMoves() {
-        const moves = gameState.selectedMoves;
-
-        try {
-            const response = await fetch('/user/pre-moves', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': "{{ csrf_token() }}",
-            },
-            body: JSON.stringify({
-                user_id: userId, // Send the User ID
-                pre_moves: moves,
-                bet_amount: gameState.selectedBet,
-            }),
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-            alert(data.message);
-            //gameState.selectedMoves = []; // Clear selected moves
-            renderMoves(); // Update UI
-            } else {
-            alert(data.message || 'An error occurred.');
-            }
-        } catch (error) {
-            console.error('Error submitting moves:', error);
-            alert('Failed to submit moves. Please try again.');
-        }
-    }
-
-//WEB 3.0=============================================================================================================
-    async function loginWithWallet() {
-      if (!window.ethereum) {
-        alert('Please install MetaMask!');
-        return;
-      }
-
-      const web3 = new Web3(window.ethereum);
-
-      try {
-        // Step 1: Connect Wallet
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const accounts = await web3.eth.getAccounts();
-        const walletAddress = accounts[0];
-        console.log('Connected Wallet:', walletAddress);
-
-        // Step 2: Request signing message from the backend
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const messageResponse = await fetch('/wallet/generate-message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken, },
-          body: JSON.stringify({ wallet_address: walletAddress }),
-        });
-
-        if (!messageResponse.ok) {
-          const error = await messageResponse.json();
-          alert(error.message);
-          return;
-        }
-
-        const { message } = await messageResponse.json();
-
-        // Step 3: Sign the message with the wallet
-        const signature = await web3.eth.personal.sign(message, walletAddress);
-        console.log("Signature:", signature);
-
-        //new version=====================================
-
-        const verifyResponse = await fetch('/wallet/verify-signature', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken,},
-          body: JSON.stringify({ wallet_address: walletAddress, signature }),
-        });
-
-        if (verifyResponse.ok) {
-          const data = await verifyResponse.json();
-          //alert(`Login successful! Welcome, ${data.user.name}`);
-          //console.log(data.user);
-          console.log(data);
-        } else {
-          const error = await verifyResponse.json();
-          alert(error.message);
-        }
-      } catch (error) {
-        console.error('Error during wallet authentication:', error);
-        alert('Authentication failed. Please try again.');
-      }
-    }
-
-    /*async function recoverPublicKey(message, signature) {
-      const web3 = new Web3(window.ethereum);
-
-      // Hash the message the same way Ethereum does before signing
-      const messageHash = web3.utils.sha3(
-        `\x19Ethereum Signed Message:\n${message.length}${message}`
-      );
-
-      // Recover the public key from the signature and hashed message
-      const publicKey = web3.eth.accounts.recover(messageHash, signature, true);
-
-      return publicKey;
-    }*/
-
-
-    function hexToBytes(hex) {
-      const bytes = [];
-      for (let i = 0; i < hex.length; i += 2) {
-        bytes.push(parseInt(hex.substr(i, 2), 16));
-      }
-      return new Uint8Array(bytes);
-    }
-
-    // Helper function to recover public key
-
-
-async function updatedb(params) {
-  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-      let counter  = 88.88;
-    try {
-        const response = await fetch('http://127.0.0.1:8000/blockchain-update-database-counter', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken, },
-            body: JSON.stringify({
-                action: 'counter_updated',
-                counter
-            }),
-        });
-  
-        if (response.ok) {
-            console.log('Database updated successfully.');
-        } else {
-            console.error('Failed to update database:', response.statusText);
-        }
-    } catch (error) {
-        console.error('Error updating database:', error.message);
-    }
-}
+      console.log()
 
 
 
-//====================================================================================================================    
-    // Initialize
-    document.querySelectorAll('.move-btn').forEach(btn => 
-      btn.addEventListener('click', handleMoveClick)
-    );
-    
-    document.querySelectorAll('.bet-btn').forEach(btn => 
-      btn.addEventListener('click', handleBetClick)
-    );
-    
-    document.getElementById('submit-btn').addEventListener('click', handleSubmit);
-    document.getElementById('confirm-btn').addEventListener('click', handleConfirm);
-    document.getElementById('cancel-btn').addEventListener('click', () => 
-      document.getElementById('confirmation-modal').classList.add('hidden')
-    );
 
-    // Initialize UI
-    lucide.createIcons();
-    renderMoves();
-    renderHistory();
-    renderBalance();
-    updateSubmitButton();
-    console.log()
 
-    setTimeout(() => {
-      updatedb();
-    }, 5000);
+
+
+      window.addEventListener("DOMContentLoaded",function(){
+      getArtefacts();
+      const channelName = `App.Models.User.${userId}`;
+      window.Echo.private(channelName)
+      .listen("testevent",(event)=>{updateBalance(event.balance);})
+      .listen("BalanceUpdated",(data)=>{console.log(data.balance);});
+      });
+
+
+
+
+
+
+
+
+
+
+
   </script>
 </body>
 </html>

@@ -12,7 +12,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
   <script src="https://bundle.run/secp256k1@4.0.3"></script>
 
-  
+  @vite(['resources/css/app.css', 'resources/js/app.js','resources/js/echo.js'])
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -421,7 +421,7 @@
       balance: 1000,
       history: []
     };
-    const userId = document.getElementById('user-id').value;
+    const userId = 1;//document.getElementById('user-id').value;
 
     // Utility functions
     function generateHash(moves) {
@@ -444,7 +444,7 @@
     }
 
     // UI functions
-    function renderMoves() {
+   /* function renderMoves() {
       const movesList = document.getElementById('moves-list');
       const movesCount = document.querySelector('.moves-count');
       
@@ -588,7 +588,7 @@
             alert('Failed to submit moves. Please try again.');
         }
     }
-
+*/
 //WEB 3.0=============================================================================================================
     async function loginWithWallet() {
       if (!window.ethereum) {
@@ -693,19 +693,29 @@
       btn.addEventListener('click', handleBetClick)
     );
     
-    document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+    /*document.getElementById('submit-btn').addEventListener('click', handleSubmit);
     document.getElementById('confirm-btn').addEventListener('click', handleConfirm);
     document.getElementById('cancel-btn').addEventListener('click', () => 
       document.getElementById('confirmation-modal').classList.add('hidden')
-    );
+    );*/
 
     // Initialize UI
     lucide.createIcons();
-    renderMoves();
+    /*renderMoves();
     renderHistory();
     renderBalance();
     updateSubmitButton();
-    console.log()
+    console.log()*/
+
+
+
+    window.addEventListener("DOMContentLoaded",function(){
+  const channelName = `App.Models.User.1`;
+    window.Echo.private(channelName)
+    .listen("BalanceUpdated",(event)=>{alert(event.balance);});
+});
+
+
   </script>
 </body>
 </html>
