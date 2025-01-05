@@ -7,29 +7,21 @@ contract Battlepool {
         uint256 baseBet;
         uint256 maxSize;
         address[] users;
-        bytes32 poolSalt;
-    }
-
-    struct MatchHistory {
-        address user1;
-        address user2;
-        uint256 result; // 0: draw, 1: user1 wins, 2: user2 wins
-        uint256 user1Gain;
-        uint256 user2Gain;
-        uint256 premoveIndex;
-        uint256 premoveHistoryIndex;
+        bytes4 poolSalt;
+        mapping(address => bool) isUserInPool; // Track if a user is already in the pool
     }
 
     uint256 public nextPoolId = 1;
     mapping(uint256 => Pool) public pools; // Maps baseBet to Pool
     mapping(address => uint256) public userBalances;
-    mapping(uint256 => MatchHistory[]) public poolHistories; // Maps poolId to match history
-    mapping(address => string[]) public userPremoves; // Maps user address to premoves
+    mapping(uint256 => string) public poolHistoryCIDs; // Maps poolId to IPFS CID
+    mapping(address => string) public userPremoveCIDs; // Maps user address to IPFS CID for premoves
 
     event PoolCreated(uint256 indexed poolId, uint256 baseBet, uint256 maxSize);
-    event PoolEmitted(uint256 indexed poolId, address[] users, bytes32 poolSalt);
+    event PoolEmitted(uint256 indexed poolId, address[] users, string[] premoveCIDs, bytes4 poolSalt);
     event DepositReceived(address indexed user, uint256 amount);
-    event MatchResult(uint256 indexed poolId, address indexed user1, address indexed user2, uint256 result);
+    event MatchHistoryCIDUpdated(uint256 indexed poolId, string cid);
+    event PremoveCIDUpdated(address indexed user, string cid);
 
     constructor() {
         //console.log("Contract deployed at:", address(this));
@@ -49,18 +41,24 @@ contract Battlepool {
     }
 
     function addUsersToPool(uint256 baseBet, address[] memory users) external {
+        require(users.length > 0, "No users to add");
+
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
-            createPool(baseBet, 5); // Default maxSize set to 5 if pool does not exist
+            // Create a new pool if it doesn't exist
+            createPool(baseBet, 5); // Default maxSize set to 5
         }
-        require(users.length > 0, "No users to add");
 
         for (uint256 i = 0; i < users.length; i++) {
             require(users[i] != address(0), "Invalid user address"); // Validate user address
+            require(!pool.isUserInPool[users[i]], "User already in pool"); // Ensure user is not already in the pool
+
             pool.users.push(users[i]);
+            pool.isUserInPool[users[i]] = true; // Mark user as added to the pool
+
+            // Check if the pool is full
             if (pool.users.length == pool.maxSize) {
-                _emitAndResetPool(pool);
-                break;
+                _emitAndResetPool(pool); // Emit and reset the pool
             }
         }
     }
@@ -71,16 +69,21 @@ contract Battlepool {
             createPool(baseBet, 5); // Default maxSize set to 5 if pool does not exist
         }
         require(user != address(0), "Invalid user address");
+        require(!pool.isUserInPool[user], "User already in pool"); // Ensure user is not already in the pool
 
         pool.users.push(user);
+        pool.isUserInPool[user] = true; // Mark user as added to the pool
+
         if (pool.users.length == pool.maxSize) {
             _emitAndResetPool(pool);
         }
     }
 
-    function submitPremove(uint256 baseBet, string[] memory premoves) external payable {
+    function submitPremoveCID(uint256 baseBet, string memory cid) external payable {
+        require(bytes(cid).length > 0, "CID cannot be empty");
+        userPremoveCIDs[msg.sender] = cid; // Store the CID for the user's premoves
+        emit PremoveCIDUpdated(msg.sender, cid);
 
-        userPremoves[msg.sender] = premoves; // Store the premoves for the user
         addSingleUserToPool(baseBet, msg.sender);
     }
 
@@ -88,48 +91,57 @@ contract Battlepool {
         Pool storage pool = pools[baseBet];
         return pool.users;
     }
-    function storeMatchHistory(
-        uint256 poolId,
-        address user1,
-        address user2,
-        uint256 result,
-        uint256 user1Gain,
-        uint256 user2Gain,
-        uint256 user1PremoveIndex,
-        uint256 user2PremoveIndex,
-        uint256 user1PremoveHistoryIndex,
-        uint256 user2PremoveHistoryIndex
-    ) external {
-            MatchHistory memory matchHistory = MatchHistory({
-            user1: user1,
-            user2: user2,
-            result: result,
-            user1Gain: user1Gain,
-            user2Gain: user2Gain,
-            user1PremoveIndex: user1PremoveIndex,
-            user2PremoveIndex: user2PremoveIndex,
-            user1PremoveHistoryIndex: user1PremoveHistoryIndex,
-            user2PremoveHistoryIndex: user2PremoveHistoryIndex
-        });
-        poolHistories[poolId].push(matchHistory);
-        emit MatchResult(poolId, user1, user2, result);
+
+    function storeMatchHistoryCID(uint256 poolId, string memory cid) external {
+        require(bytes(cid).length > 0, "CID cannot be empty");
+        poolHistoryCIDs[poolId] = cid;
+        emit MatchHistoryCIDUpdated(poolId, cid);
     }
 
-    function getMatchHistory(uint256 poolId) external view returns (MatchHistory[] memory) {
-        return poolHistories[poolId];
+    function getMatchHistoryCID(uint256 poolId) external view returns (string memory) {
+        return poolHistoryCIDs[poolId];
+    }
+
+    function getPremoveCID(address user) external view returns (string memory) {
+        return userPremoveCIDs[user];
     }
 
     function _emitAndResetPool(Pool storage pool) internal {
         // Generate the salt only when the pool is full
         pool.poolSalt = _generateSalt(pool.users);
-        
-        emit PoolEmitted(pool.poolId, pool.users, pool.poolSalt);
-        delete pool.users;
-    }
 
-    function _generateSalt(address[] memory users) internal view returns (bytes32) {
-        bytes32 hash = keccak256(abi.encodePacked(users, block.timestamp, blockhash(block.number - 1)));
-        return hash;
+        // Gather premove CIDs for all users in the pool
+        string[] memory premoveCIDs = new string[](pool.users.length);
+        for (uint256 i = 0; i < pool.users.length; i++) {
+            premoveCIDs[i] = userPremoveCIDs[pool.users[i]];
+        }
+
+        // Emit the pool details with premove CIDs
+        emit PoolEmitted(pool.poolId, pool.users, premoveCIDs, pool.poolSalt);
+
+        // Reset the pool
+        delete pool.users;
+
+        // Clear the user tracking mapping
+        for (uint256 i = 0; i < pool.users.length; i++) {
+            pool.isUserInPool[pool.users[i]] = false;
+        }
+    }
+    function _generateSalt(address[] memory users) internal pure returns (bytes4) {
+        // Concatenate all user addresses
+        bytes memory concatenatedAddresses;
+        for (uint256 i = 0; i < users.length; i++) {
+            concatenatedAddresses = abi.encodePacked(concatenatedAddresses, users[i]);
+        }
+
+        // Hash the concatenated addresses
+        bytes32 hash = keccak256(concatenatedAddresses);
+
+        // Extract the first 4 bytes (32 bits) of the hash
+        bytes4 salt = bytes4(hash);
+
+        // Return the salt as bytes4 (padded with zeros)
+        return bytes4(salt);
     }
 
     function deposit() external payable {
