@@ -6,10 +6,12 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\HistoricalDataTrait;
+
 
 class AutoMatchController extends Controller
 {   
-
+    use HistoricalDataTrait;
 
 
     public function index()
@@ -210,6 +212,9 @@ class AutoMatchController extends Controller
         // Example: Call smart contract to store the hashes
     }
     
+    
+
+
 
 
   
