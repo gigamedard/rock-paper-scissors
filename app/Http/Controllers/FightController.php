@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Fight;
 use Auth;
+use App\Traits\HistoricalDataTrait;
 
 use App\Events\verdictReadyEvent;
+
 class FightController extends Controller
 {
+    use HistoricalDataTrait;
+    
     public function played($fightId, $selectedMove, $isAutoplay = false)
     {   
 
@@ -86,4 +90,28 @@ class FightController extends Controller
 
         return $winningCombinations[$user1Move] === $user2Move ? 'user1_win' : 'user2_win';
     }
+
+    public function storeFightResult()
+    {
+        // Example data
+        $user1WalletAddress = '0x123...';
+        $user1MoveIndex = 1;
+        $user2WalletAddress = '0x456...';
+        $user2MoveIndex = 2;
+        $winnerIndex = 1;
+        $prize = 0.5;
+
+        // Save the historical data
+        $historicalData = $this->createHistoricalData(
+            $user1WalletAddress,
+            $user1MoveIndex,
+            $user2WalletAddress,
+            $user2MoveIndex,
+            $winnerIndex,
+            $prize
+        );
+
+        return response()->json($historicalData, 201);
+    }
 }
+ 
