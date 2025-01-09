@@ -1,27 +1,19 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\User;
+use App\Models\Pool;
 
 class Fight extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
     protected $table = 'fights';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'user1_id',
         'user2_id',
@@ -33,22 +25,20 @@ class Fight extends Model
         'max_bet_amount',
     ];
 
-    /**
-     * Get the user1 that owns the fight.
-     */
-    public function user1()
+    public function user1(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user1_id');
     }
 
-    /**
-     * Get the user2 that owns the fight.
-     */
-    public function user2()
+    public function user2(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user2_id');
     }
 
+    public function pool(): BelongsTo
+    {
+        return $this->belongsTo(Pool::class);
+    }
 
     public function user1Verdict()
     {
@@ -58,7 +48,6 @@ class Fight extends Model
             default => 'draw',
         };
     }
-    
 
     public function user2Verdict()
     {
@@ -69,8 +58,6 @@ class Fight extends Model
         };
     }
 
-
-
     public function user1Gain()
     {
         return match ($this->result) {
@@ -79,7 +66,6 @@ class Fight extends Model
             default => 0,
         };
     }
-
 
     public function user2Gain()
     {
@@ -92,25 +78,78 @@ class Fight extends Model
 
     public function handleAutoplayFight()
     {
+        
         // Retrieve pre-moves for both players
         $user1Move = $this->getPreMove($this->user1_id);
         $user2Move = $this->getPreMove($this->user2_id);
-    
+
         // Determine the result
         $result = $this->determineResult($user1Move, $user2Move);
-    
+
         // Update balances based on the result
         $this->updateBalances($result);
-    
+
         // Update the fight status and result
         $this->update([
-            'status' => 'completed',
-            'result' => $result,
+        'status' => 'completed',
+        'result' => $result,
         ]);
-    
+
         return $result;
     }
-    
+
+    public function handlePoolAutoplayFight()
+    {   
+        $user1Move = $this->getPreMove($this->user1_id);
+        $user2Move = $this->getPreMove($this->user2_id);
+
+        // Assign moves to user1_chosed and user2_chosed
+        $this->user1_chosed = $user1Move;
+        $this->user2_chosed = $user2Move;
+
+        // Determine the result of the fight
+        $result = $this->determineResult($user1Move, $user2Move);
+
+        // Update fight result
+        $this->result = $result;
+        $this->status = 'completed';
+        $this->save();
+
+        // Get the winner and loser
+        $winner = ($result === 'user1_win') ? $this->user1_id : $this->user2_id;
+        $loser = ($result === 'user1_win') ? $this->user2_id : $this->user1_id;
+
+        // Transfer the loser's battle balance to the winner
+        $loserUser = User::find($loser);
+        $winnerUser = User::find($winner);
+
+        if ($loserUser && $winnerUser) {
+            // Add the loser's battle balance to the winner
+            $winnerUser->battle_balance += $loserUser->battle_balance;
+            $winnerUser->save();
+
+            // Reset the loser's battle balance to 0
+            $loserUser->battle_balance = 0;
+            $loserUser->save();
+
+            // Remove the loser from the pool using the fight's relationship
+            $this->removeUserFromPool($loser);
+
+            // Mark the loser as available
+            User::where('id', $loser)->update(['status' => 'available']);
+
+            // Add the loser to a new pool on the server
+            $this->addUserToNewPool($loser);
+        }
+
+        // Handle the case where the result is a draw
+        if ($result === 'draw') {
+            // Both users remain in the pool and their statuses are updated
+            User::where('id', $this->user1_id)->update(['status' => 'available']);
+            User::where('id', $this->user2_id)->update(['status' => 'available']);
+        }
+    }
+
     private function getPreMove($userId)
     {
         // Retrieve pre-moves for the user
@@ -147,12 +186,21 @@ class Fight extends Model
             'scissors' => 'paper',
             'paper' => 'rock',
         ];
+        if (!$user1Move) {
+            return 'user2_win';
+        }
+
+        if (!$user2Move) {
+            return 'user1_win';
+        }
 
         if ($user1Move === $user2Move) {
             return 'draw';
         }
 
         return $winningCombinations[$user1Move] === $user2Move ? 'user1_win' : 'user2_win';
+        
+
     }
 
     private function updateBalances($result)
@@ -168,5 +216,23 @@ class Fight extends Model
         }
     }
 
-    
+    private function removeUserFromPool(int $userId): void
+    {
+        // Access the pool associated with the fight
+        $pool = $this->pool;
+
+        if ($pool) {
+            // Remove the user from the pool
+            $pool->users()->detach($userId);
+        }
+    }
+
+    private function addUserToNewPool(int $userId): void
+    {
+        // Create a new pool
+        $pool = Pool::create();
+
+        // Add the user to the new pool
+        $pool->users()->attach($userId);
+    }
 }
