@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Traits\HistoricalDataTrait;
 use Gazzlehttp\Client;
 use App\Models\Pool;
+use App\Models\PreMove;
 
 
 class PoolAutoMatchController extends Controller
@@ -214,17 +215,20 @@ class PoolAutoMatchController extends Controller
         // Example: Call smart contract to store the hashes
     }
     
-    public function handlePoolEmittedEvent($poolId, $users, $premoveCIDs, $poolSalt)
+    //todo take bet_amount in paraameter, updatedate migration to add bet_amount, update,pool model too for masse assigment
+    public function handlePoolEmittedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt)
     {
         // Record the pool data in the database
         //todo do: implement the migration for the pools table
         DB::table('pools')->insert([
             'pool_id' => $poolId,
+            'base_bet'=>$baseBet,
             'users' => json_encode($users),
             'premove_cids' => json_encode($premoveCIDs),
-            'pool_salt' => $poolSalt
+            'pool_salt' => $poolSalt,
+            'pool_size' => count($users)
         ]);
-// fetch user premove data from pinata based on the CID
+        // fetch user premove data from pinata based on the CID
         // Fetch user premove data from Pinata based on the CID
         $client = new \GuzzleHttp\Client();
         $premoveData = [];
@@ -250,9 +254,7 @@ class PoolAutoMatchController extends Controller
 
         // Proceed to battle
         $this->processPoolAutoMatch($poolId);
-
-        
-        
+  
     }
 
     public function processPoolAutoMatch(int $poolId): void
@@ -261,10 +263,24 @@ class PoolAutoMatchController extends Controller
             // Retrieve the pool with its available users
             $pool = Pool::with(['users' => function ($query) {
                 $query->where('status', 'available')->orderBy('id');
-            }])->findOrFail($poolId);
+            }])->where('pool_id', $poolId)->firstOrFail();
 
             // Get available users from the pool
             $availableUsers = $pool->users;
+
+            // Verify balance and update for each user
+            foreach ($availableUsers as $user) {
+                if ($user->balance >= $pool->base_bet) {
+                    $user->balance -= $pool->base_bet;
+                    $user->battle_balance += $pool->base_bet;
+                    $user->save();
+                } else {
+                    // Remove user from the collection if balance is insufficient
+                    $availableUsers = $availableUsers->reject(function ($u) use ($user) {
+                        return $u->id === $user->id;
+                    });
+                }
+            }
 
             // Ensure even count of users
             if ($availableUsers->count() % 2 !== 0) {
@@ -277,17 +293,35 @@ class PoolAutoMatchController extends Controller
                     $fight = Fight::create([
                         'user1_id' => $availableUsers[$i]->id,
                         'user2_id' => $availableUsers[$i + 1]->id,
-                        'base_bet_amount' => $availableUsers[$i]->bet_amount,
+                        'base_bet_amount' => $pool->base_bet,
                         'status' => 'waiting_for_result',
                     ]);
 
-                    // Use the built-in method to complete the fight
-                    $fight->handlePoolAutoplayFight();
+                    // Use a different method to complete the pool fight
+                    $fight->handlePoolAutoplayFight(pool->baseBet, $pool->poolSize);
                 }
             }
         });
     }
-
+    private function updateOrCreatePreMove(int $userId, array $moves, string $nonce = null): void
+    {
+        // Update or create pre-moves for the user
+        PreMove::updateOrCreate(
+            ['user_id' => $userId], // Search condition
+            [
+                'moves' => json_encode($moves),
+                'hashed_moves' => $this->hashMoves($moves, $nonce),
+                'nonce' => $nonce,
+                'current_index' => 0, // Reset the move index
+            ]
+        );
+    }
+    
+    private function hashMoves(array $moves, string $nonce = null): array
+    {
+        // Hash each move with the nonce (if provided)
+        return array_map(fn($move) => hash('sha3-256', $move . $nonce), $moves);
+    }
 
   
 }

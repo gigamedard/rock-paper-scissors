@@ -26,7 +26,8 @@ class User extends Authenticatable
         'status',
         'bet_amount',
         'wallet_address',
-        'balance'
+        'balance',
+        'battle_balance',
     ];
 
     protected $hidden = [
@@ -63,4 +64,10 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Pool::class, 'pool_user', 'user_id', 'pool_id');
     }
+
+        // A user has one set of pre-moves
+        public function preMove()
+        {
+            return $this->hasOne(PreMove::class);
+        }
 }
