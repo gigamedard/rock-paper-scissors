@@ -98,7 +98,7 @@ class Fight extends Model
         return $result;
     }
 
-    public function handlePoolAutoplayFight()
+    public function handlePoolAutoplayFight($baseBet, $poolSize)
     {   
         $user1Move = $this->getPreMove($this->user1_id);
         $user2Move = $this->getPreMove($this->user2_id);
@@ -119,6 +119,7 @@ class Fight extends Model
         $winner = ($result === 'user1_win') ? $this->user1_id : $this->user2_id;
         $loser = ($result === 'user1_win') ? $this->user2_id : $this->user1_id;
 
+        
         // Transfer the loser's battle balance to the winner
         $loserUser = User::find($loser);
         $winnerUser = User::find($winner);
@@ -139,7 +140,7 @@ class Fight extends Model
             User::where('id', $loser)->update(['status' => 'available']);
 
             // Add the loser to a new pool on the server
-            $this->addUserToNewPool($loser);
+            $this->addUserToQueue($loser,$baseBet);
         }
 
         // Handle the case where the result is a draw
@@ -226,13 +227,35 @@ class Fight extends Model
             $pool->users()->detach($userId);
         }
     }
-
-    private function addUserToNewPool(int $userId): void
+    private function addUserToNewPool(int $userId, float $baseBet, int $poolSize): void
     {
-        // Create a new pool
-        $pool = Pool::create();
+        // Check if there is an existing pool with the same bet amount that is not full
+        $pool = Pool::where('base_bet', $baseBet)
+                    ->whereDoesntHave('users', function ($query) use ($poolSize) {
+                        $query->havingRaw('COUNT(*) >= ?', [$poolSize]);
+                    })
+                    ->first();
+        // If no such pool exists, create a new one
+        if (!$pool) {
+            $pool = Pool::create(['base_bet' => $baseBet, 'pool_size' => $poolSize]);
+        }
 
-        // Add the user to the new pool
+        // Set the pool_id to the id of the created or found pool
+        $pool->pool_id = $pool->id;
+        $pool->save();
+
+        // Add the user to the pool
         $pool->users()->attach($userId);
     }
+    private function addUserToQueue(int $userId,$lastBaseBet): void
+    {
+        // Add the user to the queue_table
+        DB::table('queue_table')->insert([
+            'user_id' => $userId,
+            'base_bet' => $lastBaseBet, // calculate the bbase_bet from the lastBaseBet * 2 if user have martingale activated
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+    
 }

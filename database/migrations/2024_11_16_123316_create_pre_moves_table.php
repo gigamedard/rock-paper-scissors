@@ -11,8 +11,8 @@ class CreatePreMovesTable extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->json('moves');
-            /*$table->json('hashed_moves')->nullable(); // Allow null values
-            $table->string('nonce')->nullable();*/
+            $table->json('hashed_moves')->nullable(); // Allow null values
+            $table->string('nonce')->nullable();
             $table->unsignedInteger('current_index')->default(0);
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');

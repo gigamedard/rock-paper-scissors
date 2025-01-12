@@ -18,7 +18,7 @@ contract Battlepool {
     mapping(address => string) public userPremoveCIDs; // Maps user address to IPFS CID for premoves
 
     event PoolCreated(uint256 indexed poolId, uint256 baseBet, uint256 maxSize);
-    event PoolEmitted(uint256 indexed poolId, address[] users, string[] premoveCIDs, bytes4 poolSalt);
+    event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, bytes4 poolSalt);
     event DepositReceived(address indexed user, uint256 amount);
     event MatchHistoryCIDUpdated(uint256 indexed poolId, string cid);
     event PremoveCIDUpdated(address indexed user, string cid);
@@ -117,7 +117,7 @@ contract Battlepool {
         }
 
         // Emit the pool details with premove CIDs
-        emit PoolEmitted(pool.poolId, pool.users, premoveCIDs, pool.poolSalt);
+        emit PoolEmitted(pool.poolId, pool.baseBet, pool.users,  premoveCIDs, pool.poolSalt);
 
         // Reset the pool
         delete pool.users;

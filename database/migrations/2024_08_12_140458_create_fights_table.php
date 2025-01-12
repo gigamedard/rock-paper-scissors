@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('fights', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pool_id')->constrained('pools')->onDelete('cascade'); // Relationship with Pool
+            //$table->foreignId('pool_id')->constrained('pools')->onDelete('cascade');
             $table->foreignId('user1_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('user2_id')->constrained('users')->onDelete('cascade');
             $table->enum('status', ['waiting_for_both', 'waiting_for_user1', 'waiting_for_user2','waiting_for_result','completed'])->default('waiting_for_both');

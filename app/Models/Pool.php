@@ -16,6 +16,14 @@ class Pool extends Model
     use HasFactory;
     protected $table = 'pools';
 
+    protected $fillable = [
+        'server_pool_id',
+        'salt',
+        'pool_size',
+        'pool_id',
+        'base_bet'
+    ];
+
     // Define the many-to-many relationship with users
     public function users(): BelongsToMany
     {
