@@ -11,6 +11,7 @@ class CreatePreMovesTable extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->json('moves');
+            $table->string('cid')->default('Qmdefault');
             $table->json('hashed_moves')->nullable(); // Allow null values
             $table->string('nonce')->nullable();
             $table->unsignedInteger('current_index')->default(0);

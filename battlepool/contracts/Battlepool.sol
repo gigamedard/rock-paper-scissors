@@ -7,7 +7,7 @@ contract Battlepool {
         uint256 baseBet;
         uint256 maxSize;
         address[] users;
-        bytes4 poolSalt;
+        string poolSalt; // Changed to string
         mapping(address => bool) isUserInPool; // Track if a user is already in the pool
     }
 
@@ -18,13 +18,24 @@ contract Battlepool {
     mapping(address => string) public userPremoveCIDs; // Maps user address to IPFS CID for premoves
 
     event PoolCreated(uint256 indexed poolId, uint256 baseBet, uint256 maxSize);
-    event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, bytes4 poolSalt);
+    event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, string poolSalt); // Changed poolSalt to string
     event DepositReceived(address indexed user, uint256 amount);
     event MatchHistoryCIDUpdated(uint256 indexed poolId, string cid);
     event PremoveCIDUpdated(address indexed user, string cid);
 
     constructor() {
         //console.log("Contract deployed at:", address(this));
+    }
+
+    function triggerPoolEmittedEventForTesting(
+        uint256 poolId,
+        uint256 baseBet,
+        address[] memory users,
+        string[] memory premoveCIDs,
+        string memory poolSalt // Changed to string
+    ) external {
+        // Emit the PoolEmitted event with the provided parameters
+        emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt);
     }
 
     function createPool(uint256 baseBet, uint256 maxSize) public {
@@ -35,7 +46,7 @@ contract Battlepool {
         newPool.poolId = nextPoolId++;
         newPool.baseBet = baseBet;
         newPool.maxSize = maxSize;
-        newPool.poolSalt = 0; // Initialize salt to 0 (will be generated when pool is full)
+        newPool.poolSalt = ""; // Initialize salt to empty string
 
         emit PoolCreated(newPool.poolId, baseBet, maxSize);
     }
@@ -117,7 +128,7 @@ contract Battlepool {
         }
 
         // Emit the pool details with premove CIDs
-        emit PoolEmitted(pool.poolId, pool.baseBet, pool.users,  premoveCIDs, pool.poolSalt);
+        emit PoolEmitted(pool.poolId, pool.baseBet, pool.users, premoveCIDs, pool.poolSalt);
 
         // Reset the pool
         delete pool.users;
@@ -127,7 +138,8 @@ contract Battlepool {
             pool.isUserInPool[pool.users[i]] = false;
         }
     }
-    function _generateSalt(address[] memory users) internal pure returns (bytes4) {
+
+    function _generateSalt(address[] memory users) internal pure returns (string memory) {
         // Concatenate all user addresses
         bytes memory concatenatedAddresses;
         for (uint256 i = 0; i < users.length; i++) {
@@ -137,11 +149,8 @@ contract Battlepool {
         // Hash the concatenated addresses
         bytes32 hash = keccak256(concatenatedAddresses);
 
-        // Extract the first 4 bytes (32 bits) of the hash
-        bytes4 salt = bytes4(hash);
-
-        // Return the salt as bytes4 (padded with zeros)
-        return bytes4(salt);
+        // Convert the hash to a string
+        return string(abi.encodePacked(hash));
     }
 
     function deposit() external payable {

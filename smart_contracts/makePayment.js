@@ -28,4 +28,23 @@ async function sendETH() {
   }
 }
 
+// Example in JavaScript (Hardhat/Truffle)
+/*
+async function triggerPoolEmittedEventForTesting(poolId, baseBet, users, premoveCIDs, poolSalt) {
+  try {
+    const tx = await battlepool.triggerPoolEmittedEventForTesting(poolId, baseBet, users, premoveCIDs, poolSalt);
+    await tx.wait();
+    console.log(`Pool emitted event triggered successfully for pool ID: ${poolId}`);
+  } catch (error) {
+    console.error("Error triggering pool emitted event:", error);
+  }
+}
+const users = ["0x123...", "0x456..."];
+const premoveCIDs = ["Qm123...", "Qm456..."];
+const poolId = 1;
+const baseBet = ethers.utils.parseEther("0.1");
+const poolSalt = "0x12345678";
+
+triggerPoolEmittedEventForTesting(poolId, baseBet, users, premoveCIDs, poolSalt); */
+
 sendETH();

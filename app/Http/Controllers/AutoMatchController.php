@@ -135,8 +135,13 @@ class AutoMatchController extends Controller
             'pre_moves' => 'required|array|min:1', // Array of moves
             'user_id' => 'required|integer|exists:users,id', // Valid user ID
             'bet_amount' => 'required|numeric|min:0.0001', // Decimal number with a minimum value
+            'cid' => 'required|string' // Validate the CID
         ]);
         
+
+
+        $cid = $validatedData['cid']; // Get the CID
+
         
         
 
@@ -155,6 +160,7 @@ class AutoMatchController extends Controller
                 'hashed_moves' => json_encode($hashedMoves),
                 'nonce' => $nonce,
                 'current_index' => 0,
+                'cid' => $cid,
             ]
         );
 
