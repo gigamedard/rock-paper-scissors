@@ -1,5 +1,5 @@
 import { JsonRpcProvider, Wallet, Contract, formatEther } from "ethers";
-import { contractAddress3, privateKey3, localHardhatUrl, abi3 } from "./config.js";
+import { contractAddress3, privateKey3, localHardhatUrl, abi3 ,backendUrl, INNER_SCRIPT_TOKEN} from "./config.js";
 
 // Initialize provider, wallet, and contract
 const provider = new JsonRpcProvider(localHardhatUrl);
@@ -23,6 +23,30 @@ async function updateUserBalance(user, amount) {
   }
 }
 
+// Function to submit to handle pool emoted event
+async function submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,poolSalt) {
+
+  try {
+    const url = `http://${backendUrl}/handle-pool-emited?token=${INNER_SCRIPT_TOKEN}&pool_id=${poolId}&base_bet=${baseBet}&users=${users}&premove_cids=${premoveCIDs}&pool_salt=${poolSalt}`;
+    const response = await fetch(url);
+    console.log(url);
+
+    if (response.ok) {
+      console.log(`✅ Submitted to handle pool emited event successfully for poolId: ${poolId}`);
+    } else {
+      const errorText = await response.text();
+      console.error(`❌ Failed to submit to handle pool emoted event for poolId: ${poolId}. Response: ${errorText}`);
+    }
+  } catch (error) {
+    console.error(`🚨 Error while submitting to handle pool emoted event:`, error.message);
+  }
+
+
+}
+
+
+
+
 // Main function to listen for DepositReceived events
 async function main() {
   try {
@@ -36,6 +60,19 @@ async function main() {
       // Update balance in the backend
       let userBalance = await contract.getUserBalance(user);
       await updateUserBalance(user, userBalance);
+    });
+
+    contract.on("PoolEmitted", async (poolId, baseBet,users,premoveCIDs,poolSalt) => {
+      console.log(`🔔 PoolEmitted Event Detected:`);
+      console.log(`- User: ${users}`);
+      console.log(`- baseBet: ${baseBet}`);
+      console.log(`- poolId: ${poolId}`);
+      console.log(`- premoveCIDs: ${premoveCIDs}`);
+      console.log(`- poolSalt: ${poolSalt}`);
+
+      // submit to handle pool emoted event
+  
+      await submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,poolSalt);
     });
   } catch (error) {
     console.error("🚨 Error in main function:", error.message);

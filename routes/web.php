@@ -11,6 +11,7 @@ use App\Http\Controllers\BlockchainController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\PoolAutoMatchController;
 
 use App\Models\Challenge;
 use App\Models\User;
@@ -43,13 +44,27 @@ Route::get('/counter', function (Request $request) {
 });
 
 
-Route::get('/autoplay2', function () {
-    return view('autoplay2');
+Route::get('/user_create', function () {
+    $user1 = User::factory()->create(['wallet_address' => '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266']);
+    $user2 = User::factory()->create(['wallet_address' => '0x70997970C51812dc3A010C7d01b50e0d17dc79C8']);
+
+    // Simulate a CID mismatch by setting a different CID in the user's pre-move
+    $user1->preMove()->create([
+        'moves' => json_encode(['rock', 'paper', 'scissors']),
+        'cid' => 'QmTestCID1', // Simulate CID mismatch
+    ]);
+
+
+
+    $user2->preMove()->create([
+        'moves' => json_encode(['paper', 'paper', 'scissors']),
+        'cid' => 'QmTestCID2', // Simulate CID mismatch
+    ]);
 });
 
 
 Route::get('/autoplay3', function () {
-    return view('autoplay3');
+    return view('ipfs');
 });
 
 
@@ -66,6 +81,30 @@ Route::get('/testevent', function () {
 
     return view('welcome');
 });
+
+Route::get('/tst/{wei}',function($wei){
+    $r = bcdiv($wei, '1000000000000000000', 18); // 1 Ether = 10^18 Wei
+    return (float) $r;
+});
+
+
+
+Route::post('/test-pinata-upload', function (Request $request) {
+    $controller = new PoolAutoMatchController();
+    return response()->json([
+        'cid' => $controller->uploadPreMoveToPinata($request->premove_data),
+    ]);
+});
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -133,6 +172,9 @@ Route::post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 Route::get('/autoplay', [AutoMatchController::class, 'index']);
 Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
+
+Route::get('/test-handle-pool-event', [PoolAutoMatchController::class, 'testHandlePoolEmittedEvent']);
+
 // wallet routes
 Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateMessage']);
 //Route::post('/verify-signature', [WalletAuthController::class, 'verifySignature'])->middleware('throttle:10,1'); // 10 requests per minute
@@ -142,8 +184,50 @@ Route::get('/wallet/testrecovery', [WalletAuthController::class, 'testRecovery']
 Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
 Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
+Route::get('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
 
+/*Route::get('/handle-pool-emited', function (Request $request) {
+    Log::info('===================================>befor validation ');
 
+    // Validate all fields as strings
+    $validated = $request->validate([
+        'pool_id' => 'required|string',
+        'base_bet' => 'required|string', // Validate as string first
+        'users' => 'required|string',    // Validate as string first
+        'premove_cids' => 'required|string', // Validate as string first
+        'pool_salt' => 'required|string',
+    ]);
+
+    Log::info('===================================>after validation ');
+
+    // Manually cast values to their expected types
+    $poolId = $validated['pool_id']; // Already a string
+    $baseBet = (float) $validated['base_bet']; // Cast to float/numeric
+
+    // Convert the users string into an array
+    $users = explode(',', $validated['users']); // Split the string by commas
+
+    // Convert the premove_cids string into an array
+    $premoveCIDs = explode(',', $validated['premove_cids']); // Split the string by commas
+
+    $poolSalt = $validated['pool_salt']; // Already a string
+
+    // Ensure the arrays have at least 2 elements
+    if (count($users) < 2 || count($premoveCIDs) < 2) {
+        return response()->json(['error' => 'Arrays must have at least 2 elements'], 422);
+    }
+
+    try {
+        $this->handlePoolEmittedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt);
+        Log::info('===================================>$this->handlePoolEmittedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt);');
+        return response()->json(['message' => 'Pool emitted Request handled successfully'], 200);
+    } catch (\Exception $e) {
+        Log::error('error in poolEmitedRequest: ' . $e->getMessage());
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
+*/
 
     
 

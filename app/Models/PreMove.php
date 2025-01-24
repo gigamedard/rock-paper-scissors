@@ -16,6 +16,7 @@ class PreMove extends Model
         'hashed_moves',
         'nonce',
         'current_index',
+        'cid'
     ];
 
     // A pre-move belongs to a user

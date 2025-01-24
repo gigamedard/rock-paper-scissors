@@ -70,6 +70,5 @@ class BlockchainController extends Controller
         ]);
     }
 
-    
 
 }
