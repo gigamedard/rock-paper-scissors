@@ -417,6 +417,19 @@
         "inputs": [
           {
             "internalType": "address",
+            "name": "user",
+            "type": "address"
+          }
+        ],
+        "name": "updateUserBalance",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
             "name": "",
             "type": "address"
           }

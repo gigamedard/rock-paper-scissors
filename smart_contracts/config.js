@@ -64,8 +64,8 @@ export const localHardhatUrl = "http://127.0.0.1:8545";
 export const contractAddress2 = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 export const backendUrl = "127.0.0.1:8000";
 
-export const privateKey3 = "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
-export const contractAddress3 = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+export const privateKey3 = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+export const contractAddress3 = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
 export const abi3 = [
   {
     "inputs": [],
@@ -192,6 +192,19 @@ export const abi3 = [
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newCoefficient",
+        "type": "uint256"
+      }
+    ],
+    "name": "SecurityCoefficientUpdated",
+    "type": "event"
+  },
+  {
     "stateMutability": "payable",
     "type": "fallback"
   },
@@ -264,6 +277,19 @@ export const abi3 = [
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getContractBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -346,6 +372,30 @@ export const abi3 = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "poolId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "isUserInPool",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "nextPoolId",
     "outputs": [
@@ -353,6 +403,19 @@ export const abi3 = [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -409,6 +472,32 @@ export const abi3 = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "securityCoefficient",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newCoefficient",
+        "type": "uint256"
+      }
+    ],
+    "name": "setSecurityCoefficient",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -484,6 +573,24 @@ export const abi3 = [
     "inputs": [
       {
         "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newBalance",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateUserBalance",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "",
         "type": "address"
       }
@@ -522,4 +629,4 @@ export const abi3 = [
     "stateMutability": "payable",
     "type": "receive"
   }
-];
+] ;

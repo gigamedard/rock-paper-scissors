@@ -67,6 +67,7 @@ class BlockchainController extends Controller
         return response()->json([
             'abi' => $abi,
             'address' => $address,
+            'security_coefficient' => Config('game_settings.security_coefficient'),
         ]);
     }
 

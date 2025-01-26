@@ -63,7 +63,7 @@ Route::get('/user_create', function () {
 });
 
 
-Route::get('/autoplay3', function () {
+Route::get('/web3test', function () {
     return view('ipfs');
 });
 

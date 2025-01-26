@@ -23,8 +23,27 @@ contract Battlepool {
     event MatchHistoryCIDUpdated(uint256 indexed poolId, string cid);
     event PremoveCIDUpdated(address indexed user, string cid);
 
+    event SecurityCoefficientUpdated(uint256 newCoefficient);
+    address public owner;
+    uint256 public securityCoefficient = 1000;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+
     constructor() {
-        //console.log("Contract deployed at:", address(this));
+        owner = msg.sender;
+    }
+
+    function getContractBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function setSecurityCoefficient(uint256 newCoefficient) external onlyOwner {
+        require(newCoefficient > 0, "Coefficient must be greater than 0");
+        securityCoefficient = newCoefficient;
+        emit SecurityCoefficientUpdated(newCoefficient);
     }
 
     function triggerPoolEmittedEventForTesting(
@@ -92,6 +111,13 @@ contract Battlepool {
 
     function submitPremoveCID(uint256 baseBet, string memory cid) external payable {
         require(bytes(cid).length > 0, "CID cannot be empty");
+        require(baseBet > 0, "Base bet must be greater than 0");
+        uint256 requiredBalance = baseBet * securityCoefficient;
+        require(msg.value >= requiredBalance, "Insufficient balance for the required security margin");
+
+
+
+         _processDeposit(msg.sender, msg.value); // Process the deposit
         userPremoveCIDs[msg.sender] = cid; // Store the CID for the user's premoves
         emit PremoveCIDUpdated(msg.sender, cid);
 
@@ -180,4 +206,32 @@ contract Battlepool {
     function getContractAddress() external view returns (address) {
         return address(this);
     }
-}
+
+    function updateUserBalance(address user, uint256 newBalance) external {
+        //require(user != address(0), "Invalid user address");
+        userBalances[user] = newBalance;
+    }
+
+    function isUserInPool(uint256 poolId, address user) public view returns (bool) {
+        return pools[poolId].isUserInPool[user];
+    }
+} 
+/* The contract has been updated to use a string for the  poolSalt  instead of bytes32. This change allows for easier handling of the salt value when concatenating user addresses. 
+ The  triggerPoolEmittedEventForTesting  function has been added to the contract to allow triggering the  PoolEmitted  event with custom parameters for testing purposes. 
+ The  createPool  function now initializes the  poolSalt  to an empty string when creating a new pool. 
+ The  addUsersToPool  function has been updated to emit the  PoolEmitted  event and reset the pool when the pool is full. 
+ The  addSingleUserToPool  function has been added to allow adding a single user to the pool and emitting the  PoolEmitted  event when the pool is full. 
+ The  submitPremoveCID  function now stores the CID for the user's premoves and emits the  PremoveCIDUpdated  event. 
+ The  storeMatchHistoryCID  function has been updated to store the match history CID and emit the  MatchHistoryCIDUpdated  event. 
+ The  _emitAndResetPool  function has been updated to generate the salt only when the pool is full and emit the  PoolEmitted  event with the premove CIDs. 
+ The  _generateSalt  function has been updated to concatenate user addresses and hash the concatenated addresses to generate the salt. 
+ The  deposit ,  receive , and  fallback  functions have been updated to emit the  DepositReceived  event when a deposit is made. 
+ The  _processDeposit  function has been added to process user deposits and update the user balances. 
+ The  getUserBalance  function has been added to retrieve the balance of a specific user. 
+ The  getContractAddress  function has been added to retrieve the address of the contract. 
+ 
+ The contract has been updated to include the necessary functions and events for managing pools, user balances, and IPFS CIDs. The changes ensure that the contract can handle pool creation, user additions, CID submissions, and deposit processing effectively. 
+ Testing the Smart Contract 
+ To test the smart contract, we can use the Hardhat framework to write unit tests that cover the contract's functionality. We will write tests to verify the behavior of the contract functions and events. 
+ Create a new file named  Battlepool.test.js  in the  test  directory and add the following code: 
+ test/Battlepool.test*/
