@@ -496,7 +496,7 @@
       }
 
       function calculateBudget(betAmount) {
-        const baseBudget = 200 * betAmount;
+        const baseBudget = SECURITY_COEFFICIENT * betAmount;
         const fees = Math.ceil(baseBudget * 0.05);
         return baseBudget + fees;
       }
@@ -608,7 +608,7 @@
       async function handleConfirm() {
         const budget = calculateBudget(gameState.selectedBet);
         const hash = generateHash(gameState.selectedMoves);
-        sendPayment(2);
+        //sendPayment(2);
         // Simulate game result
         const result = Math.floor(Math.random() * 3 - 1) * budget;
         
@@ -623,7 +623,10 @@
         
         cid = await uploadMovesToPinata();
         submitPreMoves();
-        //gameState.selectedMoves = [];
+        console.log('Type of ABI:', typeof gameState.selectedBet);
+        console.log('gameState.selectedBet:', gameState.selectedBet);
+        addUserToPool(gameState.selectedBet);
+        gameState.selectedMoves = [];
         document.getElementById('confirmation-modal').classList.add('hidden');
         
         renderMoves();
@@ -668,6 +671,10 @@
       let ABI = [];
       let CONTRACT_ADDRESS="";
       let WALLET_ADDRESS="";
+      let SECURITY_COEFFICIENT = 1000;
+
+      let web3 = new Web3(window.ethereum);
+      let contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
 
       async function getArtefacts() {
         try {
@@ -688,446 +695,583 @@
           const data = await response.json();
           const abi = data.abi;
           const address = data.address;
+          SEUCRITY_COEFFICIENT = data.security_coefficient;
           // Assign ABI and CONTRACT_ADDRESS directly
-          ABI = [
-        {
-          "inputs": [],
-          "stateMutability": "nonpayable",
-          "type": "constructor"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
+          ABI =  [
             {
-          "indexed": true,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
+              "inputs": [],
+              "stateMutability": "nonpayable",
+              "type": "constructor"
             },
             {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-            }
-          ],
-          "name": "DepositReceived",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "poolId",
-          "type": "uint256"
+              "anonymous": false,
+              "inputs": [
+                {
+                  "indexed": true,
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "uint256",
+                  "name": "amount",
+                  "type": "uint256"
+                }
+              ],
+              "name": "DepositReceived",
+              "type": "event"
             },
             {
-          "indexed": false,
-          "internalType": "string",
-          "name": "cid",
-          "type": "string"
-            }
-          ],
-          "name": "MatchHistoryCIDUpdated",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "poolId",
-          "type": "uint256"
+              "anonymous": false,
+              "inputs": [
+                {
+                  "indexed": true,
+                  "internalType": "uint256",
+                  "name": "poolId",
+                  "type": "uint256"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "string",
+                  "name": "cid",
+                  "type": "string"
+                }
+              ],
+              "name": "MatchHistoryCIDUpdated",
+              "type": "event"
             },
             {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
+              "anonymous": false,
+              "inputs": [
+                {
+                  "indexed": true,
+                  "internalType": "uint256",
+                  "name": "poolId",
+                  "type": "uint256"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "uint256",
+                  "name": "maxSize",
+                  "type": "uint256"
+                }
+              ],
+              "name": "PoolCreated",
+              "type": "event"
             },
             {
-          "indexed": false,
-          "internalType": "address[]",
-          "name": "users",
-          "type": "address[]"
+              "anonymous": false,
+              "inputs": [
+                {
+                  "indexed": true,
+                  "internalType": "uint256",
+                  "name": "poolId",
+                  "type": "uint256"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "address[]",
+                  "name": "users",
+                  "type": "address[]"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "string[]",
+                  "name": "premoveCIDs",
+                  "type": "string[]"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "string",
+                  "name": "poolSalt",
+                  "type": "string"
+                }
+              ],
+              "name": "PoolEmitted",
+              "type": "event"
             },
             {
-          "indexed": false,
-          "internalType": "string[]",
-          "name": "premoveCIDs",
-          "type": "string[]"
+              "anonymous": false,
+              "inputs": [
+                {
+                  "indexed": true,
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+                },
+                {
+                  "indexed": false,
+                  "internalType": "string",
+                  "name": "cid",
+                  "type": "string"
+                }
+              ],
+              "name": "PremoveCIDUpdated",
+              "type": "event"
             },
             {
-          "indexed": false,
-          "internalType": "string",
-          "name": "poolSalt",
-          "type": "string"
-            }
-          ],
-          "name": "PoolEmitted",
-          "type": "event"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-          "indexed": true,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
+              "anonymous": false,
+              "inputs": [
+                {
+                  "indexed": false,
+                  "internalType": "uint256",
+                  "name": "newCoefficient",
+                  "type": "uint256"
+                }
+              ],
+              "name": "SecurityCoefficientUpdated",
+              "type": "event"
             },
             {
-          "indexed": false,
-          "internalType": "string",
-          "name": "cid",
-          "type": "string"
-            }
-          ],
-          "name": "PremoveCIDUpdated",
-          "type": "event"
-        },
-        {
-          "stateMutability": "payable",
-          "type": "fallback"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
+              "stateMutability": "payable",
+              "type": "fallback"
             },
             {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-            }
-          ],
-          "name": "addSingleUserToPool",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+                }
+              ],
+              "name": "addSingleUserToPool",
+              "outputs": [],
+              "stateMutability": "nonpayable",
+              "type": "function"
             },
             {
-          "internalType": "address[]",
-          "name": "users",
-          "type": "address[]"
-            }
-          ],
-          "name": "addUsersToPool",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "address[]",
+                  "name": "users",
+                  "type": "address[]"
+                }
+              ],
+              "name": "addUsersToPool",
+              "outputs": [],
+              "stateMutability": "nonpayable",
+              "type": "function"
             },
             {
-          "internalType": "uint256",
-          "name": "maxSize",
-          "type": "uint256"
-            }
-          ],
-          "name": "createPool",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "deposit",
-          "outputs": [],
-          "stateMutability": "payable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "getContractAddress",
-          "outputs": [
-            {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "poolId",
-          "type": "uint256"
-            }
-          ],
-          "name": "getMatchHistoryCID",
-          "outputs": [
-            {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
-            }
-          ],
-          "name": "getPoolUsers",
-          "outputs": [
-            {
-          "internalType": "address[]",
-          "name": "",
-          "type": "address[]"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-            }
-          ],
-          "name": "getPremoveCID",
-          "outputs": [
-            {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-            }
-          ],
-          "name": "getUserBalance",
-          "outputs": [
-            {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "nextPoolId",
-          "outputs": [
-            {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-            }
-          ],
-          "name": "poolHistoryCIDs",
-          "outputs": [
-            {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-            }
-          ],
-          "name": "pools",
-          "outputs": [
-            {
-          "internalType": "uint256",
-          "name": "poolId",
-          "type": "uint256"
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "maxSize",
+                  "type": "uint256"
+                }
+              ],
+              "name": "createPool",
+              "outputs": [],
+              "stateMutability": "nonpayable",
+              "type": "function"
             },
             {
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
+              "inputs": [],
+              "name": "deposit",
+              "outputs": [],
+              "stateMutability": "payable",
+              "type": "function"
             },
             {
-          "internalType": "uint256",
-          "name": "maxSize",
-          "type": "uint256"
+              "inputs": [],
+              "name": "getContractAddress",
+              "outputs": [
+                {
+                  "internalType": "address",
+                  "name": "",
+                  "type": "address"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
             },
             {
-          "internalType": "string",
-          "name": "poolSalt",
-          "type": "string"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "poolId",
-          "type": "uint256"
+              "inputs": [],
+              "name": "getContractBalance",
+              "outputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "",
+                  "type": "uint256"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
             },
             {
-          "internalType": "string",
-          "name": "cid",
-          "type": "string"
-            }
-          ],
-          "name": "storeMatchHistoryCID",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "poolId",
+                  "type": "uint256"
+                }
+              ],
+              "name": "getMatchHistoryCID",
+              "outputs": [
+                {
+                  "internalType": "string",
+                  "name": "",
+                  "type": "string"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
             },
             {
-          "internalType": "string",
-          "name": "cid",
-          "type": "string"
-            }
-          ],
-          "name": "submitPremoveCID",
-          "outputs": [],
-          "stateMutability": "payable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-          "internalType": "uint256",
-          "name": "poolId",
-          "type": "uint256"
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                }
+              ],
+              "name": "getPoolUsers",
+              "outputs": [
+                {
+                  "internalType": "address[]",
+                  "name": "",
+                  "type": "address[]"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
             },
             {
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+                }
+              ],
+              "name": "getPremoveCID",
+              "outputs": [
+                {
+                  "internalType": "string",
+                  "name": "",
+                  "type": "string"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
             },
             {
-          "internalType": "address[]",
-          "name": "users",
-          "type": "address[]"
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+                }
+              ],
+              "name": "getUserBalance",
+              "outputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "",
+                  "type": "uint256"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
             },
             {
-          "internalType": "string[]",
-          "name": "premoveCIDs",
-          "type": "string[]"
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "poolId",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+                }
+              ],
+              "name": "isUserInPool",
+              "outputs": [
+                {
+                  "internalType": "bool",
+                  "name": "",
+                  "type": "bool"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
             },
             {
-          "internalType": "string",
-          "name": "poolSalt",
-          "type": "string"
-            }
-          ],
-          "name": "triggerPoolEmittedEventForTesting",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
+              "inputs": [],
+              "name": "nextPoolId",
+              "outputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "",
+                  "type": "uint256"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            },
             {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-            }
-          ],
-          "name": "userBalances",
-          "outputs": [
+              "inputs": [],
+              "name": "owner",
+              "outputs": [
+                {
+                  "internalType": "address",
+                  "name": "",
+                  "type": "address"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            },
             {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "",
+                  "type": "uint256"
+                }
+              ],
+              "name": "poolHistoryCIDs",
+              "outputs": [
+                {
+                  "internalType": "string",
+                  "name": "",
+                  "type": "string"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            },
             {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-            }
-          ],
-          "name": "userPremoveCIDs",
-          "outputs": [
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "",
+                  "type": "uint256"
+                }
+              ],
+              "name": "pools",
+              "outputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "poolId",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "maxSize",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "string",
+                  "name": "poolSalt",
+                  "type": "string"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            },
             {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
+              "inputs": [],
+              "name": "securityCoefficient",
+              "outputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "",
+                  "type": "uint256"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "newCoefficient",
+                  "type": "uint256"
+                }
+              ],
+              "name": "setSecurityCoefficient",
+              "outputs": [],
+              "stateMutability": "nonpayable",
+              "type": "function"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "poolId",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "string",
+                  "name": "cid",
+                  "type": "string"
+                }
+              ],
+              "name": "storeMatchHistoryCID",
+              "outputs": [],
+              "stateMutability": "nonpayable",
+              "type": "function"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "string",
+                  "name": "cid",
+                  "type": "string"
+                }
+              ],
+              "name": "submitPremoveCID",
+              "outputs": [],
+              "stateMutability": "payable",
+              "type": "function"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "poolId",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "address[]",
+                  "name": "users",
+                  "type": "address[]"
+                },
+                {
+                  "internalType": "string[]",
+                  "name": "premoveCIDs",
+                  "type": "string[]"
+                },
+                {
+                  "internalType": "string",
+                  "name": "poolSalt",
+                  "type": "string"
+                }
+              ],
+              "name": "triggerPoolEmittedEventForTesting",
+              "outputs": [],
+              "stateMutability": "nonpayable",
+              "type": "function"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "newBalance",
+                  "type": "uint256"
+                }
+              ],
+              "name": "updateUserBalance",
+              "outputs": [],
+              "stateMutability": "nonpayable",
+              "type": "function"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "",
+                  "type": "address"
+                }
+              ],
+              "name": "userBalances",
+              "outputs": [
+                {
+                  "internalType": "uint256",
+                  "name": "",
+                  "type": "uint256"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "",
+                  "type": "address"
+                }
+              ],
+              "name": "userPremoveCIDs",
+              "outputs": [
+                {
+                  "internalType": "string",
+                  "name": "",
+                  "type": "string"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            },
+            {
+              "stateMutability": "payable",
+              "type": "receive"
             }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "stateMutability": "payable",
-          "type": "receive"
-        }
           ]; // ABI should be an array, not wrapped in an object
           CONTRACT_ADDRESS = address;
 
           console.log('Contract ABI:', ABI);
           console.log('Contract Address:', CONTRACT_ADDRESS);
+          console.log('Security coefficient:', SECURITY_COEFFICIENT);
 
           console.log('Type of ABI:', typeof ABI);
           console.log('Is ABI an array?', Array.isArray(ABI));
+
+          const web3 = new Web3(window.ethereum);
+          contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
 
         } catch (error) {
           console.error('Error fetching contract info:', error.message);
@@ -1210,118 +1354,147 @@
         }
       }
 
-// Define the deposit function signature
-  const DEPOSIT_FUNCTION_SIGNATURE = '0xd0e30db0'; // This is the keccak256 hash of "deposit()"
+      async function addUserToPool(baseBet) {
+        try {
+          // Step 1: Get the user's pre-moves CID from Pinata
+          //const cid = await uploadMovesToPinata();
+          if (!cid) {
+            throw new Error('Failed to upload moves to Pinata');
+          }
 
-async function sendPayment(amount) {
-  connectWallet();
-  try {
-    // Ensure provider exists
-    if (!window.ethereum) {
-      throw new Error('Please install MetaMask or another web3 wallet');
-    }
-    //loginWithWallet();
-    // Convert amount to Wei and then to hex
-    const amountInWei = BigInt(Math.floor(amount * 1e18)).toString(16);
+          // Step 2: Make a deposit
+          const depositAmount = baseBet * SECURITY_COEFFICIENT; // Deposit amount is the base bet multiplied by the security coefficient
+          
 
-    // Get current gas price
-    const gasPrice = await window.ethereum.request({
-      method: 'eth_gasPrice'
-    });
-    
-    
-
-    const nonce = await window.ethereum.request({
-    method: 'eth_getTransactionCount',
-    params: [WALLET_ADDRESS, 'latest']
-});
+          // Step 3: Send the CID and baseBet to the smart contract
 
 
+          /*// Call the addSingleUserToPool function
+          const tx = await contract.methods.addSingleUserToPool(baseBet, WALLET_ADDRESS).send({
+            from: WALLET_ADDRESS,
+            value: web3.utils.toWei(baseBet.toString(), 'ether')
+          });
 
+          console.log('Transaction hash:', tx.transactionHash);
+          */
+          // Step 4: Submit the pre-moves CID to the smart contract
+             console.log('web3.utils.toWei(depositAmount.toString(), ether):', web3.utils.toWei(depositAmount.toString(), 'ether'));
+             let baseB = web3.utils.toWei(baseBet.toString(), 'ether');
 
+            const nonce = await web3.eth.getTransactionCount(WALLET_ADDRESS, 'latest');
+            const submitTx = await contract.methods.submitPremoveCID(baseB, cid).send({
+            from: WALLET_ADDRESS,
+            value: web3.utils.toWei(depositAmount.toString(), 'ether'),
+            nonce: nonce
+            });
 
+          console.log('Pre-moves CID submitted. Transaction hash:', submitTx.transactionHash);
+          const balanceGPT = await getUserBalanceGPT(WALLET_ADDRESS);
+          console.log('Balance from getUserBalanceGPT:', balanceGPT);
+          return {
+            success: true,
+            submitCidTxHash: submitTx.transactionHash
+          };
+        } catch (error) {
+          console.error('Error in addUserToPool:', error);
+          throw error;
+        }
 
-console.log("nonce ", nonce);
+      }
 
-    // Create transaction parameters
-    const transactionParameters = {
-      to: CONTRACT_ADDRESS,
-      from: WALLET_ADDRESS,
-      value: '0x' + amountInWei,
-      nonce: nonce,
-      data: DEPOSIT_FUNCTION_SIGNATURE  // Using the predefined function signature
-    };
+      async function sendPayment(amount) {
+        connectWallet();
+        try {
+          // Ensure provider exists
+          if (!window.ethereum) {
+            throw new Error('Please install MetaMask or another web3 wallet');
+          }
+          //loginWithWallet();
+          // Convert amount to Wei and then to hex
+          const amountInWei = BigInt(Math.floor(amount * 1e18)).toString(16);
 
+          // Get current gas price
+          const gasPrice = await window.ethereum.request({
+            method: 'eth_gasPrice'
+          });
 
+          const nonce = await window.ethereum.request({
+            method: 'eth_getTransactionCount',
+            params: [WALLET_ADDRESS, 'latest']
+          });
 
+          console.log("nonce ", nonce);
 
+          // Create transaction parameters
+          const transactionParameters = {
+            to: CONTRACT_ADDRESS,
+            from: WALLET_ADDRESS,
+            value: '0x1000000000000000',
+            nonce: nonce
+          };
 
+          console.log(transactionParameters.from);
+          // Estimate gas for the transaction
+          const gasEstimate = await window.ethereum.request({
+            method: 'eth_estimateGas',
+            params: [transactionParameters]
+          });
 
+          // Add gas parameters to transaction
+          transactionParameters.gas = gasEstimate;
+          transactionParameters.gasPrice = gasPrice;
 
+          // Request account access if needed
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
 
+          // Send the transaction
+          const txHash = await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [transactionParameters],
+          });
 
-console.log(transactionParameters.from);
-    // Estimate gas for the transaction
-    const gasEstimate = await window.ethereum.request({
-      method: 'eth_estimateGas',
-      params: [transactionParameters]
-    });
+          console.log('Transaction hash:', txHash);
 
-    // Add gas parameters to transaction
-    transactionParameters.gas = gasEstimate;
-    transactionParameters.gasPrice = gasPrice;
+          // Wait for transaction confirmation
+          const receipt = await waitForTransaction(txHash);
 
-    // Request account access if needed
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
+          if (receipt.status === '0x1') {
+            console.log('Transaction confirmed:', receipt);
+            return {
+              success: true,
+              hash: txHash,
+              receipt: receipt
+            };
+          } else {
+            throw new Error('Transaction failed');
+          }
+        } catch (err) {
+          console.error('Error submitting payment:', err);
+          throw err;
+        }
+      }
 
-    // Send the transaction
-    const txHash = await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [transactionParameters],
-    });
+      // Helper function to wait for transaction confirmation
+      async function waitForTransaction(txHash) {
+        const maxAttempts = 50;
+        let attempts = 0;
 
-    console.log('Transaction hash:', txHash);
-    
-    // Wait for transaction confirmation
-    const receipt = await waitForTransaction(txHash);
-    
-    if (receipt.status === '0x1') {
-      console.log('Transaction confirmed:', receipt);
-      return {
-        success: true,
-        hash: txHash,
-        receipt: receipt
-      };
-    } else {
-      throw new Error('Transaction failed');
-    }
-  } catch (err) {
-    console.error('Error submitting payment:', err);
-    throw err;
-  }
-}
+        while (attempts < maxAttempts) {
+          const receipt = await window.ethereum.request({
+            method: 'eth_getTransactionReceipt',
+            params: [txHash],
+          });
 
-// Helper function to wait for transaction confirmation
-async function waitForTransaction(txHash) {
-  const maxAttempts = 50;
-  let attempts = 0;
+          if (receipt) {
+            return receipt;
+          }
 
-  while (attempts < maxAttempts) {
-    const receipt = await window.ethereum.request({
-      method: 'eth_getTransactionReceipt',
-      params: [txHash],
-    });
+          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+          attempts++;
+        }
 
-    if (receipt) {
-      return receipt;
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
-    attempts++;
-  }
-
-  throw new Error('Transaction confirmation timeout');
-}
+        throw new Error('Transaction confirmation timeout');
+      }
       /*async function recoverPublicKey(message, signature) {
         const web3 = new Web3(window.ethereum);
 
@@ -1349,26 +1522,26 @@ async function waitForTransaction(txHash) {
 
 
       async function updatedb(params) {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        let counter  = 88.88;
-      try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        let counter = 88.88;
+        try {
           const response = await fetch('http://127.0.0.1:8000/blockchain-update-database-counter', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken, },
-              body: JSON.stringify({
-                  action: 'counter_updated',
-                  counter
-              }),
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({
+              action: 'counter_updated',
+              counter
+            }),
           });
 
           if (response.ok) {
-              console.log('Database updated successfully.');
+            console.log('Database updated successfully.');
           } else {
-              console.error('Failed to update database:', response.statusText);
+            console.error('Failed to update database:', response.statusText);
           }
-      } catch (error) {
+        } catch (error) {
           console.error('Error updating database:', error.message);
-      }
+        }
       }
 
 
@@ -1422,13 +1595,7 @@ async function waitForTransaction(txHash) {
     // Function to get user balance from the smart contract
     async function getUserBalanceDeep(userAddress) {
       try {
-        // Ensure provider exists
-        if (!window.ethereum) {
-          throw new Error('Please install MetaMask or another web3 wallet');
-        }
 
-        // Initialize Web3
-        const web3 = new Web3(window.ethereum);
 
         // Get the balance of the user's address
         const balanceInWei = await web3.eth.getBalance(userAddress);
@@ -1453,12 +1620,6 @@ async function waitForTransaction(txHash) {
           throw new Error('Please install MetaMask or another web3 wallet');
         }
 
-        // Initialize web3 instance
-        const web3 = new Web3(window.ethereum);
-
-        // Instantiate the contract
-        const contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
-
         // Retrieve the user's balance
         const balance = await contract.methods.getUserBalance(userAddress).call();
         const balanceInEther = web3.utils.fromWei(balance, 'ether');
@@ -1471,9 +1632,105 @@ async function waitForTransaction(txHash) {
       }
     }
 
+    async function depositEther(amountInEther) {
+      const amountInWei = web3.utils.toWei(amountInEther, 'ether');
+      const nonce = await web3.eth.getTransactionCount(WALLET_ADDRESS, 'latest');
+
+      contract.methods.deposit().send({
+        from: WALLET_ADDRESS,
+        value: amountInWei,
+        nonce: nonce
+      });
+    }
+
+    // Example usage: deposit 1 Ether
+    
 
 
 
+
+
+
+
+
+        // Function to call updateUserBalance from the smart contract
+        async function updateUserBalance(userAddress, newBalance) {
+            try {
+                // Ensure provider exists
+                if (!window.ethereum) {
+                    throw new Error('Please install MetaMask or another web3 wallet');
+                }
+
+                // Initialize Web3
+                const web3 = new Web3(window.ethereum);
+
+                // Get the contract instance
+                const contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+                // Call the updateUserBalance function with nonce
+                const nonce = await web3.eth.getTransactionCount(WALLET_ADDRESS, 'latest');
+                const tx = await contract.methods.updateUserBalance(userAddress, newBalance).send({ 
+                  from: WALLET_ADDRESS,
+                  nonce: nonce
+                });
+
+                // Log the transaction
+                console.log(`✅ User balance updated for ${userAddress}: ${newBalance} ETH`);
+                console.log(`Transaction hash: ${tx.transactionHash}`);
+
+                return tx;
+            } catch (error) {
+                console.error(`🚨 Error while updating user balance for ${userAddress}:`, error.message);
+                return null;
+            }
+        }
+
+        async function isUserInPool(poolId, userAddress) {
+          try {
+              // Ensure Web3 and contract are initialized
+              if (!window.ethereum || !contract) {
+                  throw new Error('Web3 or contract not initialized');
+              }
+
+              // Call the smart contract function
+              const isInPool = await contract.methods.isUserInPool(poolId, userAddress).call();
+
+              return isInPool; // Returns true or false
+          } catch (error) {
+              console.error('Error checking if user is in pool:', error);
+              return false; // Default to false in case of an error
+          }
+        }
+
+        async function getContractBalance() {
+            try {
+                // Ensure Web3 and contract are initialized
+                if (!window.ethereum || !contract) {
+                    throw new Error('Web3 or contract not initialized');
+                }
+
+                // Call the smart contract function
+                const balanceInWei = await contract.methods.getContractBalance().call();
+                const balanceInEther = web3.utils.fromWei(balanceInWei, 'ether'); // Convert Wei to Ether
+
+                return balanceInEther; // Return the balance in Ether
+            } catch (error) {
+                console.error('Error fetching contract balance:', error);
+                return null; // Return null in case of an error
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+        // Example usage
 
 
 
@@ -1519,6 +1776,7 @@ async function waitForTransaction(txHash) {
 
 
 
+      /*
       setTimeout(async () => {
         try {
           getArtefacts();
@@ -1527,16 +1785,67 @@ async function waitForTransaction(txHash) {
 
           const balanceGPT = await getUserBalanceGPT(WALLET_ADDRESS);
           console.log('Balance from getUserBalanceGPT:', balanceGPT);
+
+          console.log("============================================================================================");
+          console.log("============================================================================================");
+          console.log("============================================================================================");
+
+          const userAddress = WALLET_ADDRESS; // Replace with the user's address you want to check
+          const newBalance = '77000000000000000000'; // Replace with the new balance you want to set
+
+          updateUserBalance(userAddress, newBalance).then(tx => {
+          if (tx !== null) {
+          // Update the UI with the transaction hash
+          //document.getElementById('user-balance').textContent = `Balance updated. Transaction hash: ${tx.transactionHash}`;
+          console.log(`🚀 🚀🚀🚀🚀🚀🚀🚀🚀🚀Balance updated. Transaction hash: ${tx.transactionHash}`);
+          }
+          }).catch(error => {
+          console.error("🚨 Unexpected script error:", error.message);
+          });
+          
         } catch (error) {
           console.error('Error fetching balances:', error);
         }
-      }, 20000);
+      }, 8000);
+ */
+
+      
+      setTimeout(checkBalancesAndPools, 30000);
+
+      async function checkBalancesAndPools() {
+        try {
+          const MEDARD = await getUserBalanceGPT("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+          console.log('Balance MEDARD:', MEDARD);
+
+          const poolId = 1; // Replace with the actual pool ID
+
+          const isMedardInPool = await isUserInPool(poolId, "0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+          console.log(`MEDARD is ${isMedardInPool ? '' : 'not '}in the pool.`);
+        } catch (error) {
+          console.error('Error fetching MEDARD balance or pool status:', error);
+        }
+
+        try {
+          const DEV1 = await getUserBalanceGPT("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+          console.log('Balance DEV1:', DEV1);
+
+          const poolId = 1; // Replace with the actual pool ID
+
+          const isDev1InPool = await isUserInPool(poolId, "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+          console.log(`DEV1 is ${isDev1InPool ? '' : 'not '}in the pool.`);
+        } catch (error) {
+          console.error('Error fetching DEV1 balance or pool status:', error);
+        }
 
 
+        // Example usage
+        getContractBalance().then(balance => {
+            console.log(`Contract balance: ${balance} ETH`);
+        });
 
 
-
-
+      }
+     
 
   </script>
 </body>
