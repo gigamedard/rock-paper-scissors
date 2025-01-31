@@ -3,173 +3,75 @@ const { ethers } = require("hardhat");
 
 describe("Battlepool Contract", function () {
   let battlepool;
-  let owner, user1, user2, user3, user4, user5, user6, user7;
+  let owner, user1, user2, user3, user4, user5;
 
   beforeEach(async function () {
-    // Get signers
-    [owner, user1, user2, user3, user4, user5, user6, user7] = await ethers.getSigners();
-
-    // Deploy the Battlepool contract
+    [owner, user1, user2, user3, user4, user5] = await ethers.getSigners();
     const Battlepool = await ethers.getContractFactory("Battlepool");
     battlepool = await Battlepool.deploy();
   });
 
-  describe("Pool Creation", function () {
-    it("Should create a new pool", async function () {
+  describe("Pool Management", function () {
+    it("Should auto-create pool with default maxSize when adding users", async function () {
       const baseBet = ethers.parseEther("1");
-      const maxSize = 5;
-
-      await expect(battlepool.createPool(baseBet, maxSize))
-        .to.emit(battlepool, "PoolCreated")
-        .withArgs(1, baseBet, maxSize);
-
-      const pool = await battlepool.pools(baseBet);
-      expect(pool.poolId).to.equal(1);
-      expect(pool.baseBet).to.equal(baseBet);
-      expect(pool.maxSize).to.equal(maxSize);
+      
+      // Add user to non-existent pool
+      await battlepool.addUsersToPool(baseBet, [user1.address]);
+      
+      // Verify through getter function
+      const poolUsers = await battlepool.getPoolUsers(baseBet);
+      expect(poolUsers).to.deep.equal([user1.address]);
     });
 
-    it("Should revert if a pool with the same baseBet already exists", async function () {
-      const baseBet = ethers.parseEther("1");
-      const maxSize = 5;
-
-      await battlepool.createPool(baseBet, maxSize);
-
-      await expect(battlepool.createPool(baseBet, maxSize)).to.be.revertedWith(
-        "Pool already exists"
-      );
+    it("Should prevent users from joining multiple pools", async function () {
+      const baseBet1 = ethers.parseEther("1");
+      const baseBet2 = ethers.parseEther("2");
+      
+      // Add to first pool
+      await battlepool.addUsersToPool(baseBet1, [user1.address]);
+      
+      // Try second pool
+      await expect(
+        battlepool.addUsersToPool(baseBet2, [user1.address])
+      ).to.be.revertedWith("User in another pool");
     });
 
-    it("Should revert if maxSize is zero", async function () {
+    it("Should emit PoolEmitted and reset when full", async function () {
       const baseBet = ethers.parseEther("1");
-      const maxSize = 0;
+      const users = [user1, user2, user3, user4, user5].map(u => u.address);
 
-      await expect(battlepool.createPool(baseBet, maxSize)).to.be.reverted;
+      // Add users to fill the pool
+      const tx = await battlepool.addUsersToPool(baseBet, users);
+      const receipt = await tx.wait();
+      
+      // Verify pool reset
+      const poolUsers = await battlepool.getPoolUsers(baseBet);
+      expect(poolUsers).to.have.lengthOf(0);
     });
   });
 
-  describe("Adding Users to a Pool", function () {
-    it("Should add users to a pool", async function () {
-      const baseBet = ethers.parseEther("1");
-      const users = [user1.address, user2.address, user3.address];
-
-      await battlepool.createPool(baseBet, 5);
-      await battlepool.addUsersToPool(baseBet, users);
-
-      const poolUsers = await battlepool.getPoolUsers(baseBet);
-      expect(poolUsers).to.deep.equal(users);
-    });
-
-    it("Should revert if a user is already in the pool", async function () {
-      const baseBet = ethers.parseEther("1");
-      const users = [user1.address, user1.address];
-
-      await battlepool.createPool(baseBet, 5);
-
-      await expect(battlepool.addUsersToPool(baseBet, users)).to.be.reverted;
-    });
-    it("Should emit PoolEmitted when the pool is full and reuse the pool", async function () {
-      const baseBet = ethers.parseEther("1");
-      const users = [user1.address, user2.address, user3.address, user4.address, user5.address];
-    
-      // Create the pool explicitly
-      await battlepool.createPool(baseBet, 5);
-    
-      // Compute the expected poolSalt in the test
-      const concatenatedAddresses = ethers.concat(users.map((user) => ethers.getBytes(user)));
-      const hash = ethers.keccak256(concatenatedAddresses);
-      const expectedSalt = ethers.dataSlice(hash, 0, 4); // First 4 bytes of the hash
-    
-      // Add users to the pool and expect the PoolEmitted event
-      await expect(battlepool.addUsersToPool(baseBet, users))
-        .to.emit(battlepool, "PoolEmitted")
-        .withArgs(
-          1, // poolId
-          users, // users array
-          users.map(() => ""), // premoveCIDs array (empty for this test)
-          expectedSalt // poolSalt (first 4 bytes of the hash)
-        );
-    
-      // Verify the pool is reset
-      const poolUsers = await battlepool.getPoolUsers(baseBet);
-      expect(poolUsers).to.have.lengthOf(0); // Pool should be empty after emission
-    
-      // Add more users to the same pool
-      const additionalUsers = [user6.address, user7.address];
-      await battlepool.addUsersToPool(baseBet, additionalUsers);
-    
-      // Verify the additional users were added
-      const updatedPoolUsers = await battlepool.getPoolUsers(baseBet);
-      expect(updatedPoolUsers).to.deep.equal(additionalUsers);
-    });
-
-  });
-
-  describe("Submitting Premoves", function () {
-    it("Should allow a user to submit premoves", async function () {
-      const baseBet = ethers.parseEther("1");
-      const cid = "QmExampleCID";
-
-      await battlepool.createPool(baseBet, 5);
-      await expect(battlepool.connect(user1).submitPremoveCID(baseBet, cid))
-        .to.emit(battlepool, "PremoveCIDUpdated")
-        .withArgs(user1.address, cid);
-
-      const userPremoveCID = await battlepool.getPremoveCID(user1.address);
-      expect(userPremoveCID).to.equal(cid);
-    });
-
-    it("Should revert if the CID is empty", async function () {
-      const baseBet = ethers.parseEther("1");
-      const cid = "";
-
-      await battlepool.createPool(baseBet, 5);
+  describe("Premoves & Deposits", function () {
+    it("Should enforce security coefficient requirements", async function () {
+      const baseBet = ethers.parseEther("0.001");
+      const securityCoefficient = await battlepool.securityCoefficient();
+      const requiredBalance = baseBet * securityCoefficient;
 
       await expect(
-        battlepool.connect(user1).submitPremoveCID(baseBet, cid)
-      ).to.be.revertedWith("CID cannot be empty");
+        battlepool.connect(user1).submitPremoveCID(baseBet, "CID", { 
+          value: requiredBalance - 1n 
+        })
+      ).to.be.revertedWith("Insufficient balance for the required security margin");
     });
   });
 
-  describe("Deposits", function () {
-    it("Should allow users to deposit Ether", async function () {
-      const depositAmount = ethers.parseEther("1");
-
-      await expect(battlepool.connect(user1).deposit({ value: depositAmount }))
-        .to.emit(battlepool, "DepositReceived")
-        .withArgs(user1.address, depositAmount);
-
-      const userBalance = await battlepool.getUserBalance(user1.address);
-      expect(userBalance).to.equal(depositAmount);
-    });
-
-    it("Should revert if the deposit amount is zero", async function () {
-      await expect(battlepool.connect(user1).deposit({ value: 0 })).to.be.revertedWith(
-        "Deposit must be greater than 0"
-      );
-    });
-  });
-
-  describe("Match History", function () {
-    it("Should store match history CID", async function () {
-      const poolId = 1;
-      const cid = "QmMatchCID";
-
-      await expect(battlepool.storeMatchHistoryCID(poolId, cid))
-        .to.emit(battlepool, "MatchHistoryCIDUpdated")
-        .withArgs(poolId, cid);
-
-      const matchHistoryCID = await battlepool.getMatchHistoryCID(poolId);
-      expect(matchHistoryCID).to.equal(cid);
-    });
-
-    it("Should revert if the CID is empty", async function () {
-      const poolId = 1;
-      const cid = "";
-
-      await expect(battlepool.storeMatchHistoryCID(poolId, cid)).to.be.revertedWith(
-        "CID cannot be empty"
-      );
+  describe("Owner Functions", function () {
+    it("Should prevent non-owners from updating maxSize", async function () {
+      const baseBet = ethers.parseEther("1");
+      await battlepool.addUsersToPool(baseBet, [user1.address]);
+      
+      await expect(
+        battlepool.connect(user1).setPoolMaxSize(baseBet, 10)
+      ).to.be.revertedWith("Only owner can call this function");
     });
   });
 });

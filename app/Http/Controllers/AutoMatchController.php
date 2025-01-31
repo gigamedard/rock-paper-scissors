@@ -140,7 +140,7 @@ class AutoMatchController extends Controller
         
 
 
-        $cid = $validatedData['cid']; // Get the CID
+        $cid = $validated['cid']; // Get the CID
 
         
         
