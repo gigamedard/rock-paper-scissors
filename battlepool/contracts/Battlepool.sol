@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.28;
 
 contract Battlepool {
     struct Pool {
@@ -16,7 +16,7 @@ contract Battlepool {
     mapping(address => uint256) public userBalances;
     mapping(uint256 => string) public poolHistoryCIDs; // Maps poolId to IPFS CID
     mapping(address => string) public userPremoveCIDs; // Maps user address to IPFS CID for premoves
-
+    mapping(address => bool) public isUserInAnyPool;
     event PoolCreated(uint256 indexed poolId, uint256 baseBet, uint256 maxSize);
     event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, string poolSalt); // Changed poolSalt to string
     event DepositReceived(address indexed user, uint256 amount);
@@ -26,6 +26,7 @@ contract Battlepool {
     event SecurityCoefficientUpdated(uint256 newCoefficient);
     address public owner;
     uint256 public securityCoefficient = 1000;
+   
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
@@ -45,46 +46,55 @@ contract Battlepool {
         securityCoefficient = newCoefficient;
         emit SecurityCoefficientUpdated(newCoefficient);
     }
-
-    function triggerPoolEmittedEventForTesting(
-        uint256 poolId,
-        uint256 baseBet,
-        address[] memory users,
-        string[] memory premoveCIDs,
-        string memory poolSalt // Changed to string
-    ) external {
-        // Emit the PoolEmitted event with the provided parameters
-        emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt);
-    }
-
-    function createPool(uint256 baseBet, uint256 maxSize) public {
+        /*
+            function triggerPoolEmittedEventForTesting(
+                uint256 poolId,
+                uint256 baseBet,
+                address[] memory users,
+                string[] memory premoveCIDs,
+                string memory poolSalt // Changed to string
+            ) external {
+                // Emit the PoolEmitted event with the provided parameters
+                emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt);
+            }
+        */
+    function createPool(uint256 baseBet, uint256 maxSize) private {
         require(pools[baseBet].poolId == 0, "Pool already exists");
         require(maxSize > 0, "Invalid maxSize");
 
         Pool storage newPool = pools[baseBet];
-        newPool.poolId = nextPoolId++;
+        newPool.poolId = nextPoolId;
         newPool.baseBet = baseBet;
         newPool.maxSize = maxSize;
         newPool.poolSalt = ""; // Initialize salt to empty string
+        nextPoolId++;
 
         emit PoolCreated(newPool.poolId, baseBet, maxSize);
     }
 
     function addUsersToPool(uint256 baseBet, address[] memory users) external {
         require(users.length > 0, "No users to add");
+        
 
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
             // Create a new pool if it doesn't exist
             createPool(baseBet, 5); // Default maxSize set to 5
+        }else if (pool.users.length == 0) {
+        
+            pool.poolId = nextPoolId; // NOT pool.id
+            nextPoolId++;
         }
 
         for (uint256 i = 0; i < users.length; i++) {
             require(users[i] != address(0), "Invalid user address"); // Validate user address
             require(!pool.isUserInPool[users[i]], "User already in pool"); // Ensure user is not already in the pool
+            require(!isUserInAnyPool[users[i]], "User in another pool");
 
             pool.users.push(users[i]);
             pool.isUserInPool[users[i]] = true; // Mark user as added to the pool
+            isUserInAnyPool[users[i]] = true; // Mark user as in any pool
+
 
             // Check if the pool is full
             if (pool.users.length == pool.maxSize) {
@@ -94,15 +104,25 @@ contract Battlepool {
     }
 
     function addSingleUserToPool(uint256 baseBet, address user) public {
+        
+        require(user != address(0), "Invalid user address");
+        
+        require(!isUserInAnyPool[user], "User in another pool");
+        
+        
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
             createPool(baseBet, 5); // Default maxSize set to 5 if pool does not exist
+        }else if (pool.users.length == 0 ) {
+            pool.poolId = nextPoolId; // NOT pool.id
+            nextPoolId++;
         }
-        require(user != address(0), "Invalid user address");
-        require(!pool.isUserInPool[user], "User already in pool"); // Ensure user is not already in the pool
+        
 
         pool.users.push(user);
         pool.isUserInPool[user] = true; // Mark user as added to the pool
+        isUserInAnyPool[user] = true; // Mark user as in any pool
+
 
         if (pool.users.length == pool.maxSize) {
             _emitAndResetPool(pool);
@@ -143,6 +163,15 @@ contract Battlepool {
         return userPremoveCIDs[user];
     }
 
+
+    function setPoolMaxSize(uint256 baseBet, uint256 newMaxSize) external onlyOwner {
+        Pool storage pool = pools[baseBet];
+        require(pool.poolId != 0, "Pool does not exist");
+        pool.maxSize = newMaxSize;
+    }
+
+
+
     function _emitAndResetPool(Pool storage pool) internal {
         // Generate the salt only when the pool is full
         pool.poolSalt = _generateSalt(pool.users);
@@ -156,13 +185,16 @@ contract Battlepool {
         // Emit the pool details with premove CIDs
         emit PoolEmitted(pool.poolId, pool.baseBet, pool.users, premoveCIDs, pool.poolSalt);
 
-        // Reset the pool
-        delete pool.users;
-
         // Clear the user tracking mapping
         for (uint256 i = 0; i < pool.users.length; i++) {
             pool.isUserInPool[pool.users[i]] = false;
+            isUserInAnyPool[pool.users[i]] = false;
+            delete userPremoveCIDs[pool.users[i]];
         }
+
+         // Reset the pool
+        delete pool.users;
+        
     }
 
     function _generateSalt(address[] memory users) internal pure returns (string memory) {
@@ -180,17 +212,17 @@ contract Battlepool {
     }
 
     function deposit() external payable {
-        require(msg.value > 0, "Deposit must be greater than 0");
+        require(msg.value > 0, " from deposit Deposit must be greater than 0");
         _processDeposit(msg.sender, msg.value);
     }
 
     receive() external payable {
-        require(msg.value > 0, "Deposit must be greater than 0");
+        require(msg.value > 0, " from receive Deposit must be greater than 0");
         emit DepositReceived(msg.sender, msg.value);
     }
 
     fallback() external payable {
-        require(msg.value > 0, "Deposit must be greater than 0");
+        require(msg.value > 0, "from fallback Deposit must be greater than 0");
         emit DepositReceived(msg.sender, msg.value);
     }
 
@@ -207,15 +239,11 @@ contract Battlepool {
         return address(this);
     }
 
-    function updateUserBalance(address user, uint256 newBalance) external {
-        //require(user != address(0), "Invalid user address");
-        userBalances[user] = newBalance;
-    }
 
     function isUserInPool(uint256 poolId, address user) public view returns (bool) {
         return pools[poolId].isUserInPool[user];
     }
-} 
+}  
 /* The contract has been updated to use a string for the  poolSalt  instead of bytes32. This change allows for easier handling of the salt value when concatenating user addresses. 
  The  triggerPoolEmittedEventForTesting  function has been added to the contract to allow triggering the  PoolEmitted  event with custom parameters for testing purposes. 
  The  createPool  function now initializes the  poolSalt  to an empty string when creating a new pool. 

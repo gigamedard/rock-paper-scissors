@@ -643,7 +643,7 @@
               headers: {
                   'Content-Type': 'application/json',
                   'X-CSRF-TOKEN': "{{ csrf_token() }}",
-              },
+              }, 
               body: JSON.stringify({
                   user_id: userId, // Send the User ID
                   pre_moves: moves,
@@ -876,24 +876,6 @@
               "type": "function"
             },
             {
-              "inputs": [
-                {
-                  "internalType": "uint256",
-                  "name": "baseBet",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "maxSize",
-                  "type": "uint256"
-                }
-              ],
-              "name": "createPool",
-              "outputs": [],
-              "stateMutability": "nonpayable",
-              "type": "function"
-            },
-            {
               "inputs": [],
               "name": "deposit",
               "outputs": [],
@@ -997,6 +979,25 @@
                   "internalType": "uint256",
                   "name": "",
                   "type": "uint256"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "",
+                  "type": "address"
+                }
+              ],
+              "name": "isUserInAnyPool",
+              "outputs": [
+                {
+                  "internalType": "bool",
+                  "name": "",
+                  "type": "bool"
                 }
               ],
               "stateMutability": "view",
@@ -1122,6 +1123,24 @@
               "inputs": [
                 {
                   "internalType": "uint256",
+                  "name": "baseBet",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "newMaxSize",
+                  "type": "uint256"
+                }
+              ],
+              "name": "setPoolMaxSize",
+              "outputs": [],
+              "stateMutability": "nonpayable",
+              "type": "function"
+            },
+            {
+              "inputs": [
+                {
+                  "internalType": "uint256",
                   "name": "newCoefficient",
                   "type": "uint256"
                 }
@@ -1165,57 +1184,6 @@
               "name": "submitPremoveCID",
               "outputs": [],
               "stateMutability": "payable",
-              "type": "function"
-            },
-            {
-              "inputs": [
-                {
-                  "internalType": "uint256",
-                  "name": "poolId",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "baseBet",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "address[]",
-                  "name": "users",
-                  "type": "address[]"
-                },
-                {
-                  "internalType": "string[]",
-                  "name": "premoveCIDs",
-                  "type": "string[]"
-                },
-                {
-                  "internalType": "string",
-                  "name": "poolSalt",
-                  "type": "string"
-                }
-              ],
-              "name": "triggerPoolEmittedEventForTesting",
-              "outputs": [],
-              "stateMutability": "nonpayable",
-              "type": "function"
-            },
-            {
-              "inputs": [
-                {
-                  "internalType": "address",
-                  "name": "user",
-                  "type": "address"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "newBalance",
-                  "type": "uint256"
-                }
-              ],
-              "name": "updateUserBalance",
-              "outputs": [],
-              "stateMutability": "nonpayable",
               "type": "function"
             },
             {
@@ -1820,7 +1788,7 @@
           const poolId = 1; // Replace with the actual pool ID
 
           const isMedardInPool = await isUserInPool(poolId, "0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
-          console.log(`MEDARD is ${isMedardInPool ? '' : 'not '}in the pool.`);
+          console.log(`is MEDARD  in the pool: ${isMedardInPool}`);
         } catch (error) {
           console.error('Error fetching MEDARD balance or pool status:', error);
         }
@@ -1832,7 +1800,7 @@
           const poolId = 1; // Replace with the actual pool ID
 
           const isDev1InPool = await isUserInPool(poolId, "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
-          console.log(`DEV1 is ${isDev1InPool ? '' : 'not '}in the pool.`);
+          console.log(`is DEV1  in the pool: ${isDev1InPool}`);
         } catch (error) {
           console.error('Error fetching DEV1 balance or pool status:', error);
         }
