@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('salt')->unique()->default('abdc123'); // Salt for additional security
             $table->integer('pool_size')->default(100); // Size of the pool
             $table->decimal('base_bet', 18, 8)->default(0.00000001); // Base bet amount with higher precision
-            $table->json('users')->nullable(); // JSON column to store users (nullable) // JSON column to store users
+            //$table->json('users')->nullable(); // JSON column to store users (nullable) // JSON column to store users
             $table->json('premove_cids')->nullable(); // JSON column to store premove CIDs
             $table->timestamps();
         });

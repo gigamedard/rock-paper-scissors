@@ -50,8 +50,7 @@ async function submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,p
 // Main function to listen for DepositReceived events
 async function main() {
   try {
-    console.log("⏳ Listening for DepositReceived events...");
-
+    console.log("🔊 Listening for events...");
     contract.on("DepositReceived", async (user, amount) => {
       console.log(`🔔 DepositReceived Event Detected:`);
       console.log(`- User: ${user}`);
@@ -62,7 +61,10 @@ async function main() {
       await updateUserBalance(user, userBalance);
     });
 
+
+
     contract.on("PoolEmitted", async (poolId, baseBet,users,premoveCIDs,poolSalt) => {
+
       console.log(`🔔 PoolEmitted Event Detected:`);
       console.log(`- User: ${users}`);
       console.log(`- baseBet: ${baseBet}`);
@@ -71,9 +73,9 @@ async function main() {
       console.log(`- poolSalt: ${poolSalt}`);
 
       // submit to handle pool emoted event
-  
       await submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,poolSalt);
     });
+
   } catch (error) {
     console.error("🚨 Error in main function:", error.message);
   }

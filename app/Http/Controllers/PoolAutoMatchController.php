@@ -14,6 +14,7 @@ use App\Models\PreMove;
 use App\Models\ArrayIndex;
 use Illuminate\Support\Facades\Log;
 use App\Models\Batch;
+use App\Helpers\Web3Helper;
 
 class PoolAutoMatchController extends Controller
 {   
@@ -354,8 +355,8 @@ public function uploadPreMoveToPinata(string $preMoveDataJson): ?string
         }
     
         try {
-            $this->handlePoolEmittedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt);
-            Log::info('===================================>$this->handlePoolEmittedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt);');
+            $this->handlePoolEmitedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt);
+            Log::info('===================================>$this->handlePoolEmitedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt);');
             return response()->json(['message' => 'Pool emitted Request handled successfully'], 200);
         } catch (\Exception $e) {
             Log::error('error in poolEmitedRequest: ' . $e->getMessage());
@@ -367,7 +368,7 @@ public function uploadPreMoveToPinata(string $preMoveDataJson): ?string
     {
         return bcdiv($wei, '1000000000000000000', 18); // 1 Ether = 10^18 Wei
     }
-    public function handlePoolEmittedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt)
+    public function handlePoolEmitedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt)
     {   
 
         // Decode JSON strings if necessary
@@ -397,10 +398,12 @@ public function uploadPreMoveToPinata(string $preMoveDataJson): ?string
         // Log the number of users and pre-move CIDs
         Log::info('Number of users: ' . count($users));
         Log::info('Number of pre-move CIDs: ' . count($premoveCIDs));
+        Log::info('$pooId===avanttransaction:'. $poolId);
 
         // Start database transaction
         DB::transaction(function () use ($poolId, $baseBet, $users, $poolSalt, $premoveCIDs) {
             Log::info(' Start database transaction with $user : ' . json_encode($users));
+            Log::info('$pooId===pendant transaction:'. $poolId);
             try {
                 // Create the pool
                 $pool = Pool::create([
@@ -425,12 +428,14 @@ public function uploadPreMoveToPinata(string $preMoveDataJson): ?string
                 }
                 
                 // Mark users as in_pool (not available for other pools)
-                $usersCollection->each(function ($user) {
-                    $user->update(['status' => 'in_pool']);
+                $usersCollection->each(function ($user) use ($pool, $poolId) {
+                    $user->update([
+                        'status' => 'in_pool',
+                        'pool_id' => $poolId  // Set the pool_id directly on the user
+                    ]);
+
+                    $user->save();
                 });
-    
-                // Attach users to the pool
-                $pool->users()->attach($usersCollection->pluck('id')->toArray());
     
                 // Proceed to batch processing
                 $this->processBatch();
@@ -442,12 +447,22 @@ public function uploadPreMoveToPinata(string $preMoveDataJson): ?string
             }
         });
     }
-    public function testHandlePoolEmittedEvent()
+    public function testhandlePoolEmitedEvent()
     {
 
+        $users = [
+            "0xF3A5D3E6A8CFA57Fdb18aAf4aEaf5Dd8A40BF02E",
+            "0x1B7d8dF3cF9Ae5A9E8e40f3cB4D3E3eB2aA7e10F",
+            "0x9c7A1dBf3F2dE4A7C5b6F1D3A2B9C4E6F8A1D2C3",
+            "0x3C9a5aD8E7fA2B4c9e3F8B2D7aF1E6C3b4A5d8f7",
+            "0xE6B4d7F3a2C1B9e5F8A4d7C2b3E9F1A5C6D8e7F0"
+        ];
 
-        $user1 = User::factory()->create(['wallet_address' => '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266']);
-        $user2 = User::factory()->create(['wallet_address' => '0x70997970C51812dc3A010C7d01b50e0d17dc79C8']);
+        $user1 = User::factory()->create(['wallet_address' => '0xF3A5D3E6A8CFA57Fdb18aAf4aEaf5Dd8A40BF02E']);
+        $user2 = User::factory()->create(['wallet_address' => '0x1B7d8dF3cF9Ae5A9E8e40f3cB4D3E3eB2aA7e10F']);
+        $user3 = User::factory()->create(['wallet_address' => '0x9c7A1dBf3F2dE4A7C5b6F1D3A2B9C4E6F8A1D2C3']);
+        $user4 = User::factory()->create(['wallet_address' => '0x3C9a5aD8E7fA2B4c9e3F8B2D7aF1E6C3b4A5d8f7']);
+        $user5 = User::factory()->create(['wallet_address' => '0xE6B4d7F3a2C1B9e5F8A4d7C2b3E9F1A5C6D8e7F0']);
 
         // Simulate a CID mismatch by setting a different CID in the user's pre-move
         $user1->preMove()->create([
@@ -455,30 +470,49 @@ public function uploadPreMoveToPinata(string $preMoveDataJson): ?string
             'cid' => 'QmTestCID1', // Simulate CID mismatch
         ]);
 
-
-
         $user2->preMove()->create([
             'moves' => json_encode(['paper', 'paper', 'scissors']),
             'cid' => 'QmTestCID2', // Simulate CID mismatch
         ]);
+
+        $user3->preMove()->create([
+            'moves' => json_encode(['rock', 'rock', 'scissors']),
+            'cid' => 'QmTestCID3', // Simulate CID mismatch
+        ]);
+
+        $user4->preMove()->create([
+            'moves' => json_encode(['rock', 'paper', 'rock']),
+            'cid' => 'QmTestCID4', // Simulate CID mismatch
+        ]);
+
+        $user5->preMove()->create([
+            'moves' => json_encode(['rock', 'rock', 'rock']),
+            'cid' => 'QmTestCID5', // Simulate CID mismatch
+        ]);
+
+
+
+
         // Mock data for testing
-        $poolId = 'test-pool-id-123';
+        $poolId = 1;
         $baseBet = 0.1;
-        $users = [
-            '0xUserWalletAddress1',
-            '0xUserWalletAddress2',
-        ];
+
         $premoveCIDs = [
             'QmTestCID1',
             'QmTestCID2',
+            'QmTestCID3',
+            'QmTestCID4',
+            'QmTestCID5',
         ];
-        $poolSalt = 'random_salt_string';
+
+        $poolSalt = Web3Helper::generateHash($users);
     
         try {
             // Call the actual method with test data
+            Log::info('$pooId===testhandlePoolEmitedEvent:'. $poolId);
             $this->handlePoolEmitedEvent($poolId, $baseBet, $users, $premoveCIDs, $poolSalt);
     
-            return response()->json(['message' => 'handlePoolEmittedEvent executed successfully!'], 200);
+            return response()->json(['message' => 'handlePoolEmitedEvent executed successfully!'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -509,6 +543,17 @@ public function uploadPreMoveToPinata(string $preMoveDataJson): ?string
                 }
             }
 
+            
+            Log::info('===================================>availableUsers befor sorting: ' . json_encode($availableUsers));
+            // sort the users by their wallet address hashed with salt
+
+            $sortedUsers = Web3Helper::sortAddressesWithSalt($availableUsers->pluck('wallet_address')->toArray(), $pool->pool_salt);
+            $availableUsers = $availableUsers->sortBy(function ($user) use ($sortedUsers) {
+                return array_search($user->wallet_address, $sortedUsers);
+            })->values();
+
+
+            Log::info('===================================>availableUsers after sorting: ' . json_encode($availableUsers));
             // Ensure even count of users
             if ($availableUsers->count() % 2 !== 0) {
                 $availableUsers->pop();

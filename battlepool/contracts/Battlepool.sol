@@ -26,6 +26,7 @@ contract Battlepool {
     event SecurityCoefficientUpdated(uint256 newCoefficient);
     address public owner;
     uint256 public securityCoefficient = 1000;
+
    
 
     modifier onlyOwner() {
@@ -79,7 +80,7 @@ contract Battlepool {
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
             // Create a new pool if it doesn't exist
-            createPool(baseBet, 5); // Default maxSize set to 5
+            createPool(baseBet, 3); // Default maxSize set to 5
         }else if (pool.users.length == 0) {
         
             pool.poolId = nextPoolId; // NOT pool.id
@@ -112,7 +113,7 @@ contract Battlepool {
         
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
-            createPool(baseBet, 5); // Default maxSize set to 5 if pool does not exist
+            createPool(baseBet, 3); // Default maxSize set to 5 if pool does not exist
         }else if (pool.users.length == 0 ) {
             pool.poolId = nextPoolId; // NOT pool.id
             nextPoolId++;
@@ -196,19 +197,29 @@ contract Battlepool {
         delete pool.users;
         
     }
+    // Generate a salt from the concatenated addresses of all users
+    function _generateSalt(address[] memory _users) internal pure returns (string memory) {
+        bytes memory packedAddresses;
+        for (uint256 i = 0; i < _users.length; i++) {
+            // Each address is individually packed into its 20-byte representation.
+            packedAddresses = abi.encodePacked(packedAddresses, abi.encodePacked(_users[i]));
+        }
+        bytes32 hash = keccak256(packedAddresses); // Hash the concatenated addresses
+        // Convert the hash to a hexadecimal string
+        return _toHexString(hash);
+    }    
 
-    function _generateSalt(address[] memory users) internal pure returns (string memory) {
-        // Concatenate all user addresses
-        bytes memory concatenatedAddresses;
-        for (uint256 i = 0; i < users.length; i++) {
-            concatenatedAddresses = abi.encodePacked(concatenatedAddresses, users[i]);
+
+    function _toHexString(bytes32 _bytes) internal pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory str = new bytes(64); // 64 characters for 32 bytes
+
+        for (uint256 i = 0; i < 32; i++) {
+            str[i * 2] = alphabet[uint8(_bytes[i] >> 4)]; // First 4 bits
+            str[i * 2 + 1] = alphabet[uint8(_bytes[i] & 0x0f)]; // Last 4 bits
         }
 
-        // Hash the concatenated addresses
-        bytes32 hash = keccak256(concatenatedAddresses);
-
-        // Convert the hash to a string
-        return string(abi.encodePacked(hash));
+    return string(str);
     }
 
     function deposit() external payable {
