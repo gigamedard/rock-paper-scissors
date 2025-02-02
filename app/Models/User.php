@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 use App\Models\Challenge;
 use App\Models\Fight;
@@ -28,6 +28,7 @@ class User extends Authenticatable
         'wallet_address',
         'balance',
         'battle_balance',
+        'pool_id',
     ];
 
     protected $hidden = [
@@ -60,14 +61,13 @@ class User extends Authenticatable
         return $this->hasMany(Fight::class, 'user1_id');
     }
 
-    public function pools(): BelongsToMany
-    {
-        return $this->belongsToMany(Pool::class, 'pool_user', 'user_id', 'pool_id');
+    public function pools(): BelongsTo{
+        return $this->belongsTo(Pool::class, 'pool_id');
     }
 
         // A user has one set of pre-moves
-        public function preMove()
-        {
-            return $this->hasOne(PreMove::class);
-        }
+    public function preMove()
+    {
+        return $this->hasOne(PreMove::class);
+    }
 }

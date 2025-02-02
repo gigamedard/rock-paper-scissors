@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 use App\Models\Pool;
 use App\Models\User;
@@ -21,13 +21,14 @@ class Pool extends Model
         'salt',
         'pool_size',
         'pool_id',
-        'base_bet'
+        'base_bet',
+        'premove_cids',
     ];
 
     // Define the many-to-many relationship with users
-    public function users(): BelongsToMany
+    public function users(): HasMany
     {
-        return $this->belongsToMany(User::class, 'pool_user', 'pool_id', 'user_id');
+        return $this->hasMany(User::class, 'pool_id');
     }
     // A pool has many fights
     public function fights(): HasMany
@@ -60,17 +61,29 @@ class Pool extends Model
                 }
             }
 
+            Log::info('===================================>availableUsers befor sorting: ' . json_encode($availableUsers));
+            // sort the users by their wallet address hashed with salt
+
+            $sortedUsers = Web3Helper::sortAddressesWithSalt($availableUsers->pluck('wallet_address')->toArray(), $pool->salt);
+            $availableUsers = $availableUsers->sortBy(function ($user) use ($sortedUsers) {
+                return array_search($user->wallet_address, $sortedUsers);
+            })->values();
+
+
+            Log::info('===================================>availableUsers after sorting: ' . json_encode($availableUsers));
+
+
             // Ensure even count of users
-            if ($availableUsers->count() % 2 !== 0) {
-                $availableUsers->pop();
+            if ($sortedUsers->count() % 2 !== 0) {
+                $sortedUsers->pop();
             }
 
             // Generate fights and process them
-            if ($availableUsers->isNotEmpty()) {
-                for ($i = 0; $i < $availableUsers->count(); $i += 2) {
+            if ($sortedUsers->isNotEmpty()) {
+                for ($i = 0; $i < $sortedUsers->count(); $i += 2) {
                     $fight = Fight::create([
-                        'user1_id' => $availableUsers[$i]->id,
-                        'user2_id' => $availableUsers[$i + 1]->id,
+                        'user1_id' => $sortedUsers[$i]->id,
+                        'user2_id' => $sortedUsers[$i + 1]->id,
                         'base_bet_amount' => $this->base_bet,
                         'status' => 'waiting_for_result',
                     ]);

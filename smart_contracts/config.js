@@ -65,8 +65,8 @@ export const contractAddress2 = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 export const backendUrl = "127.0.0.1:8000";
 
 export const privateKey3 = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-export const contractAddress3 = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
-export const abi3 = [
+export const contractAddress3 = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+export const abi3 =  [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
@@ -245,24 +245,6 @@ export const abi3 = [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "baseBet",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "maxSize",
-        "type": "uint256"
-      }
-    ],
-    "name": "createPool",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "deposit",
     "outputs": [],
@@ -366,6 +348,25 @@ export const abi3 = [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isUserInAnyPool",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -491,6 +492,24 @@ export const abi3 = [
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "baseBet",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "newMaxSize",
+        "type": "uint256"
+      }
+    ],
+    "name": "setPoolMaxSize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "newCoefficient",
         "type": "uint256"
       }
@@ -539,57 +558,6 @@ export const abi3 = [
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "poolId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "baseBet",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address[]",
-        "name": "users",
-        "type": "address[]"
-      },
-      {
-        "internalType": "string[]",
-        "name": "premoveCIDs",
-        "type": "string[]"
-      },
-      {
-        "internalType": "string",
-        "name": "poolSalt",
-        "type": "string"
-      }
-    ],
-    "name": "triggerPoolEmittedEventForTesting",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "newBalance",
-        "type": "uint256"
-      }
-    ],
-    "name": "updateUserBalance",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
         "name": "",
         "type": "address"
@@ -629,4 +597,4 @@ export const abi3 = [
     "stateMutability": "payable",
     "type": "receive"
   }
-] ;
+];

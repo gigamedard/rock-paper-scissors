@@ -109,22 +109,28 @@ class Fight extends Model
 
         // Determine the result of the fight
         $result = $this->determineResult($user1Move, $user2Move);
-
         // Update fight result
         $this->result = $result;
-        $this->status = 'completed';
-        $this->save();
-
-        // Get the winner and loser
-        $winner = ($result === 'user1_win') ? $this->user1_id : $this->user2_id;
-        $loser = ($result === 'user1_win') ? $this->user2_id : $this->user1_id;
-
         
-        // Transfer the loser's battle balance to the winner
-        $loserUser = User::find($loser);
-        $winnerUser = User::find($winner);
+        // Handle the case where the result is a draw
+        if ($result === 'draw') {
+            // Both users remain in the pool and their statuses are updated
+            User::where('id', $this->user1_id)->update(['status' => 'available']);
+            User::where('id', $this->user2_id)->update(['status' => 'available']);
+        }
+        else
+        {
 
-        if ($loserUser && $winnerUser) {
+
+            // Get the winner and loser
+            $winner = ($result === 'user1_win') ? $this->user1_id : $this->user2_id;
+            $loser = ($result === 'user1_win') ? $this->user2_id : $this->user1_id;
+
+
+            // Transfer the loser's battle balance to the winner
+            $loserUser = User::find($loser);
+            $winnerUser = User::find($winner);
+
             // Add the loser's battle balance to the winner
             $winnerUser->battle_balance += $loserUser->battle_balance;
             $winnerUser->save();
@@ -141,14 +147,13 @@ class Fight extends Model
 
             // Add the loser to a new pool on the server
             $this->addUserToQueue($loser,$baseBet);
+
+
         }
 
-        // Handle the case where the result is a draw
-        if ($result === 'draw') {
-            // Both users remain in the pool and their statuses are updated
-            User::where('id', $this->user1_id)->update(['status' => 'available']);
-            User::where('id', $this->user2_id)->update(['status' => 'available']);
-        }
+        
+        $this->status = 'completed';
+        $this->save();
     }
 
     private function getPreMove($userId)
@@ -224,7 +229,7 @@ class Fight extends Model
 
         if ($pool) {
             // Remove the user from the pool
-            $pool->users()->detach($userId);
+            User::where('id', $userId)->update(['pool_id' => null]);
         }
     }
     private function addUserToNewPool(int $userId, float $baseBet, int $poolSize): void
@@ -245,7 +250,7 @@ class Fight extends Model
         $pool->save();
 
         // Add the user to the pool
-        $pool->users()->attach($userId);
+        User::where('id', $userId)->update(['pool_id' => $pool->id]);
     }
     private function addUserToQueue(int $userId,$lastBaseBet): void
     {

@@ -74,4 +74,40 @@ describe("Battlepool Contract", function () {
       ).to.be.revertedWith("Only owner can call this function");
     });
   });
+
+  describe("Salt Generation", function () {
+    it("Should correctly generate a salt for a pool with multiple users", async function () {
+      // Define the base bet and max size for the pool
+      const baseBet = ethers.utils.parseEther("1");
+      const maxSize = 5;
+
+      // Add users to the pool
+      await battlepool.addSingleUserToPool(baseBet, user1.address);
+      await battlepool.addSingleUserToPool(baseBet, user2.address);
+      await battlepool.addSingleUserToPool(baseBet, user3.address);
+      await battlepool.addSingleUserToPool(baseBet, user4.address);
+      await battlepool.addSingleUserToPool(baseBet, user5.address);
+
+      // Get the pool details
+      const poolId = 1;
+      const pool = await battlepool.pools(poolId);
+
+      // Manually generate the expected salt
+      const concatenatedAddresses = ethers.utils.solidityPack(
+        ["address", "address", "address", "address", "address"],
+        [user1.address, user2.address, user3.address, user4.address, user5.address]
+      );
+      const expectedSalt = ethers.utils.keccak256(concatenatedAddresses);
+
+      // Listen for the PoolEmitted event to capture the generated salt
+      const filter = battlepool.filters.PoolEmitted(poolId);
+      const [event] = await battlepool.queryFilter(filter);
+
+      // Extract the generated salt from the event
+      const generatedSalt = event.args.poolSalt;
+
+      // Check if the generated salt matches the expected salt
+      expect(generatedSalt).to.equal(expectedSalt);
+    });
+  });
 });
