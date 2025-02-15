@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
 use App\Models\Pool;
+use App\Models\PreMove;
+use App\Models\FHist;
+use App\Services\HistoricalFightService;
+use Illuminate\Support\Facades\Log;
 
 class Fight extends Model
 {
@@ -23,7 +27,16 @@ class Fight extends Model
         'user2_chosed',
         'base_bet_amount',
         'max_bet_amount',
+        'pool_id',
+    
+    
     ];
+
+    protected $historicalFightService;
+
+    public function __construct() {
+        $this->historicalFightService = new HistoricalFightService();
+    }
 
     public function user1(): BelongsTo
     {
@@ -100,6 +113,7 @@ class Fight extends Model
 
     public function handlePoolAutoplayFight($baseBet, $poolSize)
     {   
+        Log::info('Fight::handlePoolAutoplayFight debut');
         $user1Move = $this->getPreMove($this->user1_id);
         $user2Move = $this->getPreMove($this->user2_id);
 
@@ -115,8 +129,8 @@ class Fight extends Model
         // Handle the case where the result is a draw
         if ($result === 'draw') {
             // Both users remain in the pool and their statuses are updated
-            User::where('id', $this->user1_id)->update(['status' => 'available']);
-            User::where('id', $this->user2_id)->update(['status' => 'available']);
+            User::where('id', $this->user1_id)->update(['status' => 'in_pool']);
+            User::where('id', $this->user2_id)->update(['status' => 'in_pool']);
         }
         else
         {
@@ -146,7 +160,7 @@ class Fight extends Model
             User::where('id', $loser)->update(['status' => 'available']);
 
             // Add the loser to a new pool on the server
-            $this->addUserToQueue($loser,$baseBet);
+            $this->addUserToNewPool($loser,$baseBet,$poolSize);
 
 
         }
@@ -154,6 +168,11 @@ class Fight extends Model
         
         $this->status = 'completed';
         $this->save();
+        Log::info('Fight::handlePoolAutoplayFight fin');
+        // Archive the fight
+        Log::info('Fight::handlePoolAutoplayFight archiveFight');
+        $this->historicalFightService->archiveFight($this->id);
+        
     }
 
     private function getPreMove($userId)

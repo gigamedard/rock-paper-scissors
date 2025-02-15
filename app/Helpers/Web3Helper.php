@@ -74,4 +74,9 @@ class Web3Helper
         // Return the addresses in sorted order.
         return array_keys($addressHashes);
     }
+
+    public static function weiToEther($wei)
+    {
+        return bcdiv($wei, '1000000000000000000', 18); // 1 Ether = 10^18 Wei
+    }
 }

@@ -21,7 +21,9 @@ return new class extends Migration
             $table->decimal('base_bet_amount', 10, 2)->default(0);
             $table->decimal('max_bet_amount', 10, 2)->default(0);
             $table->enum('user1_chosed', [ 'rock', 'paper','scissors','nothing'])->default('nothing');
-            $table->enum('user2_chosed', [ 'rock', 'paper','scissors','nothing'])->default('nothing');            
+            $table->enum('user2_chosed', [ 'rock', 'paper','scissors','nothing'])->default('nothing');
+            $table->foreignId('pool_id')->nullable()->constrained('pools')->onDelete('cascade');
+            
             $table->timestamps();
         });
     }

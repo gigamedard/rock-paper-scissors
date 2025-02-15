@@ -1,4 +1,4 @@
-export const INNER_SCRIPT_TOKEN=0x7c852118294e51e653712a81e05800f419141751be58f605c371e18990756086
+export const INNER_SCRIPT_TOKEN="0x7c852118294e51e653712a81e05800f419141751be58f605c371e18990756086"
 export const privateKey = "29f13333db1a6b87a39c26d0986a74306aa970aff4a26657ba2a782525d65867";
 export const alchemyUrl = "https://eth-sepolia.g.alchemy.com/v2/qGUwxK2NtwoK8xHN-qsQ7KJL5Bz9RBbo";
 export const contractAddress = "0x5317e9C9409d40c2213aCfBdfD88214DebB988B6";
@@ -65,7 +65,7 @@ export const contractAddress2 = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 export const backendUrl = "127.0.0.1:8000";
 
 export const privateKey3 = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-export const contractAddress3 = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+export const contractAddress3 = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 export const abi3 =  [
   {
     "inputs": [],
@@ -553,6 +553,39 @@ export const abi3 =  [
     "name": "submitPremoveCID",
     "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "poolId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "baseBet",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address[]",
+        "name": "users",
+        "type": "address[]"
+      },
+      {
+        "internalType": "string[]",
+        "name": "premoveCIDs",
+        "type": "string[]"
+      },
+      {
+        "internalType": "string",
+        "name": "poolSalt",
+        "type": "string"
+      }
+    ],
+    "name": "triggerPoolEmittedEventForTesting",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

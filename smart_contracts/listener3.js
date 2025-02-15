@@ -35,7 +35,7 @@ async function submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,p
       console.log(`✅ Submitted to handle pool emited event successfully for poolId: ${poolId}`);
     } else {
       const errorText = await response.text();
-      console.error(`❌ Failed to submit to handle pool emoted event for poolId: ${poolId}. Response: ${errorText}`);
+      console.error(`❌ Failed to submit to handle pool emited event for poolId: ${poolId}. Response: ${errorText}`);
     }
   } catch (error) {
     console.error(`🚨 Error while submitting to handle pool emoted event:`, error.message);

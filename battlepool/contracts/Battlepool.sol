@@ -47,7 +47,7 @@ contract Battlepool {
         securityCoefficient = newCoefficient;
         emit SecurityCoefficientUpdated(newCoefficient);
     }
-        /*
+        
             function triggerPoolEmittedEventForTesting(
                 uint256 poolId,
                 uint256 baseBet,
@@ -58,7 +58,7 @@ contract Battlepool {
                 // Emit the PoolEmitted event with the provided parameters
                 emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt);
             }
-        */
+        
     function createPool(uint256 baseBet, uint256 maxSize) private {
         require(pools[baseBet].poolId == 0, "Pool already exists");
         require(maxSize > 0, "Invalid maxSize");
