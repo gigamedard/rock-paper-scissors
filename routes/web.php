@@ -30,7 +30,7 @@ Route::get('/', function () {
 });
 
 Route::get('/counter', function (Request $request) {
-    // Validate the incoming request
+    /*Validate the incoming request
     $validated = $request->validate([
         'action' => 'required|string',
         'counter' => 'required|numeric',
@@ -45,7 +45,24 @@ Route::get('/counter', function (Request $request) {
     );
 
     // Return a JSON response
-    return response()->json(['message' => 'Counter updated successfully'], 200);
+    return response()->json(['message' => 'Counter updated successfully'], 200);*/
+
+    $users = [
+        "0xF3A5D3E6A8CFA57Fdb18aAf4aEaf5Dd8A40BF02E",
+        "0x1B7d8dF3cF9Ae5A9E8e40f3cB4D3E3eB2aA7e10F",
+        "0x9c7A1dBf3F2dE4A7C5b6F1D3A2B9C4E6F8A1D2C3",
+        "0x3C9a5aD8E7fA2B4c9e3F8B2D7aF1E6C3b4A5d8f7",
+        "0xE6B4d7F3a2C1B9e5F8A4d7C2b3E9F1A5C6D8e7F0"
+    ];
+
+$addresses = implode("','", $users); // Make sure your values are safe!
+$usersCollection = User::whereRaw("wallet_address IN ('$addresses')")->get();
+
+Log::info('===================================>usersCollection: ' . json_encode($usersCollection));
+
+Log::info('Type of addresses: ' . gettype($addresses));
+Log::info('Type of users: ' . gettype($users));
+dd($usersCollection);
 });
 
 
@@ -236,6 +253,7 @@ Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
 Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
 Route::get('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+
 
 /*Route::get('/handle-pool-emited', function (Request $request) {
     Log::info('===================================>befor validation ');

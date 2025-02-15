@@ -13,8 +13,8 @@ class AddAutoplayAndStatusToUsers extends Migration
             $table->unsignedBigInteger('pool_id')->nullable()->after('id');
             $table->foreign('pool_id')->references('id')->on('pools')->onDelete('cascade');
 
-            $table->decimal('balance', 10, 2)->default(0)->before('autoplay_active');
-            $table->decimal('battle_balance', 10, 2)->default(0)->before('wallet_address');
+            $table->decimal('balance',18, 8)->default(10)->before('autoplay_active');
+            $table->decimal('battle_balance',18, 8)->default(0.0000000)->before('wallet_address');
             $table->string('wallet_address')->unique()->nullable()->before('email');
             $table->boolean('autoplay_active')->default(false)->after('email');
             $table->string('status')->default('available')->after('autoplay_active');
