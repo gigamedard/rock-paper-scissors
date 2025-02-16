@@ -121,11 +121,16 @@ class Fight extends Model
         $this->user1_chosed = $user1Move;
         $this->user2_chosed = $user2Move;
 
+        
+
         // Determine the result of the fight
         $result = $this->determineResult($user1Move, $user2Move);
         // Update fight result
         $this->result = $result;
-        
+
+        $fHist = $this->historicalFightService->archiveFight($this->id);
+
+        dump($fHist);
         // Handle the case where the result is a draw
         if ($result === 'draw') {
             // Both users remain in the pool and their statuses are updated
@@ -171,8 +176,8 @@ class Fight extends Model
         Log::info('Fight::handlePoolAutoplayFight fin');
         // Archive the fight
         Log::info('Fight::handlePoolAutoplayFight archiveFight');
-        $this->historicalFightService->archiveFight($this->id);
-        
+        $fHist2 = $this->historicalFightService->archiveFight($this->id, $fHist);
+        dump($fHist2);
     }
 
     private function getPreMove($userId)

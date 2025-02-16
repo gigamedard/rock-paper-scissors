@@ -5,4 +5,6 @@ return [
     'bach_size'=>100,
     'number_of_base_bet'=>11,
     'number_of_pool_size'=>4,
+    'percentage_limit_of_pool_size'=>0.1,
+
 ];

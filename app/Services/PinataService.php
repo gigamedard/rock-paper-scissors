@@ -9,7 +9,7 @@ class PinataService
     /**
      * Upload a JSON string to Pinata and return the resulting CID.
      */
-    public function uploadJSON(string $jsonData): ?string
+    public function pinJsonData(string $jsonData): ?string
     {
         $client = new Client([
             'base_uri' => 'https://api.pinata.cloud/',

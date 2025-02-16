@@ -79,4 +79,34 @@ class Web3Helper
     {
         return bcdiv($wei, '1000000000000000000', 18); // 1 Ether = 10^18 Wei
     }
+
+    // send achive to pinata
+    public static function sendArchiveToPinata($data)
+    {
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, 'https://api.pinata.cloud/pinning/pinJSONToIPFS');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+
+        $headers = array();
+        $headers[] = 'Content-Type: application/json';
+        $headers[] = 'pinata_api_key: ' . env('PINATA_API_KEY');
+        $headers[] = 'pinata_secret_api_key: ' . env('PINATA_SECRET_API_KEY');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $data = json_encode($data);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+        $result = curl_exec($ch);
+        if (curl_errno($ch)) {
+            return 'Error:' . curl_error($ch);
+        }
+        curl_close($ch);
+        //{"cid":"{\"IpfsHash\":\"QmZJD8z11RdwcWWetFBaPD28GZ18zsaN18BjSBnXZnjYoU\",\"PinSize\":428,\"Timestamp\":\"2025-02-16T12:42:20.693Z\"}"}
+        //return only the ipfsHash
+        $result = json_decode($result, true);
+        
+        return $result['IpfsHash'];
+    }
 }

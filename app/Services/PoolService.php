@@ -12,7 +12,13 @@ use App\Events\UserBalanceUpdated;
 use App\Services\HistoricalFightService;
 
 class PoolService
-{
+{   
+
+
+
+    private $I=true;
+
+
     /**
      * Process auto-match: select users, create fights, and update slice table.
      */
@@ -206,63 +212,109 @@ class PoolService
      * Process pool auto-match: deduct balances, sort users, and create fights.
      */
     public function processPoolAutoMatch(int $poolId)
-    {
+    {   log::info('====>processPoolAutoMatch start');
         $pool = Pool::with(['users' => function ($query) {
             $query->where('status', 'in_pool')->orderBy('id');
         }])->where('pool_id', $poolId)->firstOrFail();
 
-        $availableUsers = $pool->users;
-        Log::info(' processPoolAutoMatch: ' . $availableUsers->count() . ' users available for pool ' . $poolId);
+        $percentageLimit = config('pool.percentage_limit_of_pool_size');
+      
+        $minUsers = ceil($pool->pool_size * $percentageLimit);
+        if($minUsers<2) $minUsers=2;
 
-        foreach ($availableUsers as $user) {
-            if ($user->balance >= $pool->base_bet) {
-                $user->balance        -= $pool->base_bet;
-                $user->battle_balance += $pool->base_bet;
-                $user->save();
-                Log::info(' event(new UserBalanceUpdated($user));');
-                event(new UserBalanceUpdated($user));
-            } else {
-                $availableUsers = $availableUsers->reject(fn($u) => $u->id === $user->id);
-            }
+          log::info('====>processPoolAutoMatch minUsers: '.$minUsers);
+        $availableUsers = User::where('pool_id', $poolId)->where('status', 'in_pool')->get();
+        
+        // Iterate matching rounds until available users fall below the percentage threshold or there is not enough for a pair
+        $this->hasSufficientUsersForMatch($availableUsers->count(),$minUsers);
+        while ($this->I) {
+           
+                $pool = Pool::with(['users' => function ($query) {
+                    $query->where('status', 'in_pool')->orderBy('id');
+                }])->where('pool_id', $poolId)->firstOrFail();
+        
+                $availableUsers = $pool->users;
+                Log::info('====> processPoolAutoMatch while ($availableUsers->count() >= $minUsers && $availableUsers->count() >= 2) {: ' . $availableUsers->count() . ' users available for pool ' . $poolId);
+        
+                foreach ($availableUsers as $user) {
+                    if ($user->balance >= $pool->base_bet) {
+                        $user->balance        -= $pool->base_bet;
+                        $user->battle_balance += $pool->base_bet;
+                        $user->save();
+                        Log::info(' event(new UserBalanceUpdated($user));');
+                        event(new UserBalanceUpdated($user));
+                    } else {
+                        $availableUsers = $availableUsers->reject(fn($u) => $u->id === $user->id);
+                    }
+                }
+        
+                // Sort users using a helper with salt
+                Log::info(' $sortedAddresses = Web3Helper::sortAddressesWithSalt($availableUsers->pluck(\'wallet_address\')->toArray(), $pool->salt);');
+                $sortedAddresses = Web3Helper::sortAddressesWithSalt(
+                    $availableUsers->pluck('wallet_address')->toArray(),
+                    $pool->salt
+                );
+                log::info('====>processPoolAutoMatch $sortedAddresses: ' . json_encode($sortedAddresses));
+                $availableUsers = $availableUsers->sortBy(function ($user) use ($sortedAddresses) {
+                    return array_search($user->wallet_address, $sortedAddresses);
+                })->values();
+        
+                if ($availableUsers->count() % 2 !== 0) {
+                    $availableUsers->pop();
+                }
+                log::info('====>processPoolAutoMatch $availableUsers: '.Json_encode($availableUsers));
+                if ($availableUsers->isNotEmpty()) {
+                    log::info('====>processPoolAutoMatch $availableUsers->isNotEmpty()');
+                    for ($i = 0; $i < $availableUsers->count(); $i += 2) {
+                        Log::info(' $fight = Fight::create([ count'.$availableUsers->count().');');
+        
+                        //log fight parameters
+                        Log::info('user1_id: '.$availableUsers[$i]->id);
+                        Log::info('user2_id: '.$availableUsers[$i + 1]->id);
+                        Log::info('base_bet_amount: '.$pool->base_bet);
+                        Log::info('status: waiting_for_result');
+                        Log::info('pool_id: '.$poolId);
+                        
+        
+                        $fight = Fight::create([
+                            'user1_id'        => $availableUsers[$i]->id,
+                            'user2_id'        => $availableUsers[$i + 1]->id,
+                            'base_bet_amount' => $pool->base_bet,
+                            'status'          => 'waiting_for_result',
+                            'pool_id'         => $poolId,
+                        ]);
+                        Log::info(' fight:);'.$fight);
+                        $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
+                    }
+                }
+                $this->hasSufficientUsersForMatch($availableUsers->count(),$minUsers);
         }
 
-        // Sort users using a helper with salt
-        Log::info(' $sortedAddresses = Web3Helper::sortAddressesWithSalt($availableUsers->pluck(\'wallet_address\')->toArray(), $pool->salt);');
-        $sortedAddresses = Web3Helper::sortAddressesWithSalt(
-            $availableUsers->pluck('wallet_address')->toArray(),
-            $pool->salt
-        );
 
-        $availableUsers = $availableUsers->sortBy(function ($user) use ($sortedAddresses) {
-            return array_search($user->wallet_address, $sortedAddresses);
-        })->values();
+        // get the pool fights and archive them
+        $historicalService = new HistoricalFightService();
+        $cid = $historicalService->archivePoolFights($poolId);
+        Log::info("Minimum users required to run matches: {$minUsers}");
+        //log the cid
+        Log::info('cid: '.$cid);
+        dump($cid);
+        return ['pool_id' => $poolId,'cid' => $cid, 'status' => 'processed'];
+        
+    }
 
-        if ($availableUsers->count() % 2 !== 0) {
-            $availableUsers->pop();
+    private function hasSufficientUsersForMatch($avUs, $minUs){
+        
+        if ($avUs <= $minUs) {
+            $this->I=false;
+            return;
         }
-
-        if ($availableUsers->isNotEmpty()) {
-            for ($i = 0; $i < $availableUsers->count(); $i += 2) {
-                Log::info(' $fight = Fight::create([ count'.$availableUsers->count().');');
-
-                //log fight parameters
-                Log::info('user1_id: '.$availableUsers[$i]->id);
-                Log::info('user2_id: '.$availableUsers[$i + 1]->id);
-                Log::info('base_bet_amount: '.$pool->base_bet);
-                Log::info('status: waiting_for_result');
-                Log::info('pool_id: '.$poolId);
-                
-
-                $fight = Fight::create([
-                    'user1_id'        => $availableUsers[$i]->id,
-                    'user2_id'        => $availableUsers[$i + 1]->id,
-                    'base_bet_amount' => $pool->base_bet,
-                    'status'          => 'waiting_for_result',
-                    'pool_id'         => $poolId,
-                ]);
-                Log::info(' fight:);'.$fight);
-                $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
-            }
+        elseif ($avUs <= 2) {
+            $this->I=false;
+            return;
         }
+        else{
+            $this->I=true;
+        }
+        log::info('====>processPoolAutoMatch hasSufficientUsersForMatch aivailable users :adult:'.$avUs.'minimum user:➖ '.$minUs.'should iterate ? '.$this->I);
     }
 }
