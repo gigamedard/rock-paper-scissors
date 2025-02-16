@@ -19,6 +19,9 @@ use kornrunner\Keccak;
 use App\Models\Challenge;
 use App\Models\Pool;
 use App\Models\User;
+use App\Models\PreMove;
+use App\Models\Fight;   
+
 use App\Events\testevent;
 use App\Helpers\Web3Helper;
 
@@ -106,18 +109,26 @@ Route::get('/web3test', function () {
 });
 
 
-Route::get('/testevent', function () {
+Route::get('/get_indexes', function () {
 
     /*$challenge = new Challenge();
     $challenge->sender_id = Auth::id();
     $challenge->receiver_id = 2;
     $challenge->status = 'pending';
-    $challenge->save();*/
+    $challenge->save();
     event(new BalanceUpdated(1, 8));
     event(new testevent(1,8.8));
-    
-
     return view('welcome');
+    */
+
+    $f = Fight::find(1);
+    $preoveIndex1 = $f->user1->preMove->current_index;
+    $preoveIndex2 = $f->user2->preMove->current_index;
+    return response()->json([
+        'preoveIndex1' => $preoveIndex1,
+        'preoveIndex2' => $preoveIndex2,
+    ]);
+    
 });
 
 Route::get('/salt',function(){
@@ -157,11 +168,30 @@ Route::get('/salt',function(){
 
 
 
-Route::post('/test-pinata-upload', function (Request $request) {
-    $controller = new PoolAutoMatchController();
-    return response()->json([
-        'cid' => $controller->uploadPreMoveToPinata($request->premove_data),
-    ]);
+Route::get('/test-pinata-upload', function () {
+    $data = [
+        'pool_id' => 1,
+        'user1_id' => 1,
+        'user1_address' => '0xF3A5D3E6A8CFA57Fdb18aAf4aEaf5Dd8A40BF02E',
+        'user1_balance' => 100,
+        'old_user1_balance' => 100,
+        'user1_battle_balance' => 0,
+        'user1_premove_index' => 0,
+        'user1_move' => 'rock',
+        'user1_gain' => 0,
+        'user2_id' => 2,
+        'user2_address' => '0x1B7d8dF3cF9Ae5A9E8e40f3cB4D3E3eB2aA7e10F',
+        'user2_balance' => 100,
+        'old_user2_balance' => 100,
+        'user2_battle_balance' => 0,
+        'user2_premove_index' => 0,
+        'user2_move' => 'rock',
+        'user2_gain' => 0,
+    ];
+
+    $cid = Web3Helper::sendArchiveToPinata($data);
+    return response()->json(['cid' => $cid]);
+   
 });
 
 

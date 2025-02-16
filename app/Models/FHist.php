@@ -11,9 +11,11 @@ class FHist extends Model
 
     protected $fillable = [
         'pool_id',
+        'fight_id',
         'user1_id',
         'user1_address',
         'user1_balance',
+        'old_user1_balance',
         'user1_battle_balance',
         'user1_premove_index',
         'user1_move',
@@ -21,6 +23,7 @@ class FHist extends Model
         'user2_id',
         'user2_address',
         'user2_balance',
+        'old_user2_balance',
         'user2_battle_balance',
         'user2_premove_index',
         'user2_move',

@@ -16,6 +16,7 @@ return new class extends Migration
         $table->unsignedBigInteger('pool_id');
         $table->unsignedBigInteger('user1_id');
         $table->string('user1_address');
+        $table->decimal('old_user1_balance', 18, 8)->default(0.0000000);
         $table->decimal('user1_balance', 18, 8);
         $table->decimal('user1_battle_balance', 18, 8);
         $table->integer('user1_premove_index');
@@ -23,6 +24,7 @@ return new class extends Migration
         $table->decimal('user1_gain', 18, 8);
         $table->unsignedBigInteger('user2_id');
         $table->string('user2_address');
+        $table->decimal('old_user2_balance', 18, 8)->default(0.0000000);
         $table->decimal('user2_balance', 18, 8);
         $table->decimal('user2_battle_balance', 18, 8);
         $table->integer('user2_premove_index');
