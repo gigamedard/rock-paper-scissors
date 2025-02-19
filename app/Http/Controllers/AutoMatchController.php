@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\HistoricalDataTrait;
+use Illuminate\Support\Facades\Log;
 
 
 class AutoMatchController extends Controller
@@ -134,7 +135,7 @@ class AutoMatchController extends Controller
         $validated = $request->validate([
             'pre_moves' => 'required|array|min:1', // Array of moves
             'user_id' => 'required|integer|exists:users,id', // Valid user ID
-            'bet_amount' => 'required|numeric|min:0.0001', // Decimal number with a minimum value
+            'bet_amount' => 'required|numeric', // Decimal number with a minimum value
             'cid' => 'required|string' // Validate the CID
         ]);
         
@@ -168,7 +169,7 @@ class AutoMatchController extends Controller
         $this->registerForAutoplay($bet_amount);
         $this->storeOnBlockchain($hashedMoves);
 
-        
+        Log::info('Pre-moves stored successfully! '.json_encode($validated));
 
         return response()->json([
             'message' => 'Pre-moves stored successfully!',

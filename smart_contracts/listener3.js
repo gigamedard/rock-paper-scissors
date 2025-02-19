@@ -7,9 +7,9 @@ const wallet = new Wallet(privateKey3, provider);
 const contract = new Contract(contractAddress3, abi3, wallet);
 
 // Function to update user balance in the backend
-async function updateUserBalance(user, amount) {
+async function updateUserBalance(user, balance) {
   try {
-    const url = `http://127.0.0.1:8000/update-balance?balance=${formatEther(amount)}&wallet_address=${user}`;
+    const url = `http://127.0.0.1:8000/update-balance?balance=${formatEther(balance)}&wallet_address=${user}`;
     const response = await fetch(url);
 
     if (response.ok) {
@@ -51,14 +51,14 @@ async function submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,p
 async function main() {
   try {
     console.log("🔊 Listening for events...");
-    contract.on("DepositReceived", async (user, amount) => {
+    contract.on("DepositReceived", async (user, balance) => {
       console.log(`🔔 DepositReceived Event Detected:`);
-      console.log(`- User: ${user}`);
-      console.log(`- Amount: ${formatEther(amount)} ETH`);
+      console.log(`-👨 User: ${user}`);
+      console.log(`- 💰balance: ${formatEther(balance)} ETH`);
 
       // Update balance in the backend
-      let userBalance = await contract.getUserBalance(user);
-      await updateUserBalance(user, userBalance);
+    
+      await updateUserBalance(user, balance);
     });
 
 

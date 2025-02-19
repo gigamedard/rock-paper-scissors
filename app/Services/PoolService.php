@@ -132,7 +132,9 @@ class PoolService
      * Expects keys: pool_id, base_bet, users, premove_cids, pool_salt.
      */
     public function handlePoolEmitedEvent(array $data)
-    {
+    {   
+
+        Log::info('handlePoolEmitedEvent received this data: '.json_encode($data));
         if (
             empty($data['pool_id']) ||
             empty($data['base_bet']) ||
@@ -140,27 +142,35 @@ class PoolService
             empty($data['premove_cids']) ||
             empty($data['pool_salt'])
         ) {
+            Log::info('if (empty($data[pool_id]) ||... : ');
             throw new \InvalidArgumentException('Missing required parameters.');
         }
 
         // Manually cast values to their expected types
+        Log::info('manually cast values to their expected types');
         $poolId      = $data['pool_id'];
         $baseBetStr  = $data['base_bet'];
         $baseBet     = Web3Helper::weiToEther($baseBetStr);
 
-        // Convert the users string into an array
-        $users = json_decode($data['users'], true);
 
-        // Check if json_decode was successful
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            // Handle the error, e.g., return a response or log the error
-            return response()->json(['error' => 'Invalid JSON data'], 422);
+        //----------------------------------------------------------------------------------
+
+        if (isset($data['users']) && is_string($data['users'])) {
+            $users = explode(',', $data['users']);
+        } else {
+            Log::error('Invalid users format: ' . json_encode($data['users']));
+            return response()->json(['error' => 'Invalid users format'], 422);
         }
+
+        if (isset($data['premove_cids']) && is_string($data['premove_cids'])) {
+            $premoveCIDs = explode(',', $data['premove_cids']);
+        }
+        //----------------------------------------------------------------------------------
         
-        $premoveCIDs   = json_decode($data['premove_cids'], true);
+
         $poolSalt      = $data['pool_salt'];
 
-
+        Log::info('handlePoolEmitedEvent pool creation: ');
         $pool = Pool::create([
             'pool_id' => $poolId,
             'base_bet' => $baseBet,
@@ -177,8 +187,8 @@ class PoolService
         $usersCollection = User::whereIn('wallet_address', $users)->get();
 
         $u = User::all();
-        dump($usersCollection);
-        dump($pool);
+        Log::info(json_decode($usersCollection) );
+        //Log::info(json_decode($pool));
 
         // Store the fetched premove data in the database and associate with users
         foreach ($usersCollection as $index => $user) {

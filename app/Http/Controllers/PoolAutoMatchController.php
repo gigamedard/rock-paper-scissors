@@ -90,10 +90,12 @@ class PoolAutoMatchController extends Controller
     
         Log::info('===================================>after validation ');
 
-    Log::info('Validated values: ' . json_encode($validated));
+        Log::info('PoolAutoMatchController : poolEmitedRequest :  Validated values: ' . json_encode($validated));
 
         try {
+            Log::info('PoolAutoMatchController : poolEmitedRequest :  into try block');
             $result = $this->poolService->handlePoolEmitedEvent($validated);
+            Log::info('PoolAutoMatchController : poolEmitedRequest : after handlePoolEmitedEvent');
             return response()->json(['message' => 'Pool emitted Request handled successfully', 'data' => $result], 200);
         } catch (\Exception $e) {
             Log::error('Error in poolEmitedRequest: ' . $e->getMessage());
