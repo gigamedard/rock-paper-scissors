@@ -26,7 +26,7 @@ class BlockchainController extends Controller
             $user = User::where('wallet_address', $walletAddress)->first();
 
             if ($user) {
-                $this->updateUserBalanceInDb($user, $balance); // From the trait
+                $user->update(['balance' => $balance]); // From the trait
             } else {
                 $user = $this->createNewUser($walletAddress, $balance); // From the trait
             }

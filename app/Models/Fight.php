@@ -53,6 +53,12 @@ class Fight extends Model
         return $this->belongsTo(Pool::class);
     }
 
+
+    public function fHist()
+    {
+        return $this->hasOne(FHist::class, 'fight_id');
+    }
+
     public function user1Verdict()
     {
         return match ($this->result) {

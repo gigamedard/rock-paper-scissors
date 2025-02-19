@@ -238,8 +238,8 @@ contract Battlepool {
     }
 
     function _processDeposit(address user, uint256 amount) private {
-        userBalances[user] += amount;
-        emit DepositReceived(user, amount);
+        uint256 balance = userBalances[user] += amount;
+        emit DepositReceived(user, balance);
     }
 
     function getUserBalance(address user) external view returns (uint256) {

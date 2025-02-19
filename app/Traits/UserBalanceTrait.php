@@ -40,6 +40,7 @@ trait UserBalanceTrait
         $username = $this->generateUniqueUsername($walletAddress);
         $email = $this->fromUsername($username);
 
+        log::info(gettype($balance));
         return User::create([
             'wallet_address' => strtolower($walletAddress),
             'name' => $username,

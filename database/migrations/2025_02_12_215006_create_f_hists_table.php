@@ -34,6 +34,7 @@ return new class extends Migration
 
         // Optionally, add foreign key constraints if you want to enforce relationships:
         $table->foreign('pool_id')->references('id')->on('pools')->onDelete('cascade');
+        $table->foreignId('fight_id')->nullable()->constrained('fights')->onDelete('cascade');
         });
     }
     

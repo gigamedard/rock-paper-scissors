@@ -44,4 +44,10 @@ class FHist extends Model
     {
         return $this->belongsTo(User::class, 'user2_id');
     }
+    
+    public function fight()
+    {
+        return $this->belongsTo(Fight::class);
+    }
 }
+
