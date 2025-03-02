@@ -183,7 +183,7 @@ class Fight extends Model
         // Archive the fight
         Log::info('Fight::handlePoolAutoplayFight archiveFight');
         $fHist2 = $this->historicalFightService->archiveFight($this->id, $fHist);
-        dump($fHist2);
+        //dump($fHist2);
     }
 
     private function getPreMove($userId)

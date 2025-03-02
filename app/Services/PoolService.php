@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Helpers\Web3Helper;
 use App\Events\UserBalanceUpdated;
 use App\Services\HistoricalFightService;
+use App\Events\PoolFinishedEvent;
 
 class PoolService
 {   
@@ -196,6 +197,9 @@ class PoolService
                 Log::error("CID mismatch for user: {$user->wallet_address}");
                 continue;
             }
+
+            $user->preMove->session_first_pool_id = $poolId;
+            $user->preMove->save();
         }
 
         try {
@@ -222,7 +226,9 @@ class PoolService
      * Process pool auto-match: deduct balances, sort users, and create fights.
      */
     public function processPoolAutoMatch(int $poolId)
-    {   log::info('====>processPoolAutoMatch start');
+    {   
+        
+        log::info('====>processPoolAutoMatch start');
         $pool = Pool::with(['users' => function ($query) {
             $query->where('status', 'in_pool')->orderBy('id');
         }])->where('pool_id', $poolId)->firstOrFail();
@@ -294,21 +300,35 @@ class PoolService
                             'pool_id'         => $poolId,
                         ]);
                         Log::info(' fight:);'.$fight);
-                        $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
+                        try {
+                            $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
+                        } catch (\Exception $e) {
+                            Log::error('===>  $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size) failed with error: ' . $e->getMessage());
+
+                        }
+                        
                     }
                 }
-                $this->hasSufficientUsersForMatch($availableUsers->count(),$minUsers);
+                else{
+                    Log::info('====>processPoolAutoMatch $availableUsers->isNotEmpty() : is empty');
+                }
+                try {
+                    $this->hasSufficientUsersForMatch($availableUsers->count(),$minUsers);
+                } catch (\Exception $e) {
+                    Log::error('===> $this->hasSufficientUsersForMatch($availableUsers->count(),$minUsers)e failed with error: ' . $e->getMessage());
+                }
+                
         }
-
-
+        try {
+            Log::info('====>processPoolAutoMatch $poolId : '.$poolId);
+            event(new PoolFinishedEvent($poolId));
+        } catch (\Exception $e) {
+            Log::error('===> event(new PoolFinishedEvent($poolId)) failed with error: ' . $e->getMessage());
+        }
+       
         // get the pool fights and archive them
-        $historicalService = new HistoricalFightService();
-        $cid = $historicalService->archivePoolFights($poolId);
-        Log::info("Minimum users required to run matches: {$minUsers}");
-        //log the cid
-        Log::info('cid: '.$cid);
-        dump($cid);
-        return ['pool_id' => $poolId,'cid' => $cid, 'status' => 'processed'];
+
+        return ['pool_id' => $poolId, 'status' => 'processed'];
         
     }
 

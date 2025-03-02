@@ -3,7 +3,7 @@
 namespace App\Helpers;
 
 use kornrunner\Keccak;
-
+use Illuminate\Support\Facades\Log;
 class Web3Helper
 {
     /**
@@ -82,7 +82,10 @@ class Web3Helper
 
     // send achive to pinata
     public static function sendArchiveToPinata($data)
-    {
+    {   
+        Log::info('Pinata request: ' . json_encode($data));
+        //log data type
+        Log::info('Pinata request data type: ' . gettype($data));
         $ch = curl_init();
 
         curl_setopt($ch, CURLOPT_URL, 'https://api.pinata.cloud/pinning/pinJSONToIPFS');
@@ -106,6 +109,8 @@ class Web3Helper
         //{"cid":"{\"IpfsHash\":\"QmZJD8z11RdwcWWetFBaPD28GZ18zsaN18BjSBnXZnjYoU\",\"PinSize\":428,\"Timestamp\":\"2025-02-16T12:42:20.693Z\"}"}
         //return only the ipfsHash
         $result = json_decode($result, true);
+
+        Log::info('Pinata response: ' . json_encode($result));
         
         return $result['IpfsHash'];
     }
