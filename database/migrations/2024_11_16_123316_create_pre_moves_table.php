@@ -15,6 +15,7 @@ class CreatePreMovesTable extends Migration
             $table->json('hashed_moves')->nullable(); // Allow null values
             $table->string('nonce')->nullable();
             $table->unsignedInteger('current_index')->default(0);
+            $table->unsignedBigInteger('session_first_pool_id')->default(0);
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });

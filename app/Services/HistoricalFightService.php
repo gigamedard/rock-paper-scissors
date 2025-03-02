@@ -19,14 +19,18 @@ class HistoricalFightService
         return $cid;
     }
     public function archiveFight($fightId, FHist $fHist = null)
-    {
+    {   
+        Log::info('===>archiveFight beganning');
         $fight = Fight::findOrFail($fightId);
 
         $pi1 = $fight->user1->preMove->current_index;
         $pi2 = $fight->user2->preMove->current_index;
-    
+        
+        Log::info('===>archiveFight '.json_encode($fight));
 
         if ($fHist) {
+            Log::info('===> archiveFight: FHist record found: ' . json_encode($fHist));
+            Log::info('===>archiveFight if ($fHist) {');
             $ndata = [
                 'user1_move'           => $fight->user1_chosed,//<--
                 'user2_move'           => $fight->user2_chosed,//<--
@@ -35,12 +39,29 @@ class HistoricalFightService
                 'user2_balance'        => $fight->user2->balance,//<--
                 'user2_battle_balance' => $fight->user2->battle_balance,//<--
             ];
-            $fHist->update($ndata);
+
+            Log::info('===> archiveFight: Updating FHist with: ' . json_encode($ndata));
+
+            try {
+                $updated = $fHist->update($ndata);
+        
+                if ($updated) {
+                    Log::info('===> archiveFight: Update successful.');
+                } else {
+                    Log::warning('===> archiveFight: Update did not change any records.');
+                }
+            } catch (\Exception $e) {
+                Log::error('===> archiveFight: Update failed with error: ' . $e->getMessage());
+            }
+
             return $fHist;
         }
         else {
+            Log::info('===>archiveFight if ($fHist) { are note met we are in the else part');
+            
             $old1 = $fight->user1->balance + $fight->base_bet_amount;
             $old2 = $fight->user2->balance + $fight->base_bet_amount;
+            Log::info('===>archiveFight if ($fHist) { are note met we are in the else part: $old1 = '.$old1);
             $data = [
                 'pool_id'              => $fight->pool_id,
                 'user1_id'             => $fight->user1_id,
@@ -61,7 +82,7 @@ class HistoricalFightService
                 'user2_gain'           => $fight->user2Gain(),//<--
             ];
         }   
-
+        Log::info('===>archiveFight ending');
         return FHist::create($data);
     }
 

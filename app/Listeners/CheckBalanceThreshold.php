@@ -17,10 +17,10 @@ class CheckBalanceThreshold implements ShouldQueue
         $this->historicalFightService = $historicalFightService;
     }
 
-    public function handle(UserBalanceUpdated $event)
+    public function handle(testevent $event)
     {
         
-        Log::info('CheckBalanceThreshold listener triggered for user ID: . $event->user' );
+        Log::info('CheckBalanceThreshold listener triggered for user ID:' . $event->userId);
         // Define the multiplier threshold (e.g., 3 times the join balance)
        // $multiplier = 3.0;
        // $this->historicalFightService->checkAndTriggerSmartContract($event->user, $multiplier);

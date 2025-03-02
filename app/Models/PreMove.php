@@ -16,6 +16,7 @@ class PreMove extends Model
         'hashed_moves',
         'nonce',
         'current_index',
+        'session_first_pool_id',
         'cid'
     ];
 

@@ -25,6 +25,7 @@ class PreMoveService
                 'hashed_moves'  => json_encode($hashedMoves),
                 'nonce'         => $nonce,
                 'current_index' => 0,
+                'session_first_pool_id'=>0,
             ]
         );
 

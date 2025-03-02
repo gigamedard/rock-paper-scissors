@@ -26,6 +26,7 @@ use App\Events\testevent;
 use App\Helpers\Web3Helper;
 
 use App\Events\BalanceUpdated;
+use App\Events\BasicEvent;
 
 
 Route::get('/', function () {
@@ -67,6 +68,18 @@ Log::info('Type of addresses: ' . gettype($addresses));
 Log::info('Type of users: ' . gettype($users));
 dd($usersCollection);
 });
+Route::get('/test-event', function () {
+    event(new testevent(1, 123));
+    return response()->json(['message' => 'Event fired successfully']);
+});
+
+
+
+Route::get('/test-basic-event', function () {
+    event(new BasicEvent('Hello from BasicEvent!'));
+    return 'BasicEvent Dispatched!';
+});
+
 
 
 Route::get('/user_create', function () {
