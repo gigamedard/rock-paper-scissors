@@ -22,10 +22,14 @@
     },
     "dependencies": {
         "@ethereumjs/util": "^9.1.0",
+        "body-parser": "^1.20.3",
         "browserify": "^17.0.1",
         "buffer": "^6.0.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.7",
         "ethereum-cryptography": "^3.0.0",
-        "ethers": "^6.13.4",
+        "ethers": "^6.13.5",
+        "express": "^4.21.2",
         "web3": "^4.16.0"
     },
     "name": "rock-paper-scissors",

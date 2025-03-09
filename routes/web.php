@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\PoolAutoMatchController;
+use Illuminate\Support\Facades\Http;
 
 use Illuminate\Support\Str;
 use kornrunner\Keccak;
@@ -118,7 +119,14 @@ Route::get('/user_create', function () {
 
 
 Route::get('/web3test', function () {
-    return view('ipfs');
+    //return view('ipfs');
+
+    $response = Http::post("127.0.0.1:3000/sendPoolCID", [
+        'poolId' => 1,
+        'CID' => "QmTestCID1",
+    ]);
+
+    return $response->json();
 });
 
 

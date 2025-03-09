@@ -16,7 +16,9 @@ class HistoricalFightService
     {   
         $data = $this->getHistoricalFightData($poolId);
         $cid = $this->sendArchiveToPinata($data);
-        return $cid;
+        $nodeUrl = env('NODE_URL');
+        $response = Web3Helper::sendPoolCIDToSmartContract($nodeUrl,$cid,$poolId);
+        return $response;
     }
     public function archiveFight($fightId, FHist $fHist = null)
     {   
@@ -83,6 +85,7 @@ class HistoricalFightService
             ];
         }   
         Log::info('===>archiveFight ending');
+        
         return FHist::create($data);
     }
 

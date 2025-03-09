@@ -61,6 +61,12 @@ async function main() {
       await updateUserBalance(user, balance);
     });
 
+    contract.on("MatchHistoryCIDUpdated", async (poolId, cid) => {
+      console.log(`🔔 MatchHistoryCIDUpdated Event Detected:`);
+      console.log(`--- poolId: ${poolId}`);
+      console.log(`- 💰cid: ${cid}`);
+    });
+
 
 
     contract.on("PoolEmitted", async (poolId, baseBet,users,premoveCIDs,poolSalt) => {
