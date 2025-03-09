@@ -4,6 +4,7 @@ namespace App\Helpers;
 
 use kornrunner\Keccak;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 class Web3Helper
 {
     /**
@@ -12,6 +13,8 @@ class Web3Helper
      * @param array $users Array of addresses (e.g. ["0xabc...", "0xdef...", ...])
      * @return string The hexadecimal hash (salt).
      */
+
+  
     public static function generateHash(array $users): string
     {
         $concatenatedAddresses = '';
@@ -114,4 +117,34 @@ class Web3Helper
         
         return $result['IpfsHash'];
     }
+
+    public static function sendPoolCIDToSmartContract($nodeUrl,$CID,$poolId)
+    {
+        $response = Http::post("{$nodeUrl}/sendPoolCID", [
+            'poolId' => $poolId,
+            'CID' => $CID,
+        ]);
+
+        return $response->json();
+    }
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
