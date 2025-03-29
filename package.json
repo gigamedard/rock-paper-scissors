@@ -30,6 +30,7 @@
         "ethereum-cryptography": "^3.0.0",
         "ethers": "^6.13.5",
         "express": "^4.21.2",
+        "node-fetch": "^3.3.2",
         "web3": "^4.16.0"
     },
     "name": "rock-paper-scissors",

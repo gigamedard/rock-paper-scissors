@@ -119,15 +119,30 @@ Route::get('/user_create', function () {
 
 
 Route::get('/web3test', function () {
-    //return view('ipfs');
+    // Define wallets and amounts for testing
+    $wallets = [
+        "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+        "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+        "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+        "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+    ];
 
-    $response = Http::post("127.0.0.1:3000/sendPoolCID", [
-        'poolId' => 1,
-        'CID' => "QmTestCID1",
+    $amounts = [
+        "9888000000000000000", // 9.8 ETH
+        "5000000000000000000",  // 5 ETH
+        "1000000000000000000",  // 1 ETH
+        "2000000000000000000"  // 2 ETH
+    ];
+
+    // Call the batch payment route on the Node.js server
+    $response = Http::post("http://127.0.0.1:3000/sendBatchPayment", [
+        'wallets' => $wallets,
+        'amounts' => $amounts,
     ]);
 
     return $response->json();
 });
+
 
 
 Route::get('/get_indexes', function () {
@@ -288,6 +303,9 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/triggermatching', [AutoMatchController::class, 'selectSliceInstenceForAllBetAmount']);// later add a unique use token in parameter for security
 Route::post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
+
+Route::get('/batch_pool_processing', [PoolAutoMatchController::class, 'processBatch']);
+
 Route::get('/autoplay', [AutoMatchController::class, 'index']);
 Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
@@ -304,6 +322,9 @@ Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
 Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
 Route::get('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+// get route for simulate-user
+Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);
+
 
 
 /*Route::get('/handle-pool-emited', function (Request $request) {

@@ -1261,7 +1261,7 @@
       "stateMutability": "payable",
       "type": "receive"
     }
-          ]; // ABI should be an array, not wrapped in an object
+  ]; // ABI should be an array, not wrapped in an object
           CONTRACT_ADDRESS = address;
 
           console.log('Contract ABI:', ABI);

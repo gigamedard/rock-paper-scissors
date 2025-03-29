@@ -60,9 +60,11 @@ class HistoricalFightService
         }
         else {
             Log::info('===>archiveFight if ($fHist) { are note met we are in the else part');
+            // get the old balance of the users
+
+            $old1 = $this->getOld_balance($fight->user1);
+            $old2 = $this->getOld_balance($fight->user2);
             
-            $old1 = $fight->user1->balance + $fight->base_bet_amount;
-            $old2 = $fight->user2->balance + $fight->base_bet_amount;
             Log::info('===>archiveFight if ($fHist) { are note met we are in the else part: $old1 = '.$old1);
             $data = [
                 'pool_id'              => $fight->pool_id,
@@ -165,5 +167,21 @@ class HistoricalFightService
         $contract->storeCID($cid);  This is a mock method, you need to implement it*/
 
         return $cid;
+    }
+
+    public function getOld_balance($user)
+    {
+        
+        // get the First FHist record for the user. if it does not exist, return the user's balance. if it exists, return the old balance
+        $fHist = FHist::where('user1_id', $user->id)->orWhere('user2_id', $user->id)->orderBy('created_at', 'asc')->first();
+        if ($fHist) {
+            if ($fHist->user1_id == $user->id) {
+                return $fHist->old_user1_balance;
+            } else {
+                return $fHist->old_user2_balance;
+            }
+        } else {
+            return $user->balance;
+        }
     }
 }

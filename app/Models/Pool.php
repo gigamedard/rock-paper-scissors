@@ -43,7 +43,7 @@ class Pool extends Model
     }
 
     public function match(): void
-    {
+    {       Log::info('===================================>match');
             // Get available users from this pool
             $availableUsers = $this->users;
 
