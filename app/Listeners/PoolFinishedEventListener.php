@@ -50,7 +50,7 @@ class PoolFinishedEventListener
         app(HistoricalFightService::class)->archivePoolFights($poolId);
 
   
-        $pool->delete();
+        //$pool->delete();
 
         Log::info("PoolFinishedEventListener: Pool ID $poolId has been processed successfully.");
     }

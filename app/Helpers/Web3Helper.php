@@ -128,8 +128,41 @@ class Web3Helper
         return $response->json();
     }
     
+    public static function sendSessionCIDToSmartContract($nodeUrl,$CID,$walletAddress)
+    {
+        $response = Http::post("{$nodeUrl}/sendSessionCID", [
+            'wallet' => $walletAddress,
+            'CID' => $CID,
+        ]);
 
+        return $response->json();
+    }
 
+    public static function sendPayement($nodeUrl,$walletAddress,$amount)
+    {
+        $response = Http::post("{$nodeUrl}/sendPayment", [
+            'walletAddress' => $walletAddress,
+            'amount' => $amount,
+        ]);
+
+        return $response->json();
+    }
+    
+    public static function sendBatchPayment($nodeUrl, array $walletAddresses, array $amounts)
+    {
+        // Validate that both arrays have the same length
+        if (count($walletAddresses) !== count($amounts)) {
+            return ['error' => 'Mismatched wallets and amounts'];
+        }
+
+        // Make an HTTP request to your Node.js backend
+        $response = Http::post("{$nodeUrl}/sendBatchPayment", [
+            'wallets' => $walletAddresses,
+            'amounts' => $amounts,
+        ]);
+
+        return $response->json();
+}
 
 
 

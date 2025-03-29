@@ -76,21 +76,22 @@ class Fight extends Model
             default => 'draw',
         };
     }
-
+// the winner take the losers battle balance
     public function user1Gain()
     {
         return match ($this->result) {
-            'user1_win' => $this->base_bet_amount,
-            'user2_win' => -$this->base_bet_amount,
+            'user1_win' => $this->user2()->battle_balance,
+            'user2_win' => -$this->user1()->battle_balance,
             default => 0,
         };
     }
 
+
     public function user2Gain()
     {
         return match ($this->result) {
-            'user2_win' => $this->base_bet_amount,
-            'user1_win' => -$this->base_bet_amount,
+            'user2_win' => $this->user1()->battle_balance,
+            'user1_win' => -$this->user2()->battle_balance,
             default => 0,
         };
     }
@@ -263,7 +264,9 @@ class Fight extends Model
         }
     }
     private function addUserToNewPool(int $userId, float $baseBet, int $poolSize): void
-    {
+    {   
+        //log::info('addUserToNewPool');
+        Log::info('========================================================================>addUserToNewPool');
         // Check if there is an existing pool with the same bet amount that is not full
         $pool = Pool::where('base_bet', $baseBet)
                     ->whereDoesntHave('users', function ($query) use ($poolSize) {
@@ -272,6 +275,7 @@ class Fight extends Model
                     ->first();
         // If no such pool exists, create a new one
         if (!$pool) {
+            Log::info('=============>addUserToNewPool: creating new pool');
             $pool = Pool::create(['base_bet' => $baseBet, 'pool_size' => $poolSize]);
         }
 
