@@ -13,11 +13,18 @@ class CreateBatchesTable extends Migration
      */
     public function up()
     {
+        // In your CreateBatchesTable migration's up() method:
         Schema::create('batches', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('first_pool_id')->default(0); // Starting point for the next batch
-            $table->integer('iteration_count')->default(0); // Number of iterations completed
-            $table->enum('status', ['waiting', 'running', 'settled'])->default('waiting'); // Batch status
+            $table->integer('pool_size')->default(0)->index();
+            $table->unsignedBigInteger('first_pool_id')->default(0);
+            $table->unsignedBigInteger('last_pool_id')->default(0); // <-- ADD THIS (references pools.id)
+            $table->integer('number_of_pools')->default(0);      // <-- ADD THIS
+            $table->integer('max_size')->default(100);         // <-- ADD THIS (or get from config only)
+            $table->integer('iteration_count')->default(0);
+            $table->integer('max_iterations')->default(5);       // <-- ADD THIS (or get from config only)
+            $table->enum('status', ['waiting', 'running', 'settled'])->default('waiting');
+            
             $table->timestamps();
         });
     }

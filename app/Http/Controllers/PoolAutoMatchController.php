@@ -9,9 +9,24 @@ use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Helpers\Web3Helper;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
 
+// Add necessary Use statements
 use App\Models\Batch;
 use App\Models\Pool;
+use Illuminate\Http\JsonResponse; // Use specific JsonResponse for return type hint
+
+
+use Exception; // Import Exception class
+
+// --- Add New Service Dependencies ---
+use App\Services\BatchProcessing\BatchCriteriaService;
+use App\Services\BatchProcessing\BatchFinderService;
+use App\Services\BatchProcessing\PoolFetcherService;
+use App\Services\BatchProcessing\BatchManagerService;
+use App\Services\BatchProcessing\PoolProcessorService;
+// ---------------------------------
+
 use App\Models\ArrayIndex;
 
 
@@ -20,15 +35,41 @@ class PoolAutoMatchController extends Controller
     protected $poolService;
     protected $preMoveService;
     protected $historicalFightService;
+    const POOL_SIZE_INDEX_CACHE_KEY = 'batch_pool_size_index'; // Define cache key
+
+    // Keep existing service injections if needed for other methods
+  
+
+    // --- Inject New Services ---
+    protected $batchCriteriaService;
+    protected $batchFinderService;
+    protected $poolFetcherService;
+    protected $batchManagerService;
+    protected $poolProcessorService;
+    // --------------------------
 
     public function __construct(
+        // Keep existing injections
         PoolService $poolService,
         PreMoveService $preMoveService,
-        HistoricalFightService $historicalFightService
+        HistoricalFightService $historicalFightService,
+        // Add new injections
+        BatchCriteriaService $batchCriteriaService,
+        BatchFinderService $batchFinderService,
+        PoolFetcherService $poolFetcherService,
+        BatchManagerService $batchManagerService,
+        PoolProcessorService $poolProcessorService
     ) {
+        // Assign existing
         $this->poolService = $poolService;
         $this->preMoveService = $preMoveService;
         $this->historicalFightService = $historicalFightService;
+        // Assign new
+        $this->batchCriteriaService = $batchCriteriaService;
+        $this->batchFinderService = $batchFinderService;
+        $this->poolFetcherService = $poolFetcherService;
+        $this->batchManagerService = $batchManagerService;
+        $this->poolProcessorService = $poolProcessorService;
     }
 
     // Auto-match endpoint
@@ -117,9 +158,43 @@ class PoolAutoMatchController extends Controller
         return response()->json(['message' => 'Historical fights archived', 'result' => $result]);
     }
 
+    /**
+     * i want a function that works this way:
+     * 1 the function retrive the curent bach
+     * - if they is no bach, it checks if they are at list one pool that need to be auto executed in bach
+     *                                              -if they is no pool then return fals
+     *                                              -esle :
+     *                                                      1 retive $limit pool 
+     *                                                      2 create a bach 
+     *                                                      3 set bach last pool id to the the id of the last pool on the selection
 
+     * -else check the bach status
+     *      -if it is loading :
+     *                         1 retrive ($maxsize - numberofpool ) pool that need to executed in bach
+     *                         
+     *                         2 update number of the pool to the number of pool retrieved + the current value
+     *                        
+     *                         
+     *                         
+    *                           8 set status to :
+    *                                           -if number of pool >= max size: loaded
+    *                                            -else number of pool : loading
+    *                            return true
+        *      -else if it is loaded or processing :
+    *                          1 retrive all pool betwen the first pool id and the last pool id
+    *                          2 update the bach status to processing
+    *           
+    *                          3 update the bach last pool id to the id of the last pool in the selection
+    *                          4 process the pools of the selection
+    *                          5 increment the bach iteration count
+    *                          if the iteration count >= max iteration count:
+    *                              1 update the bach status to settled
 
-    public function processBatch()
+    *                          
+    *                          
+     */
+
+    public function _processBatch()
     {   
         Log::info('===========================================================================================================================> processBatch()');
         // Get the current index for `base_bet` and `size`
@@ -163,6 +238,8 @@ class PoolAutoMatchController extends Controller
                 $pools = Pool::where('pool_id', '>=', $batch->first_pool_id)
                              ->where('pool_size', $desiredSize)
                              ->where('base_bet', $desiredBaseBet)
+                             ->where('status', 'from_server_waitting')
+                             ->whereColumn('pool_id', '=', 'id') // Added this line
                              ->orderBy('pool_id')
                              ->take($batchSize)
                              ->get();
@@ -211,7 +288,8 @@ class PoolAutoMatchController extends Controller
     
             // Update batch status based on conditions
             if ($batch->iteration_count >= $maxIterations) { // Define $maxIterations as needed
-                $batch->update(['status' => 'settled']);
+                $batch->update(['status' => 'settled', 'iteration_count'=>0]); //todo when the iteration number reaches the max
+                // it is reinitialised to zero.
             } else {
                 $batch->update(['status' => 'waiting']);
             }
@@ -227,7 +305,183 @@ class PoolAutoMatchController extends Controller
             return response()->json(['message' => 'An error occurred: ' . $e->getMessage()], 500);
         }
     }
+
     
+    public function processBatch(): JsonResponse
+    {
+        Log::info('========================= Starting Refactored processBatch =========================');
+
+        // 1. Determine Target Pool Size
+        $criteriaResult = $this->batchCriteriaService->getTargetPoolSize();
+        if ($criteriaResult['error']) {
+            Log::error('Error retrieving target pool size: ' . $criteriaResult['error']);
+            return response()->json(['message' => $criteriaResult['error']], 500);
+        }
+        $targetPoolSize = $criteriaResult['targetPoolSize'];
+        Log::info("Target pool size determined: {$targetPoolSize}");
+
+        $poolsToProcess = collect(); // Initialize for potential deferred processing
+        $batchForProcessing = null; // Initialize
+
+        try {
+            // 2. Transaction 1: Find/Create/Load Batch
+            $resultData = DB::transaction(function () use (
+                $targetPoolSize,
+                &$poolsToProcess, // Pass by reference
+                &$batchForProcessing // Pass by reference
+            ) {
+                Log::info("Starting transaction for target pool size {$targetPoolSize}.");
+                
+                // Use lockForUpdate within the transaction boundary
+                $batch = $this->batchFinderService->findActiveBatchWithLock($targetPoolSize); // Now applies lock
+                Log::info("Batch fetched inside transaction: " . ($batch ? $batch->id : 'None'));
+
+                // --- Case: No Active Batch Found ---
+                if (!$batch) {
+                    Log::info("Entering condition: No active batch found for pool_size {$targetPoolSize}.");
+                    if (!$this->poolFetcherService->processablePoolsExist($targetPoolSize)) {
+                        Log::info("No processable pools available for pool_size {$targetPoolSize}.");
+                        return ['status' => 'no_work', 'message' => "No active batch or available pools for pool_size {$targetPoolSize}."];
+                    }
+
+                    $initialLimit = Config::get('pool.batch_initial_limit', 50);
+                    $initialPools = $this->poolFetcherService->fetchInitialPools($targetPoolSize, $initialLimit);
+
+                    if ($initialPools->isEmpty()) {
+                        Log::info("No pools available to form an initial batch for pool_size {$targetPoolSize}.");
+                        return ['status' => 'no_work', 'message' => "No pools available to form an initial batch for pool_size {$targetPoolSize}."];
+                    }
+
+                    $createdBatch = $this->batchManagerService->createBatch($targetPoolSize, $initialPools);
+                    Log::info("Exiting condition: Created new batch {$createdBatch->id} for pool_size {$targetPoolSize} with status {$createdBatch->status}.");
+                    return ['status' => 'created', 'message' => "New batch {$createdBatch->id} for pool_size {$targetPoolSize} created and is {$createdBatch->status}."];
+                }
+
+                // --- Case: Batch is Waiting and Needs Loading ---
+                if ($batch->status === 'waiting' && $batch->number_of_pools < $batch->max_size) {
+                    Log::info("Entering condition: Batch {$batch->id} is waiting and needs loading. (Pools: {$batch->number_of_pools}/{$batch->max_size})");
+                    $needed = $batch->max_size - $batch->number_of_pools;
+                    $newPools = $this->poolFetcherService->fetchPoolsToLoad($batch, $needed);
+
+                    if ($newPools->isEmpty()) {
+                        Log::info("Exiting condition: No new pools found to add to waiting batch {$batch->id}.");
+                        $msg = ($batch->number_of_pools > 0)
+                               ? "Batch {$batch->id} remains waiting with {$batch->number_of_pools} pools, no new pools found."
+                               : "Batch {$batch->id} remains waiting and empty, no new pools found.";
+                         return ['status' => 'no_change', 'message' => $msg];
+                    }
+
+                    $this->batchManagerService->loadWaitingBatch($batch, $newPools); // Modifies the locked $batch object
+                    $poolCount = $newPools->count(); // Use count of pools actually added
+                    Log::info("Exiting condition: Batch {$batch->id} updated with {$poolCount} pools. New status: {$batch->status}");
+                    return ['status' => 'updated', 'message' => "Batch {$batch->id} (pool_size {$batch->pool_size}) updated with {$poolCount} pools. Status: {$batch->status}"];
+                }
+
+                // --- Case: Batch is Ready for Processing ---
+                if ($batch->status === 'running' || ($batch->status === 'waiting' && $batch->number_of_pools > 0)) {
+                     Log::info("Entering condition: Batch {$batch->id} is ready for processing. Current Status: {$batch->status}. Iteration: {$batch->iteration_count}");
+                    if ($batch->status !== 'running') {
+                        $batch->status = 'running';
+                        $batch->save(); // Mark as running within the transaction
+                        Log::info("Batch {$batch->id} status updated to 'running'.");
+                    }
+
+                    $retrievedPools = $this->poolFetcherService->fetchPoolsForProcessing($batch);
+
+                    if ($retrievedPools->isEmpty()) {
+                         Log::warning("Exiting condition: Batch {$batch->id} is {$batch->status} but no pools found in its range. Reverting to 'waiting'.");
+                         $batch->status = 'waiting'; // Revert status
+                         $batch->save();
+                         return ['status' => 'error', 'message' => "Batch {$batch->id} found no pools in its defined range. Status reverted to waiting."];
+                    }
+
+                    // Prepare for deferred processing
+                    $poolsToProcess = $retrievedPools; // Assign to outer scope variable
+                    $batchForProcessing = $batch; // Assign batch context too
+                    Log::info("Exiting condition: Batch {$batch->id} deferred processing setup complete. Pools count: " . $retrievedPools->count());
+                    return ['status' => 'processing_deferred']; // Signal to process outside transaction
+                }
+
+                // --- Fallback Case ---
+                Log::warning("Entering fallback: Batch {$batch->id} (pool_size {$batch->pool_size}) status '{$batch->status}' did not trigger any action.");
+                return ['status' => 'no_action', 'message' => "Batch {$batch->id} status '{$batch->status}' did not trigger action."];
+            }); // --- End DB::transaction 1 ---
+
+            // 3. Perform Actual Pool Processing (if deferred)
+            if (isset($resultData['status']) && $resultData['status'] === 'processing_deferred') {
+                Log::info("Entering deferred processing outside transaction.");
+                if (!$batchForProcessing || $poolsToProcess->isEmpty()) {
+                     Log::error("Deferred processing signaled, but batch context or pool list is missing.", [
+                         'batch_exists' => !is_null($batchForProcessing),
+                         'pools_empty' => $poolsToProcess->isEmpty(),
+                         'batch_id' => $batchForProcessing?->id ?? 'N/A'
+                     ]);
+                     return response()->json(['message' => 'Internal error during deferred processing setup.'], 500);
+                }
+
+                // Call the processor service
+                $processingResult = $this->poolProcessorService->processPools($poolsToProcess, $batchForProcessing);
+                Log::info("Deferred processing completed. Processed count: " . $processingResult['processedCount']);
+
+                // Call manager service to update status (handles its own transaction)
+                $updatedBatch = $this->batchManagerService->updateBatchStatusAfterProcessing(
+                    $batchForProcessing->id,
+                    !is_null($processingResult['error']), // processingErrorOccurred flag
+                    $processingResult['processedCount']
+                );
+                Log::info("Batch {$updatedBatch->id} status updated after processing. New iteration count: {$updatedBatch->iteration_count}");
+
+                 // Generate final response based on processing outcome
+                 $iterationAfterProcessing = $updatedBatch->iteration_count; // Use updated iteration count
+
+                 if ($processingResult['error']) {
+                     Log::error("Processing error in batch {$updatedBatch->id}: " . $processingResult['error']->getMessage());
+                     return response()->json([
+                         'message' => "Batch {$updatedBatch->id} (pool_size {$updatedBatch->pool_size}) processed with errors. Final Status: {$updatedBatch->status}",
+                         'processed_count' => $processingResult['processedCount'],
+                         'total_in_batch' => $poolsToProcess->count(),
+                         'iteration' => $iterationAfterProcessing,
+                         'error' => $processingResult['error']->getMessage()
+                     ], 207); // Multi-Status
+                 } else {
+                     Log::info("Batch {$updatedBatch->id} processed successfully with no errors.");
+                     return response()->json([
+                         'message' => "Batch {$updatedBatch->id} (pool_size {$updatedBatch->pool_size}) processed successfully. Final Status: {$updatedBatch->status}",
+                         'processed_count' => $processingResult['processedCount'],
+                         'iteration' => $iterationAfterProcessing
+                     ], 200); // OK
+                 }
+            }
+            // Handle other results from Transaction 1
+            elseif (isset($resultData['status'])) {
+                 Log::info("Handling result from transaction with status: {$resultData['status']}");
+                 $httpStatusCode = match($resultData['status']) {
+                    'no_work', 'no_change' => 200,
+                    'created', 'updated' => 201,
+                    'error', 'no_action' => 400,
+                    default => 200,
+                 };
+                 Log::info("Exiting processBatch with message: " . $resultData['message']);
+                 return response()->json(['message' => $resultData['message'], 'target_pool_size' => $targetPoolSize], $httpStatusCode);
+            }
+            // Fallback
+            else {
+                 Log::error("processBatch ended with an unexpected state before processing or known outcome.");
+                 return response()->json(['message' => 'An unexpected server error occurred (unknown state).'], 500);
+            }
+
+        } catch (Exception $e) {
+            Log::error('========================= Error in Refactored processBatch =========================');
+            Log::error("Target Pool Size: {$targetPoolSize}. Error: " . $e->getMessage());
+            Log::error("Trace: " . $e->getTraceAsString());
+            return response()->json(['message' => 'An error occurred during batch processing: ' . $e->getMessage()], 500);
+        } finally {
+            Log::info('========================= Finished Refactored processBatch =========================');
+        }
+    }
+    
+  
+
     private function getAndUpdateIndex($arrayName, $arrayLength)
     {
         // Fetch or create the index record

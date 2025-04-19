@@ -80,7 +80,7 @@ contract Battlepool {
         Pool storage pool;
 
         if (poolId == bytes32(0)) {
-            poolId = createPool(baseBet, 3); // Default maxSize=3
+            poolId = createPool(baseBet, 5); // Default maxSize=5
             pool = pools[poolId];
         } else {
             pool = pools[poolId];
@@ -109,7 +109,7 @@ contract Battlepool {
         Pool storage pool;
 
         if (poolId == bytes32(0)) {
-            poolId = createPool(baseBet, 3); // Default maxSize=3
+            poolId = createPool(baseBet, 5); // Default maxSize=5
             pool = pools[poolId];
         } else {
             pool = pools[poolId];
