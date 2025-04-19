@@ -1389,6 +1389,7 @@
             nonce: nonce
             });
 
+          
           console.log('Pre-moves CID submitted. Transaction hash:', submitTx.transactionHash);
           const balanceGPT = await getUserBalanceGPT(WALLET_ADDRESS);
           console.log('Balance from getUserBalanceGPT:', balanceGPT);

@@ -277,10 +277,13 @@ class Fight extends Model
         if (!$pool) {
             Log::info('=============>addUserToNewPool: creating new pool');
             $pool = Pool::create(['base_bet' => $baseBet, 'pool_size' => $poolSize]);
+            $pool->status = 'from_server_waitting';
+            $pool->save();
         }
 
         // Set the pool_id to the id of the created or found pool
         $pool->pool_id = $pool->id;
+        $pool->status = 'from_server_waitting';
         $pool->save();
 
         // Add the user to the pool

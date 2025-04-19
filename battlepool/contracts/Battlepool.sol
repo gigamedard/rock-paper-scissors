@@ -84,7 +84,7 @@ contract Battlepool {
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
             // Create a new pool if it doesn't exist
-            createPool(baseBet, 3); // Default maxSize set to 5
+            createPool(baseBet, 5); // Default maxSize set to 5
         }else if (pool.users.length == 0) {
         
             pool.poolId = nextPoolId; // NOT pool.id
@@ -117,7 +117,7 @@ contract Battlepool {
         
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
-            createPool(baseBet, 3); // Default maxSize set to 5 if pool does not exist
+            createPool(baseBet, 5); // Default maxSize set to 5 if pool does not exist
         }else if (pool.users.length == 0 ) {
             pool.poolId = nextPoolId; // NOT pool.id
             nextPoolId++;
@@ -307,4 +307,4 @@ contract Battlepool {
         }
     }
 
-}  
+} 
