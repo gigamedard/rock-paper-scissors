@@ -67,7 +67,7 @@ class Pool extends Model
             Log::info('===================================>availableUsers befor sorting: ' . json_encode($availableUsers));
             // sort the users by their wallet address hashed with salt
 
-            $sortedUsers = Web3Helper::sortAddressesWithSalt($availableUsers->pluck('wallet_address')->toArray(), $pool->salt);
+            $sortedUsers = Web3Helper::sortAddressesWithSalt($availableUsers->pluck('wallet_address')->toArray(), $this->salt);
             $availableUsers = $availableUsers->sortBy(function ($user) use ($sortedUsers) {
                 return array_search($user->wallet_address, $sortedUsers);
             })->values();
@@ -77,13 +77,14 @@ class Pool extends Model
 
 
             // Ensure even count of users
-            if ($sortedUsers->count() % 2 !== 0) {
-                $sortedUsers->pop();
+            if (count($sortedUsers) % 2 !== 0) {
+                array_pop($sortedUsers);
             }
 
             // Generate fights and process them
-            if ($sortedUsers->isNotEmpty()) {
-                for ($i = 0; $i < $sortedUsers->count(); $i += 2) {
+            if (! empty($sortedUsers)) {
+                $total = count($sortedUsers);
+                for ($i = 0; $i < $total; $i += 2) {
                     $fight = Fight::create([
                         'user1_id' => $sortedUsers[$i]->id,
                         'user2_id' => $sortedUsers[$i + 1]->id,
