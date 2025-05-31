@@ -19,5 +19,28 @@
         "tailwindcss": "^3.1.0",
         "vite": "^5.0",
         "vue": "^3.4.0"
-    }
+    },
+    "dependencies": {
+        "@ethereumjs/util": "^9.1.0",
+        "body-parser": "^1.20.3",
+        "browserify": "^17.0.1",
+        "buffer": "^6.0.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.7",
+        "ethereum-cryptography": "^3.0.0",
+        "ethers": "^6.13.5",
+        "express": "^4.21.2",
+        "node-fetch": "^3.3.2",
+        "web3": "^4.16.0"
+    },
+    "name": "rock-paper-scissors",
+    "version": "1.0.0",
+    "description": "<p align=\"center\"><a href=\"https://laravel.com\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg\" width=\"400\" alt=\"Laravel Logo\"></a></p>",
+    "main": "postcss.config.js",
+    "directories": {
+        "test": "tests"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
 }

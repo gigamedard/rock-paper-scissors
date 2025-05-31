@@ -5,6 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+use App\Models\Challenge;
+use App\Models\Fight;
+use App\Models\UserSetting;
+use App\Models\Pool;
+
 
 class User extends Authenticatable
 {
@@ -15,6 +22,13 @@ class User extends Authenticatable
         'email',
         'password',
         'is_online',
+        'autoplay_active',
+        'status',
+        'bet_amount',
+        'wallet_address',
+        'balance',
+        'battle_balance',
+        'pool_id',
     ];
 
     protected $hidden = [
@@ -35,5 +49,25 @@ class User extends Authenticatable
     public function challengesReceived()
     {
         return $this->hasMany(Challenge::class, 'receiver_id');
+    }
+
+    public function userSetting()
+    {
+        return $this->hasOne(UserSetting::class);
+    }
+
+    public function fights()
+    {
+        return $this->hasMany(Fight::class, 'user1_id');
+    }
+
+    public function pools(): BelongsTo{
+        return $this->belongsTo(Pool::class, 'pool_id');
+    }
+
+        // A user has one set of pre-moves
+    public function preMove()
+    {
+        return $this->hasOne(PreMove::class);
     }
 }

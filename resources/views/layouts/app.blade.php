@@ -10,11 +10,78 @@
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <style>
+        @font-face {
+            font-family: 'Orbitron';
+            font-style: normal;
+            font-weight: 700;
+            src: url(https://fonts.gstatic.com/s/orbitron/v31/yMJMMIlzdpvBhQQL_SC3X9yhF25-T1ny_CmBoWg2.ttf) format('truetype');
+        }
+
+        * {
+            position: relative;
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        /* New CSS for popup */
+        .popup-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .popup-content {
+            position: relative;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* Existing CSS for PSP gamepad */
+        #psp {
+            font-family: sans-serif;
+            display: block;
+            position: relative;
+            margin: 20px auto;
+            max-width: 600px;
+            padding: 40px 20px;
+            box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.2);
+            background: white;
+            border-radius: 25px;
+        }
+
+        .interaction-area {
+            position: relative;
+            z-index: 5;
+            width: 150px;
+            height: 150px;
+        }
+
+        /* Rest of your existing CSS */
+    </style>
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
+        
         <div class="min-h-screen bg-gray-100">
             @include('layouts.navigation')
 
@@ -38,22 +105,58 @@
 const userId = {{ Auth::user()->id }};
 
 const channelName = `App.Models.User.${userId}`;
+console.log(window.Echo);
 
 window.addEventListener("DOMContentLoaded",function(){
+    
     window.Echo.private(channelName)
     .listen("testevent",(event)=>{alert(event.message);})
     .listen('ChallengeSent', (chall) => {
             // Assume there's a function to update the UI
             updateSentInvitations(chall);
             //alert(chall.challenge.status);
-        })
-        .listen('ChallengeAccepted', (event) => {
+    })
+    .listen('ReceivedInvitationEvent', (invitation) => {
+        // Assume there's a function to update the UI
+        //alert("badaboom");
+        updateReceivedInvitations(invitation);
+    })
+    .listen('ChallengeAccepted', (invitationData) => {
             // Assume there's a function to update the UI
-            updateReceivedInvitations(event.challenge);
-        });
+            //alert(invitationData.invitationId);
+            //updateReceivedInvitations(invitation);
+            fightCreatedAt = invitationData.createdAt;
+            console.log(invitationData);
+            dropSentInvitationFromUI(invitationData);
+            showGamepadPopup();
+            fightId = invitationData.fightId;
+
+            
+    })
+    .listen('verdictReadyEvent', (res) => {
+    // Assume there's a function to update the UI
+    //alert("badaboom");
+    console.log(res.gain);
+    updateGamepadScreen(res);
+
+    });
 })
 
+//-------------------------------------------------------------popup-------------------------------------------
+/*document.getElementById('openPopup').addEventListener('click', function() {
+            document.getElementById('popupContainer').style.display = 'flex';
+        });
 
+        document.getElementById('closePopup').addEventListener('click', function() {
+            document.getElementById('popupContainer').style.display = 'none';
+        });
+
+        // Close popup when clicking outside of it
+        document.getElementById('popupContainer').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+});*/
             
         </script>
     </body>

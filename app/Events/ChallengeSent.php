@@ -57,7 +57,8 @@ class ChallengeSent implements shouldBroadcastNow
     {   
         
         return  ['challenge' => $this->challenge->toArray(),
-                    'receiver'=>$this->receiverName
+                    'receiver'=>$this->receiverName,
+                    'sender'=>$this->user
                 ];
     }
 }
