@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\HistoricalDataTrait;
 use Illuminate\Support\Facades\Log;
+use App\Models\PreMove;
 
 
 class AutoMatchController extends Controller
@@ -154,16 +155,15 @@ class AutoMatchController extends Controller
         $hashedMoves = array_map(fn($move) => hash('sha3-256', $move . $nonce), $preMoves);
 
         // Store in the database
-        DB::table('pre_moves')->updateOrInsert(
-            ['user_id' => auth()->id()],
-            [
+            PreMove::create([
+                'user_id' => $userId, // Use the correct user ID
                 'moves' => json_encode($preMoves),
                 'hashed_moves' => json_encode($hashedMoves),
                 'nonce' => $nonce,
                 'current_index' => 0,
                 'cid' => $cid,
-            ]
-        );
+                'updated_at' => now(),
+            ]);
 
         // Placeholder for storing hashed moves on blockchain
         $this->registerForAutoplay($bet_amount);

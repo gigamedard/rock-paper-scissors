@@ -5,6 +5,9 @@ namespace App\Helpers;
 use kornrunner\Keccak;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
+
 class Web3Helper
 {
     /**
@@ -147,7 +150,30 @@ class Web3Helper
 
         return $response->json();
     }
-    
+
+    public static function premoveExists($userId)
+    {
+        // Check if the preMove exists in the database
+        $preMove = DB::table('pre_moves')->where('user_id', $userId)->first();
+        return $preMove !== null;
+    }
+
+    public static function marker($userId, $position1, $position2, $position3 = null)
+    {
+        if (self::premoveExists($userId)) {
+            Log::info("...................................".$position1.".......". $position2."......". $position3." ....................................................................");
+        } else {
+            Log::info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            Log::info("XXXXXXXXXXXX".$position1."  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            Log::info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX  ".$position2."  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            Log::info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            Log::info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  ".$position3."  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+            Log::info("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+        }
+        
+
+    }
+
     public static function sendBatchPayment($nodeUrl, array $walletAddresses, array $amounts)
     {
         // Validate that both arrays have the same length

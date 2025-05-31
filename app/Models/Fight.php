@@ -11,6 +11,7 @@ use App\Models\PreMove;
 use App\Models\FHist;
 use App\Services\HistoricalFightService;
 use Illuminate\Support\Facades\Log;
+use App\Helpers\web3Helper; // Assuming you have a web3Helper class for checking pre-moves
 
 class Fight extends Model
 {
@@ -137,7 +138,7 @@ class Fight extends Model
 
         $fHist = $this->historicalFightService->archiveFight($this->id);
 
-        dump($fHist);
+        //dump($fHist);
         // Handle the case where the result is a draw
         if ($result === 'draw') {
             // Both users remain in the pool and their statuses are updated
@@ -190,12 +191,17 @@ class Fight extends Model
     private function getPreMove($userId)
     {
         // Retrieve pre-moves for the user
-        $preMove = DB::table('pre_moves')->where('user_id', $userId)->first();
-
-        if (!$preMove) {
-            throw new \Exception("No pre-moves found for user ID $userId");
-        }
-
+       // try {
+            $preMove = DB::table('pre_moves')->where('user_id', $userId)->first();
+   /*     } catch (\Exception $e) {
+            Log::error("Error retrieving pre-move for user ID $userId: " . $e->getMessage());
+            throw $e;
+        }*/
+        
+                if (!$preMove) {
+                    throw new \Exception("No pre-moves found for user ID $userId");
+                }
+        
         $moves = json_decode($preMove->moves, true);
         $currentIndex = $preMove->current_index;
 
@@ -263,10 +269,19 @@ class Fight extends Model
             User::where('id', $userId)->update(['pool_id' => null]);
         }
     }
+
     private function addUserToNewPool(int $userId, float $baseBet, int $poolSize): void
     {   
         //log::info('addUserToNewPool');
-        Log::info('========================================================================>addUserToNewPool');
+        //if premove does not exist log it , do not add user to new pool
+        Log::info('addUserToNewPool called for user ID: ' . $userId . ' with base bet: ' . $baseBet . ' and pool size: ' . $poolSize);
+        // Check if the user has a pre-move
+        // If the user does not have a pre-move, do not add them to a new pool
+        if (!web3Helper::premoveExists($userId)) {
+            Log::info('========================================================================> User ID ' . $userId . ' does not have a pre-move. Not adding to new pool.');
+            return;
+        }
+        Log::info('========================================================================>addUserToNewPool user id: ' . $userId . ' has a pre-move, proceeding to add to new pool');
         // Check if there is an existing pool with the same bet amount that is not full
         $pool = Pool::where('base_bet', $baseBet)
                     ->whereDoesntHave('users', function ($query) use ($poolSize) {
@@ -289,6 +304,7 @@ class Fight extends Model
         // Add the user to the pool
         User::where('id', $userId)->update(['pool_id' => $pool->id]);
     }
+
     private function addUserToQueue(int $userId,$lastBaseBet): void
     {
         // Add the user to the queue_table

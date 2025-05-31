@@ -52,16 +52,16 @@ contract Battlepool {
         emit SecurityCoefficientUpdated(newCoefficient);
     }
         
-            function triggerPoolEmittedEventForTesting(
-                uint256 poolId,
-                uint256 baseBet,
-                address[] memory users,
-                string[] memory premoveCIDs,
-                string memory poolSalt // Changed to string
-            ) external {
-                // Emit the PoolEmitted event with the provided parameters
-                emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt);
-            }
+    function triggerPoolEmittedEventForTesting(
+        uint256 poolId,
+        uint256 baseBet,
+        address[] memory users,
+        string[] memory premoveCIDs,
+        string memory poolSalt // Changed to string
+    ) external {
+        // Emit the PoolEmitted event with the provided parameters
+        emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt);
+    }
         
     function createPool(uint256 baseBet, uint256 maxSize) private {
         require(pools[baseBet].poolId == 0, "Pool already exists");
@@ -189,29 +189,32 @@ contract Battlepool {
 
 
     function _emitAndResetPool(Pool storage pool) internal {
-        // Generate the salt only when the pool is full
-        pool.poolSalt = _generateSalt(pool.users);
+        // 1) Snapshot users into memory once, so we never accidentally drift
+        address[] memory users = pool.users;
 
-        // Gather premove CIDs for all users in the pool
-        string[] memory premoveCIDs = new string[](pool.users.length);
-        for (uint256 i = 0; i < pool.users.length; i++) {
-            premoveCIDs[i] = userPremoveCIDs[pool.users[i]];
+        // 2) Generate the salt based on that snapshot
+        pool.poolSalt = _generateSalt(users);
+
+        // 3) Gather premove CIDs in lock-step with the snapshot
+        string[] memory premoveCIDs = new string[](users.length);
+        for (uint256 i = 0; i < users.length; i++) {
+            premoveCIDs[i] = userPremoveCIDs[users[i]];
         }
 
-        // Emit the pool details with premove CIDs
-        emit PoolEmitted(pool.poolId, pool.baseBet, pool.users, premoveCIDs, pool.poolSalt);
+        // 4) Emit using the memory arrays – users and premoveCIDs are guaranteed to align
+        emit PoolEmitted(pool.poolId, pool.baseBet, users, premoveCIDs, pool.poolSalt);
 
-        // Clear the user tracking mapping
-        for (uint256 i = 0; i < pool.users.length; i++) {
-            pool.isUserInPool[pool.users[i]] = false;
-            isUserInAnyPool[pool.users[i]] = false;
-            delete userPremoveCIDs[pool.users[i]];
+        // 5) Now clear out all the tracking mappings
+        for (uint256 i = 0; i < users.length; i++) {
+            pool.isUserInPool[users[i]]     = false;
+            isUserInAnyPool[users[i]]       = false;
+            delete userPremoveCIDs[users[i]];
         }
 
-         // Reset the pool
+        // 6) Finally, reset the pool's user list
         delete pool.users;
-        
     }
+
     // Generate a salt from the concatenated addresses of all users
     function _generateSalt(address[] memory _users) internal pure returns (string memory) {
         bytes memory packedAddresses;
