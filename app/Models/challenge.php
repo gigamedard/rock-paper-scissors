@@ -9,7 +9,7 @@ class Challenge extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['sender_id', 'receiver_id', 'status'];
+    protected $fillable = ['sender_id', 'receiver_id', 'status','base_bet_amount','max_bet_amount',];
 
     public function sender()
     {
