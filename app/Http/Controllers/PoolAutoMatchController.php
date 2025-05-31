@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Config;
 // Add necessary Use statements
 use App\Models\Batch;
 use App\Models\Pool;
+use App\Models\preMove;
 use Illuminate\Http\JsonResponse; // Use specific JsonResponse for return type hint
 
 
@@ -311,6 +312,8 @@ class PoolAutoMatchController extends Controller
     {
         Log::info('========================= Starting Refactored processBatch =========================');
 
+        Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Start");
+
         // 1. Determine Target Pool Size
         $criteriaResult = $this->batchCriteriaService->getTargetPoolSize();
         if ($criteriaResult['error']) {
@@ -322,25 +325,32 @@ class PoolAutoMatchController extends Controller
 
         $poolsToProcess = collect(); // Initialize for potential deferred processing
         $batchForProcessing = null; // Initialize
+        Log::info('========================= Starting Refactored processBatch =========================');
 
+        Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "before try block");
         try {
+            Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "in the try block");
             // 2. Transaction 1: Find/Create/Load Batch
             $resultData = DB::transaction(function () use (
                 $targetPoolSize,
-                &$poolsToProcess, // Pass by reference
-                &$batchForProcessing // Pass by reference
+                &$poolsToProcess, 
+                &$batchForProcessing
             ) {
                 Log::info("Starting transaction for target pool size {$targetPoolSize}.");
-                
+                Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "in the try block ...Starting transaction");
+
+      
                 // Use lockForUpdate within the transaction boundary
                 $batch = $this->batchFinderService->findActiveBatchWithLock($targetPoolSize); // Now applies lock
                 Log::info("Batch fetched inside transaction: " . ($batch ? $batch->id : 'None'));
-
+                Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "after findActiveBatchWithLock");
                 // --- Case: No Active Batch Found ---
                 if (!$batch) {
                     Log::info("Entering condition: No active batch found for pool_size {$targetPoolSize}.");
+                    //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "No active batch found for pool_size {$targetPoolSize}.");
                     if (!$this->poolFetcherService->processablePoolsExist($targetPoolSize)) {
                         Log::info("No processable pools available for pool_size {$targetPoolSize}.");
+                        //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "No processable pools available for pool_size {$targetPoolSize}.");
                         return ['status' => 'no_work', 'message' => "No active batch or available pools for pool_size {$targetPoolSize}."];
                     }
 
@@ -349,22 +359,26 @@ class PoolAutoMatchController extends Controller
 
                     if ($initialPools->isEmpty()) {
                         Log::info("No pools available to form an initial batch for pool_size {$targetPoolSize}.");
+                        Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "No pools available to form an initial batch for pool_size {$targetPoolSize}.");
                         return ['status' => 'no_work', 'message' => "No pools available to form an initial batch for pool_size {$targetPoolSize}."];
                     }
 
                     $createdBatch = $this->batchManagerService->createBatch($targetPoolSize, $initialPools);
                     Log::info("Exiting condition: Created new batch {$createdBatch->id} for pool_size {$targetPoolSize} with status {$createdBatch->status}.");
+                    Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Created new batch {$createdBatch->id} for pool_size {$targetPoolSize} with status {$createdBatch->status}.");
                     return ['status' => 'created', 'message' => "New batch {$createdBatch->id} for pool_size {$targetPoolSize} created and is {$createdBatch->status}."];
                 }
 
                 // --- Case: Batch is Waiting and Needs Loading ---
                 if ($batch->status === 'waiting' && $batch->number_of_pools < $batch->max_size) {
                     Log::info("Entering condition: Batch {$batch->id} is waiting and needs loading. (Pools: {$batch->number_of_pools}/{$batch->max_size})");
+                    //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$batch->id} is waiting and needs loading. (Pools: {$batch->number_of_pools}/{$batch->max_size})");
                     $needed = $batch->max_size - $batch->number_of_pools;
                     $newPools = $this->poolFetcherService->fetchPoolsToLoad($batch, $needed);
 
                     if ($newPools->isEmpty()) {
                         Log::info("Exiting condition: No new pools found to add to waiting batch {$batch->id}.");
+                        //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "No new pools found to add to waiting batch {$batch->id}.");
                         $msg = ($batch->number_of_pools > 0)
                                ? "Batch {$batch->id} remains waiting with {$batch->number_of_pools} pools, no new pools found."
                                : "Batch {$batch->id} remains waiting and empty, no new pools found.";
@@ -374,12 +388,14 @@ class PoolAutoMatchController extends Controller
                     $this->batchManagerService->loadWaitingBatch($batch, $newPools); // Modifies the locked $batch object
                     $poolCount = $newPools->count(); // Use count of pools actually added
                     Log::info("Exiting condition: Batch {$batch->id} updated with {$poolCount} pools. New status: {$batch->status}");
+                   // Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$batch->id} updated with {$poolCount} pools. New status: {$batch->status}.");
                     return ['status' => 'updated', 'message' => "Batch {$batch->id} (pool_size {$batch->pool_size}) updated with {$poolCount} pools. Status: {$batch->status}"];
                 }
 
                 // --- Case: Batch is Ready for Processing ---
                 if ($batch->status === 'running' || ($batch->status === 'waiting' && $batch->number_of_pools > 0)) {
                      Log::info("Entering condition: Batch {$batch->id} is ready for processing. Current Status: {$batch->status}. Iteration: {$batch->iteration_count}");
+                    //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$batch->id} is ready for processing. Current Status: {$batch->status}. Iteration: {$batch->iteration_count}.");
                     if ($batch->status !== 'running') {
                         $batch->status = 'running';
                         $batch->save(); // Mark as running within the transaction
@@ -390,6 +406,7 @@ class PoolAutoMatchController extends Controller
 
                     if ($retrievedPools->isEmpty()) {
                          Log::warning("Exiting condition: Batch {$batch->id} is {$batch->status} but no pools found in its range. Reverting to 'waiting'.");
+                            Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$batch->id} is {$batch->status} but no pools found in its range. Reverting to 'waiting'.");
                          $batch->status = 'waiting'; // Revert status
                          $batch->save();
                          return ['status' => 'error', 'message' => "Batch {$batch->id} found no pools in its defined range. Status reverted to waiting."];
@@ -399,30 +416,38 @@ class PoolAutoMatchController extends Controller
                     $poolsToProcess = $retrievedPools; // Assign to outer scope variable
                     $batchForProcessing = $batch; // Assign batch context too
                     Log::info("Exiting condition: Batch {$batch->id} deferred processing setup complete. Pools count: " . $retrievedPools->count());
+                    //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$batch->id} deferred processing setup complete. Pools count: " . $retrievedPools->count());
+
+
                     return ['status' => 'processing_deferred']; // Signal to process outside transaction
                 }
 
                 // --- Fallback Case ---
                 Log::warning("Entering fallback: Batch {$batch->id} (pool_size {$batch->pool_size}) status '{$batch->status}' did not trigger any action.");
+                //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$batch->id} (pool_size {$batch->pool_size}) status '{$batch->status}' did not trigger any action.");
                 return ['status' => 'no_action', 'message' => "Batch {$batch->id} status '{$batch->status}' did not trigger action."];
             }); // --- End DB::transaction 1 ---
 
             // 3. Perform Actual Pool Processing (if deferred)
             if (isset($resultData['status']) && $resultData['status'] === 'processing_deferred') {
                 Log::info("Entering deferred processing outside transaction.");
-                if (!$batchForProcessing || $poolsToProcess->isEmpty()) {
+                Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Entering deferred processing outside transaction.");
+
+                 if (!$batchForProcessing || $poolsToProcess->isEmpty()) {
                      Log::error("Deferred processing signaled, but batch context or pool list is missing.", [
                          'batch_exists' => !is_null($batchForProcessing),
                          'pools_empty' => $poolsToProcess->isEmpty(),
                          'batch_id' => $batchForProcessing?->id ?? 'N/A'
                      ]);
+                        Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Deferred processing signaled, but batch context or pool list is missing.");
                      return response()->json(['message' => 'Internal error during deferred processing setup.'], 500);
                 }
 
                 // Call the processor service
+
                 $processingResult = $this->poolProcessorService->processPools($poolsToProcess, $batchForProcessing);
                 Log::info("Deferred processing completed. Processed count: " . $processingResult['processedCount']);
-
+                //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Deferred processing completed. Processed count: " . $processingResult['processedCount']);
                 // Call manager service to update status (handles its own transaction)
                 $updatedBatch = $this->batchManagerService->updateBatchStatusAfterProcessing(
                     $batchForProcessing->id,
@@ -430,12 +455,14 @@ class PoolAutoMatchController extends Controller
                     $processingResult['processedCount']
                 );
                 Log::info("Batch {$updatedBatch->id} status updated after processing. New iteration count: {$updatedBatch->iteration_count}");
-
+                //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$updatedBatch->id} status updated after processing. New iteration count: {$updatedBatch->iteration_count}");
                  // Generate final response based on processing outcome
                  $iterationAfterProcessing = $updatedBatch->iteration_count; // Use updated iteration count
 
                  if ($processingResult['error']) {
                      Log::error("Processing error in batch {$updatedBatch->id}: " . $processingResult['error']->getMessage());
+                    Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Processing error in batch {$updatedBatch->id}: " . $processingResult['error']->getMessage());
+                                 
                      return response()->json([
                          'message' => "Batch {$updatedBatch->id} (pool_size {$updatedBatch->pool_size}) processed with errors. Final Status: {$updatedBatch->status}",
                          'processed_count' => $processingResult['processedCount'],
@@ -445,6 +472,7 @@ class PoolAutoMatchController extends Controller
                      ], 207); // Multi-Status
                  } else {
                      Log::info("Batch {$updatedBatch->id} processed successfully with no errors.");
+                    //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$updatedBatch->id} processed successfully with no errors.");
                      return response()->json([
                          'message' => "Batch {$updatedBatch->id} (pool_size {$updatedBatch->pool_size}) processed successfully. Final Status: {$updatedBatch->status}",
                          'processed_count' => $processingResult['processedCount'],
@@ -455,6 +483,7 @@ class PoolAutoMatchController extends Controller
             // Handle other results from Transaction 1
             elseif (isset($resultData['status'])) {
                  Log::info("Handling result from transaction with status: {$resultData['status']}");
+                Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Handling result from transaction with status: {$resultData['status']}");
                  $httpStatusCode = match($resultData['status']) {
                     'no_work', 'no_change' => 200,
                     'created', 'updated' => 201,
@@ -462,16 +491,19 @@ class PoolAutoMatchController extends Controller
                     default => 200,
                  };
                  Log::info("Exiting processBatch with message: " . $resultData['message']);
+                   // Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Exiting processBatch with message: " . $resultData['message']);
                  return response()->json(['message' => $resultData['message'], 'target_pool_size' => $targetPoolSize], $httpStatusCode);
             }
             // Fallback
             else {
                  Log::error("processBatch ended with an unexpected state before processing or known outcome.");
+                //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "processBatch ended with an unexpected state before processing or known outcome.");
                  return response()->json(['message' => 'An unexpected server error occurred (unknown state).'], 500);
             }
 
         } catch (Exception $e) {
             Log::error('========================= Error in Refactored processBatch =========================');
+            //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Error in processBatch: " . $e->getMessage());
             Log::error("Target Pool Size: {$targetPoolSize}. Error: " . $e->getMessage());
             Log::error("Trace: " . $e->getTraceAsString());
             return response()->json(['message' => 'An error occurred during batch processing: ' . $e->getMessage()], 500);
@@ -648,23 +680,19 @@ class PoolAutoMatchController extends Controller
             // Use the valid user ID
             $userId = $user->id;
 
-            // Insert or update pre_moves using the found or newly created user ID
-            DB::table('pre_moves')->updateOrInsert(
-                ['cid' => $cid], 
-                [
-                    'user_id' => $userId, // Use the correct user ID
-                    'moves' => json_encode($preMoves),
-                    'hashed_moves' => json_encode($hashedMoves),
-                    'nonce' => $nonce,
-                    'current_index' => 0,
-                    'cid' => $cid,
-                    'updated_at' => now(),
-                ]
-            );
-    
+            // Insert  pre_moves using the found or newly created user ID
+            PreMove::create([
+                'user_id' => $userId, // Use the correct user ID
+                'moves' => json_encode($preMoves),
+                'hashed_moves' => json_encode($hashedMoves),
+                'nonce' => $nonce,
+                'current_index' => 0,
+                'cid' => $cid,
+                'updated_at' => now(),
+            ]);
+
             Log::info('Pre-moves stored in database successfully');
 
-    
             return response()->json([
                 'message' => 'Pre-moves stored successfully!',
                 'hash' => hash('sha3-256', json_encode($hashedMoves)), // Return a hash of all hashed moves

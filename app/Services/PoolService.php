@@ -60,6 +60,7 @@ class PoolService
                 for ($i = 0; $i < $users->count(); $i += 2) {
                     if (isset($users[$i + 1])) {
                         $fight = Fight::create([
+                            'pool_id'         => null,
                             'user1_id'        => $users[$i]->id,
                             'user2_id'        => $users[$i + 1]->id,
                             'base_bet_amount' => $betAmount,
@@ -193,9 +194,25 @@ class PoolService
 
         // Store the fetched premove data in the database and associate with users
         foreach ($usersCollection as $index => $user) {
+            Log::debug('database cid: ' . $user->preMove->cid.' wallet: ' . $user->wallet_address);
+            Log::debug('blockchain cid: ' . $premoveCIDs[$index].' wallet: ' . $user->wallet_address);
+
             if ($user->preMove->cid !== $premoveCIDs[$index]) {
                 Log::error("CID mismatch for user: {$user->wallet_address}");
-                continue;
+                
+                // Check if CID exists anywhere in blockchain data
+                $allIndices = array_keys($premoveCIDs, $user->preMove->cid);
+                
+                if (!empty($allIndices)) {
+                    Log::error("CID exists at different index/indices: " . implode(', ', $allIndices));
+                    // Optional: Handle index mismatch (e.g., realign users)
+                } else {
+                    Log::error("CID not found in any blockchain entries");
+                    // Handle missing CID (e.g., mark user as invalid)
+                    $user->status = 'invalid';
+                    $user->save();
+                    continue;
+                }
             }
 
             $user->preMove->session_first_pool_id = $poolId;
@@ -300,10 +317,12 @@ class PoolService
                             'pool_id'         => $poolId,
                         ]);
                         Log::info(' fight:);'.$fight);
+                        Log::info('pool->pool_size: '.$pool->pool_size);
+                        Log::info('fight->pool->pool_size: '.$fight->pool->pool_size);
                         try {
                             $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
                         } catch (\Exception $e) {
-                            Log::error('===>  $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size) failed with error: ' . $e->getMessage());
+                            Log::error('===>  $fight->handlePoolAutoplayFight($pool->base_bet, $fight->poolSize) failed with error: ' . $e->getMessage());
 
                         }
                         

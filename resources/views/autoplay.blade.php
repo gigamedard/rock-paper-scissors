@@ -621,11 +621,18 @@
           result
         });
         
-        cid = await uploadMovesToPinata();
-        submitPreMoves();
+        try {
+            cid = await uploadMovesToPinata();
+            
+        } catch (error) {
+            console.error('Error uploading moves to Pinata:', error);
+            alert('Failed to upload moves. Please try again.');
+            return; // Exit the function if the upload fails
+        }
+        await submitPreMoves();
         console.log('Type of ABI:', typeof gameState.selectedBet);
         console.log('gameState.selectedBet:', gameState.selectedBet);
-        addUserToPool(gameState.selectedBet);
+        await addUserToPool(gameState.selectedBet);
         gameState.selectedMoves = [];
         document.getElementById('confirmation-modal').classList.add('hidden');
         
@@ -663,6 +670,7 @@
           } catch (error) {
               console.error('Error submitting moves:', error);
               //alert('Failed to submit moves. Please try again.');
+               return;
           }
       }
 
@@ -738,7 +746,7 @@
           "type": "string"
         }
       ],
-      "name": "MatchHistoryCIDUpdated",
+      "name": "user/pre-movesHistoryCIDUpdated",
       "type": "event"
     },
     {

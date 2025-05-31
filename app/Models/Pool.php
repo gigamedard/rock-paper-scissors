@@ -46,56 +46,72 @@ class Pool extends Model
     }
 
     public function match(): void
-    {       Log::info('===================================>match');
-            // Get available users from this pool
-            $availableUsers = $this->users;
+    {
+        Log::info('=========> Starting match() for pool ID: ' . $this->id);
 
-            // Verify balance and update for each user
-            foreach ($availableUsers as $user) {
-                if ($user->balance >= $this->base_bet) {
-                    $user->balance -= $this->base_bet;
-                    $user->battle_balance += $this->base_bet;
-                    $user->save();
-                } else {
-                    // Remove user from the collection if balance is insufficient
-                    $availableUsers = $availableUsers->reject(function ($u) use ($user) {
-                        return $u->id === $user->id;
-                    });
-                }
+        Web3Helper::marker(20,"model pool", "match","after ===> Starting match() for pool ID: " . $this->id);
+    
+        // Step 1: Load available users from this pool
+        $availableUsers = $this->users;
+    
+        // Step 2: Verify balance and adjust balances
+        $availableUsers = $availableUsers->filter(function ($user) {
+            if ($user->balance >= $this->base_bet) {
+                $user->balance -= $this->base_bet;
+                $user->battle_balance += $this->base_bet;
+                $user->save();
+                return true;
             }
+            return false; // exclude user if balance is insufficient
+        })->values(); // reset keys after filtering
+    
+        Log::info('=========> Available users after balance check: ' . json_encode($availableUsers->pluck('wallet_address')));
+        Web3Helper::marker(20,"model pool", "match","after ===> Available users after balance check: " . json_encode($availableUsers->pluck('wallet_address')));
+    
+        // Step 3: Get sorted wallet addresses
+        $sortedWallets = Web3Helper::sortAddressesWithSalt(
+            $availableUsers->pluck('wallet_address')->toArray(),
+            $this->salt
+        );
+    
+        // Step 4: Sort the users to match wallet hash order
+        $availableUsers = $availableUsers->sortBy(function ($user) use ($sortedWallets) {
+            return array_search($user->wallet_address, $sortedWallets);
+        })->values();
+    
+        Log::info('=========> Users sorted by wallet address hash: ' . json_encode($availableUsers->pluck('wallet_address')));
+        Web3Helper::marker(20,"model pool", "match","after ===> Users sorted by wallet address hash: " . json_encode($availableUsers->pluck('wallet_address')));
+    
+        // Step 5: Ensure we have an even number of users for pairing
+        if ($availableUsers->count() % 2 !== 0) {
+            $removedUser = $availableUsers->pop(); // remove the last user
+            Log::info('=========> Removed user for uneven count: ' . $removedUser->wallet_address);
+            Web3Helper::marker(20,"model pool", "match","after ===> Removed user for uneven count: " . $removedUser->wallet_address);
+        }
 
-            Log::info('===================================>availableUsers befor sorting: ' . json_encode($availableUsers));
-            // sort the users by their wallet address hashed with salt
-
-            $sortedUsers = Web3Helper::sortAddressesWithSalt($availableUsers->pluck('wallet_address')->toArray(), $this->salt);
-            $availableUsers = $availableUsers->sortBy(function ($user) use ($sortedUsers) {
-                return array_search($user->wallet_address, $sortedUsers);
-            })->values();
-
-
-            Log::info('===================================>availableUsers after sorting: ' . json_encode($availableUsers));
-
-
-            // Ensure even count of users
-            if (count($sortedUsers) % 2 !== 0) {
-                array_pop($sortedUsers);
-            }
-
-            // Generate fights and process them
-            if (! empty($sortedUsers)) {
-                $total = count($sortedUsers);
-                for ($i = 0; $i < $total; $i += 2) {
-                    $fight = Fight::create([
-                        'user1_id' => $sortedUsers[$i]->id,
-                        'user2_id' => $sortedUsers[$i + 1]->id,
-                        'base_bet_amount' => $this->base_bet,
-                        'status' => 'waiting_for_result',
-                    ]);
-
-                    // Use a different method to complete the pool fight
-                    $fight->handlePoolAutoplayFight($this->baseBet, $this->poolSize);
-                }
-            }
+        // Step 6: Pair users and create fights
+        for ($i = 0; $i < $availableUsers->count(); $i += 2) {
+            $user1 = $availableUsers[$i];
+            $user2 = $availableUsers[$i + 1];
+    
+            $fight = Fight::create([
+                'pool_id' => $this->id,
+                'user1_id' => $user1->id,
+                'user2_id' => $user2->id,
+                'base_bet_amount' => $this->base_bet,
+                'status' => 'waiting_for_result',
+            ]);
+    
+            Log::info("=========> Fight created between {$user1->wallet_address} and {$user2->wallet_address}");
+            Web3Helper::marker(20,"model pool", "match","after ===> Fight created between {$user1->wallet_address} and {$user2->wallet_address}");
+    
+            // Trigger gameplay logic
+            $fight->handlePoolAutoplayFight($this->base_bet, $this->pool_size);
+        }
         
+    
+        Log::info('=========> match() complete for pool ID: ' . $this->id);
+        Web3Helper::marker(20,"model pool", "match","after ===> match() complete for pool ID: " . $this->id);
     }
+    
 }

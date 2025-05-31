@@ -373,6 +373,11 @@ Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);
     
 
 
+Route::get('/debug', function () {
+    Log::info('Backtrace', debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10));
+
+    return response()->json(['status' => 'deleted']);
+});
 
 
 
