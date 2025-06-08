@@ -24,11 +24,12 @@ class BatchManagerService
         $firstPoolId = $initialPools->first()->id;
         $lastPoolId = $initialPools->last()->id;
         $poolCount = $initialPools->count();
+
         $batchMaxSizeDefault = Config::get('pool.batch_max_size', 100);
         $batchMaxIterationsDefault = Config::get('pool.batch_max_iterations', 5);
 
-        Log::info("Creating new batch for pool_size {$poolSize}. First Pool ID: {$firstPoolId}, Last Pool ID: {$lastPoolId}, Count: {$poolCount}");
-
+        Log::info("Creating new batch for pool size ($poolSize). First Pool ID: ($firstPoolId), Last Pool ID: ($lastPoolId), Count: ($poolCount)");
+        
         $batch = Batch::create([
             'pool_size' => $poolSize,
             'first_pool_id' => $firstPoolId,
@@ -40,32 +41,46 @@ class BatchManagerService
             'max_iterations' => $batchMaxIterationsDefault,
         ]);
 
-        Log::info("Created new batch ID: {$batch->id}. Status: {$batch->status}. Pool Size: {$batch->pool_size}");
-        // NOTE: Pool status cannot be updated here due to enum constraints.
+        // --- MODIFICATION START ---
+        // Atomically update the status of the pools assigned to this new batch.
+        $poolIds = $initialPools->pluck('id');
+        Pool::whereIn('id', $poolIds)->update(['status' => 'batched']);
+        Log::info("Updated status to 'batched' for {$poolIds->count()} pools for new batch ID: ($batch->id).");
+        // --- MODIFICATION END ---
+
+        Log::info("Created new batch ID: ($batch->id). Status: {$batch->status}. Pool Size: ($batch->pool_size)");
+        
         return $batch;
     }
 
     /**
-     * Loads new pools into a waiting batch.
+     * Loads new pools into a waiting batch and updates their status.
      * Assumes this is called within a transaction holding a lock on the batch.
      *
      * @param Batch $batch The locked batch instance.
      * @param Collection<Pool> $newPools
      * @return bool True if updated, false otherwise.
      */
-        public function loadWaitingBatch(Batch $batch, Collection $newPools): bool 
-        {
-            if ($newPools->isEmpty()) {
-                return false;
-            }
-
-            $batch->number_of_pools += $newPools->count();
-            $batch->last_pool_id = $newPools->last()->id;
-            $batch->save();
-
-            Log::info("Added {$newPools->count()} pools to batch {$batch->id}. New Pool Count: {$batch->number_of_pools}. New Last ID: {$batch->last_pool_id}. Status remains: {$batch->status}");
-            return true;
+    public function loadWaitingBatch(Batch $batch, Collection $newPools): bool
+    {
+        if ($newPools->isEmpty()) {
+            return false;
         }
+
+        $batch->number_of_pools += $newPools->count();
+        $batch->last_pool_id = $newPools->last()->id;
+        $batch->save();
+
+        // --- MODIFICATION START ---
+        // Atomically update the status of the new pools added to the batch.
+        $newPoolIds = $newPools->pluck('id');
+        Pool::whereIn('id', $newPoolIds)->update(['status' => 'batched']);
+        Log::info("Updated status to 'batched' for {$newPoolIds->count()} new pools added to batch ($batch->id).");
+        // --- MODIFICATION END ---
+        
+        Log::info("Added {$newPools->count()} pools to batch ($batch->id). New Pool Count: ($batch->number_of_pools). New Last ID: ($batch->last_pool_id). Status remains: ($batch->status)");
+        return true;
+    }
 
 
      /**
@@ -98,15 +113,14 @@ class BatchManagerService
              }
 
              // Decide final status
-             if ($processingErrorOccurred /* more specific condition? */ || $currentIteration >= $maxIterations) {
-                 $newStatus = 'settled';
-                 if($processingErrorOccurred) Log::warning("Settling batch {$batchToUpdate->id} due to processing error.");
-                 else Log::info("Settling batch {$batchToUpdate->id} after reaching max iterations ({$currentIteration}/{$maxIterations}).");
-                 // Optional: $batchToUpdate->iteration_count = 0;
-             } else {
-                 $newStatus = 'waiting';
-                 Log::info("Batch {$batchToUpdate->id} processed iteration {$currentIteration}. Status set back to 'waiting'.");
-             }
+            if ($currentIteration >= $maxIterations) {
+                $newStatus = 'settled';
+            } elseif ($processingErrorOccurred) {
+                $newStatus = 'waiting'; // Retry next round
+            } else {
+                $newStatus = 'waiting';
+            }
+            Log::info("Batch {$batchToUpdate->id} processing completed. Processed Pools: {$processedPoolCount}. Current Iteration: {$currentIteration}. Max Iterations: {$maxIterations}. Processing Error: " . ($processingErrorOccurred ? 'Yes' : 'No') . ". Setting status to: {$newStatus}");
 
              $batchToUpdate->status = $newStatus;
              $batchToUpdate->save();
