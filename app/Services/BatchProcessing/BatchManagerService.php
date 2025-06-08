@@ -53,23 +53,20 @@ class BatchManagerService
      * @param Collection<Pool> $newPools
      * @return bool True if updated, false otherwise.
      */
-    public function loadWaitingBatch(Batch $batch, Collection $newPools): bool
-    {
-        if ($newPools->isEmpty()) {
-            return false;
+        public function loadWaitingBatch(Batch $batch, Collection $newPools): bool 
+        {
+            if ($newPools->isEmpty()) {
+                return false;
+            }
+
+            $batch->number_of_pools += $newPools->count();
+            $batch->last_pool_id = $newPools->last()->id;
+            $batch->save();
+
+            Log::info("Added {$newPools->count()} pools to batch {$batch->id}. New Pool Count: {$batch->number_of_pools}. New Last ID: {$batch->last_pool_id}. Status remains: {$batch->status}");
+            return true;
         }
 
-        $newPoolCount = $newPools->count();
-        $newLastPoolId = $newPools->last()->id;
-
-        $batch->number_of_pools += $newPoolCount;
-        $batch->last_pool_id = $newLastPoolId;
-        // Status remains 'waiting'
-        $batch->save(); // Save changes to the locked batch
-
-        Log::info("Added {$newPoolCount} pools to batch {$batch->id}. New Pool Count: {$batch->number_of_pools}. New Last ID: {$batch->last_pool_id}. Status remains: {$batch->status}");
-        return true;
-    }
 
      /**
       * Updates batch status and iteration count after a processing attempt.

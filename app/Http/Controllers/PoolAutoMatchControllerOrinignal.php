@@ -618,7 +618,7 @@ public function uploadPreMoveToPinata(string $preMoveDataJson): ?string
         $desiredSize = $sizeArray[$sizeIndex];
 
         // Fetch the next `n` pools starting from `first_pool_id`, filtered by `size` and `base_bet`
-        $batchSize = config('pool.bach_size');; // Define your batch size (e.g., 10 pools per batch)
+        $batchSize = config('pool.batch_size'); // Define your batch size (e.g., 10 pools per batch)
         // Start a database transaction
 
         DB::transaction(function () use ($desiredSize,$desiredBaseBet,$batchSize) {
