@@ -66,10 +66,34 @@ app.post("/sendPayment", async (req, res) => {
         console.log(`📡 Sending payment - amount: ${formatEther(amount)} ETH on smart contract...`);
         // Call the smart contract function (Replace with actual function name)
         //const nonce = await provider.getTransactionCount(wallet, 'latest');
-        const tx = await contract.payOut(wallet, amount);
-        await tx.wait();
 
-        res.json({ success: true, txHash: tx.hash });
+       
+        const balanceBefore = await provider.getBalance(wallet);
+
+        // Step 2: Send the payout transaction
+        const tx = await contract.payOut(wallet, amount);
+        const receipt = await tx.wait();
+
+        // Step 3: Small delay to allow for sync (optional in local dev)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Step 4: Get balance after payment
+        const balanceAfter = await provider.getBalance(wallet);
+
+        // Step 5: Calculate difference
+        const balanceDiff = balanceAfter - balanceBefore;
+        const received = balanceDiff >= amount;
+
+        // ✅ Return result with verification
+        res.json({
+            success: true,
+            txHash: tx.hash,
+            received,
+            expectedETH: formatEther(amount),
+            actualIncrease: formatEther(balanceDiff)
+        });
+        //log the actual increase in balance
+        console.log(`💰 Payment sent successfully! Expected: ${formatEther(amount)} ETH, Actual: ${formatEther(balanceDiff)} ETH`);
     } catch (error) {
         console.error("❌ Error sending Payement to smart contract:", error);
         res.status(500).json({ error: error.message });

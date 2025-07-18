@@ -105,9 +105,7 @@ class SessionFinishedEventListener
                 return;
             }
             //send cid to smart contract
-            Web3Helper::sendSessionCIDToSmartContract(env('NODE_URL'), $cid, $user->wallet_address); 
-            //Web3Helper::sendSessionCIDToSmartContract(env('NODE_URL'), 'cid', $user->wallet_address); 
-
+            Web3Helper::sendSessionCIDToSmartContract(env('NODE_URL'), $cid, $user->wallet_address);
 
             $this->sendPayment($user);
 
