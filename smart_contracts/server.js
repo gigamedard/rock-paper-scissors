@@ -28,7 +28,7 @@ app.post("/sendPoolCID", async (req, res) => {
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
-        console.error("❌ Error sending data to smart contract:", error);
+        console.error("❌ Error sending CID to smart contract:", error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -41,21 +41,21 @@ app.post("/sendSessionCID", async (req, res) => {
             return res.status(400).json({ error: "Missing required parameters." });
         }  
 
-        console.log(`📡 Sending  CID on smart contract...`) 
+        console.log(`📡 Sending session  CID on smart contract...`) 
         // Call the smart contract function (Replace with actual function name)
         const tx = await contract.storeSessionCID(wallet, CID);
         await tx.wait();
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
-        console.error("❌ Error sending data to smart contract:", error);
+        console.error("❌ Error sending session CID to smart contract:", error);
         res.status(500).json({ error: error.message });
     }
 
 }
 );
 
-app.post("/sendPayement", async (req, res) => {
+app.post("/sendPayment", async (req, res) => {
     try {
         const { wallet, amount } = req.body;
 
@@ -65,12 +65,13 @@ app.post("/sendPayement", async (req, res) => {
 
         console.log(`📡 Sending payment - amount: ${formatEther(amount)} ETH on smart contract...`);
         // Call the smart contract function (Replace with actual function name)
+        //const nonce = await provider.getTransactionCount(wallet, 'latest');
         const tx = await contract.payOut(wallet, amount);
         await tx.wait();
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
-        console.error("❌ Error sending data to smart contract:", error);
+        console.error("❌ Error sending Payement to smart contract:", error);
         res.status(500).json({ error: error.message });
     }
 });
