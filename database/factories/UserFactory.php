@@ -29,7 +29,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'bet_amount' => $this->faker->randomElement([1,2, 4, 8,16, 32,64,128,256,512,1024]), // Example bet amounts
+            'bet_amount' => $this->faker->randomElement([0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512, 1.024]), // Example bet amounts
             'status' => $this->faker->randomElement(['available', 'in_fight', "in_pool"]),
         ];
     }

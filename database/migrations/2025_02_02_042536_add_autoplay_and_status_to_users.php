@@ -19,6 +19,9 @@ class AddAutoplayAndStatusToUsers extends Migration
             $table->boolean('autoplay_active')->default(false)->after('email');
             $table->string('status')->default('available')->after('autoplay_active');
             $table->decimal('bet_amount')->default(0.00001)->after('status'); // Example: available, locked
+            $table->decimal('session_start_balance', 18, 8)->default(0)->after('bet_amount');
+            $table->decimal('session_start_battle_balance', 18, 8)->default(0)->after('session_start_balance');
+            $table->boolean('session_started')->default(false)->after('session_start_battle_balance');
 
         });
     }

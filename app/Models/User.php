@@ -29,6 +29,10 @@ class User extends Authenticatable
         'balance',
         'battle_balance',
         'pool_id',
+        'session_start_balance',
+        'session_start_battle_balance',
+        'session_started',
+
     ];
 
     protected $hidden = [

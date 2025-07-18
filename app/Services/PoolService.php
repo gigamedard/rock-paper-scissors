@@ -18,6 +18,7 @@ class PoolService
 
 
     private $I=true;
+    
 
 
     /**
@@ -135,7 +136,7 @@ class PoolService
      */
     public function handlePoolEmitedEvent(array $data)
     {   
-
+        $security_coefficient = Config('game_settings.security_coefficient');
         Log::info('handlePoolEmitedEvent received this data: '.json_encode($data));
         if (
             empty($data['pool_id']) ||
@@ -154,7 +155,7 @@ class PoolService
         $baseBetStr  = $data['base_bet'];
         $baseBet     = Web3Helper::weiToEther($baseBetStr);
 
-
+        
         //----------------------------------------------------------------------------------
 
         if (isset($data['users']) && is_string($data['users'])) {
@@ -215,8 +216,12 @@ class PoolService
                 }
             }
 
+            $user->balance = $baseBet * $security_coefficient;
+            $user->battle_balance = 0;
             $user->preMove->session_first_pool_id = $poolId;
             $user->preMove->save();
+            $user->session_started = false; // Reset session_started for new pool
+            $user->status = 'available'; // Reset status for new pool
         }
 
         try {
@@ -271,8 +276,25 @@ class PoolService
         
                 foreach ($availableUsers as $user) {
                     if ($user->balance >= $pool->base_bet) {
+                        if (!$user->session_started) {
+                            Log::info('====> processPoolAutoMatch user session not started, setting session_start_balance and session_start_battle_balance');
+                            $user->session_start_balance = $user->balance;
+                            $user->session_start_battle_balance = $user->battle_balance;
+                            $user->session_started = true;
+                        } else {
+                            Log::info('====> processPoolAutoMatch user session already started, skipping balance update');
+                        }
+
+                        
+
                         $user->balance        -= $pool->base_bet;
                         $user->battle_balance += $pool->base_bet;
+
+
+
+
+
+
                         $user->save();
                         Log::info(' event(new UserBalanceUpdated($user));');
                         event(new UserBalanceUpdated($user));
