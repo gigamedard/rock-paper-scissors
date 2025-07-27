@@ -29,25 +29,17 @@ class PoolFinishedEventListener
             return;
         }
 
-        // Get the pool's users
+        // Archive the entire pool's fight history and send it to Pinata.
+        app(HistoricalFightService::class)->archivePoolFights($poolId);
+
+        // Get the users who are still in the pool (the winners).
         $users = $pool->users()->get();
 
-        // Transfer each user's battle_balance to their main balance and remove from the pool
+        // For each remaining user, fire an event to signal their session is finished.
+        // The SessionFinishedEventListener will handle cashing out their battle_balance and resetting their status.
         foreach ($users as $user) {
             event(new SessionFinishedEvent($user->id));
-            $user->pool_id = null;
-            $user->balance += $user->battle_balance;
-            $user->battle_balance = 0;
-            $user->status = 'available';
-            $user->save();
-           
         }
-
-        // Archive the pool's fights
-        //$historicalFightService = new HistoricalFightService();
-        //$historicalFightService->archivePoolFights($poolId);
-
-        app(HistoricalFightService::class)->archivePoolFights($poolId);
 
   
         //$pool->delete();
