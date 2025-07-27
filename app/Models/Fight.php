@@ -33,6 +33,9 @@ class Fight extends Model
     
     ];
 
+    public $user1_battle_balance = 0;
+    public $user2_battle_balance = 0;
+
     protected $historicalFightService;
 
     public function __construct() {
@@ -80,22 +83,15 @@ class Fight extends Model
 // the winner take the losers battle balance
     public function user1Gain()
     {
-        return match ($this->result) {
-            'user1_win' => $this->user2()->battle_balance,
-            'user2_win' => -$this->user1()->battle_balance,
-            default => 0,
-        };
+        return $this->user1_battle_balance;
     }
-
 
     public function user2Gain()
     {
-        return match ($this->result) {
-            'user2_win' => $this->user1()->battle_balance,
-            'user1_win' => -$this->user2()->battle_balance,
-            default => 0,
-        };
+        return $this->user2_battle_balance;
     }
+
+
 
     public function handleAutoplayFight()
     {
@@ -122,15 +118,24 @@ class Fight extends Model
     public function handlePoolAutoplayFight($baseBet, $poolSize)
     {   
         Log::info('Fight::handlePoolAutoplayFight debut');
+
+        //log the users balance properties
+
+
         $user1Move = $this->getPreMove($this->user1_id);
         $user2Move = $this->getPreMove($this->user2_id);
-
         // Assign moves to user1_chosed and user2_chosed
         $this->user1_chosed = $user1Move;
         $this->user2_chosed = $user2Move;
 
-        
+        $user1 = User::find($this->user1_id);
+        $user2 = User::find($this->user2_id);
 
+        $this->user1_battle_balance = $user1->battle_balance;
+        $this->user2_battle_balance = $user2->battle_balance;
+        
+        Log::info('Fight::handlePoolAutoplayFight user1_battle_balance: start' . $this->user1_battle_balance);
+        Log::info('Fight::handlePoolAutoplayFight user2_battle_balance: start' . $this->user2_battle_balance);
         // Determine the result of the fight
         $result = $this->determineResult($user1Move, $user2Move);
         // Update fight result
@@ -152,6 +157,8 @@ class Fight extends Model
             // Get the winner and loser
             $winner = ($result === 'user1_win') ? $this->user1_id : $this->user2_id;
             $loser = ($result === 'user1_win') ? $this->user2_id : $this->user1_id;
+
+            
 
 
             // Transfer the loser's battle balance to the winner
@@ -178,6 +185,24 @@ class Fight extends Model
 
         }
 
+        // if user1 is the winner, increment their balance by the base bet amount
+        if ($result === 'user1_win') {
+            $this->user1_battle_balance += $this->user2_battle_balance;
+            $this->user2_battle_balance = 0;
+         
+        }
+        // if user2 is the winner, increment their balance by the base bet amount
+        elseif ($result === 'user2_win') {
+            $this->user2_battle_balance += $this->user1_battle_balance;
+            $this->user1_battle_balance = 0;
+        }
+
+        // update users battle balances in db
+        $user1->battle_balance = $this->user1_battle_balance;
+        $user1->save();
+        $user2->battle_balance = $this->user2_battle_balance;
+        $user2->save();
+
         
         $this->status = 'completed';
         $this->save();
@@ -185,7 +210,10 @@ class Fight extends Model
         // Archive the fight
         Log::info('Fight::handlePoolAutoplayFight archiveFight');
         $fHist2 = $this->historicalFightService->archiveFight($this->id, $fHist);
-        //dump($fHist2);
+        Log::info('Fight::handlePoolAutoplayFight user1_battle_balance: end' . $this->user1_battle_balance);
+        Log::info('Fight::handlePoolAutoplayFight user2_battle_balance:end ' . $this->user2_battle_balance);
+
+        Log::info('Fight::handlePoolAutoplayFight fHist2: ' . json_encode($fHist2));
     }
 
     private function getPreMove($userId)

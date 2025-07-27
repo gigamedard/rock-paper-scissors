@@ -98,6 +98,8 @@ class SessionFinishedEventListener
             $this->transferBattleBalance($user);
             //send sessionFHists to pinata
             $data = $this->getSessionFHists($user->id, $user->preMove->session_first_pool_id);
+            //log data
+            Log::info(" " . json_encode($data));
 
             $cid = Web3Helper::sendArchiveToPinata($data);
             if (!$cid) {
@@ -110,6 +112,7 @@ class SessionFinishedEventListener
             $this->sendPayment($user);
 
             Log::info('SessionFinishedEventListener: Sending session FHists to Pinata: ' . json_encode($data));
+        
             
             
         } elseif ($q < 1 && $user->balance < $user->bet_amount) {
@@ -121,6 +124,7 @@ class SessionFinishedEventListener
     private function transferBattleBalance(User $user): void
     {
         $user->balance += $user->battle_balance;
+        $user->pool_id = null; // Ensure user is removed from the pool
         $user->battle_balance = 0;
         $user->bet_amount = 0;
         $user->preMove->current_index = 0;
