@@ -212,6 +212,11 @@ class PoolService
                     // Handle missing CID (e.g., mark user as invalid)
                     $user->status = 'invalid';
                     $user->save();
+                    //send back user money
+                    $returned= $baseBet * $security_coefficient;
+                    Web3Helper::sendPayement(env('NODE_URL'), $user->wallet_address, $returned);
+                    Log::info("User {$user->wallet_address} has been marked as invalid and refunded {$returned} ETH.");
+
                     continue;
                 }
             }
