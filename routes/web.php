@@ -260,6 +260,22 @@ Route::get('/csrf-token', function () {
 // Dashboard route
 Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+// New module routes
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/referral', function () {
+        return inertia('Referral');
+    })->name('referral');
+    
+    Route::get('/influencer', function () {
+        return inertia('Influencer');
+    })->name('influencer');
+    
+    Route::get('/marketplace', function () {
+        $userAddress = auth()->user()->wallet_address ?? null;
+        return inertia('Marketplace', ['userAddress' => $userAddress]);
+    })->name('marketplace');
+});
+
 // Challenge routes
 Route::middleware(['auth'])->group(function () {
     Route::post('/challenges', [ChallengeController::class, 'store'])->name('challenges.store');

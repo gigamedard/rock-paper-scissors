@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💱 Marketplace P2P - Rock Paper Scissors</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #4f46e5;
+            margin-bottom: 20px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            padding: 20px;
+            border-radius: 10px;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .stat-icon {
+            font-size: 2em;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stat-icon.blue { background: #dbeafe; }
+        .stat-icon.yellow { background: #fef3c7; }
+        .stat-icon.purple { background: #ede9fe; }
+        .stat-icon.green { background: #d1fae5; }
+        .stat-info h3 {
+            margin: 0;
+            font-size: 1.5em;
+            color: #1f2937;
+        }
+        .stat-info p {
+            margin: 5px 0 0 0;
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+        .marketplace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #3730a3;
+            transform: translateY(-2px);
+        }
+        .btn-success {
+            background: #059669;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #047857;
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .create-form {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: none;
+        }
+        .create-form.active {
+            display: block;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        .trades-list {
+            space-y: 15px;
+        }
+        .trade-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        .trade-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .trade-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .trade-details {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .token-info {
+            text-align: center;
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+        .token-info.snt {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .token-info.avax {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .token-amount {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .token-label {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+        .exchange-icon {
+            font-size: 1.5em;
+            color: #6b7280;
+        }
+        .seller-info {
+            text-align: center;
+        }
+        .seller-label {
+            font-size: 0.8em;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        .seller-address {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #374151;
+            font-weight: 600;
+        }
+        .trade-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .instructions {
+            margin-top: 30px;
+        }
+        .instructions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 20px 0;
+        }
+        .instruction-section h4 {
+            color: #1f2937;
+            margin-bottom: 15px;
+        }
+        .instruction-section ol {
+            color: #6b7280;
+            line-height: 1.6;
+        }
+        .instruction-section ol li {
+            margin-bottom: 8px;
+        }
+        .alert {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .alert h4 {
+            color: #92400e;
+            margin-bottom: 15px;
+        }
+        .alert ul {
+            color: #92400e;
+            margin: 0;
+        }
+        .alert ul li {
+            margin-bottom: 5px;
+        }
+        .nav {
+            margin-bottom: 20px;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            margin-right: 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .nav a:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <a href="/index.html">🏠 Accueil</a>
+            <a href="/referral.html">🤝 Parrainage</a>
+            <a href="/influencer.html">🏆 Influenceur</a>
+            <a href="/marketplace.html">💱 Marketplace</a>
+        </nav>
+
+        <!-- Statistiques du marketplace -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue">📊</div>
+                <div class="stat-info">
+                    <h3>156</h3>
+                    <p>Total Trades</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon yellow">⏰</div>
+                <div class="stat-info">
+                    <h3>23</h3>
+                    <p>Trades Actifs</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon purple">🪙</div>
+                <div class="stat-info">
+                    <h3>45.2K</h3>
+                    <p>Volume SNT</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">💎</div>
+                <div class="stat-info">
+                    <h3>128.7</h3>
+                    <p>Volume AVAX</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="marketplace-header">
+                <h1>💱 Marketplace P2P</h1>
+                <button class="btn btn-primary" onclick="toggleCreateForm()">
+                    ➕ Créer une Offre
+                </button>
+            </div>
+
+            <!-- Formulaire de création -->
+            <div class="create-form" id="createForm">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>Créer une nouvelle offre</h3>
+                    <button onclick="toggleCreateForm()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">❌</button>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Montant SNT à vendre</label>
+                        <input type="number" placeholder="100" value="500">
+                    </div>
+                    <div class="form-group">
+                        <label>Prix en AVAX souhaité</label>
+                        <input type="number" placeholder="1.5" value="2.5">
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" style="width: 100%;">
+                    ✅ Créer l'Offre
+                </button>
+            </div>
+
+            <!-- Liste des trades -->
+            <div class="trades-list">
+                <div class="trade-item">
+                    <div class="trade-content">
+                        <div class="trade-details">
+                            <div class="token-info snt">
+                                <div class="token-amount">1,000 SNT</div>
+                                <div class="token-label">À vendre</div>
+                            </div>
+                            <div class="exchange-icon">⇄</div>
+                            <div class="token-info avax">
+                                <div class="token-amount">3.2 AVAX</div>
+                                <div class="token-label">Prix demandé</div>
+                            </div>
+                        </div>
+                        
+                        <div class="seller-info">
+                            <div class="seller-label">Vendeur</div>
+                            <div class="seller-address">0x1234...5678</div>
+                        </div>
+                        
+                        <div class="trade-actions">
+                            <button class="btn btn-success">💰 Acheter</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="trade-item">
+                    <div class="trade-content">
+                        <div class="trade-details">
+                            <div class="token-info snt">
+                                <div class="token-amount">750 SNT</div>
+                                <div class="token-label">À vendre</div>
+                            </div>
+                            <div class="exchange-icon">⇄</div>
+                            <div class="token-info avax">
+                                <div class="token-amount">2.1 AVAX</div>
+                                <div class="token-label">Prix demandé</div>
+                            </div>
+                        </div>
+                        
+                        <div class="seller-info">
+                            <div class="seller-label">Vendeur</div>
+                            <div class="seller-address">0x9876...4321</div>
+                        </div>
+                        
+                        <div class="trade-actions">
+                            <button class="btn btn-success">💰 Acheter</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="trade-item">
+                    <div class="trade-content">
+                        <div class="trade-details">
+                            <div class="token-info snt">
+                                <div class="token-amount">2,500 SNT</div>
+                                <div class="token-label">À vendre</div>
+                            </div>
+                            <div class="exchange-icon">⇄</div>
+                            <div class="token-info avax">
+                                <div class="token-amount">7.8 AVAX</div>
+                                <div class="token-label">Prix demandé</div>
+                            </div>
+                        </div>
+                        
+                        <div class="seller-info">
+                            <div class="seller-label">Vous</div>
+                            <div class="seller-address">0x5555...9999</div>
+                        </div>
+                        
+                        <div class="trade-actions">
+                            <button class="btn btn-danger">❌ Annuler</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="trade-item">
+                    <div class="trade-content">
+                        <div class="trade-details">
+                            <div class="token-info snt">
+                                <div class="token-amount">300 SNT</div>
+                                <div class="token-label">À vendre</div>
+                            </div>
+                            <div class="exchange-icon">⇄</div>
+                            <div class="token-info avax">
+                                <div class="token-amount">0.9 AVAX</div>
+                                <div class="token-label">Prix demandé</div>
+                            </div>
+                        </div>
+                        
+                        <div class="seller-info">
+                            <div class="seller-label">Vendeur</div>
+                            <div class="seller-address">0xaaaa...bbbb</div>
+                        </div>
+                        
+                        <div class="trade-actions">
+                            <button class="btn btn-success">💰 Acheter</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 30px;">
+                <button class="btn" style="background: #e5e7eb; color: #6b7280;" disabled>← Précédent</button>
+                <span style="padding: 12px 20px; color: #6b7280;">Page 1</span>
+                <button class="btn" style="background: #e5e7eb; color: #374151;">Suivant →</button>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card instructions">
+            <h2>📖 Comment utiliser le Marketplace P2P</h2>
+            
+            <div class="instructions-grid">
+                <div class="instruction-section">
+                    <h4>💰 Pour Vendre des SNT:</h4>
+                    <ol>
+                        <li>Cliquez sur "Créer une Offre"</li>
+                        <li>Spécifiez le montant de SNT à vendre</li>
+                        <li>Définissez le prix en AVAX souhaité</li>
+                        <li>Confirmez la transaction pour déposer vos SNT en escrow</li>
+                        <li>Attendez qu'un acheteur accepte votre offre</li>
+                    </ol>
+                </div>
+                
+                <div class="instruction-section">
+                    <h4>🛒 Pour Acheter des SNT:</h4>
+                    <ol>
+                        <li>Parcourez les offres disponibles</li>
+                        <li>Cliquez sur "Acheter" pour l'offre qui vous intéresse</li>
+                        <li>Confirmez la transaction avec le montant AVAX requis</li>
+                        <li>Les SNT seront automatiquement transférés vers votre portefeuille</li>
+                        <li>L'AVAX sera envoyé au vendeur (moins les frais)</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="alert">
+                <h4>⚠️ Important:</h4>
+                <ul>
+                    <li>• Des frais de 2,5% sont appliqués sur chaque transaction</li>
+                    <li>• Les offres expirent automatiquement après 24 heures</li>
+                    <li>• Assurez-vous d'avoir suffisamment de tokens/AVAX avant de créer ou accepter une offre</li>
+                    <li>• Les transactions sont irréversibles une fois confirmées</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleCreateForm() {
+            const form = document.getElementById('createForm');
+            form.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>
+
