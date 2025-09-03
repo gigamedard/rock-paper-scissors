@@ -9,7 +9,7 @@
         "guzzlehttp/guzzle": "^7.8",
         "guzzlehttp/promises": "^2.0",
         "inertiajs/inertia-laravel": "^1.0",
-        "kornrunner/keccak": "^1.1",
+        "kornrunner/keccak": "*",
         "laravel/framework": "^11.9",
         "laravel/reverb": "@beta",
         "laravel/sanctum": "^4.0",
