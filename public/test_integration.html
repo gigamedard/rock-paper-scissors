@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test d'Intégration API - Rock Paper Scissors</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .test-section {
+            margin-bottom: 40px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f8fafc;
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section-header h2 {
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-content {
+            padding: 20px;
+        }
+
+        .api-test {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .api-test h3 {
+            color: #374151;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 10px;
+        }
+
+        .test-button:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+
+        .test-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9em;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .result.success {
+            background: #dcfce7;
+            border: 1px solid #16a34a;
+            color: #15803d;
+        }
+
+        .result.error {
+            background: #fef2f2;
+            border: 1px solid #dc2626;
+            color: #dc2626;
+        }
+
+        .result.loading {
+            background: #fef3c7;
+            border: 1px solid #d97706;
+            color: #92400e;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-success { background: #16a34a; }
+        .status-error { background: #dc2626; }
+        .status-loading { background: #d97706; animation: pulse 1s infinite; }
+        .status-pending { background: #6b7280; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .summary {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px solid #0ea5e9;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .summary h2 {
+            color: #0c4a6e;
+            margin-bottom: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0ea5e9;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Test d'Intégration API</h1>
+            <p>Validation des modules de croissance et d'économie</p>
+        </div>
+
+        <div class="content">
+            <!-- Section Parrainage -->
+            <div class="test-section">
+                <div class="section-header">
+                    <h2>🤝 Module de Parrainage</h2>
+                </div>
+                <div class="section-content">
+                    <div class="api-test">
+                        <h3>
+                            <span class="status-indicator status-pending" id="referral-status"></span>
+                            Classement des Parraineurs
+                        </h3>
+                        <button class="test-button" onclick="testReferralLeaderboard()">Tester API</button>
+                        <div class="result" id="referral-result" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Whitelist -->
+            <div class="test-section">
+                <div class="section-header">
+                    <h2>🎯 Module Whitelist</h2>
+                </div>
+                <div class="section-content">
+                    <div class="api-test">
+                        <h3>
+                            <span class="status-indicator status-pending" id="whitelist-status"></span>
+                            Informations Whitelist
+                        </h3>
+                        <button class="test-button" onclick="testWhitelist()">Tester API</button>
+                        <div class="result" id="whitelist-result" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Influenceurs -->
+            <div class="test-section">
+                <div class="section-header">
+                    <h2>🏆 Module Influenceurs</h2>
+                </div>
+                <div class="section-content">
+                    <div class="api-test">
+                        <h3>
+                            <span class="status-indicator status-pending" id="pools-status"></span>
+                            Pools d'Influenceurs
+                        </h3>
+                        <button class="test-button" onclick="testInfluencerPools()">Tester API</button>
+                        <div class="result" id="pools-result" style="display: none;"></div>
+                    </div>
+
+                    <div class="api-test">
+                        <h3>
+                            <span class="status-indicator status-pending" id="influencer-leaderboard-status"></span>
+                            Classement Influenceurs
+                        </h3>
+                        <button class="test-button" onclick="testInfluencerLeaderboard()">Tester API</button>
+                        <div class="result" id="influencer-leaderboard-result" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Escrow -->
+            <div class="test-section">
+                <div class="section-header">
+                    <h2>💱 Module Escrow P2P</h2>
+                </div>
+                <div class="section-content">
+                    <div class="api-test">
+                        <h3>
+                            <span class="status-indicator status-pending" id="escrow-stats-status"></span>
+                            Statistiques Marketplace
+                        </h3>
+                        <button class="test-button" onclick="testEscrowStats()">Tester API</button>
+                        <div class="result" id="escrow-stats-result" style="display: none;"></div>
+                    </div>
+
+                    <div class="api-test">
+                        <h3>
+                            <span class="status-indicator status-pending" id="escrow-trades-status"></span>
+                            Trades Actifs
+                        </h3>
+                        <button class="test-button" onclick="testEscrowTrades()">Tester API</button>
+                        <div class="result" id="escrow-trades-result" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions globales -->
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="test-button" onclick="testAllApis()" style="background: #059669; font-size: 1.1em; padding: 15px 30px;">
+                    🚀 Tester Toutes les API
+                </button>
+            </div>
+
+            <!-- Résumé -->
+            <div class="summary">
+                <h2>📊 Résumé des Tests</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-tests">0</div>
+                        <div class="stat-label">Tests Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="success-tests">0</div>
+                        <div class="stat-label">Réussis</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="failed-tests">0</div>
+                        <div class="stat-label">Échoués</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="success-rate">0%</div>
+                        <div class="stat-label">Taux de Réussite</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testResults = {
+            total: 0,
+            success: 0,
+            failed: 0
+        };
+
+        async function testApi(url, statusId, resultId, description) {
+            const statusEl = document.getElementById(statusId);
+            const resultEl = document.getElementById(resultId);
+            
+            // Mettre à jour le statut
+            statusEl.className = 'status-indicator status-loading';
+            resultEl.style.display = 'block';
+            resultEl.className = 'result loading';
+            resultEl.textContent = 'Test en cours...';
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(url);
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    statusEl.className = 'status-indicator status-success';
+                    resultEl.className = 'result success';
+                    resultEl.innerHTML = `
+                        <strong>✅ Succès (${response.status})</strong><br>
+                        <strong>Temps de réponse:</strong> ${responseTime}ms<br>
+                        <strong>Données:</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    
+                    testResults.success++;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusEl.className = 'status-indicator status-error';
+                resultEl.className = 'result error';
+                resultEl.innerHTML = `
+                    <strong>❌ Erreur</strong><br>
+                    <strong>Message:</strong> ${error.message}<br>
+                    <strong>URL:</strong> ${url}
+                `;
+                
+                testResults.failed++;
+            }
+            
+            testResults.total++;
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('total-tests').textContent = testResults.total;
+            document.getElementById('success-tests').textContent = testResults.success;
+            document.getElementById('failed-tests').textContent = testResults.failed;
+            
+            const successRate = testResults.total > 0 ? 
+                Math.round((testResults.success / testResults.total) * 100) : 0;
+            document.getElementById('success-rate').textContent = successRate + '%';
+        }
+
+        async function testReferralLeaderboard() {
+            await testApi('/api/referral/leaderboard.php', 'referral-status', 'referral-result', 'Classement Parraineurs');
+        }
+
+        async function testWhitelist() {
+            await testApi('/api/whitelist.php', 'whitelist-status', 'whitelist-result', 'Whitelist');
+        }
+
+        async function testInfluencerPools() {
+            await testApi('/api/influencer/pools.php', 'pools-status', 'pools-result', 'Pools Influenceurs');
+        }
+
+        async function testInfluencerLeaderboard() {
+            await testApi('/api/influencer/leaderboard.php', 'influencer-leaderboard-status', 'influencer-leaderboard-result', 'Classement Influenceurs');
+        }
+
+        async function testEscrowStats() {
+            await testApi('/api/escrow/stats.php', 'escrow-stats-status', 'escrow-stats-result', 'Stats Escrow');
+        }
+
+        async function testEscrowTrades() {
+            await testApi('/api/escrow/trades.php', 'escrow-trades-status', 'escrow-trades-result', 'Trades Escrow');
+        }
+
+        async function testAllApis() {
+            // Réinitialiser les résultats
+            testResults = { total: 0, success: 0, failed: 0 };
+            updateSummary();
+            
+            // Tester toutes les API en séquence
+            await testReferralLeaderboard();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testWhitelist();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testInfluencerPools();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testInfluencerLeaderboard();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testEscrowStats();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testEscrowTrades();
+            
+            // Afficher un message de fin
+            const successRate = Math.round((testResults.success / testResults.total) * 100);
+            if (successRate >= 80) {
+                alert('🎉 Excellent ! Tous les modules fonctionnent correctement.');
+            } else if (successRate >= 60) {
+                alert('⚠️ Bon résultat, mais quelques problèmes à corriger.');
+            } else {
+                alert('🔧 Des ajustements sont nécessaires pour améliorer les fonctionnalités.');
+            }
+        }
+
+        // Initialiser l'affichage
+        updateSummary();
+    </script>
+</body>
+</html>
+

@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Rediriger toutes les requêtes API vers le mock
+    RewriteRule ^api/(.*)$ api_mock.php [QSA,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

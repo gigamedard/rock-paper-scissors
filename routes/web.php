@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\PoolAutoMatchController;
 use Illuminate\Support\Facades\Http;
+use App\Http\Controllers\Auth\EnhancedRegistrationController;
 
 use Illuminate\Support\Str;
 use kornrunner\Keccak;
@@ -276,6 +277,19 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     })->name('marketplace');
 });
 
+// Dynamic module routes (HTML with API integration)
+Route::get('/referral-dynamic', function () {
+    return view('referral-dynamic');
+})->name('referral.dynamic');
+
+Route::get('/influencer-dynamic', function () {
+    return view('influencer-dynamic');
+})->name('influencer.dynamic');
+
+Route::get('/marketplace-dynamic', function () {
+    return view('marketplace-dynamic');
+})->name('marketplace.dynamic');
+
 // Challenge routes
 Route::middleware(['auth'])->group(function () {
     Route::post('/challenges', [ChallengeController::class, 'store'])->name('challenges.store');
@@ -402,3 +416,21 @@ Route::get('/debug', function () {
 
 // Auth routes
 require __DIR__.'/auth.php';
+
+
+// Routes d'inscription améliorée avec parrainage et sélection de langue
+Route::get('/register/enhanced', [EnhancedRegistrationController::class, 'create'])
+    ->name('register.enhanced');
+
+Route::post('/register/enhanced', [EnhancedRegistrationController::class, 'store'])
+    ->name('register.enhanced.store');
+
+Route::get('/register/ref/{code}', [EnhancedRegistrationController::class, 'createWithReferral'])
+    ->name('register.referral')
+    ->where('code', 'REF-[A-Z0-9]{6}');
+
+// Route de redirection pour les liens de parrainage courts
+Route::get('/ref/{code}', function ($code) {
+    return redirect()->route('register.enhanced', ['ref' => $code]);
+})->name('referral.redirect')->where('code', 'REF-[A-Z0-9]{6}');
+
