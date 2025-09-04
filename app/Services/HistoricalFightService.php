@@ -40,6 +40,7 @@ class HistoricalFightService
                 'user1_battle_balance' => $fight->user1->battle_balance,//<--          
                 'user2_balance'        => $fight->user2->balance,//<--
                 'user2_battle_balance' => $fight->user2->battle_balance,//<--
+                'fight_id'           => $fight->id,
             ];
 
             Log::info('===> archiveFight: Updating FHist with: ' . json_encode($ndata));

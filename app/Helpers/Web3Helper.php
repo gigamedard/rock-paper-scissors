@@ -86,6 +86,10 @@ class Web3Helper
         return bcdiv($wei, '1000000000000000000', 18); // 1 Ether = 10^18 Wei
     }
 
+    public static function etherToWei($eth)
+    {
+        return bcmul($eth, '1000000000000000000', 0); // 1 Ether = 10^18 Wei
+    }
     // send achive to pinata
     public static function sendArchiveToPinata($data)
     {   
@@ -117,6 +121,11 @@ class Web3Helper
         $result = json_decode($result, true);
 
         Log::info('Pinata response: ' . json_encode($result));
+
+        if(!isset($result['IpfsHash'])) {
+            Log::error('Pinata response does not contain IpfsHash: ' . json_encode($result));
+            $result['IpfsHash'] = '';
+        }
         
         return $result['IpfsHash'];
     }
@@ -144,8 +153,8 @@ class Web3Helper
     public static function sendPayement($nodeUrl,$walletAddress,$amount)
     {
         $response = Http::post("{$nodeUrl}/sendPayment", [
-            'walletAddress' => $walletAddress,
-            'amount' => $amount,
+            'wallet' => $walletAddress,
+            'amount' => self::etherToWei($amount),
         ]);
 
         return $response->json();

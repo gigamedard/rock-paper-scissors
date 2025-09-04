@@ -363,13 +363,21 @@ class PoolAutoMatchController extends Controller
                         return ['status' => 'no_work', 'message' => "No pools available to form an initial batch for pool_size {$targetPoolSize}."];
                     }
 
+
+
+
+
+
+
+
+
                     $createdBatch = $this->batchManagerService->createBatch($targetPoolSize, $initialPools);
                     Log::info("Exiting condition: Created new batch {$createdBatch->id} for pool_size {$targetPoolSize} with status {$createdBatch->status}.");
                     Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Created new batch {$createdBatch->id} for pool_size {$targetPoolSize} with status {$createdBatch->status}.");
                     return ['status' => 'created', 'message' => "New batch {$createdBatch->id} for pool_size {$targetPoolSize} created and is {$createdBatch->status}."];
                 }
 
-                // --- Case: Batch is Waiting and Needs Loading ---
+              
                 if ($batch->status === 'waiting' && $batch->number_of_pools < $batch->max_size) {
                     Log::info("Entering condition: Batch {$batch->id} is waiting and needs loading. (Pools: {$batch->number_of_pools}/{$batch->max_size})");
                     //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$batch->id} is waiting and needs loading. (Pools: {$batch->number_of_pools}/{$batch->max_size})");
@@ -392,8 +400,8 @@ class PoolAutoMatchController extends Controller
                     return ['status' => 'updated', 'message' => "Batch {$batch->id} (pool_size {$batch->pool_size}) updated with {$poolCount} pools. Status: {$batch->status}"];
                 }
 
-                // --- Case: Batch is Ready for Processing ---
-                if ($batch->status === 'running' || ($batch->status === 'waiting' && $batch->number_of_pools > 0)) {
+             
+                if ($batch->status === 'waiting' && $batch->number_of_pools >= $batch->max_size) {
                      Log::info("Entering condition: Batch {$batch->id} is ready for processing. Current Status: {$batch->status}. Iteration: {$batch->iteration_count}");
                     //Web3Helper::marker(20,"PoolAutoMatchController", "processBatch", "Batch {$batch->id} is ready for processing. Current Status: {$batch->status}. Iteration: {$batch->iteration_count}.");
                     if ($batch->status !== 'running') {

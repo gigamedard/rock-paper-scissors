@@ -368,6 +368,207 @@
       background: var(--color-primary);
       color: var(--color-text);
     }
+
+    /* Budget Management Styles */
+    .budget-selector {
+      background: var(--color-gray-800);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .budget-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .budget-input-group {
+      margin-bottom: 1rem;
+    }
+
+    .budget-input-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .budget-input, .target-q-input, .form-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--color-gray-600);
+      border-radius: 0.5rem;
+      background: var(--color-gray-700);
+      color: var(--color-text);
+      font-size: 1rem;
+    }
+
+    .budget-input:focus, .target-q-input:focus, .form-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    .budget-info, .q-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+    }
+
+    .budget-info small, .q-info small {
+      color: var(--color-gray-400);
+      font-size: 0.75rem;
+    }
+
+    .target-q-group {
+      margin-top: 1rem;
+    }
+
+    .target-q-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    /* Budget Stats */
+    .budget-stats {
+      background: var(--color-gray-800);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .budget-stats-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .budget-stats-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      background: var(--color-gray-700);
+      border-radius: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--color-gray-300);
+    }
+
+    .stat-value {
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .top-up-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: var(--color-secondary);
+      color: var(--color-text);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .top-up-btn:hover {
+      background: var(--color-accent);
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .budget-warning {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--color-error);
+      border-radius: 0.5rem;
+      color: var(--color-error);
+      margin-top: 1rem;
+    }
+
+    .session-summary {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .summary-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      background: var(--color-gray-700);
+      border-radius: 0.25rem;
+    }
+
+    .summary-label {
+      font-size: 0.875rem;
+      color: var(--color-gray-300);
+    }
+
+    .summary-value {
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    /* Status indicators */
+    .q-value-good {
+      color: var(--color-success);
+    }
+
+    .q-value-warning {
+      color: var(--color-accent);
+    }
+
+    .q-value-danger {
+      color: var(--color-error);
+    }
+
+    .budget-low {
+      color: var(--color-error);
+    }
+
+    .budget-medium {
+      color: var(--color-accent);
+    }
+
+    .budget-high {
+      color: var(--color-success);
+    }
   </style>
 </head>
 <body>
@@ -418,6 +619,29 @@
               </div>
             </div>
 
+            <!-- Budget Configuration -->
+            <div class="budget-selector">
+              <div class="budget-header">
+                <i data-lucide="piggy-bank"></i>
+                <h3>Budget Settings</h3>
+              </div>
+              <div class="budget-input-group">
+                <label for="budget-amount-input">Budget Amount (ETH)</label>
+                <input type="number" id="budget-amount-input" min="0.01" step="0.01" value="1.0" class="budget-input">
+                <div class="budget-info">
+                  <small>Required: <span id="required-budget">10.00</span> ETH</small>
+                  <small>Recommended: <span id="recommended-budget">15.00</span> ETH</small>
+                </div>
+              </div>
+              <div class="target-q-group">
+                <label for="target-q-input">Target Q-Value</label>
+                <input type="number" id="target-q-input" min="1.1" max="10" step="0.1" value="2.0" class="target-q-input">
+                <div class="q-info">
+                  <small>Session ends when Q-value reaches target</small>
+                </div>
+              </div>
+            </div>
+
             <button id="submit-btn" class="submit-btn" disabled>
               ENTER AUTO PLAY MODE
             </button>
@@ -433,12 +657,53 @@
             </div>
           </div>
 
-          <div class="balance"onclick="loginWithWallet()">
+          <div class="balance" onclick="loginWithWallet()">
             <i data-lucide="wallet"></i>
             <div>
-              <p class="balance-label" >Connect Wallet</p>
-           
+              <p class="balance-label">Connect Wallet</p>
             </div>
+          </div>
+
+          <!-- Budget Session Stats -->
+          <div id="budget-session-stats" class="budget-stats" style="display: none;">
+            <div class="budget-stats-header">
+              <i data-lucide="trending-up"></i>
+              <h3>Session Stats</h3>
+            </div>
+            <div class="budget-stats-content">
+              <div class="stat-item">
+                <span class="stat-label">Current Budget:</span>
+                <span class="stat-value" id="current-budget">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Q-Value:</span>
+                <span class="stat-value" id="current-q-value">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Target Q:</span>
+                <span class="stat-value" id="target-q-display">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Next Bet:</span>
+                <span class="stat-value" id="next-bet-amount">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Recovery (K):</span>
+                <span class="stat-value" id="current-k-value">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Win Rate:</span>
+                <span class="stat-value" id="win-rate">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Fights:</span>
+                <span class="stat-value" id="total-fights">--</span>
+              </div>
+            </div>
+            <button id="top-up-btn" class="top-up-btn" onclick="showTopUpModal()">
+              <i data-lucide="plus"></i>
+              Top Up Budget
+            </button>
           </div>
 
           <div class="history">
@@ -461,11 +726,72 @@
         <h2>Confirm Budget</h2>
       </div>
       <p class="modal-message">
-        Are you sure you want to proceed with a budget of <span id="budget-amount"></span> credits?
+        Are you sure you want to proceed with a budget of <span id="budget-amount"></span> ETH?
       </p>
       <div class="modal-actions">
         <button id="cancel-btn" class="cancel-btn">Cancel</button>
         <button id="confirm-btn" class="confirm-btn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Up Budget Modal -->
+  <div id="top-up-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <i data-lucide="plus-circle"></i>
+        <h2>Top Up Budget</h2>
+      </div>
+      <div class="top-up-form">
+        <div class="form-group">
+          <label for="top-up-amount">Additional Budget (ETH)</label>
+          <input type="number" id="top-up-amount" min="0.01" step="0.01" value="1.0" class="form-input">
+        </div>
+        <div class="budget-warning" id="budget-warning" style="display: none;">
+          <i data-lucide="alert-triangle"></i>
+          <span>Your budget is running low!</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="top-up-cancel-btn" class="cancel-btn">Cancel</button>
+        <button id="top-up-confirm-btn" class="confirm-btn">Top Up</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session Complete Modal -->
+  <div id="session-complete-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <i data-lucide="trophy"></i>
+        <h2>Session Complete!</h2>
+      </div>
+      <div class="session-summary">
+        <p>Congratulations! You've reached your target Q-value.</p>
+        <div class="summary-stats">
+          <div class="summary-item">
+            <span class="summary-label">Final Q-Value:</span>
+            <span class="summary-value" id="final-q-value">--</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Total Fights:</span>
+            <span class="summary-value" id="final-total-fights">--</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Win Rate:</span>
+            <span class="summary-value" id="final-win-rate">--</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Profit:</span>
+            <span class="summary-value" id="final-profit">--</span>
+          </div>
+        </div>
+        <p>Your winnings have been sent to your wallet.</p>
+      </div>
+      <div class="modal-actions">
+        <button id="session-complete-ok-btn" class="confirm-btn">OK</button>
       </div>
     </div>
   </div>
@@ -477,7 +803,26 @@
         selectedMoves: [],
         selectedBet: 1,
         balance: "--",
-        history: []
+        history: [],
+        budgetSession: null,
+        hasActiveBudgetSession: false
+      };
+
+      // Budget management state
+      const budgetState = {
+        currentBudget: 0,
+        targetQValue: 2.0,
+        currentQValue: 1.0,
+        currentKValue: 1,
+        nextBetAmount: 0,
+        totalFights: 0,
+        winRate: 0,
+        requirementsFetched: false,
+        requirements: {
+          minimum_budget: 0,
+          recommended_budget: 0,
+          max_recovery_attempts: 0
+        }
       };
 
 
@@ -489,6 +834,275 @@
       let cid = '';
 
       const userId = document.getElementById('user-id').value;
+
+      // Budget Management Functions
+      async function fetchBudgetRequirements() {
+        try {
+          const response = await fetch('/budget/requirements?base_bet=' + gameState.selectedBet);
+          const data = await response.json();
+          
+          if (data.success) {
+            budgetState.requirements = data.requirements;
+            budgetState.requirementsFetched = true;
+            updateBudgetRequirementsDisplay();
+          }
+        } catch (error) {
+          console.error('Error fetching budget requirements:', error);
+        }
+      }
+
+      function updateBudgetRequirementsDisplay() {
+        document.getElementById('required-budget').textContent = budgetState.requirements.minimum_budget;
+        document.getElementById('recommended-budget').textContent = budgetState.requirements.recommended_budget;
+      }
+
+      async function startBudgetSession() {
+        const budget = document.getElementById('budget-amount-input').value;
+        const targetQ = document.getElementById('target-q-input').value;
+        
+        try {
+          const response = await fetch('/budget/start-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+              budget: budget,
+              base_bet: gameState.selectedBet,
+              target_q_value: targetQ
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            gameState.budgetSession = data.session;
+            gameState.hasActiveBudgetSession = true;
+            budgetState.currentBudget = parseFloat(data.session.current_budget);
+            budgetState.targetQValue = parseFloat(data.session.target_q_value);
+            updateBudgetSessionDisplay();
+            showBudgetStats();
+            return true;
+          } else {
+            alert(data.message || 'Failed to start budget session');
+            return false;
+          }
+        } catch (error) {
+          console.error('Error starting budget session:', error);
+          alert('Error starting budget session. Please try again.');
+          return false;
+        }
+      }
+
+      async function fetchSessionStats() {
+        if (!gameState.hasActiveBudgetSession) return;
+        
+        try {
+          const response = await fetch('/budget/session-stats');
+          const data = await response.json();
+          
+          if (data.success) {
+            updateBudgetStatsDisplay(data.stats);
+          }
+        } catch (error) {
+          console.error('Error fetching session stats:', error);
+        }
+      }
+
+      function updateBudgetStatsDisplay(stats) {
+        document.getElementById('current-budget').textContent = stats.current_budget + ' ETH';
+        document.getElementById('current-q-value').textContent = stats.q_value;
+        document.getElementById('target-q-display').textContent = stats.target_q_value;
+        document.getElementById('next-bet-amount').textContent = stats.next_bet_amount + ' ETH';
+        document.getElementById('current-k-value').textContent = stats.current_k_value;
+        document.getElementById('win-rate').textContent = stats.win_rate.toFixed(1) + '%';
+        document.getElementById('total-fights').textContent = stats.total_fights;
+        
+        // Update Q-value color based on performance
+        const qValueElement = document.getElementById('current-q-value');
+        qValueElement.className = 'stat-value';
+        if (stats.q_value >= stats.target_q_value) {
+          qValueElement.classList.add('q-value-good');
+        } else if (stats.q_value >= 0.8) {
+          qValueElement.classList.add('q-value-warning');
+        } else {
+          qValueElement.classList.add('q-value-danger');
+        }
+        
+        // Update budget color based on remaining amount
+        const budgetElement = document.getElementById('current-budget');
+        budgetElement.className = 'stat-value';
+        const budgetPercentage = (stats.current_budget / stats.initial_budget) * 100;
+        if (budgetPercentage >= 50) {
+          budgetElement.classList.add('budget-high');
+        } else if (budgetPercentage >= 20) {
+          budgetElement.classList.add('budget-medium');
+        } else {
+          budgetElement.classList.add('budget-low');
+        }
+      }
+
+      function showBudgetStats() {
+        document.getElementById('budget-session-stats').style.display = 'block';
+      }
+
+      function hideBudgetStats() {
+        document.getElementById('budget-session-stats').style.display = 'none';
+      }
+
+      function updateBudgetSessionDisplay() {
+        if (gameState.hasActiveBudgetSession) {
+          document.getElementById('submit-btn').textContent = 'CONTINUE SESSION';
+          fetchSessionStats();
+        } else {
+          document.getElementById('submit-btn').textContent = 'ENTER AUTO PLAY MODE';
+          hideBudgetStats();
+        }
+      }
+
+      async function topUpBudget() {
+        const additionalBudget = document.getElementById('top-up-amount').value;
+        
+        try {
+          const response = await fetch('/budget/top-up', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+              additional_budget: additionalBudget
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            hideTopUpModal();
+            fetchSessionStats();
+            alert('Budget topped up successfully!');
+          } else {
+            alert(data.message || 'Failed to top up budget');
+          }
+        } catch (error) {
+          console.error('Error topping up budget:', error);
+          alert('Error topping up budget. Please try again.');
+        }
+      }
+
+      function showTopUpModal() {
+        document.getElementById('top-up-modal').classList.remove('hidden');
+      }
+
+      function hideTopUpModal() {
+        document.getElementById('top-up-modal').classList.add('hidden');
+      }
+
+      function showSessionCompleteModal(sessionData) {
+        document.getElementById('final-q-value').textContent = sessionData.q_value;
+        document.getElementById('final-total-fights').textContent = sessionData.total_fights;
+        document.getElementById('final-win-rate').textContent = sessionData.win_rate.toFixed(1) + '%';
+        document.getElementById('final-profit').textContent = sessionData.total_profit + ' ETH';
+        document.getElementById('session-complete-modal').classList.remove('hidden');
+      }
+
+      function hideSessionCompleteModal() {
+        document.getElementById('session-complete-modal').classList.add('hidden');
+        gameState.hasActiveBudgetSession = false;
+        gameState.budgetSession = null;
+        updateBudgetSessionDisplay();
+      }
+
+      // Periodic stats update
+      let statsUpdateInterval;
+      
+      function startPeriodicStatsUpdate() {
+        if (statsUpdateInterval) {
+          clearInterval(statsUpdateInterval);
+        }
+        
+        statsUpdateInterval = setInterval(() => {
+          if (gameState.hasActiveBudgetSession) {
+            fetchSessionStats();
+          } else {
+            clearInterval(statsUpdateInterval);
+          }
+        }, 5000); // Update every 5 seconds
+      }
+      
+      function stopPeriodicStatsUpdate() {
+        if (statsUpdateInterval) {
+          clearInterval(statsUpdateInterval);
+          statsUpdateInterval = null;
+        }
+      }
+
+      // Initialize budget system
+      async function initializeBudgetSystem() {
+        // Fetch initial budget requirements
+        await fetchBudgetRequirements();
+        
+        // Check if user has an active session
+        try {
+          const response = await fetch('/budget/session-stats');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              gameState.hasActiveBudgetSession = true;
+              updateBudgetSessionDisplay();
+              startPeriodicStatsUpdate();
+            }
+          }
+        } catch (error) {
+          console.log('No active budget session found');
+        }
+      }
+
+      // Event listeners for budget management
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize budget system
+        initializeBudgetSystem();
+        
+        // Update budget requirements when bet amount changes
+        document.getElementById('budget-amount-input').addEventListener('input', function() {
+          if (budgetState.requirementsFetched) {
+            fetchBudgetRequirements();
+          }
+        });
+
+        // Modal event listeners
+        document.getElementById('top-up-cancel-btn').addEventListener('click', hideTopUpModal);
+        document.getElementById('top-up-confirm-btn').addEventListener('click', topUpBudget);
+        document.getElementById('session-complete-ok-btn').addEventListener('click', hideSessionCompleteModal);
+        
+        // Close modals when clicking overlay
+        document.getElementById('top-up-modal').addEventListener('click', function(e) {
+          if (e.target === this) hideTopUpModal();
+        });
+        
+        document.getElementById('session-complete-modal').addEventListener('click', function(e) {
+          if (e.target === this) hideSessionCompleteModal();
+        });
+      });
+
+      // WebSocket event listeners for budget management
+      if (typeof Echo !== 'undefined') {
+        Echo.private('user.' + userId)
+          .listen('.budget.low.warning', (e) => {
+            document.getElementById('budget-warning').style.display = 'flex';
+            setTimeout(() => {
+              document.getElementById('budget-warning').style.display = 'none';
+            }, 5000);
+          })
+          .listen('.session.target.reached', (e) => {
+            showSessionCompleteModal(e);
+          })
+          .listen('.budget.exhausted', (e) => {
+            alert('Budget exhausted! Please top up to continue.');
+            showTopUpModal();
+          });
+      }
 
       // Utility functions
       function generateHash(moves) {
@@ -596,50 +1210,54 @@
         document.querySelectorAll('.bet-btn').forEach(btn => {
           btn.classList.toggle('active', parseFloat(btn.dataset.bet) === bet);
         });
+        
+        // Update budget requirements when bet amount changes
+        fetchBudgetRequirements();
         updateSubmitButton();
       }
 
       function handleSubmit() {
-        const budget = calculateBudget(gameState.selectedBet);
+        const budget = document.getElementById('budget-amount-input').value;
         document.getElementById('budget-amount').textContent = budget;
         document.getElementById('confirmation-modal').classList.remove('hidden');
       }
 
       async function handleConfirm() {
-        const budget = calculateBudget(gameState.selectedBet);
-        const hash = generateHash(gameState.selectedMoves);
-        //sendPayment(2);
-        // Simulate game result
-        const result = Math.floor(Math.random() * 3 - 1) * budget;
-        
-        gameState.balance += result;
-        gameState.history.unshift({
-          id: hash,
-          timestamp: new Date(),
-          moves: [...gameState.selectedMoves],
-          betAmount: gameState.selectedBet,
-          result
-        });
-        
         try {
-            cid = await uploadMovesToPinata();
-            
+          // Start budget session if not already active
+          if (!gameState.hasActiveBudgetSession) {
+            const sessionStarted = await startBudgetSession();
+            if (!sessionStarted) {
+              return; // Exit if session failed to start
+            }
+          }
+          
+          // Upload moves to Pinata
+          cid = await uploadMovesToPinata();
+          
+          // Submit pre-moves to backend
+          await submitPreMoves();
+          
+          // Add user to pool with blockchain integration
+          await addUserToPool(gameState.selectedBet);
+          
+          // Clear selected moves and hide modal
+          gameState.selectedMoves = [];
+          document.getElementById('confirmation-modal').classList.add('hidden');
+          
+          // Update UI
+          renderMoves();
+          renderHistory();
+          renderBalance();
+          updateSubmitButton();
+          
+          // Start periodic stats updates
+          startPeriodicStatsUpdate();
+          
         } catch (error) {
-            console.error('Error uploading moves to Pinata:', error);
-            alert('Failed to upload moves. Please try again.');
-            return; // Exit the function if the upload fails
+          console.error('Error in handleConfirm:', error);
+          alert('Error starting session. Please try again.');
         }
-        await submitPreMoves();
-        console.log('Type of ABI:', typeof gameState.selectedBet);
-        console.log('gameState.selectedBet:', gameState.selectedBet);
-        await addUserToPool(gameState.selectedBet);
-        gameState.selectedMoves = [];
-        document.getElementById('confirmation-modal').classList.add('hidden');
-        
-        renderMoves();
-        renderHistory();
-        renderBalance();
-        updateSubmitButton();
       }
       async function submitPreMoves() {
           const moves = gameState.selectedMoves;

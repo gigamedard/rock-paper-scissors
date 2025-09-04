@@ -61,4 +61,9 @@ class PoolFactory extends Factory
             'status' => 'from_server_finished',
         ]);
     }
+
+    public function batched(): Factory
+    {
+        return $this->state(fn () => ['status' => 'batched']);
+    }
 }
