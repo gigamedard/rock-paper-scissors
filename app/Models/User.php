@@ -33,6 +33,7 @@ class User extends Authenticatable
         'session_start_balance',
         'session_start_battle_balance',
         'session_started',
+        'language',
     ];
 
     protected $hidden = [

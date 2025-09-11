@@ -8,6 +8,9 @@ use App\Http\Controllers\UserSettingsController;
 use App\Http\Controllers\AutoMatchController;
 use App\Http\Controllers\WalletAuthController;
 use App\Http\Controllers\BlockchainController;
+
+
+use App\Http\Controllers\LanguageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -31,9 +34,22 @@ use App\Events\BalanceUpdated;
 use App\Events\BasicEvent;
 
 
+
+// Language selection
+Route::get('/select-language', [LanguageController::class, 'index'])->name('language.select');
+Route::post('/set-language/{locale}', [LanguageController::class, 'setLanguage'])->name('language.set');
+
+// Main entry point
 Route::get('/', function () {
-    return view('welcome');
+    // If no language set, redirect to selection page
+    if (!session()->has('locale')) {
+        return redirect()->route('language.select');
+    }
+
+    // Otherwise load the main game view
+    return view('welcome'); // or your game start view
 });
+
 
 Route::get('/counter', function (Request $request) {
     /*Validate the incoming request
