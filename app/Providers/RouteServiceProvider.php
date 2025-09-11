@@ -1,9 +1,10 @@
 <?php
+
 namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
-// app/Providers/RouteServiceProvider.php
+
 class RouteServiceProvider extends ServiceProvider
 {
     /**
@@ -15,70 +16,25 @@ class RouteServiceProvider extends ServiceProvider
 
     /**
      * Define your route model bindings, pattern filters, etc.
-     *
-     * @return void
      */
-    public function boot()
+    public function boot(): void
     {
-        parent::boot();
-    }
+        $this->routes(function () {
+            // Routes API (prefixées automatiquement par /api)
+            Route::middleware('api')
+                ->prefix('api')
+                ->group(base_path('routes/api.php'));
 
-    /**
-     * Define the routes for the application.
-     *
-     * @return void
-     */
-    public function map()
-    {
-        $this->mapApiRoutes();
+            // Routes Web
+            Route::middleware('web')
+                ->group(base_path('routes/web.php'));
 
-        $this->mapWebRoutes();
-
-        // Custom auth routes
-        $this->mapAuthRoutes();
-    }
-
-    /**
-     * Define the "web" routes for the application.
-     *
-     * These routes all receive session state, CSRF protection, etc.
-     *
-     * @return void
-     */
-    protected function mapWebRoutes()
-    {
-        Route::middleware('web')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/web.php'));
-    }
-
-    /**
-     * Define the "api" routes for the application.
-     *
-     * These routes are typically stateless.
-     *
-     * @return void
-     */
-    protected function mapApiRoutes()
-    {
-        Route::prefix('api')
-            ->middleware('api')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/api.php'));
-    }
-
-    /**
-     * Define the "auth" routes for the application.
-     *
-     * These routes are typically for authentication purposes.
-     *
-     * @return void
-     */
-    protected function mapAuthRoutes()
-    {
-        Route::prefix('auth')
-            ->middleware('web')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/auth.php'));
+            // Routes Auth (optionnel, si tu veux garder un fichier séparé)
+            if (file_exists(base_path('routes/auth.php'))) {
+                Route::middleware('web')
+                    ->prefix('auth')
+                    ->group(base_path('routes/auth.php'));
+            }
+        });
     }
 }
