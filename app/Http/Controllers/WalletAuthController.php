@@ -203,7 +203,13 @@ class WalletAuthController extends Controller
                 }
     
                 Auth::login($user);
-    
+
+                // If session has a locale but DB does not → update it
+                if (session()->has('locale')) {
+                    
+                    $user->update(['language' => session('locale')]);
+                }
+                    
                 return response()->json([
                     'message' => 'Authenticated successfully',
                     'recovered_address' => $recoveredAddress
