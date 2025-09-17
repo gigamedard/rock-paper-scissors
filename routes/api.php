@@ -8,6 +8,7 @@ use App\Http\Controllers\PoolAutoMatchController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\InfluencerController;
 use App\Http\Controllers\EscrowController;
+use App\Http\Controllers\WalletAuthController;
 use Illuminate\Support\Facades\Storage;
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -104,3 +105,18 @@ Route::post('/update-counter', [BlockchainController::class, 'updateCounter']);
 Route::middleware('api')->group(function () {
     Route::post('/update-counter', [BlockchainController::class, 'updateCounter']);
 });
+
+Route::get('/ping', function () {
+    return response()->json(['message' => 'pong']);
+});
+
+// Routes pour l'authentification par portefeuille (Wallet Authentication)
+Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateMessage']);
+Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySignature']);
+
+
+// Routes protégées (nécessitent un jeton d'authentification)
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
+
