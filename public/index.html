@@ -106,6 +106,27 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
+        /* Add this CSS to your existing <style> block */
+        #referral-code-input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+            background-color: #374151;
+            color: white;
+            font-size: 1rem;
+            text-align: center;
+        }
+        .skip-btn {
+            background: none;
+            border: 1px solid #4b5563;
+            margin-top: 0.5rem;
+        }
+        .skip-btn:hover {
+            background: #374151;
+        }
     </style>
 </head>
 <body>
@@ -131,6 +152,18 @@
             <p id="user-info">Loading user data...</p>
             <button id="autoplay-btn" onclick="startAutoplay()">Start Game</button>
             <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div id="referral-page" class="page">
+        <div class="card">
+            <h2>Have a Referral Code?</h2>
+            <p>Enter a referral code to get a bonus. You can also skip this step.</p>
+            
+            <input type="text" id="referral-code-input" placeholder="e.g., REF-ABC123">
+            
+            <button id="submit-referral-btn" onclick="submitReferralCode()">Continue</button>
+            <button class="skip-btn" onclick="submitReferralCode(true)">Skip for Now</button>
         </div>
     </div>
     
@@ -192,7 +225,7 @@
 
                     alert(`Successfully logged in! Token stored.`);
                     updateUserInfo(data.user);
-                    showPage('autoplay-page');
+                    showPage('referral-page');
                 } else {
                     throw new Error(data.message || 'Signature verification failed.');
                 }
@@ -250,20 +283,71 @@
             }
         }
 
+        function checkForReferralCodeInUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if (refCode) {
+        const inputElement = document.getElementById('referral-code-input');
+        inputElement.value = refCode;
+        console.log(`Referral code '${refCode}' found in URL.`);
+    }
+}
+
+        // New function to handle submitting the referral code
+        async function submitReferralCode(skipped = false) {
+            const token = localStorage.getItem('auth_token');
+            const inputElement = document.getElementById('referral-code-input');
+            const referralCode = inputElement.value;
+
+            // Only make an API call if the user entered a code and didn't skip
+            if (!skipped && referralCode.trim() !== '' && token) {
+                console.log(`Submitting referral code: ${referralCode}`);
+                try {
+                    const response = await fetch(`${API_URL}/user/set-referral`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ referral_code: referralCode })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        // Inform the user if the code is invalid, but continue anyway
+                        alert(`Note: ${data.message}`);
+                    } else {
+                        alert('Referral code accepted!');
+                    }
+                } catch (error) {
+                    console.error('Failed to submit referral code:', error);
+                    // Don't block the user, just log the error
+                }
+            }
+
+            // Finally, proceed to the game page
+            showPage('autoplay-page');
+        }
+
         // Logique de démarrage de l'application
         document.addEventListener('DOMContentLoaded', () => {
+            // Add this line to check the URL as soon as the page loads
+            checkForReferralCodeInUrl();
+
             const token = localStorage.getItem('auth_token');
             const user = JSON.parse(localStorage.getItem('user'));
-
+            
+            // The rest of this function stays the same
             if (token && user) {
                 console.log("Existing session found. Welcome back!");
                 updateUserInfo(user);
-                showPage('autoplay-page');
+                showPage('autoplay-page'); // If already logged in, skip referral check
             } else {
                 console.log("No active session. Please log in.");
                 showPage('language-page');
             }
         });
+
     </script>
 
 </body>

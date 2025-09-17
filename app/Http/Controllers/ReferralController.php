@@ -135,5 +135,45 @@ class ReferralController extends Controller
 
         return response()->json($topReferrers);
     }
+
+
+    /**
+ * Apply a referral code from the currently authenticated user.
+ */
+    public function applyCodeFromAuthUser(Request $request)
+    {
+        $validated = $request->validate([
+            'referral_code' => 'required|string|exists:users,referral_code',
+        ]);
+
+        $referredUser = $request->user(); // Gets the logged-in user from the token.
+
+        // Check if the user already has a referrer
+        if ($referredUser->referred_by) {
+            return response()->json(['message' => 'A referral code has already been applied to your account.'], 422);
+        }
+
+        $referrer = User::where('referral_code', $validated['referral_code'])->first();
+
+        // Prevent users from referring themselves
+        if ($referrer->id === $referredUser->id) {
+            return response()->json(['message' => 'You cannot use your own referral code.'], 422);
+        }
+        
+        // Create the referral record
+        Referral::create([
+            'referrer_id' => $referrer->id,
+            'referred_id' => $referredUser->id,
+            'status'      => 'pending',
+            'referral_code' => $validated['referral_code']
+        ]);
+        
+        // Update the user's record to link them
+        $referredUser->referred_by = $referrer->id;
+        $referredUser->save();
+        
+        return response()->json(['message' => 'Referral code applied successfully!']);
+    }
+    
 }
 

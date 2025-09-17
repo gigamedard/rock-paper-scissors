@@ -116,7 +116,18 @@ Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySig
 
 
 // Routes protégées (nécessitent un jeton d'authentification)
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('auth:sanctum')->group(function () {
+    
+    // A route to get the authenticated user's details
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+
+    // The route to start the game
+    Route::post('/game/start', [GameController::class, 'start']);
+
+    // The route to apply a referral code
+    Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
+
 });
 
