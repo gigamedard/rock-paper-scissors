@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Referral;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class ReferralController extends Controller
@@ -13,10 +12,10 @@ class ReferralController extends Controller
     /**
      * Get referral status for the authenticated user.
      */
-    public function getStatus()
+    public function getStatus(Request $request)
     {
-        $user = Auth::user();
-        
+        $user = $request->user();
+
         if (!$user->referral_code) {
             $user->generateReferralCode();
         }
@@ -24,61 +23,57 @@ class ReferralController extends Controller
         $stats = $user->getReferralStats();
 
         return response()->json([
-            'code' => $user->referral_code,
-            'totalReferrals' => $stats['total'],
+            'code'             => $user->referral_code,
+            'totalReferrals'   => $stats['total'],
             'pendingReferrals' => $stats['pending'],
             'validatedReferrals' => $stats['validated'],
-            'totalRewards' => $stats['rewards_earned']
+            'totalRewards'     => $stats['rewards_earned']
         ]);
     }
 
     /**
-     * Process a referral when a user registers.
+     * Apply a referral code for the authenticated user.
      */
-    public function processReferral(Request $request)
+    public function applyCodeFromAuthUser(Request $request)
     {
         $validated = $request->validate([
             'referral_code' => 'required|string|exists:users,referral_code',
-            'referred_user_id' => 'required|integer|exists:users,id'
         ]);
 
-        $referrer = User::where('referral_code', $validated['referral_code'])->first();
-        $referred = User::find($validated['referred_user_id']);
+        $referredUser = $request->user();
 
-        if (!$referrer || !$referred) {
-            return response()->json(['error' => 'Invalid referral data'], 400);
+        // Prevent multiple referrals
+        $existingReferral = Referral::where('referred_id', $referredUser->id)->first();
+        if ($existingReferral) {
+            return response()->json(['message' => 'A referral code has already been applied to your account.'], 422);
         }
 
-        // Check if referral already exists
-        $existingReferral = Referral::where('referrer_id', $referrer->id)
-            ->where('referred_id', $referred->id)
-            ->first();
+        $referrer = User::where('referral_code', $validated['referral_code'])->first();
 
-        if ($existingReferral) {
-            return response()->json(['error' => 'Referral already exists'], 400);
+        // Prevent self-referral
+        if ($referrer->id === $referredUser->id) {
+            return response()->json(['message' => 'You cannot use your own referral code.'], 422);
         }
 
         // Create the referral
         $referral = Referral::create([
-            'referrer_id' => $referrer->id,
-            'referred_id' => $referred->id,
-            'status' => 'pending'
+            'referrer_id'   => $referrer->id,
+            'referred_id'   => $referredUser->id,
+            'status'        => 'pending',
+            'referral_code' => $validated['referral_code']
         ]);
 
         Log::info('Referral created', [
             'referrer_id' => $referrer->id,
-            'referred_id' => $referred->id,
+            'referred_id' => $referredUser->id,
             'referral_id' => $referral->id
         ]);
 
-        return response()->json([
-            'message' => 'Referral processed successfully',
-            'referral_id' => $referral->id
-        ]);
+        return response()->json(['message' => 'Referral code applied successfully!']);
     }
 
     /**
-     * Validate a referral (called when user makes first AVAX transaction).
+     * Validate a referral (e.g. first AVAX transaction).
      */
     public function validateReferral(Request $request)
     {
@@ -94,17 +89,8 @@ class ReferralController extends Controller
             return response()->json(['error' => 'No pending referral found'], 404);
         }
 
-        // Update referral status
         $referral->update(['status' => 'validated']);
-
-        // Trigger reward event (this would be handled by a listener)
         event(new \App\Events\ReferralValidated($referral));
-
-        Log::info('Referral validated', [
-            'referral_id' => $referral->id,
-            'referrer_id' => $referral->referrer_id,
-            'referred_id' => $referral->referred_id
-        ]);
 
         return response()->json([
             'message' => 'Referral validated successfully',
@@ -113,7 +99,7 @@ class ReferralController extends Controller
     }
 
     /**
-     * Get referral leaderboard.
+     * Leaderboard of referrals.
      */
     public function getLeaderboard()
     {
@@ -126,7 +112,7 @@ class ReferralController extends Controller
             ->get(['id', 'name', 'wallet_address'])
             ->map(function ($user) {
                 return [
-                    'name' => $user->name,
+                    'name'           => $user->name,
                     'wallet_address' => substr($user->wallet_address, 0, 6) . '...' . substr($user->wallet_address, -4),
                     'referral_count' => $user->validated_referrals_count,
                     'rewards_earned' => $user->validated_referrals_count * 100
@@ -135,45 +121,4 @@ class ReferralController extends Controller
 
         return response()->json($topReferrers);
     }
-
-
-    /**
- * Apply a referral code from the currently authenticated user.
- */
-    public function applyCodeFromAuthUser(Request $request)
-    {
-        $validated = $request->validate([
-            'referral_code' => 'required|string|exists:users,referral_code',
-        ]);
-
-        $referredUser = $request->user(); // Gets the logged-in user from the token.
-
-        // Check if the user already has a referrer
-        if ($referredUser->referred_by) {
-            return response()->json(['message' => 'A referral code has already been applied to your account.'], 422);
-        }
-
-        $referrer = User::where('referral_code', $validated['referral_code'])->first();
-
-        // Prevent users from referring themselves
-        if ($referrer->id === $referredUser->id) {
-            return response()->json(['message' => 'You cannot use your own referral code.'], 422);
-        }
-        
-        // Create the referral record
-        Referral::create([
-            'referrer_id' => $referrer->id,
-            'referred_id' => $referredUser->id,
-            'status'      => 'pending',
-            'referral_code' => $validated['referral_code']
-        ]);
-        
-        // Update the user's record to link them
-        $referredUser->referred_by = $referrer->id;
-        $referredUser->save();
-        
-        return response()->json(['message' => 'Referral code applied successfully!']);
-    }
-    
 }
-

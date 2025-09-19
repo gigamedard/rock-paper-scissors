@@ -131,3 +131,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
 });
 
+
+// Referral (protected by token)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user/referral-status', [ReferralController::class, 'getStatus']);
+    Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
+});
+
+// Public referral routes
+Route::get('/referrals/leaderboard', [ReferralController::class, 'getLeaderboard']);
+Route::post('/referrals/validate', [ReferralController::class, 'validateReferral']);

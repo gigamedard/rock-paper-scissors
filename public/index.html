@@ -178,63 +178,102 @@
         }
 
         // Fonction principale de connexion au portefeuille
-        async function loginWithWallet(locale) {
-            console.log(`Starting login with locale: ${locale}`);
-            if (!window.ethereum) {
-                alert('Please install a wallet like MetaMask!');
-                return;
+         async function loginWithWallet(locale) {
+    console.log(`Starting login with locale: ${locale}`);
+    if (!window.ethereum) {
+        alert('Please install a wallet like MetaMask!');
+        return;
+    }
+
+    const web3 = new Web3(window.ethereum);
+
+    try {
+        // 1. Connect wallet
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await web3.eth.getAccounts();
+        const walletAddress = accounts[0];
+
+        console.log(`Wallet connected: ${walletAddress}`);
+
+        // 2. Request challenge message
+        const messageResponse = await fetch(`${API_URL}/wallet/generate-message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wallet_address: walletAddress, locale: locale }),
+        });
+
+        if (!messageResponse.ok) throw new Error('Failed to get challenge from server.');
+        const { message } = await messageResponse.json();
+
+        // 3. Sign challenge
+        const signature = await web3.eth.personal.sign(message, walletAddress);
+
+        // 4. Verify signature & login
+        const verifyResponse = await fetch(`${API_URL}/wallet/verify-signature`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wallet_address: walletAddress, signature: signature, locale: locale }),
+        });
+
+        const data = await verifyResponse.json();
+
+        if (verifyResponse.ok && data.token) {
+            // Store token + user info
+            localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('locale', data.locale);
+
+            updateUserInfo(data.user);
+
+            // 5. Check for referral code in URL
+            const params = new URLSearchParams(window.location.search);
+            const refCode = params.get('ref');
+
+            if (refCode) {
+                console.log(`Found referral code in URL: ${refCode}`);
+                await applyReferralCodeFromUrl(refCode, data.token);
             }
 
-            const web3 = new Web3(window.ethereum);
-
+            // If no referral code → show referral modal
+            showPage('referral-page');
+        } else {
+            throw new Error(data.message || 'Signature verification failed.');
+        }
+    } catch (error) {
+        console.error('Authentication Error:', error);
+        alert(`Login failed: ${error.message}`);
+    }
+}
+        
+        // helper function to auto-apply referral
+        async function applyReferralCodeFromUrl(refCode, token) {
             try {
-                // 1. Connexion au portefeuille
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const accounts = await web3.eth.getAccounts();
-                const walletAddress = accounts[0];
-
-                console.log(`Wallet connected: ${walletAddress}`);
-
-                // 2. Demande du message de défi
-                const messageResponse = await fetch(`${API_URL}/wallet/generate-message`, {
+                const response = await fetch(`${API_URL}/user/set-referral`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ wallet_address: walletAddress, locale: locale }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ referral_code: refCode })
                 });
 
-                if (!messageResponse.ok) throw new Error('Failed to get challenge from server.');
-                const { message } = await messageResponse.json();
-
-                // 3. Signature du message
-                const signature = await web3.eth.personal.sign(message, walletAddress);
-
-                // 4. Vérification de la signature
-                const verifyResponse = await fetch(`${API_URL}/wallet/verify-signature`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ wallet_address: walletAddress, signature: signature, locale: locale }),
-                });
-
-                const data = await verifyResponse.json();
-
-                if (verifyResponse.ok && data.token) {
-                    // 5. Stockage du jeton et redirection vers la page de jeu
-                    localStorage.setItem('auth_token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    localStorage.setItem('locale', data.locale);
-
-                    alert(`Successfully logged in! Token stored.`);
-                    updateUserInfo(data.user);
-                    showPage('referral-page');
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Referral code applied automatically!');
+                    // Jump straight to autoplay since referral was handled
+                    showPage('autoplay-page');
                 } else {
-                    throw new Error(data.message || 'Signature verification failed.');
+                    console.warn(`Referral not applied: ${data.message}`);
+                    // Still proceed to referral modal if code failed
+                    showPage('referral-page');
                 }
-            } catch (error) {
-                console.error('Authentication Error:', error);
-                alert(`Login failed: ${error.message}`);
+            } catch (err) {
+                console.error('Error applying referral from URL:', err);
+                showPage('referral-page');
             }
         }
-        
+
+
         // Simule le démarrage d'une partie en appelant une route protégée
         async function startAutoplay() {
             const token = localStorage.getItem('auth_token');
