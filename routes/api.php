@@ -118,16 +118,34 @@ Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySig
 // Routes protégées (nécessitent un jeton d'authentification)
 Route::middleware('auth:sanctum')->group(function () {
     
-    // A route to get the authenticated user's details
+    // User info
     Route::get('/user', function (Request $request) {
-        return $request->user();
+        return response()->json([
+            'user' => $request->user(),
+            'locale' => $request->user()->language
+        ]);
     });
 
-    // The route to start the game
+    // ✅ LOGOUT AVEC RÉVOCATION TOKEN
+    Route::post('/logout', [WalletAuthController::class, 'logout']);
+
+    // Game routes
     Route::post('/game/start', [GameController::class, 'start']);
+    Route::post('/game/play', [GameController::class, 'play']);
 
-    // The route to apply a referral code
-    Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
-
+    // ✅ REFERRAL ROUTES PROTÉGÉES
+    Route::post('/referral/apply', [ReferralController::class, 'applyCodeFromAuthUser']);
+    Route::get('/referral/status', [ReferralController::class, 'getStatus']);
+    Route::post('/referral/process', [ReferralController::class, 'processReferral']);
+    Route::post('/referral/validate', [ReferralController::class, 'validateReferral']);
+    
+    // Influencer routes protégées
+    Route::get('/influencer/stats', [InfluencerController::class, 'getStats']);
+    Route::post('/influencer/claim-reward', [InfluencerController::class, 'claimReward']);
+    
+    // Escrow routes protégées
+    Route::post('/escrow/create-trade', [EscrowController::class, 'createTrade']);
+    Route::post('/escrow/accept-trade/{tradeId}', [EscrowController::class, 'acceptTrade']);
+    Route::post('/escrow/cancel-trade/{tradeId}', [EscrowController::class, 'cancelTrade']);
 });
 

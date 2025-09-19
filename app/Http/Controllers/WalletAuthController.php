@@ -223,9 +223,14 @@ class WalletAuthController extends Controller
 
     
     
-    public function logout()
+    public function logout(Request $request)
     {
+        // Révoquer le token Sanctum actuel
+        $request->user()->currentAccessToken()->delete();
+        
+        // Logout de la session aussi (pour compatibilité Blade)
         Auth::logout();
+        
         return response()->json(['message' => 'Logged out successfully']);
     }
 

@@ -13,9 +13,9 @@ class ReferralController extends Controller
     /**
      * Get referral status for the authenticated user.
      */
-    public function getStatus()
+    public function getStatus(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user(); // ← Utiliser $request->user() au lieu de Auth::user()
         
         if (!$user->referral_code) {
             $user->generateReferralCode();
