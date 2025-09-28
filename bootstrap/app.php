@@ -14,13 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-<<<<<<< HEAD
         // Registered a custom middleware alias: 'token.auth'
         // This is a clearer name and avoids conflicts with Laravel's internal 'auth:api'.
         $middleware->alias([
             'token.auth' => \App\Http\Middleware\ApiAuth::class,
-=======
-        // ← AJOUTER SANCTUM MIDDLEWARE POUR LES API
+        ]); // ← AJOUTER SANCTUM MIDDLEWARE POUR LES API
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
@@ -28,7 +26,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
->>>>>>> a8bc1c0ea052960d97d8de70c0451a9e3b25884a
         ]);
     })
 
