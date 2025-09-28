@@ -86,7 +86,7 @@ class WalletAuthController extends Controller
 
             // Issue custom API token
             $token = ApiToken::generateForUser($user, 60 * 24); // valid 24h
-            
+
             if (!$user->referral_code) {
                 $user->generateReferralCode();
             }
@@ -105,9 +105,19 @@ class WalletAuthController extends Controller
         }
     }
 
-    /**
-     * Helpers
-     */
+    
+    
+    public function logout(Request $request)
+    {
+        // Révoquer le token Sanctum actuel
+        $request->user()->currentAccessToken()->delete();
+        
+        // Logout de la session aussi (pour compatibilité Blade)
+        Auth::logout();
+        
+        return response()->json(['message' => 'Logged out successfully']);
+    }
+
     private function recoverAddressFromSignature($message, $signature)
     {
         $signature = str_replace('0x', '', $signature);
