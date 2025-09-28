@@ -248,13 +248,15 @@
         // helper function to auto-apply referral
         async function applyReferralCodeFromUrl(refCode, token) {
             try {
+
+                
                 const response = await fetch(`${API_URL}/user/set-referral`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ referral_code: refCode })
+                    body: JSON.stringify({ referral_code: refCode})
                 });
 
                 const data = await response.json();

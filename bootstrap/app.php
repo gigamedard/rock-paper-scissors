@@ -3,7 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Providers\EventServiceProvider; // Add this
+use App\Providers\EventServiceProvider;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,13 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+        // Registered a custom middleware alias: 'token.auth'
+        // This is a clearer name and avoids conflicts with Laravel's internal 'auth:api'.
+        $middleware->alias([
+            'token.auth' => \App\Http\Middleware\ApiAuth::class,
         ]);
-
-        //
     })
+
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })

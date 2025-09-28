@@ -11,23 +11,23 @@ use App\Http\Controllers\EscrowController;
 use App\Http\Controllers\WalletAuthController;
 use Illuminate\Support\Facades\Storage;
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/game/play', [GameController::class, 'play']);
-    
-    // Referral routes
+
+// Wallet authentication
+Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateMessage']);
+Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySignature']);
+
+// Protected routes (using our custom ApiAuth middleware)
+Route::middleware('token.auth')->group(function () {
+    Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
     Route::get('/referral/status', [ReferralController::class, 'getStatus']);
-    Route::post('/referral/process', [ReferralController::class, 'processReferral']);
-    Route::post('/referral/validate', [ReferralController::class, 'validateReferral']);
-    
-    // Influencer routes
-    Route::get('/influencer/stats', [InfluencerController::class, 'getStats']);
-    Route::post('/influencer/claim-reward', [InfluencerController::class, 'claimReward']);
-    
-    // Escrow routes
-    Route::post('/escrow/create-trade', [EscrowController::class, 'createTrade']);
-    Route::post('/escrow/accept-trade/{tradeId}', [EscrowController::class, 'acceptTrade']);
-    Route::post('/escrow/cancel-trade/{tradeId}', [EscrowController::class, 'cancelTrade']);
 });
+
+// Public referral leaderboard
+Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard']);
+
+
+
+Route::post('/debug-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
 
 // Public routes
 Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard']);
@@ -106,37 +106,20 @@ Route::middleware('api')->group(function () {
     Route::post('/update-counter', [BlockchainController::class, 'updateCounter']);
 });
 
-Route::get('/ping', function () {
-    return response()->json(['message' => 'pong']);
-});
-
-// Routes pour l'authentification par portefeuille (Wallet Authentication)
-Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateMessage']);
-Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySignature']);
 
 
-// Routes protégées (nécessitent un jeton d'authentification)
-Route::middleware('auth:sanctum')->group(function () {
+
     
-    // A route to get the authenticated user's details
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
-
-    // The route to start the game
-    Route::post('/game/start', [GameController::class, 'start']);
-
-    // The route to apply a referral code
-    Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
-
-});
 
 
-// Referral (protected by token)
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/user/referral-status', [ReferralController::class, 'getStatus']);
-    Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
-});
+
+
+
+
+
+
+
+
 
 // Public referral routes
 Route::get('/referrals/leaderboard', [ReferralController::class, 'getLeaderboard']);
