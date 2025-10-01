@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('referrer_id');
             $table->unsignedBigInteger('referred_id');
+            //referral_code column added
+            $table->string('referral_code')->nullable();
             $table->enum('status', ['pending', 'validated'])->default('pending');
             $table->timestamps();
 
