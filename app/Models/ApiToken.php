@@ -34,4 +34,9 @@ class ApiToken extends Model
     {
         return !$this->expires_at || $this->expires_at->isFuture();
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
