@@ -18,14 +18,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // This is a clearer name and avoids conflicts with Laravel's internal 'auth:api'.
         $middleware->alias([
             'token.auth' => \App\Http\Middleware\ApiAuth::class,
-        ]); // ← AJOUTER SANCTUM MIDDLEWARE POUR LES API
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
-
-        $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
     })
 

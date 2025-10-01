@@ -223,6 +223,8 @@
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('locale', data.locale);
 
+            console.log("===================== received token :",data.token);
+
             updateUserInfo(data.user);
 
             // 5. Check for referral code in URL
@@ -390,5 +392,6 @@
         });
 
     </script>
+
 </body>
 </html>

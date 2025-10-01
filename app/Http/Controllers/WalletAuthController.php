@@ -23,22 +23,28 @@ class WalletAuthController extends Controller
      * Generate challenge message
      */
     public function generateMessage(Request $request)
-    {
+    {   
+        
         $validated = $request->validate([
             'wallet_address' => 'required|string|regex:/^0x[a-fA-F0-9]{40}$/',
             'locale' => 'nullable|string|max:10',
         ]);
+       
+        try {
+            $nonce = bin2hex(random_bytes(16));
+            $message = "Sign this message to verify your wallet: {$nonce}";
+            $address = strtolower($validated['wallet_address']);
 
-        $nonce = bin2hex(random_bytes(16));
-        $message = "Sign this message to verify your wallet: {$nonce}";
-        $address = strtolower($validated['wallet_address']);
-
-        Cache::put("login_challenge:$address", $message, 300);
-        if (!empty($validated['locale'])) {
+            Cache::put("login_challenge:$address", $message, 300);
+            if (!empty($validated['locale'])) {
             Cache::put("login_locale:$address", $validated['locale'], 300);
-        }
+            }
 
-        return response()->json(['message' => $message]);
+            return response()->json(['message' => $message]);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate wallet challenge: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to generate challenge'], 500);
+        }
     }
 
     /**
