@@ -42,8 +42,8 @@ class WalletAuthController extends Controller
 
             return response()->json(['message' => $message]);
         } catch (\Exception $e) {
-            Log::error('Failed to generate wallet challenge: ' . $e->getMessage());
-            return response()->json(['message' => 'Failed to generate challenge'], 500);
+            Log::error('Failed to generate message: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to generate message'], 500);
         }
     }
 
