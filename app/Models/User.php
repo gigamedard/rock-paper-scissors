@@ -28,6 +28,7 @@ class User extends Authenticatable
         'bet_amount',
         'wallet_address',
         'referral_code',
+        'token_balance',
         'balance',
         'battle_balance',
         'pool_id',
@@ -35,6 +36,8 @@ class User extends Authenticatable
         'session_start_battle_balance',
         'session_started',
         'language',
+        'has_received_signup_bonus',
+        'is_eligible_to_refer',
     ];
 
     protected $hidden = [
@@ -94,6 +97,36 @@ class User extends Authenticatable
         return $this->hasOne(Influencer::class);
     }
 
+
+
+    public function referralRewards()
+    {
+        return $this->hasMany(ReferralReward::class, 'referrer_id');
+    }
+
+    public function getReferralStats()
+    {
+        $referrals = $this->referrals; // 'referrals' est la relation hasMany sur le modèle User
+
+        $total = $referrals->count();
+        $pending = $referrals->where('status', 'pending')->count();
+        $validated = $referrals->where('status', 'validated')->count();
+        
+        // --- CORRECTION ICI ---
+        // Au lieu de multiplier, nous allons sommer les récompenses réelles
+        $rewards_earned = $this->referralRewards()->sum('reward_tokens');
+
+        return [
+            'total'          => $total,
+            'pending'        => $pending,
+            'validated'      => $validated,
+            'rewards_earned' => $rewards_earned, // Utilise la somme correcte
+        ];
+    }
+
+
+
+
     // Generate unique referral code
     public function generateReferralCode()
     {
@@ -107,18 +140,5 @@ class User extends Authenticatable
         return $code;
     }
 
-    // Get referral statistics
-    public function getReferralStats()
-    {
-        $totalReferrals = $this->referrals()->count();
-        $pendingReferrals = $this->referrals()->pending()->count();
-        $validatedReferrals = $this->referrals()->validated()->count();
-        
-        return [
-            'total' => $totalReferrals,
-            'pending' => $pendingReferrals,
-            'validated' => $validatedReferrals,
-            'rewards_earned' => $validatedReferrals * 100 // 100 SNT per validated referral
-        ];
-    }
+    
 }

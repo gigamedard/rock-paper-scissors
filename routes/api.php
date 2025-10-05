@@ -20,6 +20,9 @@ Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySig
 Route::middleware('token.auth')->group(function () {
     Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
     Route::get('/referral/status', [ReferralController::class, 'getStatus']);
+    Route::get('/referral/reward-history', [ReferralController::class, 'getRewardHistory']);
+    Route::post('/referral/validate', [ReferralController::class, 'validateReferral']);
+    
 });
 
 // Public referral leaderboard
