@@ -65,6 +65,7 @@ export const contractAddress2 = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 export const backendUrl = "127.0.0.1:8000";
 
 export const privateKey3 = "***REMOVED***";
+export const Avax_wallet_privateKey = "***REMOVED***";
 export const contractAddress3 = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 export const abi3 = [
   {

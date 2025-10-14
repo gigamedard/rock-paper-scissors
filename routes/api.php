@@ -10,6 +10,7 @@ use App\Http\Controllers\InfluencerController;
 use App\Http\Controllers\EscrowController;
 use App\Http\Controllers\WalletAuthController;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\MarketplaceController;
 
 
 // Wallet authentication
@@ -22,6 +23,7 @@ Route::middleware('token.auth')->group(function () {
     Route::get('/referral/status', [ReferralController::class, 'getStatus']);
     Route::get('/referral/reward-history', [ReferralController::class, 'getRewardHistory']);
     Route::post('/referral/validate', [ReferralController::class, 'validateReferral']);
+    Route::post('/marketplace/purchase', [MarketplaceController::class, 'handleTokenPurchase']);
     
 });
 
@@ -38,6 +40,43 @@ Route::get('/influencer/pools', [InfluencerController::class, 'getPools']);
 Route::get('/escrow/trades', [EscrowController::class, 'getTrades']);
 Route::get('/escrow/trade/{tradeId}', [EscrowController::class, 'getTrade']);
 Route::get('/escrow/stats', [EscrowController::class, 'getStats']);
+
+
+
+// ===============================================
+// == Routes pour le Marketplace
+// ===============================================
+Route::prefix('marketplace')->middleware('token.auth')->group(function () {
+    // --- Routes de Lecture ---
+    Route::get('/stats', [MarketplaceController::class, 'getStats']);
+    Route::get('/trades', [MarketplaceController::class, 'getActiveTrades']);
+
+    // --- Routes d'Écriture (que nous implémenterons plus tard) ---
+    Route::post('/create-offer', [MarketplaceController::class, 'createOffer']);
+    // Route::post('/fulfill-offer', [MarketplaceController::class, 'fulfillOffer']);
+    // Route::post('/cancel-offer', [MarketplaceController::class, 'cancelOffer']);
+});
+
+// ===============================================
+// == Routes Internes (pour le listener blockchain)
+// ===============================================
+Route::prefix('internal/trades')->middleware('internal_api_secret')->group(function () { // Note: On utilisera un middleware de sécurité plus tard
+    // Route::post('/create', [InternalTradeController::class, 'create']);
+    // Route::post('/update', [InternalTradeController::class, 'update']);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Admin routes (should have admin middleware in production)
 Route::post('/admin/influencer/create-pool', [InfluencerController::class, 'createPool']);
