@@ -98,6 +98,9 @@ return [
     'cipher' => 'AES-256-CBC',
 
     'key' => env('APP_KEY'),
+    'internal_api_secret' => env('INNER_SCRIPT_TOKEN'),
+    'MARKETPLACE_ADDRESS' => env('MARKETPLACE_ADDRESS'),
+
 
     'previous_keys' => [
         ...array_filter(

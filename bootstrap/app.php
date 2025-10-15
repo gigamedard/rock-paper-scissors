@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // This is a clearer name and avoids conflicts with Laravel's internal 'auth:api'.
         $middleware->alias([
             'token.auth' => \App\Http\Middleware\ApiAuth::class,
+            'auth.internal' => \App\Http\Middleware\InternalApiAuth::class,
         ]);
     })
 

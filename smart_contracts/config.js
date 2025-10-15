@@ -65,7 +65,11 @@ export const contractAddress2 = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 export const backendUrl = "127.0.0.1:8000";
 
 export const privateKey3 = "***REMOVED***";
-export const Avax_wallet_privateKey = "***REMOVED***";
+
+
+
+
+
 export const contractAddress3 = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 export const abi3 = [
   {
@@ -1134,3 +1138,9 @@ export const predefinedCID = [
     cid: 'QmeEhtFLkeo2Acz3zmsEkUFae1NtqdoB1gaKSdKzEhCmkm'
   }
 ];
+
+//AVAX network
+
+export const Avax_wallet_privateKey = "***REMOVED***";
+export const marketplaceAddress = "0xb0Fe23c18bCc490CDFe4E244e9F1c4e54A10cE6c";
+export const internalApiSecret = "0x7c852118294e51e653712a81e05800f419141751be58f605c371e18990756086";

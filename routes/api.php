@@ -11,6 +11,7 @@ use App\Http\Controllers\EscrowController;
 use App\Http\Controllers\WalletAuthController;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\MarketplaceController;
+use App\Http\Controllers\InternalTradeController;
 
 
 // Wallet authentication
@@ -60,9 +61,9 @@ Route::prefix('marketplace')->middleware('token.auth')->group(function () {
 // ===============================================
 // == Routes Internes (pour le listener blockchain)
 // ===============================================
-Route::prefix('internal/trades')->middleware('internal_api_secret')->group(function () { // Note: On utilisera un middleware de sécurité plus tard
-    // Route::post('/create', [InternalTradeController::class, 'create']);
-    // Route::post('/update', [InternalTradeController::class, 'update']);
+Route::prefix('internal/trades')->middleware('auth.internal')->group(function () { // Note: On utilisera un middleware de sécurité plus tard
+    Route::post('/create', [InternalTradeController::class, 'create']);
+    Route::post('/update-status', [InternalTradeController::class, 'updateStatus']); // <-- AJOUTE OU DÉCOMMENTE CETTE LIGNE
 });
 
 

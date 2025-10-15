@@ -83,20 +83,23 @@ class MarketplaceController extends Controller
     public function getActiveTrades(Request $request)
     {
         $user = $request->user();
-        $trades = Trade::where('status', 'open')
+
+        $trades = \App\Models\Trade::where('status', 'open')
             ->where('expires_at', '>', now())
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Ajoute des informations dynamiques attendues par le frontend
+        // La fonction 'transform' modifie chaque élément de la collection
         $trades->transform(function ($trade) use ($user) {
             $trade->price_per_snt = $trade->snt_amount > 0 ? $trade->avax_amount / $trade->snt_amount : 0;
             
-            // On vérifie si le trade appartient à l'utilisateur actuellement authentifié
             $trade->is_own_trade = ($user && strtolower($user->wallet_address) === strtolower($trade->seller_wallet_address));
             
-            // Pour correspondre au frontend, on reformate l'adresse du vendeur
             $trade->seller_address = substr($trade->seller_wallet_address, 0, 6) . '...' . substr($trade->seller_wallet_address, -4);
+            
+            // La ligne ci-dessous est celle qui contenait probablement la faute de frappe.
+            // C'est maintenant corrigé.
+            $trade->blockchain_id = $trade->blockchain_trade_id;
 
             return $trade;
         });
