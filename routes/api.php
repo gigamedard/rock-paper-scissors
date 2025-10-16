@@ -64,6 +64,7 @@ Route::prefix('marketplace')->middleware('token.auth')->group(function () {
 Route::prefix('internal/trades')->middleware('auth.internal')->group(function () { // Note: On utilisera un middleware de sécurité plus tard
     Route::post('/create', [InternalTradeController::class, 'create']);
     Route::post('/update-status', [InternalTradeController::class, 'updateStatus']); // <-- AJOUTE OU DÉCOMMENTE CETTE LIGNE
+    Route::post('/trigger-referral-check', [InternalTradeController::class, 'triggerReferralCheck']); // <-- AJOUTE CETTE LIGNE
 });
 
 

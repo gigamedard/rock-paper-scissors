@@ -426,32 +426,44 @@ async function main() {
     });
 
 	contract.on("OfferFulfilled", (offerId, buyer, event) => {
-    console.log(`✅ Événement 'OfferFulfilled' détecté pour l'offre #${offerId.toString()} par ${buyer}`);
+		console.log(`✅ Événement 'OfferFulfilled' détecté pour l'offre #${offerId.toString()} par ${buyer}`);
 
-    const updateData = {
-        offerId: offerId.toString(),
-        newStatus: 'fulfilled',
-        buyerAddress: buyer
-    };
+		// --- Action 1 : Mettre à jour le statut du trade (comme avant) ---
+		const updateData = {
+			offerId: offerId.toString(),
+			newStatus: 'fulfilled',
+			buyerAddress: buyer
+		};
 
-    fetch(`${laravelApiUrl}/internal/trades/update-status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Internal-Secret': internalApiSecret
-        },
-        body: JSON.stringify(updateData)
-    })
-    .then(res => {
-        if (!res.ok) {
-            console.error(`❌ Erreur de Laravel lors de la mise à jour : ${res.statusText}`);
-        } else {
-            console.log(`🚀 Statut de l'offre #${offerId.toString()} mis à jour sur 'fulfilled' dans Laravel.`);
-        }
-    })
-    .catch(err => console.error("❌ Erreur de connexion à Laravel:", err));
+		console.log("📦 Envoi du BODY à /update-status:", JSON.stringify(updateData));
+
+		fetch(`${laravelApiUrl}/internal/trades/update-status`, {
+			method: 'POST',
+			headers: { /* ... en-têtes ... */ 'X-Internal-Secret': internalApiSecret },
+			body: JSON.stringify(updateData)
+		}).then(res => {
+			if (res.ok) console.log(`🚀 Statut de l'offre #${offerId.toString()} mis à jour dans Laravel.`);
+			else console.error(`❌ Erreur de Laravel lors de la mise à jour : ${res.statusText}`);
+		}).catch(err => console.error("❌ Erreur de connexion à Laravel (update-status):", err));
+
+		// --- NOUVELLE Action 2 : Déclencher la vérification du parrainage ---
+		const referralCheckData = {
+			buyer_address: buyer
+		};
+
+		console.log("📦 Envoi du BODY à /trigger-referral-check:", JSON.stringify(referralCheckData));
+
+
+		fetch(`${laravelApiUrl}/internal/trades/trigger-referral-check`, { // On appelle la nouvelle route
+			method: 'POST',
+			headers: { /* ... en-têtes ... */ 'X-Internal-Secret': internalApiSecret },
+			body: JSON.stringify(referralCheckData)
+		}).then(res => {
+			if (res.ok) console.log(`🕵️ Demande de vérification de parrainage envoyée pour ${buyer}`);
+			else console.error(`❌ Erreur de Laravel lors du trigger : ${res.statusText}`);
+		}).catch(err => console.error("❌ Erreur de connexion à Laravel (trigger-referral):", err));
 	});
+
 
 	contract.on("OfferCancelled", (offerId, event) => {
     console.log(`🟡 Événement 'OfferCancelled' détecté pour l'offre #${offerId.toString()}`);

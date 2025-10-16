@@ -321,10 +321,24 @@
                 transform: rotate(90deg);
             }
         }
+
+        .notification {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            transition: opacity 0.5s;
+        }
+        .notification.success { background-color: #10b981; }
+        .notification.info { background-color: #3b82f6; }
+        .notification.error { background-color: #ef4444; }
     </style>
 </head>
 <body>
     <div class="container">
+         <div id="notification-banner" class="notification" style="display:none;"></div>
         <div class="header">
             <h1>💱 Marketplace P2P</h1>
             <p>Échangez vos tokens SNT contre AVAX de manière décentralisée</p>
@@ -944,73 +958,73 @@
     }
 
     async function loadTrades() {
-    const tradesDiv = document.getElementById('trades-content');
-    const token = getAuthToken();
+        const tradesDiv = document.getElementById('trades-content');
+        const token = getAuthToken();
 
-    try {
-        const response = await fetch(`${API_URL}/marketplace/trades`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json'
+        try {
+            const response = await fetch(`${API_URL}/marketplace/trades`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP ${response.status}`);
             }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Erreur HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        const trades = data.trades || [];
-        
-        if (trades.length === 0) {
-            tradesDiv.innerHTML = '<div class="loading">Aucun trade disponible pour le moment.</div>';
-            return;
-        }
-        
-        let html = '';
-        trades.forEach(trade => {
-            const expiresDate = new Date(trade.expires_at);
-            const timeLeft = Math.max(0, Math.floor((expiresDate - new Date()) / (1000 * 60 * 60)));
             
-            const buttonText = trade.is_own_trade ? '❌ Annuler' : '💰 Acheter';
-            const buttonClass = trade.is_own_trade ? 'buy-button own-trade' : 'buy-button';
+            const data = await response.json();
+            const trades = data.trades || [];
             
-            // On convertit l'objet 'trade' entier en une chaîne de caractères JSON
-            // pour le passer à la fonction onclick. C'est la modification clé.
-            const tradeData = JSON.stringify(trade).replace(/"/g, "'");
+            if (trades.length === 0) {
+                tradesDiv.innerHTML = '<div class="loading">Aucun trade disponible pour le moment.</div>';
+                return;
+            }
+            
+            let html = '';
+            trades.forEach(trade => {
+                const expiresDate = new Date(trade.expires_at);
+                const timeLeft = Math.max(0, Math.floor((expiresDate - new Date()) / (1000 * 60 * 60)));
+                
+                const buttonText = trade.is_own_trade ? '❌ Annuler' : '💰 Acheter';
+                const buttonClass = trade.is_own_trade ? 'buy-button own-trade' : 'buy-button';
+                
+                // On convertit l'objet 'trade' entier en une chaîne de caractères JSON
+                // pour le passer à la fonction onclick. C'est la modification clé.
+                const tradeData = JSON.stringify(trade).replace(/"/g, "'");
 
-            html += `
-                <div class="trade-item">
-                    <div class="trade-info">
-                        <div class="trade-amounts">
-                            <span class="amount snt-amount">${parseFloat(trade.snt_amount).toLocaleString()} SNT</span>
-                            <span class="arrow">→</span>
-                            <span class="amount avax-amount">${parseFloat(trade.avax_amount).toFixed(3)} AVAX</span>
+                html += `
+                    <div class="trade-item">
+                        <div class="trade-info">
+                            <div class="trade-amounts">
+                                <span class="amount snt-amount">${parseFloat(trade.snt_amount).toLocaleString()} SNT</span>
+                                <span class="arrow">→</span>
+                                <span class="amount avax-amount">${parseFloat(trade.avax_amount).toFixed(3)} AVAX</span>
+                            </div>
+                            <div class="trade-details">
+                                <span>Prix: <span class="trade-price">${parseFloat(trade.price_per_snt).toFixed(5)} AVAX/SNT</span></span>
+                                <span>Expire dans: ${timeLeft}h</span>
+                            </div>
+                            <div class="trade-details">
+                                <span>Vendeur: ${trade.seller_address}</span>
+                                <span class="status-badge status-active">${trade.status}</span>
+                            </div>
                         </div>
-                        <div class="trade-details">
-                            <span>Prix: <span class="trade-price">${parseFloat(trade.price_per_snt).toFixed(5)} AVAX/SNT</span></span>
-                            <span>Expire dans: ${timeLeft}h</span>
-                        </div>
-                        <div class="trade-details">
-                            <span>Vendeur: ${trade.seller_address}</span>
-                            <span class="status-badge status-active">${trade.status}</span>
+                        <div class="trade-actions">
+                            <button class="${buttonClass}" onclick="handleTradeAction(${tradeData})">
+                                ${buttonText}
+                            </button>
                         </div>
                     </div>
-                    <div class="trade-actions">
-                        <button class="${buttonClass}" onclick="handleTradeAction(${tradeData})">
-                            ${buttonText}
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        tradesDiv.innerHTML = html;
-        
-    } catch (error) {
-        console.error('Erreur lors du chargement des trades:', error);
-        tradesDiv.innerHTML = `<div class="error"><strong>Erreur de chargement des trades.</strong><br><small>${error.message}</small></div>`;
-    }
+                `;
+            });
+            
+            tradesDiv.innerHTML = html;
+            
+        } catch (error) {
+            console.error('Erreur lors du chargement des trades:', error);
+            tradesDiv.innerHTML = `<div class="error"><strong>Erreur de chargement des trades.</strong><br><small>${error.message}</small></div>`;
+        }
 }
     
     function setupFormHandlers() {
@@ -1078,97 +1092,75 @@
             const tx = await marketplaceContract.methods.createOffer(sntAmountWei, avaxAmountWei, parseInt(expiryHours))
                 .send({ from: userAccount });
 
-            alert(`🎉 Offre créée avec succès ! Transaction Hash: ${tx.transactionHash}`);
-            
-            document.getElementById('create-offer-form').reset();
-            // On attend un peu plus longtemps pour que le listener ait le temps de faire son travail
-            setTimeout(() => {
-                loadTrades(); 
-                loadMarketStats();
-            }, 5000); 
+                        showNotification(`🎉 Offre créée avec succès ! Mise à jour de la liste en cours...`, 'success');
+        
+        document.getElementById('create-offer-form').reset();
+        
+        // On augmente légèrement le délai pour donner plus de temps au listener
+        setTimeout(() => {
+            loadTrades(); 
+            loadMarketStats();
+        }, 8000); 
 
         } catch (error) {
             console.error('Erreur lors de la création de l\'offre:', error);
-            alert(`Échec de la création de l'offre : ${error.message}`);
+            showNotification(`Échec de la création de l'offre : ${error.message}`, 'error');
         } finally {
-            // Réinitialiser l'état des boutons
-            document.getElementById('approve-btn').style.display = 'block';
-            document.getElementById('approve-btn').textContent = '1. Approuver les SNT';
-            createBtn.textContent = '2. Créer l\'Offre';
-            createBtn.disabled = true; 
+
+            
+                // Réinitialiser l'état des boutons
+                document.getElementById('approve-btn').style.display = 'block';
+                document.getElementById('approve-btn').textContent = '1. Approuver les SNT';
+                createBtn.textContent = '2. Créer l\'Offre';
+                createBtn.disabled = true; 
         }
     }
     
-    async function handleTradeAction(trade) {
-    // On s'assure que le portefeuille est connecté
+   async function handleTradeAction(trade) {
     try {
         await connectWallet();
-    } catch (error) {
-        return; // L'utilisateur a refusé la connexion
-    }
+    } catch (error) { return; }
 
-    // --- CAS N°1 : C'est notre propre trade, on veut l'ANNULER ---
+    const marketplaceContract = new web3.eth.Contract(MARKETPLACE_ABI, MARKETPLACE_ADDRESS);
+
+    // --- CAS ANNULATION ---
     if (trade.is_own_trade) {
-        const confirmation = confirm(`Êtes-vous sûr de vouloir annuler cette offre de ${parseFloat(trade.snt_amount).toLocaleString()} SNT ?\n\nVos jetons seront retournés dans votre portefeuille.`);
+        const confirmation = confirm(`Confirmer l'annulation de l'offre de ${parseFloat(trade.snt_amount).toLocaleString()} SNT ?`);
         if (!confirmation) return;
 
+        showNotification('Annulation en cours... Veuillez confirmer dans MetaMask.', 'info', null);
         try {
-            const marketplaceContract = new web3.eth.Contract(MARKETPLACE_ABI, MARKETPLACE_ADDRESS);
-            
-            alert('Veuillez confirmer la transaction dans MetaMask pour annuler l\'offre.');
-
-            // Appel de la fonction 'cancelOffer' du smart contract
-            const tx = await marketplaceContract.methods.cancelOffer(trade.blockchain_id)
-                .send({ from: userAccount });
-
-            alert(`✅ Offre annulée avec succès ! Transaction Hash: ${tx.transactionHash}`);
-            
-            setTimeout(() => {
-                loadTrades();
-                loadMarketStats();
-            }, 5000);
-
+            const tx = await marketplaceContract.methods.cancelOffer(trade.blockchain_id).send({ from: userAccount });
+            showNotification('✅ Offre annulée ! Mise à jour de la liste...', 'success');
+            setTimeout(() => { loadTrades(); loadMarketStats(); }, 8000);
         } catch (error) {
-            console.error("Erreur lors de l'annulation de l'offre:", error);
-            alert(`Échec de l'annulation : ${error.message}`);
+            console.error("Erreur d'annulation:", error);
+            showNotification(`Échec de l'annulation : ${error.message}`, 'error');
         }
         return;
     }
 
-    // --- CAS N°2 : Ce n'est pas notre trade, on veut l'ACHETER ---
+    // --- CAS ACHAT ---
     const confirmation = confirm(`Confirmer l'achat de ${parseFloat(trade.snt_amount).toLocaleString()} SNT pour ${parseFloat(trade.avax_amount).toFixed(3)} AVAX ?`);
     if (!confirmation) return;
-
+    
+    showNotification('Achat en cours... Veuillez confirmer dans MetaMask.', 'info', null);
     try {
-        const marketplaceContract = new web3.eth.Contract(MARKETPLACE_ABI, MARKETPLACE_ADDRESS);
         const avaxAmountWei = web3.utils.toWei(trade.avax_amount.toString(), 'ether');
-        
-        alert('Veuillez confirmer la transaction dans MetaMask pour acheter l\'offre.');
-
-        const tx = await marketplaceContract.methods.fulfillOffer(trade.blockchain_id)
-            .send({ 
-                from: userAccount, 
-                value: avaxAmountWei
-            });
-
-        alert(`🎉 Achat réussi ! Transaction Hash: ${tx.transactionHash}`);
-        
-        setTimeout(() => {
-            loadTrades();
-            loadMarketStats();
-        }, 5000);
-
+        const tx = await marketplaceContract.methods.fulfillOffer(trade.blockchain_id).send({ from: userAccount, value: avaxAmountWei });
+        showNotification('🎉 Achat réussi ! Mise à jour de la liste...', 'success');
+        setTimeout(() => { loadTrades(); loadMarketStats(); }, 8000);
     } catch (error) {
-        console.error("Erreur lors de l'achat de l'offre:", error);
-        alert(`Échec de l'achat : ${error.message}`);
+        console.error("Erreur d'achat:", error);
+        showNotification(`Échec de l'achat : ${error.message}`, 'error');
     }
 }
 
-    async function connectWallet() {
-        if (typeof window.ethereum === 'undefined') {
-            alert('MetaMask n\'est pas installé !');
-            throw new Error("MetaMask not found");
-        }
+async function connectWallet() {
+    if (typeof window.ethereum === 'undefined') {
+        alert('MetaMask n\'est pas installé !');
+        throw new Error("MetaMask not found");
+    }
         web3 = new Web3(window.ethereum);
         try {
             await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -1178,7 +1170,21 @@
             alert('Connexion au portefeuille refusée.');
             throw new Error("User denied account access");
         }
+}
+
+
+function showNotification(message, type = 'info', duration = 5000) {
+    const banner = document.getElementById('notification-banner');
+    banner.textContent = message;
+    banner.className = `notification ${type}`;
+    banner.style.display = 'block';
+
+    if (duration) {
+        setTimeout(() => {
+            banner.style.display = 'none';
+        }, duration);
     }
+}
 
 </script>
 
