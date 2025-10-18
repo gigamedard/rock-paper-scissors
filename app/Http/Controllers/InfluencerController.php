@@ -218,5 +218,100 @@ class InfluencerController extends Controller
 
         return response()->json($pools);
     }
+
+
+    public function getDashboardData(Request $request)
+    {
+        $user = $request->user();
+        $influencer = $user->influencer()->with('stats', 'pool')->first();
+
+        // 1. Vérifier si l'utilisateur est un influenceur
+        if (!$influencer) {
+            return response()->json(['error' => 'Accès réservé aux influenceurs'], 403);
+        }
+
+        // 2. Obtenir le classement (contient le rang)
+        $leaderboard = $this->getLeaderboard();
+        $myRank = $leaderboard->search(fn($item) => $item['user_id'] === $user->id);
+
+        // 3. Obtenir les stats personnelles
+        $myStats = [
+            'personalReferrals' => $influencer->stats->referral_count ?? 0,
+            'avaxSpent' => $influencer->stats->total_avax_spent ?? 0,
+            'conversionRate' => 0, // Placeholder
+            'myRank' => $myRank !== false ? $myRank + 1 : 'N/A',
+            'hasClaimed' => $influencer->has_claimed,
+        ];
+        
+        // 4. Obtenir les données de tous les pools
+        $allPools = InfluencerPool::with(['influencers.stats'])
+            ->where('is_active', true)
+            ->get()
+            ->map(fn($pool) => $this->formatPoolData($pool));
+        
+        // 5. Isoler le pool de l'influenceur pour l'affichage du haut
+        $myPoolData = $allPools->firstWhere('id', $influencer->pool_id);
+        if ($myPoolData) {
+            $myPoolData['personal_milestone_target'] = $influencer->pool->milestone;
+            $myPoolData['personal_referrals_count'] = $myStats['personalReferrals'];
+            $myPoolData['personal_progress_percentage'] = $myPoolData['personal_milestone_target'] > 0 ?
+                ($myStats['personalReferrals'] / $myPoolData['personal_milestone_target']) * 100 : 0;
+            $myPoolData['canClaim'] = $influencer->canClaimReward();
+        }
+
+        return response()->json([
+            'myStats' => $myStats,
+            'myPool' => $myPoolData,
+            'allPools' => $allPools,
+            'leaderboard' => $leaderboard->values(),
+        ]);
+    }
+
+
+    private function formatPoolData(InfluencerPool $pool)
+    {
+        $totalReferrals = $pool->total_referral_count;
+        $progressPercentage = $pool->pool_milestone > 0 ? ($totalReferrals / $pool->pool_milestone) * 100 : 0;
+        $eligibleInfluencers = $pool->getEligibleInfluencers()->count();
+
+        return [
+            'id' => $pool->id,
+            'name' => $pool->name,
+            'language' => $pool->language,
+            'reward_amount' => (float) $pool->reward_amount,
+            'pool_milestone' => $pool->pool_milestone,
+            'milestone' => $pool->milestone, // Jalon personnel
+            'current_referrals' => $totalReferrals,
+            'progress_percentage' => $progressPercentage,
+            'total_influencers' => $pool->influencers->count(),
+            'eligible_influencers' => $eligibleInfluencers,
+        ];
+    }
+
+    /**
+     * Génère le classement des influenceurs.
+     */
+    private function getLeaderboard()
+    {
+        return Influencer::with(['user', 'stats', 'pool'])
+            ->where('is_eligible', true)
+            ->get()
+            ->map(function ($influencer) {
+                return [
+                    'user_id' => $influencer->user_id,
+                    'name' => $influencer->user->name,
+                    'pool_name' => $influencer->pool->name ?? 'N/A',
+                    'referral_count' => $influencer->stats->referral_count ?? 0,
+                    'conversion_rate' => 0, // Placeholder
+                    'has_claimed_reward' => $influencer->has_claimed,
+                ];
+            })
+            ->sortByDesc('referral_count')
+            ->values() // Ré-indexer la collection
+            ->map(function ($item, $index) {
+                $item['rank'] = $index + 1;
+                return $item;
+            });
+    }
 }
 

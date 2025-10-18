@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Referral;
 use App\Models\ReferralReward;
 use Illuminate\Support\Facades\Log;
+use App\Models\InfluencerStat; // <-- AJOUTE CETTE LIGNE
 
 class ReferralService
 {
@@ -49,6 +50,24 @@ class ReferralService
             ]);
             $referrer->increment('token_balance', $rewardAmount);
             Log::info('🎁 Reward granted to referrer', ['referrer_id' => $referrer->id, 'milestone' => $totalValidated]);
+
+
+                // On vérifie si le parrain est aussi un influenceur
+            if ($referrer->influencer) {
+                    Log::info('Le parrain est un influenceur. Mise à jour de ses stats.', ['user_id' => $referrer->id]);
+                    
+                    // On trouve ou on crée sa feuille de statistiques
+                    $stats = InfluencerStat::firstOrCreate(
+                        ['influencer_id' => $referrer->influencer->id]
+                    );
+                    
+                    // On utilise la méthode de ton modèle InfluencerStat
+                    $stats->incrementReferralCount();
+                    
+                    Log::info('Stats de l\'influenceur mises à jour', ['influencer_id' => $referrer->influencer->id, 'new_count' => $stats->referral_count]);
+            }
+            
         }
     }
+
 }

@@ -80,22 +80,14 @@ class User extends Authenticatable
         return $this->hasOne(PreMove::class);
     }
 
-    // Referral relationships
-    public function referrals()
-    {
-        return $this->hasMany(Referral::class, 'referrer_id');
-    }
+
 
     public function referredBy()
     {
         return $this->hasOne(Referral::class, 'referred_id');
     }
 
-    // Influencer relationship
-    public function influencer()
-    {
-        return $this->hasOne(Influencer::class);
-    }
+
 
 
 
@@ -124,7 +116,23 @@ class User extends Authenticatable
         ];
     }
 
+    /** L'utilisateur est-il un influenceur ? */
+    public function influencer()
+    {
+        return $this->hasOne(Influencer::class);
+    }
 
+    /** Les filleuls que cet utilisateur a parrainés */
+    public function referrals()
+    {
+        return $this->hasMany(Referral::class, 'referrer_id');
+    }
+
+    /** Les frais générés par cet utilisateur (en tant que vendeur) */
+    public function feesGenerated()
+    {
+        return $this->hasMany(InfluencerFee::class);
+    }
 
 
     // Generate unique referral code

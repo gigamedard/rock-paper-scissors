@@ -398,121 +398,133 @@
     </div>
 
     <script>
-        // Configuration
-        const API_BASE = '';
+        // =================================================================
+        // ==     SCRIPT FINAL POUR LE DASHBOARD INFLUENCEUR            ==
+        // =================================================================
+
+        // --- Configuration ---
+        const API_URL = 'http://127.0.0.1:8000/api'; // L'URL de ton API Laravel
+
+        // --- Fonctions d'aide (Helpers) ---
         
-        // Données utilisateur simulées
-        const currentInfluencer = {
-            poolId: 1,
-            personalReferrals: 6200,
-            avaxSpent: 22.1,
-            conversionRate: 78.9,
-            rank: 2,
-            hasClaimedReward: false
-        };
-
-        // Initialisation
-        document.addEventListener('DOMContentLoaded', function() {
-            loadPersonalStats();
-            loadPools();
-            loadLeaderboard();
-        });
-
-        function loadPersonalStats() {
-            // Afficher les statistiques personnelles (simulées)
-            document.getElementById('personal-referrals').textContent = currentInfluencer.personalReferrals.toLocaleString();
-            document.getElementById('avax-spent').textContent = currentInfluencer.avaxSpent.toFixed(1);
-            document.getElementById('conversion-rate').textContent = currentInfluencer.conversionRate.toFixed(1) + '%';
-            document.getElementById('my-rank').textContent = '#' + currentInfluencer.rank;
+        /**
+         * Récupère le jeton d'authentification depuis le localStorage.
+         */
+        function getAuthToken() {
+            return localStorage.getItem('auth_token');
         }
 
-        async function loadPools() {
-            const poolsDiv = document.getElementById('pools-content');
-            const currentPoolDiv = document.getElementById('current-pool');
+        /**
+         * Récupère l'ID de l'utilisateur connecté depuis le localStorage.
+         */
+        function getUserId() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            return user ? user.id : null;
+        }
+
+        // --- Initialisation ---
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
             
+            // Pas besoin de rafraîchir les stats personnelles ou le classement trop souvent
+            // Mais on rafraîchit les pools pour voir la progression.
+            setInterval(loadPoolsData, 30000); // Rafraîchit les pools toutes les 30s
+        });
+
+        /**
+         * Charge toutes les données initiales du dashboard.
+         */
+        async function loadDashboardData() {
+            const token = getAuthToken();
+            if (!token) {
+                document.getElementById('current-pool').innerHTML = '<div class="error">Erreur: Utilisateur non connecté.</div>';
+                document.getElementById('pools-content').innerHTML = '';
+                document.getElementById('leaderboard-content').innerHTML = '';
+                return;
+            }
+
             try {
-                const response = await fetch('/api/influencer/pools.php');
-                
+                const response = await fetch(`${API_URL}/influencer/dashboard`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const pools = await response.json();
-                
-                if (!Array.isArray(pools) || pools.length === 0) {
-                    poolsDiv.innerHTML = '<div class="loading">Aucun pool disponible</div>';
-                    return;
+                    const err = await response.json();
+                    if(response.status === 403) {
+                        throw new Error("Vous n'êtes pas un influenceur.");
+                    }
+                    throw new Error(err.error || `Erreur HTTP ${response.status}`);
                 }
 
-                // Afficher le pool actuel de l'utilisateur
-                const userPool = pools.find(pool => pool.id === currentInfluencer.poolId);
-                if (userPool) {
-                    displayCurrentPool(userPool, currentPoolDiv);
-                }
-                
-                // Construire le HTML des pools
-                let html = '';
-                pools.forEach(pool => {
-                    const progressPercentage = Math.min(pool.progress_percentage, 100);
-                    const isUserPool = pool.id === currentInfluencer.poolId;
-                    
-                    html += `
-                        <div class="pool-item" ${isUserPool ? 'style="background: #fef3c7;"' : ''}>
-                            <div class="pool-item-header">
-                                <div class="pool-title">
-                                    ${pool.name} ${isUserPool ? '(Votre pool)' : ''}
-                                </div>
-                                <div class="pool-language">${pool.language}</div>
-                            </div>
-                            <div class="pool-progress">
-                                <div class="progress-label">
-                                    <span>Progression: ${progressPercentage.toFixed(1)}%</span>
-                                    <span>${pool.current_referrals.toLocaleString()} / ${pool.pool_milestone.toLocaleString()}</span>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${progressPercentage}%"></div>
-                                </div>
-                            </div>
-                            <div class="pool-stats">
-                                <span><strong>Récompense:</strong> ${pool.reward_amount} AVAX</span>
-                                <span><strong>Influenceurs éligibles:</strong> ${pool.eligible_influencers}/${pool.total_influencers}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                poolsDiv.innerHTML = html;
-                
+                const data = await response.json();
+
+                // Une fois les données reçues, on appelle nos fonctions d'affichage
+                renderMyStats(data.myStats);
+                renderMyPool(data.myPool);
+                renderAllPools(data.allPools, data.myPool.id); // Passe l'ID de mon pool
+                renderLeaderboard(data.leaderboard, getUserId()); // Passe l'ID de l'utilisateur
+
             } catch (error) {
-                console.error('Erreur lors du chargement des pools:', error);
-                poolsDiv.innerHTML = `
-                    <div class="error">
-                        <strong>Erreur de chargement</strong><br>
-                        Impossible de charger les pools. Veuillez réessayer plus tard.
-                        <br><small>Détail: ${error.message}</small>
-                    </div>
-                `;
+                console.error('Erreur lors du chargement du dashboard:', error);
+                document.getElementById('current-pool').innerHTML = `<div class="error"><strong>Erreur de chargement</strong><br>${error.message}</div>`;
             }
         }
 
-        function displayCurrentPool(pool, container) {
-            const personalProgress = (currentInfluencer.personalReferrals / pool.milestone) * 100;
-            const poolProgress = pool.progress_percentage;
-            const canClaim = personalProgress >= 100 && poolProgress >= 100 && !currentInfluencer.hasClaimedReward;
+        /**
+         * Met à jour uniquement les données des pools (pour l'actualisation).
+         */
+        async function loadPoolsData() {
+            const token = getAuthToken();
+            try {
+                const response = await fetch(`${API_URL}/influencer/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+                if (!response.ok) return; // Échoue silencieusement
+                const data = await response.json();
+                
+                renderMyPool(data.myPool);
+                renderAllPools(data.allPools, data.myPool.id);
+            } catch (error) {
+                console.log("Erreur lors du rafraîchissement des pools:", error);
+            }
+        }
+
+        // --- Fonctions d'Affichage (Rendering) ---
+
+        function renderMyStats(stats) {
+            document.getElementById('personal-referrals').textContent = stats.personalReferrals.toLocaleString();
+            document.getElementById('avax-spent').textContent = parseFloat(stats.avaxSpent).toFixed(1);
+            document.getElementById('conversion-rate').textContent = parseFloat(stats.conversionRate).toFixed(1) + '%';
+            document.getElementById('my-rank').textContent = stats.myRank ? `#${stats.myRank}` : '-';
+        }
+
+        function renderMyPool(pool) {
+            const container = document.getElementById('current-pool');
+            if (!pool) {
+                container.innerHTML = '<div class="loading">Vous n\'êtes assigné à aucun pool.</div>';
+                return;
+            }
+
+            const personalProgress = Math.min(pool.personal_progress_percentage, 100);
+            const poolProgress = Math.min(pool.progress_percentage, 100);
+            const canClaim = pool.canClaim; // Le backend calcule cela pour nous
             
             container.innerHTML = `
                 <div class="pool-header">
-                    <div class="pool-name">${pool.name}</div>
+                    <div class="pool-name">${pool.name} (Mon Pool)</div>
                     <div class="pool-reward">${pool.reward_amount} AVAX</div>
                 </div>
                 
                 <div class="progress-section">
                     <div class="progress-label">
                         <span>Votre objectif personnel: ${personalProgress.toFixed(1)}%</span>
-                        <span>${currentInfluencer.personalReferrals.toLocaleString()} / ${pool.milestone.toLocaleString()}</span>
+                        <span>${pool.personal_referrals_count.toLocaleString()} / ${pool.personal_milestone_target.toLocaleString()}</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${Math.min(personalProgress, 100)}%"></div>
+                        <div class="progress-fill" style="width: ${personalProgress}%"></div>
                     </div>
                 </div>
                 
@@ -522,90 +534,123 @@
                         <span>${pool.current_referrals.toLocaleString()} / ${pool.pool_milestone.toLocaleString()}</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${Math.min(poolProgress, 100)}%"></div>
+                        <div class="progress-fill" style="width: ${poolProgress}%"></div>
                     </div>
                 </div>
                 
                 <div style="margin-top: 20px;">
                     <p><strong>Conditions pour réclamer la récompense :</strong></p>
                     <ul style="margin: 10px 0 0 20px; color: #64748b;">
-                        <li>Atteindre votre objectif personnel (${pool.milestone.toLocaleString()} parrainages) ${personalProgress >= 100 ? '✅' : '❌'}</li>
-                        <li>Le pool doit atteindre son objectif global (${pool.pool_milestone.toLocaleString()} parrainages) ${poolProgress >= 100 ? '✅' : '❌'}</li>
+                        <li>Atteindre votre objectif personnel ${pool.personal_progress_percentage >= 100 ? '✅' : '❌'}</li>
+                        <li>Le pool doit atteindre son objectif global ${pool.progress_percentage >= 100 ? '✅' : '❌'}</li>
                     </ul>
                     
                     <button class="claim-button" ${canClaim ? '' : 'disabled'} onclick="claimReward()">
-                        ${canClaim ? '🎉 Réclamer la Récompense' : '⏳ Conditions non remplies'}
+                        ${canClaim ? '🎉 Réclamer ma Part' : (pool.hasClaimed ? '✅ Déjà Réclamé' : '⏳ Conditions non remplies')}
                     </button>
                 </div>
             `;
         }
 
-        async function loadLeaderboard() {
-            const contentDiv = document.getElementById('leaderboard-content');
-            
-            try {
-                const response = await fetch('/api/influencer/leaderboard.php');
+        function renderAllPools(pools, myPoolId) {
+            const poolsDiv = document.getElementById('pools-content');
+            let html = '';
+
+            pools.forEach(pool => {
+                if (pool.id === myPoolId) return; // On ne ré-affiche pas le pool de l'utilisateur
+
+                const progressPercentage = Math.min(pool.progress_percentage, 100);
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const leaderboard = await response.json();
-                
-                if (!Array.isArray(leaderboard) || leaderboard.length === 0) {
-                    contentDiv.innerHTML = '<div class="loading">Aucune donnée disponible</div>';
-                    return;
-                }
-                
-                // Construire le HTML du classement
-                let html = '';
-                leaderboard.forEach(influencer => {
-                    const isCurrentUser = influencer.name === 'Web3Guru'; // Simulé
-                    const highlightClass = isCurrentUser ? 'style="background: #fef3c7;"' : '';
-                    
-                    html += `
-                        <div class="leaderboard-item" ${highlightClass}>
-                            <div class="rank">#${influencer.rank}</div>
-                            <div class="influencer-info">
-                                <div class="influencer-name">
-                                    ${influencer.name} ${isCurrentUser ? '(Vous)' : ''}
-                                    ${influencer.has_claimed_reward ? '🏆' : ''}
-                                </div>
-                                <div class="influencer-pool">${influencer.pool_name}</div>
+                html += `
+                    <div class="pool-item">
+                        <div class="pool-item-header">
+                            <div class="pool-title">${pool.name}</div>
+                            <div class="pool-language">${pool.language}</div>
+                        </div>
+                        <div class="pool-progress">
+                            <div class="progress-label">
+                                <span>Progression: ${progressPercentage.toFixed(1)}%</span>
+                                <span>${pool.current_referrals.toLocaleString()} / ${pool.pool_milestone.toLocaleString()}</span>
                             </div>
-                            <div class="influencer-stats">
-                                <div class="referral-count">${influencer.referral_count.toLocaleString()} parrainages</div>
-                                <div class="conversion-rate">${influencer.conversion_rate}% conversion</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progressPercentage}%"></div>
                             </div>
                         </div>
-                    `;
-                });
-                
-                contentDiv.innerHTML = html;
-                
-            } catch (error) {
-                console.error('Erreur lors du chargement du classement:', error);
-                contentDiv.innerHTML = `
-                    <div class="error">
-                        <strong>Erreur de chargement</strong><br>
-                        Impossible de charger le classement. Veuillez réessayer plus tard.
-                        <br><small>Détail: ${error.message}</small>
+                        <div class="pool-stats">
+                            <span><strong>Récompense:</strong> ${pool.reward_amount} AVAX</span>
+                            <span><strong>Influenceurs éligibles:</strong> ${pool.eligible_influencers}/${pool.total_influencers}</span>
+                        </div>
                     </div>
                 `;
+            });
+            poolsDiv.innerHTML = html;
+        }
+
+        function renderLeaderboard(leaderboard, myUserId) {
+            const contentDiv = document.getElementById('leaderboard-content');
+            if (!leaderboard || leaderboard.length === 0) {
+                contentDiv.innerHTML = '<div class="loading">Aucune donnée disponible</div>';
+                return;
+            }
+            
+            let html = '';
+            leaderboard.forEach(influencer => {
+                const isCurrentUser = influencer.user_id === myUserId;
+                const highlightClass = isCurrentUser ? 'style="background: #fef3c7;"' : '';
+                
+                html += `
+                    <div class="leaderboard-item" ${highlightClass}>
+                        <div class="rank">#${influencer.rank}</div>
+                        <div class="influencer-info">
+                            <div class="influencer-name">
+                                ${influencer.name} ${isCurrentUser ? '(Vous)' : ''}
+                                ${influencer.has_claimed_reward ? '🏆' : ''}
+                            </div>
+                            <div class="influencer-pool">${influencer.pool_name}</div>
+                        </div>
+                        <div class="influencer-stats">
+                            <div class="referral-count">${influencer.referral_count.toLocaleString()} parrainages</div>
+                            <div class="conversion-rate">${influencer.conversion_rate}% conversion</div>
+                        </div>
+                    </div>
+                `;
+            });
+            contentDiv.innerHTML = html;
+        }
+
+        /**
+         * Appelle l'API pour réclamer la récompense.
+         */
+        async function claimReward() {
+            const token = getAuthToken();
+            const button = document.querySelector('.claim-button');
+            button.disabled = true;
+            button.textContent = 'Réclamation en cours...';
+
+            try {
+                const response = await fetch(`${API_URL}/influencer/claim-reward`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Échec de la réclamation');
+                }
+
+                alert(`🎉 ${data.message} Montant : ${data.amount_avax} AVAX. La transaction sera envoyée sous peu.`);
+                loadDashboardData(); // Recharge tout le dashboard
+
+            } catch (error) {
+                console.error('Erreur lors de la réclamation:', error);
+                alert(`Erreur : ${error.message}`);
+                button.disabled = false;
+                button.textContent = '🎉 Réclamer ma Part';
             }
         }
-
-        function claimReward() {
-            alert('🎉 Félicitations ! Votre récompense de 10 AVAX a été envoyée à votre wallet.\n\nTransaction ID: 0x1234...abcd');
-            currentInfluencer.hasClaimedReward = true;
-            loadPools(); // Recharger pour mettre à jour l'état
-        }
-
-        // Actualisation automatique toutes les 30 secondes
-        setInterval(() => {
-            loadPools();
-            loadLeaderboard();
-        }, 30000);
     </script>
 </body>
 </html>

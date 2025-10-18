@@ -58,6 +58,27 @@ Route::prefix('marketplace')->middleware('token.auth')->group(function () {
     // Route::post('/cancel-offer', [MarketplaceController::class, 'cancelOffer']);
 });
 
+
+// ===============================================
+// ==        Routes pour les INFLUENCEURS       ==
+// ===============================================
+Route::prefix('influencer')->middleware('token.auth')->group(function () {
+    
+    // NOUVELLE ROUTE PRINCIPALE POUR LE DASHBOARD
+    Route::get('/dashboard', [InfluencerController::class, 'getDashboardData']);
+    
+    // ANCIENNE ROUTE (tu peux la garder ou la supprimer)
+    Route::get('/stats', [InfluencerController::class, 'getStats']);
+
+    // ANCIENNE ROUTE (tu peux la garder ou la supprimer)
+    Route::get('/pools', [InfluencerController::class, 'getPools']);
+
+    // Route pour réclamer la récompense
+    Route::post('/claim-reward', [InfluencerController::class, 'claimReward']);
+});
+
+
+
 // ===============================================
 // == Routes Internes (pour le listener blockchain)
 // ===============================================
