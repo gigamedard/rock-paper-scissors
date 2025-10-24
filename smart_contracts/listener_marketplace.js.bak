@@ -1,0 +1,31 @@
+import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits } from "ethers";
+import { marketplaceAddress, Avax_fujiRpcUrl, Avax_wallet_privateKey, marketplaceAbi } from "./config.js";
+
+const provider = new JsonRpcProvider(Avax_fujiRpcUrl);
+const wallet = new Wallet(Avax_wallet_privateKey, provider);
+const marketplaceContract = new Contract(marketplaceAddress, marketplaceAbi, wallet);
+
+async function main() {
+    console.log("🔊 Marketplace Listener: Listening for events...");
+
+    marketplaceContract.on("OfferCreated", (offerId, seller, sntAmount, avaxAmount, event) => {
+        console.log(`
+🔔 OfferCreated Event Detected:
+  Offer ID: ${offerId}
+  Seller: ${seller}
+  SNT Amount: ${formatEther(sntAmount)} SNT
+  AVAX Amount: ${formatEther(avaxAmount)} AVAX
+  Transaction Hash: ${event.log.transactionHash}
+        `);
+        // Ici, vous pouvez ajouter la logique pour enregistrer l'offre dans votre base de données backend
+        // ou déclencher d'autres actions.
+    });
+
+    marketplaceContract.on("OfferFulfilled", (offerId, buyer, event) => {
+        console.log(`
+🔔 OfferFulfilled Event Detected:
+  Offer ID: ${offerId}
+  Buyer: ${buyer}
+  Transaction Hash: ${event.log.transactionHash}
+        `);
+        // Logique pour marquer l'offre comme 

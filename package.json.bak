@@ -3,10 +3,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
-        "start-listener": "node smart_contracts/listener3.js",
-        "start-server": "node smart_contracts/server.js",
-        "start-marketplace-listener": "node smart_contracts/listener_marketplace.js"
+        "build": "vite build"
     },
     "devDependencies": {
         "@inertiajs/vue3": "^1.0.0",
