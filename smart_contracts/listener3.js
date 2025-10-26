@@ -1,5 +1,5 @@
 import { JsonRpcProvider, Wallet, Contract, formatEther } from "ethers";
-import { contractAddress3, privateKey3, localHardhatUrl, abi3 ,backendUrl, INNER_SCRIPT_TOKEN} from "./config.js";
+import { contractAddress3, privateKey3, localHardhatUrl, abi3 ,backendUrl, INNER_SCRIPT_TOKEN} from "./_config.js";
 
 // Initialize provider, wallet, and contract
 const provider = new JsonRpcProvider(localHardhatUrl);

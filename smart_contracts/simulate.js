@@ -1,5 +1,5 @@
 import { JsonRpcProvider, Wallet, Contract} from "ethers"; 
-import { contractAddress3, abi3, localHardhatUrl,predefinedCID } from "./config.js";
+import { contractAddress3, abi3, localHardhatUrl,predefinedCID } from "./_config.js";
 
 // Initialize provider and contract
 const provider = new JsonRpcProvider(localHardhatUrl);

@@ -1,6 +1,6 @@
 import express from "express";
 import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits, parseEther} from "ethers";
-import { contractAddress3, privateKey3, Avax_wallet_privateKey,localHardhatUrl, abi3 } from "./config.js";
+import { contractAddress3, privateKey3, Avax_wallet_privateKey,localHardhatUrl, abi3 } from "./_config.js";
 
 const app = express();
 app.use(express.json());

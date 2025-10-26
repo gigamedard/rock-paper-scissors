@@ -25,7 +25,8 @@ Route::middleware('token.auth')->group(function () {
     Route::get('/referral/reward-history', [ReferralController::class, 'getRewardHistory']);
     Route::post('/referral/validate', [ReferralController::class, 'validateReferral']);
     Route::post('/marketplace/purchase', [MarketplaceController::class, 'handleTokenPurchase']);
-    
+    Route::post('/storePremove', [PoolAutoMatchController::class, 'storePremove']);
+
 });
 
 // Public referral leaderboard
@@ -78,28 +79,29 @@ Route::prefix('influencer')->middleware('token.auth')->group(function () {
 });
 
 
+// ===============================================
+// == Routes Internes (pour le serveur/listener Node.js)
+// ===============================================
+Route::prefix('internal')->middleware('auth.internal')->group(function () {
+    
+    // --- Routes du Marketplace ---
+    Route::post('/trades/create', [InternalTradeController::class, 'create']);
+    Route::post('/trades/update-status', [InternalTradeController::class, 'updateStatus']);
+    Route::post('/trades/trigger-referral-check', [InternalTradeController::class, 'triggerReferralCheck']);
+    
+    // --- Routes des Influenceurs ---
+    Route::post('/influencer/log-fee', [InfluencerController::class, 'logFee']);
 
-// ===============================================
-// == Routes Internes (pour le listener blockchain)
-// ===============================================
-Route::prefix('internal/trades')->middleware('auth.internal')->group(function () { // Note: On utilisera un middleware de sécurité plus tard
-    Route::post('/create', [InternalTradeController::class, 'create']);
-    Route::post('/update-status', [InternalTradeController::class, 'updateStatus']); // <-- AJOUTE OU DÉCOMMENTE CETTE LIGNE
-    Route::post('/trigger-referral-check', [InternalTradeController::class, 'triggerReferralCheck']); // <-- AJOUTE CETTE LIGNE
+    // --- Routes du JEU (les nouvelles que tu migres) ---
+
+    
+    Route::post('/update-balance', [BlockchainController::class, 'updateUserBalance']); 
+    Route::post('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+    //todo: do not forget sendPremove from frontend to backend since we use now we use token auth middleware
+    
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
+// ===============================================
 
 // Admin routes (should have admin middleware in production)
 Route::post('/admin/influencer/create-pool', [InfluencerController::class, 'createPool']);

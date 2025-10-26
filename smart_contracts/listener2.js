@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { JsonRpcProvider, Wallet, Contract } from "ethers"; // Updated imports from ethers v6
-import { contractAddress2, privateKey2, localHardhatUrl, abi } from "./config.js"; // Import configuration
+import { contractAddress2, privateKey2, localHardhatUrl, abi } from "./_config.js"; // Import configuration
 //const csrfResponse = await fetch('http://127.0.0.1:8000/csrf-token');
 //const { csrfToken } = await csrfResponse.json();
 // Initialize the provider

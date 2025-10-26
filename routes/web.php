@@ -40,7 +40,22 @@ use App\Models\InfluencerFee;
 Route::get('/select-language', [LanguageController::class, 'index'])->name('language.select');
 Route::post('/set-language/{locale}', [LanguageController::class, 'setLanguage'])->name('language.set');
 
-// Main entry point
+
+
+Route::get('/', function () {
+    return file_get_contents(public_path('index.html'));
+});
+
+// Route "catch-all" pour que le rafraîchissement (F5) fonctionne sur des sous-pages
+Route::get('/{any}', function () {
+    return file_get_contents(public_path('index.html'));
+})->where('any', '.*');
+
+
+
+
+
+/*
 Route::get('/', function () {
     // If no language set, redirect to selection page
     if (!session()->has('locale')) {
@@ -49,7 +64,7 @@ Route::get('/', function () {
 
     // Otherwise load the main game view
     return view('welcome'); // or your game start view
-});
+});*/
 
 
 Route::get('/counter', function (Request $request) {

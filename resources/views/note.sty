@@ -1,0 +1,109 @@
+Agis en tant qu'architecte logiciel expert en migration d'applications Web3.
+
+**Mission :** Migrer la logique de jeu principale de mon ancienne application Laravel (un fichier `autoplay.blade.php`) vers ma nouvelle application SPA "headless" (le fichier `index.html`).
+
+**Contexte de la Nouvelle Architecture :**
+1.  **Frontend :** Un unique fichier `index.html` (SPA) qui gère l'affichage de différentes "pages" (des `div`s).
+2.  **Backend :** Une API Laravel 100% "headless".
+3.  **Authentification :** L'utilisateur se connecte via portefeuille (`/api/wallet/verify-signature`) et l'application stocke le `Bearer token` dans `localStorage.getItem('auth_token')` et les infos utilisateur (y compris l'ID) dans `localStorage.getItem('user')`.
+4.  **Communication :** Tout le code JavaScript dans `index.html` doit communiquer avec l'API Laravel en utilisant `fetch` et en ajoutant l'en-tête `Authorization: Bearer [token]` pour les routes sécurisées. Il n'y a **plus de CSRF token**.
+
+**Tâche : Recoder les Concepts de Jeu**
+
+Je ne veux pas un copier-coller du code de `autoplay.blade.php`. Je veux que tu ré-implémentes les **concepts** suivants dans le `<script>` de `index.html` pour qu'ils fonctionnent avec la nouvelle architecture.
+
+---
+
+### 1. Variables Globales et Initialisation
+
+Crée les structures de données (variables globales) nécessaires pour gérer l'état du jeu, l'état de l'utilisateur et la configuration du contrat.
+
+```javascript
+// Exemple de structure de départ
+const API_URL = '[http://127.0.0.1:8000/api](http://127.0.0.1:8000/api)';
+const PINATA_API_KEY = 'TA_CLE_PINATA';
+const PINATA_API_SECRET = 'TON_SECRET_PINATA';
+const PINATA_API_URL = '[https://api.pinata.cloud/pinning/pinJSONToIPFS](https://api.pinata.cloud/pinning/pinJSONToIPFS)';
+
+let web3;
+let gameContract;
+
+const gameState = {
+    selectedMoves: [],
+    selectedBet: 0.05 // Valeur par défaut de la mise
+};
+
+const userState = {
+    id: null,
+    walletAddress: null
+};
+
+let contractConfig = {
+    abi: null,
+    address: null,
+    securityCoefficient: 1000
+};
+2. Fonction d'Initialisation de la Page de Jeu
+Crée une fonction initializeGamePage() qui doit être appelée chaque fois que l'utilisateur arrive sur la "page" du jeu. Cette fonction doit :
+
+Initialiser web3.
+
+Charger userState.id et userState.walletAddress depuis localStorage.getItem('user').
+
+Appeler l'API Laravel sur la route sécurisée GET /api/artefacts (en utilisant le Bearer token).
+
+Stocker l'ABI, l'adresse du contrat et le securityCoefficient reçus dans la variable contractConfig.
+
+Initialiser l'instance gameContract de Web3 avec l'ABI et l'adresse.
+
+3. Logique de Soumission Principale (Le Flux Complet)
+Crée la fonction principale handleSubmitPremove() qui sera appelée par le bouton "Rejoindre le Pool". Cette fonction doit exécuter les concepts suivants DANS L'ORDRE :
+
+Concept 1 : Calcul du Budget
+
+Calcule le baseBetWei (à partir du gameState.selectedBet).
+
+Calcule le depositAmountWei (le paiement total) en multipliant baseBetWei par le contractConfig.securityCoefficient. (Les frais de transaction seront gérés par MetaMask).
+
+Concept 2 : Upload Pinata
+
+Crée une fonction uploadMovesToPinata(moves) qui prend gameState.selectedMoves.
+
+Elle envoie les données à Pinata et retourne le cid (IpfsHash).
+
+Concept 3 : Soumission au Backend (Avec User ID)
+
+Crée une fonction submitPreMovesToBackend(moves, cid).
+
+Cette fonction doit appeler POST /api/user/pre-moves (une route auth:api-token).
+
+Elle doit envoyer le Bearer token dans l'en-tête Authorization.
+
+CRUCIAL : Le corps (body) JSON de cette requête doit contenir : user_id (depuis userState.id), pre_moves (les moves), cid, et bet_amount (la gameState.selectedBet).
+
+Concept 4 : Soumission à la Blockchain
+
+Crée une fonction submitToBlockchain(baseBetWei, cid, depositAmountWei).
+
+Cette fonction doit appeler la fonction submitPremoveCID du smart contract (gameContract.methods.submitPremoveCID(...)).
+
+Elle doit passer baseBetWei (en string) et cid comme arguments.
+
+Elle doit passer depositAmountWei (en string) comme champ value de la transaction (send({ from: userState.walletAddress, value: depositAmountWei.toString() })).
+
+4. Tests et Validation
+Après avoir décrit comment tu vas implémenter ces fonctions, propose un plan de test manuel (sous forme de liste) pour valider que l'ensemble de ce nouveau flux fonctionne de bout en bout.
+
+Le plan de test doit inclure :
+
+Un test pour l'initialisation (initializeGamePage) : vérifier que la configuration du contrat est bien chargée depuis /api/artefacts.
+
+Un test de la soumission complète (handleSubmitPremove) :
+
+Vérifier dans l'onglet "Réseau" (F12) que l'appel à Pinata réussit.
+
+Vérifier que l'appel à /api/user/pre-moves est fait avec le Bearer token et le bon user_id.
+
+Vérifier que le pop-up MetaMask s'ouvre et demande le bon montant de paiement (le depositAmountWei).
+
+Vérifier que la transaction est bien envoyée à la blockchain.

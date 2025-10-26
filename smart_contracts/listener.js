@@ -2,7 +2,7 @@
 // ==              LISTENER D'ÉVÉNEMENTS BLOCKCHAIN               ==
 // =================================================================
 import { WebSocketProvider, Contract, formatUnits } from 'ethers';
-import { marketplaceAddress,internalApiSecret } from "./config.js";
+import { marketplaceAddress,internalApiSecret } from "./_config.js";
 import 'dotenv/config';
 
 // --- CONFIGURATION ---
@@ -493,8 +493,7 @@ async function main() {
     .catch(err => console.error("❌ Erreur de connexion à Laravel:", err));
 	});
 
-    // Tu ajouteras d'autres écouteurs ici pour OfferFulfilled et OfferCancelled
-    // contract.on("OfferFulfilled", (offerId, buyer, event) => { ... });
+    
 }
 
 main().catch(error => {

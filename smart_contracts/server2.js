@@ -3,7 +3,7 @@
 // =================================================================
 import express from 'express';
 import { JsonRpcProvider, Wallet, Contract, ethers, parseUnits } from 'ethers';
-import { Avax_wallet_privateKey } from "./config.js";
+import { Avax_wallet_privateKey } from "./_config.js";
 import 'dotenv/config';
 
 // --- CONFIGURATION DE BASE ---
