@@ -168,8 +168,46 @@
     </div>
     
     <script>
-        // URL de base de votre API Laravel
+        // --- 1. Variables Globales et Initialisation ---
         const API_URL = 'http://127.0.0.1:8000/api';
+        const PINATA_API_KEY = 'TA_CLE_PINATA'; // Placeholder
+        const PINATA_API_SECRET = 'TON_SECRET_PINATA'; // Placeholder
+        const PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
+
+        let web3;
+        let gameContract;
+
+        const gameState = {
+            selectedMoves: [],
+            selectedBet: 0.05 // Valeur par défaut de la mise
+        };
+
+        const userState = {
+            id: null,
+            walletAddress: null
+        };
+
+        let contractConfig = {
+            abi: null,
+            address: null,
+            securityCoefficient: 1000
+        };
+
+        // --- Fonctions utilitaires ---
+
+        // Fonction pour un appel d'API sécurisé avec Bearer Token
+        async function secureFetch(url, options = {}) {
+            const token = localStorage.getItem('auth_token');
+            if (!token) throw new Error("Authentication token not found. Please log in.");
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
+
+            return fetch(url, { ...options, headers });
+        }
 
         // Gère l'affichage des pages/modals
         function showPage(pageId) {
@@ -177,75 +215,128 @@
             document.getElementById(pageId).classList.add('active');
         }
 
-        // Fonction principale de connexion au portefeuille
-         async function loginWithWallet(locale) {
-    console.log(`Starting login with locale: ${locale}`);
-    if (!window.ethereum) {
-        alert('Please install a wallet like MetaMask!');
-        return;
-    }
+        // --- 2. Fonction d'Initialisation de la Page de Jeu ---
+        async function initializeGamePage() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            const token = localStorage.getItem('auth_token');
 
-    const web3 = new Web3(window.ethereum);
-
-    try {
-        // 1. Connect wallet
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const accounts = await web3.eth.getAccounts();
-        const walletAddress = accounts[0];
-
-        console.log(`Wallet connected: ${walletAddress}`);
-
-        // 2. Request challenge message
-        const messageResponse = await fetch(`${API_URL}/wallet/generate-message`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet_address: walletAddress, locale: locale }),
-        });
-
-        if (!messageResponse.ok) throw new Error('Failed to get challenge from server.');
-        const { message } = await messageResponse.json();
-
-        // 3. Sign challenge
-        const signature = await web3.eth.personal.sign(message, walletAddress);
-
-        // 4. Verify signature & login
-        const verifyResponse = await fetch(`${API_URL}/wallet/verify-signature`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ wallet_address: walletAddress, signature: signature, locale: locale }),
-        });
-
-        const data = await verifyResponse.json();
-
-        if (verifyResponse.ok && data.token) {
-            // Store token + user info
-            localStorage.setItem('auth_token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            localStorage.setItem('locale', data.locale);
-
-            console.log("===================== received token :",data.token);
-
-            updateUserInfo(data.user);
-
-            // 5. Check for referral code in URL
-            const params = new URLSearchParams(window.location.search);
-            const refCode = params.get('ref');
-
-            if (refCode) {
-                console.log(`Found referral code in URL: ${refCode}`);
-                await applyReferralCodeFromUrl(refCode, data.token);
+            if (!user || !token) {
+                console.error("User not logged in. Redirecting to login.");
+                logout();
+                return;
             }
 
-            // If no referral code → show referral modal
-            showPage('referral-page');
-        } else {
-            throw new Error(data.message || 'Signature verification failed.');
+            // 2.1 Charger userState
+            userState.id = user.id;
+            userState.walletAddress = user.wallet_address;
+            document.getElementById('user-info').textContent = `Welcome, ${user.name} (${user.wallet_address.substring(0, 6)}...)`;
+
+            // 2.2 Initialiser web3 (si ce n'est pas déjà fait)
+            if (!web3 && window.ethereum) {
+                web3 = new Web3(window.ethereum);
+            } else if (!web3) {
+                console.error("MetaMask or Web3 provider not detected.");
+                return;
+            }
+
+            // 2.3 Appeler l'API Laravel sur la route sécurisée GET /api/artefacts
+            try {
+                const response = await secureFetch(`${API_URL}/artefacts`);
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.message || "Failed to load contract artefacts.");
+
+                // 2.4 Stocker l'ABI, l'adresse et le securityCoefficient
+                contractConfig.abi = data.abi;
+                contractConfig.address = data.address;
+                contractConfig.securityCoefficient = data.security_coefficient || 1000;
+
+                // 2.5 Initialiser l'instance gameContract de Web3
+                gameContract = new web3.eth.Contract(contractConfig.abi, contractConfig.address);
+                console.log("Game contract initialized successfully.");
+
+            } catch (error) {
+                console.error("Error during game page initialization:", error);
+                alert("Failed to initialize game. Please try again.");
+            }
         }
-    } catch (error) {
-        console.error('Authentication Error:', error);
-        alert(`Login failed: ${error.message}`);
-    }
-}
+
+        // Fonction principale de connexion au portefeuille
+         async function loginWithWallet(locale) {
+            console.log(`Starting login with locale: ${locale}`);
+            if (!window.ethereum) {
+                alert('Please install a wallet like MetaMask!');
+                return;
+            }
+
+            const web3 = new Web3(window.ethereum);
+
+            try {
+                // 1. Connect wallet
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await web3.eth.getAccounts();
+                const walletAddress = accounts[0];
+
+                console.log(`Wallet connected: ${walletAddress}`);
+
+                // 2. Request challenge message
+                const messageResponse = await fetch(`${API_URL}/wallet/generate-message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ wallet_address: walletAddress, locale: locale }),
+                });
+
+                if (!messageResponse.ok) throw new Error('Failed to get challenge from server.');
+                const { message } = await messageResponse.json();
+
+                // 3. Sign challenge
+                const signature = await web3.eth.personal.sign(message, walletAddress);
+
+                // 4. Verify signature & login
+                const verifyResponse = await fetch(`${API_URL}/wallet/verify-signature`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ wallet_address: walletAddress, signature: signature, locale: locale }),
+                });
+
+                const data = await verifyResponse.json();
+
+                if (verifyResponse.ok && data.token) {
+                    // Store token + user info
+                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('locale', data.locale);
+
+                    console.log("===================== received token :",data.token);
+
+                    updateUserInfo(data.user);
+
+                    // 5. Check for referral code in URL
+                    const params = new URLSearchParams(window.location.search);
+                    const refCode = params.get('ref');
+
+                    if (refCode) {
+                        console.log(`Found referral code in URL: ${refCode}`);
+                        await applyReferralCodeFromUrl(refCode, data.token);
+                    }
+
+                    // 5. Redirection vers la page appropriée
+		            const user = JSON.parse(localStorage.getItem('user'));
+		            if (user && user.referral_code) {
+		                showPage('autoplay-page');
+		                initializeGamePage();
+		            } else {
+		                // If no referral code → show referral modal
+		                showPage('referral-page');
+		            }
+                } else {
+                    throw new Error(data.message || 'Signature verification failed.');
+                }
+            } catch (error) {
+                console.error('Authentication Error:', error);
+                alert(`Login failed: ${error.message}`);
+            }
+        }
         
         // helper function to auto-apply referral
         async function applyReferralCodeFromUrl(refCode, token) {
@@ -269,7 +360,7 @@
                 } else {
                     console.warn(`Referral not applied: ${data.message}`);
                     // Still proceed to referral modal if code failed
-                    showPage('referral-page');
+		                    showPage('referral-page');
                 }
             } catch (err) {
                 console.error('Error applying referral from URL:', err);
@@ -278,35 +369,121 @@
         }
 
 
-        // Simule le démarrage d'une partie en appelant une route protégée
-        async function startAutoplay() {
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
-                alert("You are not logged in.");
+        // --- 3. Logique de Soumission Principale (Le Flux Complet) ---
+        async function handleSubmitPremove() {
+            if (!gameContract) {
+                alert("Game not initialized. Please refresh the page.");
                 return;
             }
-            
-            alert("Starting game... (This is a placeholder for a real API call)");
-            
-            // Exemple d'appel à une future route protégée
-            /*
+
+            // 3.1 Concept 1 : Calcul du Budget
+            const baseBetWei = web3.utils.toWei(gameState.selectedBet.toString(), 'ether');
+            // Multiplie par le coefficient de sécurité (ex: 1000 pour 1000x)
+            const depositAmountWei = web3.utils.toBN(baseBetWei).mul(web3.utils.toBN(contractConfig.securityCoefficient));
+
+            console.log(`Base Bet (Wei): ${baseBetWei}`);
+            console.log(`Deposit Amount (Wei): ${depositAmountWei.toString()}`);
+
             try {
-                const response = await fetch(`${API_URL}/autoplay/start`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.message);
-                alert(`Game result: ${JSON.stringify(result)}`);
+                // 3.2 Concept 2 : Upload Pinata
+                const cid = await uploadMovesToPinata(gameState.selectedMoves);
+                console.log(`Pinata CID: ${cid}`);
+
+                // 3.3 Concept 3 : Soumission au Backend (Avec User ID)
+                await submitPreMovesToBackend(gameState.selectedMoves, cid);
+                console.log("Pre-moves submitted to backend successfully.");
+
+                // 3.4 Concept 4 : Soumission à la Blockchain
+                await submitToBlockchain(baseBetWei, cid, depositAmountWei);
+                console.log("Transaction sent to blockchain successfully.");
+
+                alert("Game submitted! Check MetaMask for transaction status.");
+
             } catch (error) {
-                console.error('Autoplay Error:', error);
-                alert(`Could not start game: ${error.message}`);
+                console.error("Full submission failed:", error);
+                alert(`Submission failed: ${error.message}`);
             }
-            */
         }
+
+        // Concept 2 Helper: Upload Pinata
+        async function uploadMovesToPinata(moves) {
+            const pinataData = {
+                pinataContent: {
+                    user_id: userState.id,
+                    wallet_address: userState.walletAddress,
+                    moves: moves,
+                    timestamp: new Date().toISOString()
+                },
+                pinataMetadata: {
+                    name: `Pre-Move-${userState.id}-${Date.now()}`
+                }
+            };
+
+            const response = await fetch(PINATA_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'pinata_api_key': PINATA_API_KEY,
+                    'pinata_secret_api_key': PINATA_API_SECRET
+                },
+                body: JSON.stringify(pinataData)
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data.IpfsHash) {
+                throw new Error(data.error || "Pinata upload failed.");
+            }
+
+            return data.IpfsHash;
+        }
+
+        // Concept 3 Helper: Soumission au Backend
+        async function submitPreMovesToBackend(moves, cid) {
+            const body = {
+                user_id: userState.id,
+                pre_moves: moves,
+                cid: cid,
+                bet_amount: gameState.selectedBet
+            };
+
+            const response = await secureFetch(`${API_URL}/user/pre-moves`, {
+                method: 'POST',
+                body: JSON.stringify(body)
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "Backend submission failed.");
+            }
+        }
+
+        // Concept 4 Helper: Soumission à la Blockchain
+        async function submitToBlockchain(baseBetWei, cid, depositAmountWei) {
+            // Remarque: web3.eth.Contract.methods.call() est utilisé pour les appels en lecture seule
+            // Pour une transaction, on utilise .send()
+            const tx = gameContract.methods.submitPremoveCID(
+                baseBetWei,
+                cid
+            ).send({
+                from: userState.walletAddress,
+                value: depositAmountWei.toString()
+            });
+
+            // L'utilisateur devra confirmer dans MetaMask. On attend la transaction.
+            return tx;
+        }
+
+        // --- Fonctions existantes modifiées/nettoyées ---
+
+        // Fonction de démarrage du jeu (maintenant un alias pour la soumission)
+        async function startAutoplay() {
+            // Ici, on pourrait ajouter la logique pour sélectionner les moves,
+            // mais pour l'instant, on utilise juste le placeholder.
+            // Pour le test, on va simuler un move sélectionné.
+            gameState.selectedMoves = [1, 2, 3]; // Exemple de moves
+            await handleSubmitPremove();
+        }
+
         
         // Déconnexion de l'utilisateur
         function logout() {
@@ -327,14 +504,14 @@
         }
 
         function checkForReferralCodeInUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const refCode = params.get('ref');
-    if (refCode) {
-        const inputElement = document.getElementById('referral-code-input');
-        inputElement.value = refCode;
-        console.log(`Referral code '${refCode}' found in URL.`);
-    }
-}
+            const params = new URLSearchParams(window.location.search);
+            const refCode = params.get('ref');
+            if (refCode) {
+                const inputElement = document.getElementById('referral-code-input');
+                inputElement.value = refCode;
+                console.log(`Referral code '${refCode}' found in URL.`);
+            }
+        }
 
         // New function to handle submitting the referral code
         async function submitReferralCode(skipped = false) {
@@ -370,6 +547,7 @@
 
             // Finally, proceed to the game page
             showPage('autoplay-page');
+            initializeGamePage(); // Initialiser la page de jeu après la reconnexion
         }
 
         // Logique de démarrage de l'application
@@ -384,7 +562,9 @@
             if (token && user) {
                 console.log("Existing session found. Welcome back!");
                 updateUserInfo(user);
-                showPage('autoplay-page'); // If already logged in, skip referral check
+                showPage('autoplay-page');
+                initializeGamePage(); // Initialiser la page de jeu après la reconnexion
+                
             } else {
                 console.log("No active session. Please log in.");
                 showPage('language-page');
