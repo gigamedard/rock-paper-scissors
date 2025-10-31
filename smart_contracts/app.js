@@ -11,6 +11,8 @@ import {
     NODE_SERVER_PORT,
     GAME_WALLET_PK,
     MARKETPLACE_WALLET_PK,
+    SECURITY_COEFFICIENT,
+    pinata,
     contracts
 } from "./config.js";
 
@@ -58,6 +60,38 @@ app.post("/create-offer", async (req, res) => {
     // ... ta logique de /create-offer
     // const tx = await marketplaceContract.createOffer(...);
     // ...
+});
+
+
+
+
+/**
+ * NOUVELLE ROUTE SÉCURISÉE
+ * Permet à Laravel de récupérer la configuration du contrat de jeu.
+ */
+app.get("/get-game-config", (req, res) => {
+    // Sécurité : On vérifie que c'est bien Laravel qui appelle
+    const secret = req.headers['x-internal-secret'];
+    if (!secret || secret !== INTERNAL_API_SECRET) {
+        return res.status(403).json({ error: "Accès non autorisé." });
+    }
+
+    console.log('contract address:', contracts.game.address);
+    console.log('contract abi:', contracts.game.abi);
+
+
+    try {
+        res.status(200).json({
+            abi: contracts.game.abi,
+            address: contracts.game.address,
+            security_coefficient: SECURITY_COEFFICIENT ,
+            pinata_secret: pinata.PINATA_SECRET,
+            pinata_api_url: pinata.PINATA_API_URL,
+            pinata_api_key: pinata.PINATA_API_KEY
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur interne: impossible de lire la configuration." });
+    }
 });
 
 // ===================================
@@ -156,44 +190,6 @@ function startBlockchainListeners() {
     console.log("✅ Tous les listeners sont actifs.");
 }
 
-
-async function updateUserBalance(user, balance) {
-  try {
-    const url = `${BACKEND_URL}/update-balance?balance=${formatEther(balance)}&wallet_address=${user}`;
-    const response = await fetch(url);
-
-    if (response.ok) {
-      console.log(`✅ Balance updated successfully for user: ${user}`);
-    } else {
-      const errorText = await response.text();
-      console.error(`❌ Failed to update balance for user: ${user}. Response: ${errorText}`);
-    }
-  } catch (error) {
-    console.error(`🚨 Error while updating balance for user ${user}:`, error.message);
-  }
-}
-
-
-// Function to submit to handle pool emoted event
-async function submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,poolSalt) {
-
-  try {
-    const url = `${BACKEND_URL}/handle-pool-emited?token=${INTERNAL_API_SECRET}&pool_id=${poolId}&base_bet=${baseBet}&users=${users}&premove_cids=${premoveCIDs}&pool_salt=${poolSalt}`;
-    const response = await fetch(url);
-    console.log(url);
-
-    if (response.ok) {
-      console.log(`✅ Submitted to handle pool emited event successfully for poolId: ${poolId}`);
-    } else {
-      const errorText = await response.text();
-      console.error(`❌ Failed to submit to handle pool emited event for poolId: ${poolId}. Response: ${errorText}`);
-    }
-  } catch (error) {
-    console.error(`🚨 Error while submitting to handle pool emoted event:`, error.message);
-  }
-
-
-}
 
 
 

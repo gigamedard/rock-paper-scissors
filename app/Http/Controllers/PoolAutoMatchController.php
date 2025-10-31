@@ -96,11 +96,15 @@ class PoolAutoMatchController extends Controller
 
     // Endpoint for storing pre-moves
     public function storePreMoves(Request $request)
-    {
+    {   
+                Log::info('--- storePreMoves function started ---');
+        Log::info('Request Data: ' . json_encode($request->all()));
+
         $data = $request->validate([
             'pre_moves'  => 'required|array|min:1',
             'user_id'    => 'required|integer|exists:users,id',
-            'bet_amount' => 'required|numeric|min:0.0001',
+            'bet_amount' => 'required|numeric|min:0.000001',
+            'cid'        => 'required|string',
         ]);
 
         $response = $this->preMoveService->storePreMoves($data);

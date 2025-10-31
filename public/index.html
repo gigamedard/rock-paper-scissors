@@ -3,133 +3,411 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethereumjs-util/7.1.5/index.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
-  <script src="https://unpkg.com/lucide@0.344.0"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
-  <script src="https://bundle.run/secp256k1@4.0.3"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethereumjs-util/7.1.5/index.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <script src="https://unpkg.com/lucide@0.344.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+    <script src="https://bundle.run/secp256k1@4.0.3"></script>
     <style>
+        :root {
+            --bg-primary: #FDF8E8; /* Sandy cream for cards */
+            --border-dark: #4D2B1A; /* Dark wood brown for outlines */
+            --text-primary: #4D2B1A; /* Dark brown text */
+            --text-secondary: #8B5E3C; /* Lighter brown text */
+            --accent-primary: #5C9E0D; /* Juicy green */
+            --accent-primary-hover: #76C81A;
+            --accent-secondary: #1E90FF; /* Juicy blue */
+            --accent-secondary-hover: #4DA6FF;
+            --input-bg: #FFFDF5; /* Light cream for inputs */
+            --danger-red: #ef4444;
+        }
+
+        /* Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #111827;
-            color: #ffffff;
+            /* Using a game-style jungle background */
+            background-image: url('https://pqs.com/image/cartoon-jungle-background-vibrant-game-art-style');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            
+            font-family: 'Baloo 2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
         }
+
+        /* Page & Modal Styling */
         .page {
             display: none;
             position: fixed;
-            top: 0; left: 0;
+            top: 60px; /* Below nav bar */
+            left: 0;
             width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
+            height: calc(100% - 60px);
+            
+            /* Brownish overlay instead of black */
+            background: rgba(77, 43, 26, 0.7); 
             justify-content: center;
             align-items: center;
             backdrop-filter: blur(5px);
             animation: fadeIn 0.3s ease;
         }
+        
         .page.active {
             display: flex;
         }
+
+        /* Main Card Styling */
         .card {
-            background: #1f2937;
+            background: var(--bg-primary);
             padding: 2rem 2.5rem;
             border-radius: 1rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            
+            /* Thick outlines and hard shadow for 2.5D game look */
+            border: 4px solid var(--border-dark);
+            box-shadow: 8px 8px 0px var(--border-dark);
+            
             text-align: center;
-            min-width: 320px;
-            max-width: 400px;
-            border: 1px solid #374151;
+            min-width: 340px;
+            max-width: 420px;
         }
+
+        /* Typography */
         h2 {
             margin-top: 0;
-            font-size: 1.5rem;
+            font-size: 1.75rem; /* Slightly larger */
+            font-weight: 700;
+            color: var(--text-primary);
         }
+
         p {
-            color: #9ca3af;
-        }
-        button {
-            background: #4f46e5;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
+            color: var(--text-secondary);
             font-size: 1rem;
-            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Button Styling (Primary) --- */
+        button {
+            background: var(--accent-primary);
+            color: white;
+            border: 3px solid var(--border-dark);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Baloo 2', sans-serif;
+            text-transform: uppercase; /* More game-like */
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.2s;
+            transition: all 0.1s ease-out;
             margin-top: 1rem;
+            
+            /* Hard shadow for "juicy" button */
+            box-shadow: 4px 4px 0px var(--border-dark);
         }
+
         button:hover {
-            background: #6366f1;
-            transform: translateY(-2px);
+            background: var(--accent-primary-hover);
+            /* "Press" effect */
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--border-dark);
         }
+
         button:disabled {
-            background: #374151;
-            cursor: not-allowed;
+            background: #9ca3af;
+            border-color: #6B7280;
+            box-shadow: none;
             transform: none;
+            cursor: not-allowed;
         }
+
+        /* --- Secondary Button Styling --- */
+        .skip-btn {
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border: 3px solid var(--border-dark);
+        }
+        .skip-btn:hover {
+            background: #E5E7EB;
+        }
+
+        /* --- Flag Buttons --- */
         .flag-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
             margin-top: 1.5rem;
         }
+        
         .flag-btn {
             background: none;
-            border: 2px solid #4b5563;
+            border: 3px solid var(--border-dark);
             padding: 0;
             border-radius: 8px;
             overflow: hidden;
-            transition: border-color 0.2s, transform 0.2s;
+            box-shadow: 4px 4px 0px var(--border-dark);
+            transition: all 0.1s ease-out;
+            margin: 0; /* Override default button margin */
         }
+        
         .flag-btn:hover {
-            border-color: #6366f1;
-            transform: scale(1.05);
+            border-color: var(--accent-primary);
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--border-dark);
         }
+        
         .flag-btn img {
             width: 100%;
             display: block;
         }
+
+        /* --- Input Fields --- */
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 1.5rem;
+            border-radius: 12px;
+            border: 3px solid var(--border-dark);
+            background-color: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-family: 'Baloo 2', sans-serif;
+            text-align: center;
+            /* Subtle inset shadow */
+            box-shadow: inset 3px 3px 0px rgba(0,0,0,0.1);
+        }
+
+        #bet-amount-input {
+             -moz-appearance: textfield;
+             appearance: textfield;
+        }
+        
+        .input-group {
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* --- Game Page Specifics --- */
+        .move-selector {
+            display: flex;
+            justify-content: space-around;
+            gap: 1rem;
+        }
+        
+        .move-btn {
+            flex: 1;
+            padding: 1rem;
+            font-size: 1.5rem;
+            background: var(--accent-secondary);
+            border: 3px solid var(--border-dark);
+            margin-top: 0;
+        }
+        
+        .move-btn:hover {
+            background: var(--accent-secondary-hover);
+        }
+
+        .moves-display {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            min-height: 100px;
+            max-height: 160px;
+            overflow-y: auto;
+            width: 100%;
+            background: var(--input-bg);
+            border-radius: 8px;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            /* Dashed border looks game-like */
+            border: 3px dashed var(--border-dark);
+            box-sizing: border-box;
+        }
+        
+        .moves-display .icon {
+            color: var(--text-secondary);
+        }
+
+        /* --- Confirmation Modal --- */
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 2px solid var(--text-secondary);
+            font-size: 1rem;
+        }
+        .summary-line strong {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .summary-line span {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+        .summary-line.highlight {
+            font-size: 1.1rem;
+        }
+        .summary-line.highlight span {
+            color: var(--accent-primary);
+            font-weight: 700;
+        }
+        .warning {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            background: var(--input-bg);
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 2px solid var(--border-dark);
+        }
+
+        /* --- Main Navigation Bar --- */
+        .main-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            /* Styled like a wooden plank */
+            background: var(--bg-primary);
+            border-bottom: 4px solid var(--border-dark);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+            height: 60px;
+            z-index: 1000;
+        }
+        .nav-brand {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 700;
+            transition: color 0.2s;
+            font-size: 1.1rem;
+        }
+        .nav-links a:hover {
+            color: var(--accent-primary);
+        }
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
         #user-info {
-            color: #d1d5db;
-            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 500;
         }
-        .logout-btn {
-            background: #9ca3af;
-            color: #111827;
+        
+        .logout-btn-nav {
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border: 3px solid var(--border-dark);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 3px 3px 0px var(--border-dark);
+            margin: 0; /* Override button margin */
         }
+        .logout-btn-nav:hover {
+            background: #E5E7EB;
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0px var(--border-dark);
+        }
+
+        /* --- Clickable Moves Icons --- */
+        .move-icon-wrapper {
+            position: relative;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .move-icon-wrapper .icon {
+            color: var(--text-primary); /* Make icons darker */
+        }
+        .move-icon-wrapper::after {
+            content: 'x';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: var(--danger-red);
+            color: white;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            font-size: 12px;
+            line-height: 16px;
+            text-align: center;
+            font-weight: 700;
+            font-family: Arial, sans-serif;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid var(--border-dark);
+        }
+        .move-icon-wrapper:hover::after {
+            opacity: 1;
+        }
+
+        /* Animation */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
+        
+        /* Fix overlapping content */
+        .page {
+            padding-top: 0; /* Reset this */
+        }
 
-        /* Add this CSS to your existing <style> block */
-        #referral-code-input {
-            width: 100%;
-            padding: 12px;
-            margin-top: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid #4b5563;
-            background-color: #374151;
-            color: white;
-            font-size: 1rem;
-            text-align: center;
-        }
-        .skip-btn {
-            background: none;
-            border: 1px solid #4b5563;
-            margin-top: 0.5rem;
-        }
-        .skip-btn:hover {
-            background: #374151;
-        }
     </style>
 </head>
 <body>
+    <nav class="main-nav">
+        <div class="nav-brand">GameApp</div>
+        <div class="nav-links">
+            <a href="#" onclick="showPage('autoplay-page')">Play</a>
+            <a href="#" onclick="alert('Referrals page not yet implemented!')">Referrals</a>
+            <a href="#" onclick="alert('Influencer page not yet implemented!')">Influencer</a>
+            <a href="#" onclick="alert('Marketplace page not yet implemented!')">Marketplace</a>
+        </div>
+        <div class="nav-user">
+            <span id="user-info">Not Connected</span>
+            <button class="logout-btn-nav" onclick="logout()">Logout</button>
+        </div>
+    </nav>
 
     <div id="language-page" class="page">
         <div class="card">
@@ -146,12 +424,51 @@
         </div>
     </div>
 
-    <div id="autoplay-page" class="page">
+<div id="autoplay-page" class="page">
+    <div class="card">
+        <h2>Start New Game</h2>
+        <div class="input-group">
+            <label for="bet-amount-input">Your Base Bet (ETH):</label>
+            <input type="number" id="bet-amount-input" value="0.05" step="0.01" min="0.01">
+        </div>
+
+        <div class="input-group">
+            <label>Select 2 to 100 Moves:</label> 
+            <div class="move-selector">
+                <button id="move-rock" class="move-btn"><i data-lucide="rock"></i></button>
+                <button id="move-paper" class="move-btn"><i data-lucide="hand"></i></button>
+                <button id="move-scissors" class="move-btn"><i data-lucide="scissors"></i></button>
+            </div>
+            <div id="selected-moves-display" class="moves-display">
+                </div>
+            <button id="reset-moves-btn" class="skip-btn" style="margin-top: 10px; width: 100%;">Reset All</button>
+        </div>
+
+        <button id="autoplay-btn" onclick="showConfirmationModal()">Review Game</button>
+        </div>
+</div>
+
+    <div id="confirmation-modal" class="page">
         <div class="card">
-            <h2>Autoplay Active</h2>
-            <p id="user-info">Loading user data...</p>
-            <button id="autoplay-btn" onclick="startAutoplay()">Start Game</button>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+            <h2>Confirm Your Game</h2>
+            <p>Please review your submission. This will lock your funds in the contract.</p>
+            
+            <div class="summary-line">
+                <strong>Your Moves:</strong>
+                <span id="confirm-moves"></span>
+            </div>
+            <div class="summary-line">
+                <strong>Base Bet:</strong>
+                <span id="confirm-bet"></span> ETH
+            </div>
+            <div class="summary-line highlight">
+                <strong>Total Deposit:</strong>
+                <span id="confirm-deposit"></span> ETH
+            </div>
+            <p class="warning">This is the (Base Bet) x (Security Coefficient). This total amount will be sent to the contract.</p>
+            
+            <button id="confirm-submit-btn" onclick="handleSubmitPremove()">Confirm & Send</button>
+            <button class="skip-btn" onclick="hideConfirmationModal()">Cancel</button>
         </div>
     </div>
 
@@ -166,20 +483,18 @@
             <button class="skip-btn" onclick="submitReferralCode(true)">Skip for Now</button>
         </div>
     </div>
-    
+
     <script>
         // --- 1. Variables Globales et Initialisation ---
         const API_URL = 'http://127.0.0.1:8000/api';
-        const PINATA_API_KEY = 'TA_CLE_PINATA'; // Placeholder
-        const PINATA_API_SECRET = 'TON_SECRET_PINATA'; // Placeholder
-        const PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
+    
 
-        let web3;
+        let WEB3; // <-- DÉCLARATION GLOBALE UNIQUE
         let gameContract;
 
         const gameState = {
             selectedMoves: [],
-            selectedBet: 0.05 // Valeur par défaut de la mise
+            selectedBet: 0.000005 // Valeur par défaut de la mise
         };
 
         const userState = {
@@ -190,7 +505,10 @@
         let contractConfig = {
             abi: null,
             address: null,
-            securityCoefficient: 1000
+            securityCoefficient: 1000,
+            PINATA_API_KEY: null,
+            PINATA_SECRET: null,
+            PINATA_API_URL: null
         };
 
         // --- Fonctions utilitaires ---
@@ -215,6 +533,118 @@
             document.getElementById(pageId).classList.add('active');
         }
 
+        /*
+          ÉTAPE 4: Ajouter ces nouvelles fonctions dans ton <script>
+        */
+
+        // Gère la sélection des mouvements
+        function selectMove(move) {
+            // 1 = Pierre, 2 = Feuille, 3 = Ciseaux
+            // ▼▼▼ CORRECTION (Limite 2-100) ▼▼▼
+            if (gameState.selectedMoves.length < 100) {
+            // ▲▲▲ FIN CORRECTION ▲▲▲
+                gameState.selectedMoves.push(move);
+                updateSelectedMovesUI();
+            } else {
+                alert("You cannot select more than 100 moves.");
+            }
+        }
+
+
+            /*
+            ÉTAPE 4: AJOUTER CETTE NOUVELLE FONCTION
+            */
+        // Supprime un mouvement par son index dans l'array
+        function deleteMove(index) {
+            gameState.selectedMoves.splice(index, 1); // Supprime 1 élément à l'index 'index'
+            updateSelectedMovesUI(); // Rafraîchit l'affichage
+        }
+
+        // Réinitialise les mouvements
+        function resetMoves() {
+            gameState.selectedMoves = [];
+            updateSelectedMovesUI();
+        }
+
+
+
+        // Met à jour l'interface utilisateur pour montrer les mouvements sélectionnés
+        function updateSelectedMovesUI() {
+            const display = document.getElementById('selected-moves-display');
+            display.innerHTML = ''; // Efface l'affichage
+            
+            if (gameState.selectedMoves.length === 0) {
+                 display.innerHTML = '<span style="color: #6b7280; font-family: \'Baloo 2\', sans-serif;">Click icons above...</span>';
+            }
+
+            // ▼▼▼ CORRECTION (Logique de suppression) ▼▼▼
+            gameState.selectedMoves.forEach((move, index) => {
+                let iconName = 'alert-circle'; // Erreur par défaut
+                if (move === 1) iconName = 'rock';
+                if (move === 2) iconName = 'hand';
+                if (move === 3) iconName = 'scissors';
+                
+                // Crée un conteneur pour l'icône
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('move-icon-wrapper');
+                // Ajoute l'action de suppression au clic
+                wrapper.setAttribute('onclick', `deleteMove(${index})`); 
+                wrapper.setAttribute('title', `Click to remove (Move #${index + 1})`);
+
+                // Crée l'icône lucide
+                const iconEl = document.createElement('i');
+                iconEl.setAttribute('data-lucide', iconName);
+                iconEl.classList.add('icon');
+                
+                wrapper.appendChild(iconEl); // Ajoute l'icône au conteneur
+                display.appendChild(wrapper); // Ajoute le conteneur à l'affichage
+            });
+            // ▲▲▲ FIN CORRECTION ▲▲▲
+            
+            // Rafraîchit les icônes lucide
+            lucide.createIcons();
+        }
+
+
+
+        // Affiche la modale de confirmation
+        async function showConfirmationModal() {
+            const betInput = document.getElementById('bet-amount-input').value;
+            const betAmount = parseFloat(betInput);
+
+            // ▼▼▼ CORRECTION (Validation 2-100) ▼▼▼
+            if (isNaN(betAmount) || betAmount <= 0) {
+                alert("Please enter a valid bet amount.");
+                return;
+            }
+            if (gameState.selectedMoves.length < 2 || gameState.selectedMoves.length > 100) {
+                alert("Please select between 2 and 100 moves.");
+                return;
+            }
+            // ▲▲▲ FIN CORRECTION ▲▲▲
+
+            // Met à jour le gameState
+            gameState.selectedBet = betAmount;
+
+            // Calcule le dépôt total
+            const depositAmount = betAmount * contractConfig.securityCoefficient;
+
+            // ▼▼▼ CORRECTION (Affichage du nombre de coups) ▼▼▼
+            // Au lieu d'une longue liste, on affiche juste le total
+            document.getElementById('confirm-moves').textContent = `${gameState.selectedMoves.length} moves selected`;
+            // ▲▲▲ FIN CORRECTION ▲▲▲
+
+            document.getElementById('confirm-bet').textContent = betAmount.toFixed(4);
+            document.getElementById('confirm-deposit').textContent = depositAmount.toFixed(4);
+
+            showPage('confirmation-modal');
+        }
+        // Cache la modale de confirmation
+        function hideConfirmationModal() {
+            showPage('autoplay-page');
+        }
+        
+        
         // --- 2. Fonction d'Initialisation de la Page de Jeu ---
         async function initializeGamePage() {
             const user = JSON.parse(localStorage.getItem('user'));
@@ -229,13 +659,17 @@
             // 2.1 Charger userState
             userState.id = user.id;
             userState.walletAddress = user.wallet_address;
-            document.getElementById('user-info').textContent = `Welcome, ${user.name} (${user.wallet_address.substring(0, 6)}...)`;
 
-            // 2.2 Initialiser web3 (si ce n'est pas déjà fait)
-            if (!web3 && window.ethereum) {
-                web3 = new Web3(window.ethereum);
-            } else if (!web3) {
+            console.log("Initializing game page for user:", userState);
+            
+            // 2.2 Initialiser WEB3 (si ce n'est pas déjà fait)
+            // Gère le cas où la page est rechargée (utilisateur déjà connecté)
+            if (!WEB3 && window.ethereum) {
+                console.log("Initializing Web3 for returning user...");
+                WEB3 = new Web3(window.ethereum); // On assigne à la variable globale
+            } else if (!WEB3) {
                 console.error("MetaMask or Web3 provider not detected.");
+                alert("Please install MetaMask to play.");
                 return;
             }
 
@@ -244,15 +678,21 @@
                 const response = await secureFetch(`${API_URL}/artefacts`);
                 const data = await response.json();
 
+                console.log("response ok ?:", response.ok);
+                console.log("artefacts data :", data);
                 if (!response.ok) throw new Error(data.message || "Failed to load contract artefacts.");
 
                 // 2.4 Stocker l'ABI, l'adresse et le securityCoefficient
                 contractConfig.abi = data.abi;
                 contractConfig.address = data.address;
                 contractConfig.securityCoefficient = data.security_coefficient || 1000;
+                contractConfig.PINATA_API_KEY = data.pinata_api_key;
+                contractConfig.PINATA_SECRET = data.pinata_secret;
+                contractConfig.PINATA_API_URL = data.pinata_api_url;
+                console.log("Contract configuration loaded:", contractConfig);
 
                 // 2.5 Initialiser l'instance gameContract de Web3
-                gameContract = new web3.eth.Contract(contractConfig.abi, contractConfig.address);
+                gameContract = new WEB3.eth.Contract(contractConfig.abi, contractConfig.address);
                 console.log("Game contract initialized successfully.");
 
             } catch (error) {
@@ -262,19 +702,20 @@
         }
 
         // Fonction principale de connexion au portefeuille
-         async function loginWithWallet(locale) {
+        async function loginWithWallet(locale) {
             console.log(`Starting login with locale: ${locale}`);
             if (!window.ethereum) {
                 alert('Please install a wallet like MetaMask!');
                 return;
             }
 
-            const web3 = new Web3(window.ethereum);
+            // On assigne à la variable globale 'WEB3' (PAS de 'let' ou 'const')
+            WEB3 = new Web3(window.ethereum);
 
             try {
                 // 1. Connect wallet
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const accounts = await web3.eth.getAccounts();
+                const accounts = await WEB3.eth.getAccounts();
                 const walletAddress = accounts[0];
 
                 console.log(`Wallet connected: ${walletAddress}`);
@@ -290,7 +731,7 @@
                 const { message } = await messageResponse.json();
 
                 // 3. Sign challenge
-                const signature = await web3.eth.personal.sign(message, walletAddress);
+                const signature = await WEB3.eth.personal.sign(message, walletAddress);
 
                 // 4. Verify signature & login
                 const verifyResponse = await fetch(`${API_URL}/wallet/verify-signature`, {
@@ -304,11 +745,10 @@
                 if (verifyResponse.ok && data.token) {
                     // Store token + user info
                     localStorage.setItem('auth_token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('user', JSON.stringify(data.user)); // Stockage initial
                     localStorage.setItem('locale', data.locale);
 
-                    console.log("===================== received token :",data.token);
-
+                    console.log("===================== received token :", data.token);
                     updateUserInfo(data.user);
 
                     // 5. Check for referral code in URL
@@ -320,15 +760,18 @@
                         await applyReferralCodeFromUrl(refCode, data.token);
                     }
 
-                    // 5. Redirection vers la page appropriée
-		            const user = JSON.parse(localStorage.getItem('user'));
-		            if (user && user.referral_code) {
-		                showPage('autoplay-page');
-		                initializeGamePage();
-		            } else {
-		                // If no referral code → show referral modal
-		                showPage('referral-page');
-		            }
+                    // 6. Redirection vers la page appropriée
+                    // On RELIT 'user' au cas où 'applyReferralCodeFromUrl' l'ait mis à jour
+                    const user = JSON.parse(localStorage.getItem('user')); 
+                    
+                    if (user && user.referral_code) {
+                        // Si l'utilisateur a un code (soit d'avant, soit via l'URL)
+                        showPage('autoplay-page');
+                        initializeGamePage(); // On initialise le jeu
+                    } else {
+                        // Si pas de code, on montre la page pour en entrer un
+                        showPage('referral-page');
+                    }
                 } else {
                     throw new Error(data.message || 'Signature verification failed.');
                 }
@@ -341,8 +784,6 @@
         // helper function to auto-apply referral
         async function applyReferralCodeFromUrl(refCode, token) {
             try {
-
-                
                 const response = await fetch(`${API_URL}/user/set-referral`, {
                     method: 'POST',
                     headers: {
@@ -355,42 +796,65 @@
                 const data = await response.json();
                 if (response.ok) {
                     alert('Referral code applied automatically!');
-                    // Jump straight to autoplay since referral was handled
-                    showPage('autoplay-page');
+                    
+                    // IMPORTANT : Mettre à jour le 'user' dans localStorage
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    if (user) {
+                        user.referral_code = refCode; // On suppose que le code est valide
+                        localStorage.setItem('user', JSON.stringify(user));
+                    }
+                    return true; 
                 } else {
                     console.warn(`Referral not applied: ${data.message}`);
-                    // Still proceed to referral modal if code failed
-		                    showPage('referral-page');
+                    alert(`Note: The referral code ${refCode} was not applied. ${data.message}`);
+                    return false; 
                 }
             } catch (err) {
                 console.error('Error applying referral from URL:', err);
-                showPage('referral-page');
+                return false; 
             }
         }
 
 
-        // --- 3. Logique de Soumission Principale (Le Flux Complet) ---
+// --- 3. Logique de Soumission Principale (Le Flux Complet) ---
         async function handleSubmitPremove() {
+            // ▼▼▼ CORRECTION (Point 5: UI post-soumission) ▼▼▼
+            const confirmButton = document.getElementById('confirm-submit-btn');
+            confirmButton.disabled = true; // Désactive le bouton
+            confirmButton.textContent = "Submitting..."; // Change le texte
+            // ▲▲▲ FIN CORRECTION ▲▲▲
+
+            // Cache la modale (déplacé au début)
+            hideConfirmationModal();
+
             if (!gameContract) {
                 alert("Game not initialized. Please refresh the page.");
+                confirmButton.disabled = false; // Réactive en cas d'erreur précoce
+                confirmButton.textContent = "Confirm & Send";
                 return;
             }
 
             // 3.1 Concept 1 : Calcul du Budget
-            const baseBetWei = web3.utils.toWei(gameState.selectedBet.toString(), 'ether');
-            // Multiplie par le coefficient de sécurité (ex: 1000 pour 1000x)
-            const depositAmountWei = web3.utils.toBN(baseBetWei).mul(web3.utils.toBN(contractConfig.securityCoefficient));
+            const baseBetWei = WEB3.utils.toWei(gameState.selectedBet.toString(), 'ether');
+            const depositAmountWei = WEB3.utils.toBN(baseBetWei).mul(WEB3.utils.toBN(contractConfig.securityCoefficient));
 
-            console.log(`Base Bet (Wei): ${baseBetWei}`);
-            console.log(`Deposit Amount (Wei): ${depositAmountWei.toString()}`);
+            // ▼▼▼ CORRECTION (Point 4: Format des coups) ▼▼▼
+            // Mappe [1, 2, 3] vers ["rock", "paper", "scissors"]
+            const movesAsStrings = gameState.selectedMoves.map(move => {
+                if (move === 1) return 'rock';
+                if (move === 2) return 'paper';
+                if (move === 3) return 'scissors';
+                return 'error'; // Sécurité
+            });
+            // ▲▲▲ FIN CORRECTION ▲▲▲
 
             try {
-                // 3.2 Concept 2 : Upload Pinata
-                const cid = await uploadMovesToPinata(gameState.selectedMoves);
+                // 3.2 Concept 2 : Upload Pinata (envoie les strings)
+                const cid = await uploadMovesToPinata(movesAsStrings);
                 console.log(`Pinata CID: ${cid}`);
 
-                // 3.3 Concept 3 : Soumission au Backend (Avec User ID)
-                await submitPreMovesToBackend(gameState.selectedMoves, cid);
+                // 3.3 Concept 3 : Soumission au Backend (envoie les strings)
+                await submitPreMovesToBackend(movesAsStrings, cid);
                 console.log("Pre-moves submitted to backend successfully.");
 
                 // 3.4 Concept 4 : Soumission à la Blockchain
@@ -399,12 +863,24 @@
 
                 alert("Game submitted! Check MetaMask for transaction status.");
 
+                // ▼▼▼ CORRECTION (Point 5: Redirection) ▼▼▼
+                resetMoves(); // Vide les coups sélectionnés
+                showPage('autoplay-page'); // Redirige vers la page d'accueil
+                // ▲▲▲ FIN CORRECTION ▲▲▲
+
             } catch (error) {
                 console.error("Full submission failed:", error);
                 alert(`Submission failed: ${error.message}`);
+                // L'utilisateur reste sur la page 'autoplay-page' pour réessayer
+            
+            } finally {
+                // ▼▼▼ CORRECTION (Point 5: UI post-soumission) ▼▼▼
+                // Quoi qu'il arrive (succès ou échec), on réactive le bouton
+                confirmButton.disabled = false;
+                confirmButton.textContent = "Confirm & Send";
+                // ▲▲▲ FIN CORRECTION ▲▲▲
             }
         }
-
         // Concept 2 Helper: Upload Pinata
         async function uploadMovesToPinata(moves) {
             const pinataData = {
@@ -419,12 +895,12 @@
                 }
             };
 
-            const response = await fetch(PINATA_API_URL, {
+            const response = await fetch(contractConfig.PINATA_API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'pinata_api_key': PINATA_API_KEY,
-                    'pinata_secret_api_key': PINATA_API_SECRET
+                    'pinata_api_key': contractConfig.PINATA_API_KEY,
+                    'pinata_secret_api_key': contractConfig.PINATA_SECRET
                 },
                 body: JSON.stringify(pinataData)
             });
@@ -459,8 +935,6 @@
 
         // Concept 4 Helper: Soumission à la Blockchain
         async function submitToBlockchain(baseBetWei, cid, depositAmountWei) {
-            // Remarque: web3.eth.Contract.methods.call() est utilisé pour les appels en lecture seule
-            // Pour une transaction, on utilise .send()
             const tx = gameContract.methods.submitPremoveCID(
                 baseBetWei,
                 cid
@@ -469,7 +943,6 @@
                 value: depositAmountWei.toString()
             });
 
-            // L'utilisateur devra confirmer dans MetaMask. On attend la transaction.
             return tx;
         }
 
@@ -477,39 +950,44 @@
 
         // Fonction de démarrage du jeu (maintenant un alias pour la soumission)
         async function startAutoplay() {
-            // Ici, on pourrait ajouter la logique pour sélectionner les moves,
-            // mais pour l'instant, on utilise juste le placeholder.
-            // Pour le test, on va simuler un move sélectionné.
-            gameState.selectedMoves = [1, 2, 3]; // Exemple de moves
             await handleSubmitPremove();
         }
-
         
         // Déconnexion de l'utilisateur
         function logout() {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
             localStorage.removeItem('locale');
+            WEB3 = null; // Vider l'instance WEB3 à la déconnexion
+            gameContract = null;
             alert("You have been logged out.");
             showPage('language-page');
+            
+            // Reset user info in nav
+            const userInfoElement = document.getElementById('user-info');
+            if (userInfoElement) {
+                userInfoElement.textContent = 'Not Connected';
+            }
         }
-
-        // Met à jour l'affichage des informations utilisateur
+// Met à jour l'affichage des informations utilisateur
         function updateUserInfo(user) {
+            // L'ID est maintenant 'user-info' (il est dans la nav)
             const userInfoElement = document.getElementById('user-info');
             if (user && userInfoElement) {
                 const shortAddress = `${user.wallet_address.substring(0, 6)}...${user.wallet_address.substring(user.wallet_address.length - 4)}`;
-                userInfoElement.textContent = `Welcome, ${user.name} (${shortAddress})`;
+                // Texte mis à jour pour être plus court
+                userInfoElement.textContent = `${user.name} (${shortAddress})`;
             }
         }
-
         function checkForReferralCodeInUrl() {
             const params = new URLSearchParams(window.location.search);
             const refCode = params.get('ref');
             if (refCode) {
                 const inputElement = document.getElementById('referral-code-input');
-                inputElement.value = refCode;
-                console.log(`Referral code '${refCode}' found in URL.`);
+                if(inputElement) { // S'assurer que l'élément existe
+                    inputElement.value = refCode;
+                    console.log(`Referral code '${refCode}' found in URL.`);
+                }
             }
         }
 
@@ -519,7 +997,6 @@
             const inputElement = document.getElementById('referral-code-input');
             const referralCode = inputElement.value;
 
-            // Only make an API call if the user entered a code and didn't skip
             if (!skipped && referralCode.trim() !== '' && token) {
                 console.log(`Submitting referral code: ${referralCode}`);
                 try {
@@ -534,44 +1011,55 @@
 
                     const data = await response.json();
                     if (!response.ok) {
-                        // Inform the user if the code is invalid, but continue anyway
                         alert(`Note: ${data.message}`);
                     } else {
                         alert('Referral code accepted!');
                     }
                 } catch (error) {
                     console.error('Failed to submit referral code:', error);
-                    // Don't block the user, just log the error
                 }
             }
 
             // Finally, proceed to the game page
             showPage('autoplay-page');
-            initializeGamePage(); // Initialiser la page de jeu après la reconnexion
+            initializeGamePage(); // Initialiser la page de jeu
         }
 
         // Logique de démarrage de l'application
         document.addEventListener('DOMContentLoaded', () => {
-            // Add this line to check the URL as soon as the page loads
             checkForReferralCodeInUrl();
 
             const token = localStorage.getItem('auth_token');
             const user = JSON.parse(localStorage.getItem('user'));
             
-            // The rest of this function stays the same
             if (token && user) {
                 console.log("Existing session found. Welcome back!");
                 updateUserInfo(user);
-                showPage('autoplay-page');
-                initializeGamePage(); // Initialiser la page de jeu après la reconnexion
                 
+                initializeGamePage(); // Initialiser la page de jeu après la reconnexion
+                showPage('autoplay-page');
             } else {
                 console.log("No active session. Please log in.");
                 showPage('language-page');
             }
+
+
+            // Écouteurs pour les boutons de mouvement
+            document.getElementById('move-rock').onclick = () => selectMove(1);
+            document.getElementById('move-paper').onclick = () => selectMove(2);
+            document.getElementById('move-scissors').onclick = () => selectMove(3);
+            document.getElementById('reset-moves-btn').onclick = resetMoves;
+
+            // Initialise l'affichage des mouvements (vide)
+            resetMoves();
+
+            // Rafraîchit toutes les icônes Lucide sur la page
+            lucide.createIcons();
         });
 
     </script>
+
+
 
 </body>
 </html>

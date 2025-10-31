@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Batch;
 use App\Helpers\Web3Helper;
 
+use Illuminate\Validation\ValidationException;
+
 class PoolAutoMatchControllerOriginal extends Controller
 {   
     use HistoricalDataTrait;
@@ -138,43 +140,81 @@ class PoolAutoMatchControllerOriginal extends Controller
     
     public function storePreMoves(Request $request)
     {
-        $validated = $request->validate([
-            'pre_moves' => 'required|array|min:1', // Array of moves
-            'user_id' => 'required|integer|exists:users,id', // Valid user ID
-            'bet_amount' => 'required|numeric|min:0.0001', // Decimal number with a minimum value
-        ]);
-        
-        
-        
+        Log::info('--- storePreMoves function started ---');
+        Log::info('Request Data: ' . json_encode($request->all()));
 
-        $nonce = bin2hex(random_bytes(16)); // Generate a unique nonce
-        $preMoves = $validated['pre_moves'];
-        $bet_amount = $validated['bet_amount'];
+        try {
+            // 1. BLOC DE VALIDATION
+            Log::info('Attempting validation...');
+            $validated = $request->validate([
+                'pre_moves' => 'required|array|min:1',
+                'user_id' => 'required|integer|exists:users,id', // S'assure que l'ID utilisateur existe
+                'bet_amount' => 'required|numeric|min:0.00001',
+            ]);
+            Log::info('Validation successful.');
 
-        // Hash each move with the nonce
-        $hashedMoves = array_map(fn($move) => hash('sha3-256', $move . $nonce), $preMoves);
+            // --- CORRECTION DU BUG ---
+            // N'utilise pas auth()->id() ! Utilise l'ID validé de la requête.
+            $userId = $validated['user_id'];
+            $preMoves = $validated['pre_moves'];
+            $bet_amount = $validated['bet_amount'];
+            
+            Log::info("Data validated for user_id: {$userId}");
 
-        // Store in the database
-        DB::table('pre_moves')->updateOrInsert(
-            ['user_id' => auth()->id()],
-            [
-                'moves' => json_encode($preMoves),
-                'hashed_moves' => json_encode($hashedMoves),
-                'nonce' => $nonce,
-                'current_index' => 0,
-            ]
-        );
+            // 2. BLOC DE LOGIQUE PRINCIPALE
+            $nonce = bin2hex(random_bytes(16));
+            $hashedMoves = array_map(fn($move) => hash('sha3-256', $move . $nonce), $preMoves);
 
-        // Placeholder for storing hashed moves on blockchain
-        $this->registerForAutoplay($bet_amount);
-        $this->storeOnBlockchain($hashedMoves);
+            Log::info('Attempting DB updateOrInsert...');
+            DB::table('pre_moves')->updateOrInsert(
+                ['user_id' => $userId], // <-- BUG CORRIGÉ
+                [
+                    'moves' => json_encode($preMoves),
+                    'hashed_moves' => json_encode($hashedMoves),
+                    'nonce' => $nonce,
+                    'current_index' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+            Log::info('DB operation successful.');
 
-        
+            // Ces fonctions peuvent aussi échouer, ajoutons des logs
+            // $this->registerForAutoplay($bet_amount);
+            // $this->storeOnBlockchain($hashedMoves);
+            // Log::info('Placeholder functions executed.');
 
-        return response()->json([
-            'message' => 'Pre-moves stored successfully!',
-            'hash' => hash('sha3-256', json_encode($hashedMoves)), // Return a hash of all hashed moves
-        ]);
+            Log::info('--- storePreMoves function finished successfully. ---');
+            
+            return response()->json([
+                'message' => 'Pre-moves stored successfully!',
+                'hash' => hash('sha3-256', json_encode($hashedMoves)),
+            ]);
+
+        } catch (ValidationException $e) {
+            // 3. CATCH DES ERREURS DE VALIDATION (très probable)
+            // Si tu vois ça, c'est que la validation a échoué.
+            Log::error('--- Validation Failed for storePreMoves ---');
+            Log::error($e->getMessage());
+            Log::error('Validation Errors: ' . json_encode($e->errors())); // Affiche les champs qui ont échoué
+            
+            // Renvoie une erreur 422 claire au lieu d'une redirection 302
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            // 4. CATCH DE TOUTES LES AUTRES ERREURS
+            Log::error('--- Generic Error in storePreMoves ---');
+            Log::error('Error: ' . $e->getMessage());
+            Log::error('File: ' . $e->getFile() . ' Line: ' . $e->getLine());
+            
+            return response()->json([
+                'message' => 'An internal server error occurred.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function registerForAutoplay($bet_amount)

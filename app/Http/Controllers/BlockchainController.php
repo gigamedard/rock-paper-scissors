@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Events\testevent;
 
+use Illuminate\Support\Facades\Http;
 class BlockchainController extends Controller
 {
     use UserBalanceTrait; // Include the trait
@@ -59,16 +60,38 @@ class BlockchainController extends Controller
 
     public function getArtefacts()
     {
-        // Retrieve ABI and contract address from the config
-        $abi = Config('game_settings.abi');
-        $address = Config('game_settings.contractAddress');
+        Log::info("Fetching game config from Node.js worker...");
+        // Récupère l'URL du worker et le secret depuis ton .env
+        $nodeWorkerUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+        $internalSecret = config('app.INTERNAL_API_SECRET');
 
-        // Return them as a JSON response
-        return response()->json([
-            'abi' => $abi,
-            'address' => $address,
-            'security_coefficient' => Config('game_settings.security_coefficient'),
-        ]);
+        Log::info("Internal API Secret: {$internalSecret}");
+        Log::info("Node Worker URL: {$nodeWorkerUrl}");
+
+
+        try {
+            // Appelle le serveur Node.js en passant le header secret
+            $response = Http::withHeaders([
+                'X-Internal-Secret' => $internalSecret,
+                'Accept' => 'application/json',
+            ])->get("{$nodeWorkerUrl}/get-game-config");
+            Log::info("Response body: " . $response->body());
+            // Si l'appel échoue
+            if (!$response->successful()) {
+                return response()->json([
+                    'error' => 'Erreur: --Le service de configuration est indisponible.--!'
+                ], 503); // 503 Service Unavailable
+            }
+
+            // Si l'appel réussit, renvoie directement la réponse JSON de Node.js
+            return $response->json();
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erreur de communication avec le service interne.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
 
 
