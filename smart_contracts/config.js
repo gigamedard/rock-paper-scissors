@@ -27,12 +27,25 @@ export const MARKETPLACE_WALLET_PK = "***REMOVED***"; // Clé privée pour le Ma
 export const contracts = {
     // --- Contrat du JEU (de listener3.js) ---
     game: {
-        address: "0x7b5655B69546A9E630397985D2Ac3bb23932B910"/*""<--- Adresse de ton contrat de jeu (contractAddress3)*/,
+        address: "0xce8Aa6706E842a7bFced7aA716Bb26A4B7A6A175",// oldaddress: "0x7b5655B69546A9E630397985D2Ac3bb23932B910", // L'adresse que tu avais
         abi:  [
     {
       "inputs": [],
       "stateMutability": "nonpayable",
       "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newSize",
+          "type": "uint256"
+        }
+      ],
+      "name": "DefaultPoolMaxSizeChanged",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -260,6 +273,19 @@ export const contracts = {
       "name": "batchPayOut",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "defaultPoolMaxSize",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -565,6 +591,19 @@ export const contracts = {
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newSize",
+          "type": "uint256"
+        }
+      ],
+      "name": "setDefaultPoolMaxSize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {

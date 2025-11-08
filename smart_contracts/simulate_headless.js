@@ -6,6 +6,7 @@ import fetch from 'node-fetch';
 import {
     LARAVEL_API_URL,
     LOCAL_HARDHAT_URL,
+    FUJI_RPC_URL,
     pinata,
     contracts
 } from "./config.js";
@@ -22,32 +23,55 @@ const PINATA_API_SECRET = pinata.PINATA_SECRET;
 const PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
 
 // 3. Paramètres du jeu
-const BASE_BET_ETH = "0.01"; // La mise de base (ex: 0.01 ETH)
+const BASE_BET_ETH = "0.001"; // La mise de base (ex: 0.01 ETH)
 const SECURITY_COEFFICIENT = 1n; // Le 'n' le transforme en BigInt
 
 // 4. Liste des comptes de test (pris de ton ancien script)
 const predefinedAccounts = [
   {
-    address: "0xa0Ee7A142d267C1f36714E4a8F75612F20a7972",
-    privateKey: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
+    address: "0xdded5d7d8171b68b6105236164bca7a45839d150",
+    privateKey: "400e1b043832260518588f42125acf9b974f6365f78b8ab6899eefe350b228b4"
   },
   {
-    address: "0xBcd4042DE499D14e55001CcbB24a551F3b954096",
-    privateKey: "0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897"
+    address: "0xdafe2be78f32d151f45ef18bcf7e32cb9e6da506",
+    privateKey: "5004f3cf7cf0ad38cd112ce50dd6fbc416172dd25ba92bdd96b0d32002a9af06"
   },
   {
-    address: "0xFABB0ac9d68B0B445fB7357272Ff202C5651694a",
-    privateKey: "0xa267530f49f8280200edf313ee7af6b827f2a8bce2897751d06a843f644967b1"
+    address: "0x89aaa8574c6450fa2380d6a4ce413ac184080f43",
+    privateKey: "4f17b5c561e77f086465826e904db1409192573e9fe795a33112b40dde049b15"
   },
   {
-    address: "0x71bE63f3384f5fb98995898A86B02Fb2426c5788",
-    privateKey: "0x701b615bbdfb9de65240bc28bd21bbc0d996645a3dd57e7b12bc2bdf6f192c82"
+    address: "0x2802e00882f6a8c8958160864ee81e623b9abe57",
+    privateKey: "52f322890993e91ed245059810067871bb1e3c5460303bb798bab5eee29abbd4"
   },
   {
-    address: "0x1CBd3b2770909D4e10f157cABC84C7264073C9Ec",
-    privateKey: "0x47c99abed3324a2707c28affff1267e45918ec8c3f20b8aa892e8b065d2942dd"
+    address: "0x2da239fddfdb298dde0ec3c4e96294506da7e2df",
+    privateKey: "a25b6801aaa2b3d1e99fe0684c5801b270bd6ed9ed3dafddb82b01b453aa0a43"
   },
 ];
+
+
+
+/*
+Private Key: 400e1b043832260518588f42125acf9b974f6365f78b8ab6899eefe350b228b4
+Address: 0xdded5d7d8171b68b6105236164bca7a45839d150
+
+Private Key: 5004f3cf7cf0ad38cd112ce50dd6fbc416172dd25ba92bdd96b0d32002a9af06
+Address: 0xdafe2be78f32d151f45ef18bcf7e32cb9e6da506
+
+
+Private Key: 4f17b5c561e77f086465826e904db1409192573e9fe795a33112b40dde049b15
+Address: 0x89aaa8574c6450fa2380d6a4ce413ac184080f43
+
+Private Key: 52f322890993e91ed245059810067871bb1e3c5460303bb798bab5eee29abbd4
+Address: 0x2802e00882f6a8c8958160864ee81e623b9abe57
+
+Private Key: a25b6801aaa2b3d1e99fe0684c5801b270bd6ed9ed3dafddb82b01b453aa0a43
+Address: 0x2da239fddfdb298dde0ec3c4e96294506da7e2df
+*/
+
+
+
 // ------------------------------------
 
 
@@ -176,7 +200,7 @@ async function main() {
     console.log("--- Démarrage de la Simulation Headless ---");
 
     // Initialisation du Provider et Contrat (en lecture seule d'abord)
-    const provider = new JsonRpcProvider(LOCAL_HARDHAT_URL); // Utilise le RPC local
+    const provider = new JsonRpcProvider(FUJI_RPC_URL); // Utilise le RPC Fuji
     const contract = new Contract(contracts.game.address, contracts.game.abi, provider);
 
     // Calcul des montants
@@ -184,7 +208,7 @@ async function main() {
     const depositWei = baseBetWei * SECURITY_COEFFICIENT;
 
     console.log(`Configuration:
-  - Réseau: ${LOCAL_HARDHAT_URL}
+  - Réseau: ${FUJI_RPC_URL}
   - Contrat: ${contracts.game.address}
   - Mise de Base: ${formatEther(baseBetWei)} ETH
   - Dépôt Total: ${formatEther(depositWei)} ETH (Coefficient: ${SECURITY_COEFFICIENT}x)
