@@ -221,7 +221,7 @@ class PoolService
                 }
             }
 
-            $user->balance = $baseBet * $security_coefficient;
+            $user->balance += $baseBet * $security_coefficient;
             $user->battle_balance = 0;
             $user->preMove->session_first_pool_id = $poolId;
             $user->preMove->save();

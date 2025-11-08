@@ -1,10 +1,24 @@
 import { JsonRpcProvider, Wallet, Contract, formatEther } from "ethers";
-import { contractAddress3, privateKey3, localHardhatUrl, abi3 ,backendUrl, INNER_SCRIPT_TOKEN} from "./_config.js";
+
+
+import {
+    LARAVEL_API_URL,
+    INTERNAL_API_SECRET,
+    BACKEND_URL,
+    LOCAL_HARDHAT_URL,
+    FUJI_RPC_URL,
+    NODE_SERVER_PORT,
+    GAME_WALLET_PK,
+    MARKETPLACE_WALLET_PK,
+    SECURITY_COEFFICIENT,
+    pinata,
+    contracts
+} from "./config.js";
 
 // Initialize provider, wallet, and contract
-const provider = new JsonRpcProvider(localHardhatUrl);
-const wallet = new Wallet(privateKey3, provider);
-const contract = new Contract(contractAddress3, abi3, wallet);
+const provider = new JsonRpcProvider(FUJI_RPC_URL);
+const wallet = new Wallet(GAME_WALLET_PK, provider);
+const contract = new Contract(contracts.game.address, contracts.game.abi, wallet);
 
 // Function to update user balance in the backend
 async function updateUserBalance(user, balance) {
@@ -27,7 +41,7 @@ async function updateUserBalance(user, balance) {
 async function submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,poolSalt) {
 
   try {
-    const url = `http://${backendUrl}/handle-pool-emited?token=${INNER_SCRIPT_TOKEN}&pool_id=${poolId}&base_bet=${baseBet}&users=${users}&premove_cids=${premoveCIDs}&pool_salt=${poolSalt}`;
+    const url = `http://${BACKEND_URL}/handle-pool-emited?token=${INTERNAL_API_SECRET}&pool_id=${poolId}&base_bet=${baseBet}&users=${users}&premove_cids=${premoveCIDs}&pool_salt=${poolSalt}`;
     const response = await fetch(url);
     console.log(url);
 

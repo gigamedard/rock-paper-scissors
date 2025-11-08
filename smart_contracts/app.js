@@ -28,38 +28,155 @@ const gameProvider = new JsonRpcProvider(FUJI_RPC_URL);
 const gameWallet = new Wallet(GAME_WALLET_PK, gameProvider);
 const gameContract = new Contract(contracts.game.address, contracts.game.abi, gameWallet);
 
-// --- Connexion au Marketplace (Fuji) ---
+
+console.log(`[DEBUG] Le worker écoute le contrat Battlepool à l'adresse: ${contracts.game.address}`);
+
+/* --- Connexion au Marketplace (Fuji) ---
 const marketplaceProvider = new JsonRpcProvider(FUJI_RPC_URL);
 const marketplaceWallet = new Wallet(MARKETPLACE_WALLET_PK, marketplaceProvider);
 const marketplaceContract = new Contract(contracts.marketplace.address, contracts.marketplace.abi, marketplaceWallet);
-
+*/
 // ===================================
 // == API SERVER (Logique de server.js)
 // ===================================
 // (Ici on met toutes les routes POST de ton ancien server.js)
 
 app.post("/sendPoolCID", async (req, res) => {
-    // ... ta logique de /sendPoolCID
-    // const tx = await gameContract.storeMatchHistoryCID(poolId, CID);
-    // ...
+    try {
+        const { poolId, CID } = req.body;
+
+        if (!poolId || !CID) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+
+        console.log(`📡 Sending  CID on smart contract...`);
+        // Call the smart contract function (Replace with actual function name)
+       const tx = await gameContract.storeMatchHistoryCID(poolId, CID);
+       await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash });
+    } catch (error) {
+        console.error("❌ Error sending CID to smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
+app.post("/sendSessionCID", async (req, res) => {
+    try {
+        const { wallet, CID } = req.body;
+
+        if (!wallet || !CID) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }  
+
+        console.log(`📡 Sending session  CID on smart contract...`) 
+        // Call the smart contract function (Replace with actual function name)
+        const tx = await gameContract.storeSessionCID(wallet, CID);
+        await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash });
+    } catch (error) {
+        console.error("❌ Error sending session CID to smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
+
+}
+);
+
 app.post("/sendPayment", async (req, res) => {
-    // ... ta logique de /sendPayment
-    // const tx = await gameContract.payOut(wallet, amount);
-    // ...
+    try {
+        const { wallet, amount } = req.body;
+
+        if (!wallet || !amount) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+
+        console.log(`📡 Sending payment - amount: ${formatEther(amount)} ETH on smart contract...`);
+        // Call the smart contract function (Replace with actual function name)
+        //const nonce = await provider.getTransactionCount(wallet, 'latest');
+
+       
+        const balanceBefore = await provider.getBalance(wallet);
+
+        // Step 2: Send the payout transaction
+        const tx = await gameContract.payOut(wallet, amount);
+        const receipt = await tx.wait();
+
+        // Step 3: Small delay to allow for sync (optional in local dev)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Step 4: Get balance after payment
+        const balanceAfter = await provider.getBalance(wallet);
+
+        // Step 5: Calculate difference
+        const balanceDiff = balanceAfter - balanceBefore;
+        const received = balanceDiff >= amount;
+
+        // ✅ Return result with verification
+        res.json({
+            success: true,
+            txHash: tx.hash,
+            received,
+            expectedETH: formatEther(amount),
+            actualIncrease: formatEther(balanceDiff)
+        });
+        //log the actual increase in balance
+        console.log(`💰 Payment sent successfully! Expected: ${formatEther(amount)} ETH, Actual: ${formatEther(balanceDiff)} ETH`);
+    } catch (error) {
+        console.error("❌ Error sending Payement to smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post("/sendBatchPayment", async (req, res) => {
-    // ... ta logique de /sendBatchPayment
-    // const tx = await gameContract.batchPayOut(wallets, amounts);
-    // ...
+    try {
+        const { wallets, amounts } = req.body;
+
+        if (!Array.isArray(wallets) || !Array.isArray(amounts) || wallets.length !== amounts.length) {
+            return res.status(400).json({ error: "Invalid input. Ensure wallets and amounts are arrays of equal length." });
+        }
+
+        console.log(`📡 Sending batch payment - total recipients: ${wallets.length}`);
+
+        // Call the smart contract function
+        const tx = await gameContract.batchPayOut(wallets, amounts);
+        await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash });
+    } catch (error) {
+        console.error("❌ Error sending batch payments to smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post("/create-offer", async (req, res) => {
-    // ... ta logique de /create-offer
-    // const tx = await marketplaceContract.createOffer(...);
-    // ...
+    try {
+        const { sellerAddress, sntAmount, avaxAmount, durationHours } = req.body;
+
+        if (!sellerAddress || !sntAmount || !avaxAmount || !durationHours) {
+            return res.status(400).json({ error: "Paramètres manquants." });
+        }
+
+        console.log(`📡 Tentative de création d'offre pour ${sellerAddress}...`);
+
+        // On convertit les montants pour le smart contract (avec 18 décimales)
+        const sntAmountWei = parseUnits(sntAmount.toString(), 18);
+        const avaxAmountWei = parseUnits(avaxAmount.toString(), 18);
+
+        // Appel de la fonction du smart contract
+        // Note: Le 'approve' doit avoir été fait par l'utilisateur côté frontend AVANT
+        const tx = await marketplaceContract.createOffer(sntAmountWei, avaxAmountWei, durationHours);
+
+        await tx.wait(); // On attend que la transaction soit minée
+
+        console.log(`✅ Offre créée avec succès ! Hash: ${tx.hash}`);
+
+        res.json({ success: true, txHash: tx.hash });
+
+    } catch (error) {
+        console.error("❌ Erreur lors de la création de l'offre:", error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 
@@ -148,7 +265,7 @@ function startBlockchainListeners() {
         });
     });
 
-    // --- Listeners du Contrat MARKETPLACE (de ton ancien listener.js) ---
+    /* --- Listeners du Contrat MARKETPLACE (de ton ancien listener.js) ---
     marketplaceContract.on("OfferCreated", (offerId, seller, sntAmount, avaxAmount, expiresAt) => {
         console.log(`🔔 [MARKETPLACE] OfferCreated: #${offerId}`);
         postToLaravel('/internal/trades/create', { 
@@ -187,7 +304,7 @@ function startBlockchainListeners() {
         });
     });
 
-    console.log("✅ Tous les listeners sont actifs.");
+    */console.log("✅ Tous les listeners sont actifs.");
 }
 
 
