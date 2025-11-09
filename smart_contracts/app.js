@@ -1,7 +1,7 @@
 // app.js (Le nouveau script qui remplace server.js ET listener3.js)
 
 import express from "express";
-import { JsonRpcProvider, Wallet, Contract } from "ethers";
+import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits} from "ethers";
 import {
     LARAVEL_API_URL,
     INTERNAL_API_SECRET,
@@ -248,17 +248,27 @@ async function postToLaravel(endpoint, body) {
 function startBlockchainListeners() {
     console.log("🔊 Démarrage des listeners de blockchain...");
 
-    // --- Listeners du Contrat de JEU (de listener3.js) ---
     gameContract.on("DepositReceived", (user, balance) => {
         console.log(`🔔 [JEU] DepositReceived: ${user}, ${balance}`);
-        postToLaravel('/internal/update-balance', { wallet_address: user, balance: balance.toString() });
+
+        // Convertir le 'balance' (un BigInt en Wei) en string 'Ether'
+        const balanceInEther = formatEther(balance); 
+
+        postToLaravel('/internal/update-balance', { 
+            wallet_address: user, 
+            balance: balanceInEther // On envoie la valeur convertie
+        });
     });
 
     gameContract.on("PoolEmitted", (poolId, baseBet, users, premoveCIDs, poolSalt) => {
         console.log(`🔔 [JEU] PoolEmitted: ${poolId}`);
+        
+        // Convertir le 'baseBet' (un BigInt en Wei) en string 'Ether'
+        const baseBetInEther = formatEther(baseBet);
+
         postToLaravel('/internal/handle-pool-emited', {
             pool_id: poolId.toString(),
-            base_bet: baseBet.toString(),
+            base_bet: baseBetInEther, // <-- CORRIGÉ
             users: users,
             premove_cids: premoveCIDs,
             pool_salt: poolSalt

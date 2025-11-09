@@ -13,8 +13,9 @@ class HistoricalFightService
      * Archive completed fights from a pool by creating historical records.
      */
     public function archivePoolFights($poolId)
-    {   
+    {   log::info('===>archivePoolFights beganning for poolId: '.$poolId);
         $data = $this->getHistoricalFightData($poolId);
+        log::info('===>archivePoolFights got historical data: '.json_encode($data));
         $cid = $this->sendArchiveToPinata($data);
         $nodeUrl = env('NODE_URL');
         $response = Web3Helper::sendPoolCIDToSmartContract($nodeUrl,$cid,$poolId);
@@ -160,8 +161,12 @@ class HistoricalFightService
 
     //create a function that sends archive to pinata and dends the cid reveived to a smartcontract to be stored(ethereum)
     public function sendArchiveToPinata($data)
-    {
+    {   
+
+        log::info('===>sendArchiveToPinata beganning with data: '.json_encode($data));
         $cid = Web3Helper::sendArchiveToPinata($data);
+
+        log::info('===>sendArchiveToPinata finished with cid: '.$cid);
 
         /* Send the CID to the smart contract
         $contract = new EthereumContractService();
