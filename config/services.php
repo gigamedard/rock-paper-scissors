@@ -34,5 +34,13 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'pinata' => [
+        'key'    => env('PINATA_API_KEY'),
+        'secret' => env('PINATA_SECRET_KEY'), // (Assure-toi que c'est le bon nom de .env)
+    ],
+
+    'node' => [
+        'url' => env('NODE_URL'),
+    ],
 
 ];

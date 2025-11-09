@@ -17,7 +17,7 @@ class HistoricalFightService
         $data = $this->getHistoricalFightData($poolId);
         log::info('===>archivePoolFights got historical data: '.json_encode($data));
         $cid = $this->sendArchiveToPinata($data);
-        $nodeUrl = env('NODE_URL');
+        $nodeUrl = config('services.node.url'); // <<< CORRIGÉ
         $response = Web3Helper::sendPoolCIDToSmartContract($nodeUrl,$cid,$poolId);
         return $response;
     }

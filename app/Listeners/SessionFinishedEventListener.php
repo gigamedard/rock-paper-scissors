@@ -139,7 +139,7 @@ class SessionFinishedEventListener
 
     private function sendPayment(User $user): void
     {
-        $nodeUrl = env('NODE_URL');
+        $nodeUrl = config('services.node.url'); // <<< CORRIGÉ
         Web3Helper::sendPayement($nodeUrl, $user->wallet_address, $user->balance);
     }
 }

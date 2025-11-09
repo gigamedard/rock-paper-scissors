@@ -14,8 +14,8 @@ class PinataService
         $client = new Client([
             'base_uri' => 'https://api.pinata.cloud/',
             'headers'  => [
-                'pinata_api_key'    => env('PINATA_API_KEY'),
-                'pinata_secret_api_key' => env('PINATA_SECRET_KEY'),
+                'pinata_api_key'        => config('services.pinata.key'),
+                'pinata_secret_api_key' => config('services.pinata.secret'),
             ],
         ]);
 

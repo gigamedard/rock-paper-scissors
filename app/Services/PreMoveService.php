@@ -18,17 +18,20 @@ class PreMoveService
 
         $hashedMoves = array_map(fn($move) => hash('sha3-256', $move . $nonce), $preMoves);
 
-        DB::table('pre_moves')->updateOrInsert(
-            ['user_id' => $data['user_id']],
-            [
-                'moves'         => json_encode($preMoves),
-                'hashed_moves'  => json_encode($hashedMoves),
+        // === 2. LE NOUVEAU CODE (PLUS PROPRE) ===
+        // Plus besoin de json_encode() ! Eloquent s'en charge.
+        PreMove::updateOrCreate(
+            ['user_id' => $data['user_id']], // Clé pour trouver
+            [                                // Valeurs à mettre à jour ou créer
+                'moves'         => $preMoves,
+                'hashed_moves'  => $hashedMoves,
                 'nonce'         => $nonce,
                 'current_index' => 0,
-                'session_first_pool_id'=>0,
+                'session_first_pool_id' => 0,
                 'cid'           => $data['cid'],
             ]
         );
+        // ======================================
 
         // Register user for autoplay and (stub) store on blockchain.
         $this->registerForAutoplay($data['user_id'], $bet_amount);
