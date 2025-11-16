@@ -1,95 +1,51 @@
 <?php
+
 namespace App\Services;
 
-use App\Models\Pool;
 use App\Models\Fight;
 use App\Models\FHist;
 use App\Helpers\Web3Helper;
+use App\Services\PinataService;
+use App\Transformers\HistoricalDataTransformer;
 use Illuminate\Support\Facades\Log;
 
 class HistoricalFightService
 {
+    protected $pinataService;
+    protected $web3Helper;
+    protected $transformer;
+
+    public function __construct(
+        PinataService $pinataService,
+        Web3Helper $web3Helper,
+        HistoricalDataTransformer $transformer
+    ) {
+        $this->pinataService = $pinataService;
+        $this->web3Helper = $web3Helper;
+        $this->transformer = $transformer;
+    }
+
     /**
      * Archive completed fights from a pool by creating historical records.
      */
     public function archivePoolFights($poolId)
-    {   
-        $data = $this->getHistoricalFightData($poolId);
-        $cid = $this->sendArchiveToPinata($data);
+    {
+        $historicalFights = FHist::where('pool_id', $poolId)->get();
+        $data = $this->transformer->transformCollection($historicalFights);
+        $cid = $this->pinataService->pinJsonData(json_encode($data));
         $nodeUrl = env('NODE_URL');
-        $response = Web3Helper::sendPoolCIDToSmartContract($nodeUrl,$cid,$poolId);
-        return $response;
+        return $this->web3Helper->sendPoolCIDToSmartContract($nodeUrl, $cid, $poolId);
     }
+
     public function archiveFight($fightId, FHist $fHist = null)
-    {   
-        Log::info('===>archiveFight beganning');
+    {
         $fight = Fight::findOrFail($fightId);
 
-        $pi1 = $fight->user1->preMove->current_index;
-        $pi2 = $fight->user2->preMove->current_index;
-        
-        Log::info('===>archiveFight '.json_encode($fight));
-
         if ($fHist) {
-            Log::info('===> archiveFight: FHist record found: ' . json_encode($fHist));
-            Log::info('===>archiveFight if ($fHist) {');
-            $ndata = [
-                'user1_move'           => $fight->user1_chosed,//<--
-                'user2_move'           => $fight->user2_chosed,//<--
-                'user1_balance'        => $fight->user1->balance,//<--
-                'user1_battle_balance' => $fight->user1->battle_balance,//<--          
-                'user2_balance'        => $fight->user2->balance,//<--
-                'user2_battle_balance' => $fight->user2->battle_balance,//<--
-                'fight_id'           => $fight->id,
-            ];
-
-            Log::info('===> archiveFight: Updating FHist with: ' . json_encode($ndata));
-
-            try {
-                $updated = $fHist->update($ndata);
-        
-                if ($updated) {
-                    Log::info('===> archiveFight: Update successful.');
-                } else {
-                    Log::warning('===> archiveFight: Update did not change any records.');
-                }
-            } catch (\Exception $e) {
-                Log::error('===> archiveFight: Update failed with error: ' . $e->getMessage());
-            }
-
-            return $fHist;
+            return $this->updateExistingFHist($fight, $fHist);
+        } else {
+            return $this->createNewFHist($fight);
         }
-        else {
-            Log::info('===>archiveFight if ($fHist) { are note met we are in the else part');
-            // get the old balance of the users
-
-            $old1 = $this->getOld_balance($fight->user1);
-            $old2 = $this->getOld_balance($fight->user2);
-            
-            Log::info('===>archiveFight if ($fHist) { are note met we are in the else part: $old1 = '.$old1);
-            $data = [
-                'pool_id'              => $fight->pool_id,
-                'user1_id'             => $fight->user1_id,
-                'user1_address'        => $fight->user1->wallet_address,
-                'old_user1_balance'    => $old1,
-                'user1_balance'        => $fight->user1->balance,//<--
-                'user1_battle_balance' => $fight->user1->battle_balance,//<--
-                'user1_premove_index'  => $pi1,
-                'user1_move'           => $fight->user1_chosed,//<--
-                'user1_gain'           => $fight->user1Gain(),//<--
-                'user2_id'             => $fight->user2_id,
-                'user2_address'        => $fight->user2->wallet_address,
-                'old_user2_balance'    => $old2,
-                'user2_balance'        => $fight->user2->balance,//<--
-                'user2_battle_balance' => $fight->user2->battle_balance,//<--
-                'user2_premove_index'  => $pi2,
-                'user2_move'           => $fight->user2_chosed,//<--
-                'user2_gain'           => $fight->user2Gain(),//<--
-            ];
-        }   
-        Log::info('===>archiveFight ending');
-        
-        return FHist::create($data);
     }
 
     /**
@@ -98,35 +54,15 @@ class HistoricalFightService
     public function getHistoricalFightData($poolId): array
     {
         $historicalFights = FHist::where('pool_id', $poolId)->get();
-        $data = [];
-        foreach ($historicalFights as $hf) {
-            $data[] = [
-                'pool_id'              => $hf->pool_id,
-                'user1_address'        => $hf->user1_address,
-                'old_user1_balance'    => $hf->old_user1_balance,
-                'user1_balance'        => $hf->user1_balance,
-                'user1_battle_balance' => $hf->user1_battle_balance,
-                'user1_premove_index'  => $hf->user1_premove_index,
-                'user1_move'           => $hf->user1_move,
-                'user1_gain'           => $hf->user1_gain,
-                'user2_address'        => $hf->user2_address,
-                'old_user2_balance'    => $hf->old_user2_balance,
-                'user2_balance'        => $hf->user2_balance,
-                'user2_battle_balance' => $hf->user2_battle_balance,
-                'user2_premove_index'  => $hf->user2_premove_index,
-                'user2_move'           => $hf->user2_move,
-                'user2_gain'           => $hf->user2_gain,
-            ];
-        }
-        return $data;
+        return $this->transformer->transformCollection($historicalFights);
     }
 
     public function getUserHistoricalFights($userId): array
     {
         $historicalFights = FHist::where('user1_id', $userId)
-                            ->orWhere('user2_id', $userId)
-                            ->orderBy('pool_id', 'asc')
-                            ->get();
+            ->orWhere('user2_id', $userId)
+            ->orderBy('pool_id', 'asc')
+            ->get();
 
         $data = [];
         foreach ($historicalFights as $hf) {
@@ -134,55 +70,72 @@ class HistoricalFightService
             if (!isset($data[$poolId])) {
                 $data[$poolId] = [];
             }
-            $data[$poolId][] = [
-                'user1_id'             => $hf->user1_id,
-                'user1_address'        => $hf->user1_address,
-                'old_user1_balance'    => $hf->old_user1_balance,
-                'user1_balance'        => $hf->user1_balance,
-                'user1_battle_balance' => $hf->user1_battle_balance,
-                'user1_premove_index'  => $hf->user1_premove_index,
-                'user1_move'           => $hf->user1_move,
-                'user1_gain'           => $hf->user1_gain,
-                'user2_id'             => $hf->user2_id,
-                'user2_address'        => $hf->user2_address,
-                'old_user2_balance'    => $hf->old_user2_balance,
-                'user2_balance'        => $hf->user2_balance,
-                'user2_battle_balance' => $hf->user2_battle_balance,
-                'user2_premove_index'  => $hf->user2_premove_index,
-                'user2_move'           => $hf->user2_move,
-                'user2_gain'           => $hf->user2_gain,
-            ];
+            $data[$poolId][] = $this->transformer->transform($hf);
         }
 
         return $data;
     }
 
-
-    //create a function that sends archive to pinata and dends the cid reveived to a smartcontract to be stored(ethereum)
-    public function sendArchiveToPinata($data)
+    private function updateExistingFHist(Fight $fight, FHist $fHist): FHist
     {
-        $cid = Web3Helper::sendArchiveToPinata($data);
+        $ndata = [
+            'user1_move' => $fight->user1_chosed,
+            'user2_move' => $fight->user2_chosed,
+            'user1_balance' => $fight->user1->balance,
+            'user1_battle_balance' => $fight->user1->battle_balance,
+            'user2_balance' => $fight->user2->balance,
+            'user2_battle_balance' => $fight->user2->battle_balance,
+            'fight_id' => $fight->id,
+        ];
 
-        /* Send the CID to the smart contract
-        $contract = new EthereumContractService();
-        $contract->storeCID($cid);  This is a mock method, you need to implement it*/
+        try {
+            $fHist->update($ndata);
+        } catch (\Exception $e) {
+            Log::error('Failed to update FHist record: ' . $e->getMessage());
+        }
 
-        return $cid;
+        return $fHist;
     }
 
-    public function getOld_balance($user)
+    private function createNewFHist(Fight $fight): FHist
     {
-        
-        // get the First FHist record for the user. if it does not exist, return the user's balance. if it exists, return the old balance
-        $fHist = FHist::where('user1_id', $user->id)->orWhere('user2_id', $user->id)->orderBy('created_at', 'asc')->first();
+        $old1 = $this->getOldBalance($fight->user1);
+        $old2 = $this->getOldBalance($fight->user2);
+
+        $data = [
+            'pool_id' => $fight->pool_id,
+            'user1_id' => $fight->user1_id,
+            'user1_address' => $fight->user1->wallet_address,
+            'old_user1_balance' => $old1,
+            'user1_balance' => $fight->user1->balance,
+            'user1_battle_balance' => $fight->user1->battle_balance,
+            'user1_premove_index' => $fight->user1->preMove->current_index,
+            'user1_move' => $fight->user1_chosed,
+            'user1_gain' => $fight->user1Gain(),
+            'user2_id' => $fight->user2_id,
+            'user2_address' => $fight->user2->wallet_address,
+            'old_user2_balance' => $old2,
+            'user2_balance' => $fight->user2->balance,
+            'user2_battle_balance' => $fight->user2->battle_balance,
+            'user2_premove_index' => $fight->user2->preMove->current_index,
+            'user2_move' => $fight->user2_chosed,
+            'user2_gain' => $fight->user2Gain(),
+        ];
+
+        return FHist::create($data);
+    }
+
+    private function getOldBalance($user)
+    {
+        $fHist = FHist::where('user1_id', $user->id)
+            ->orWhere('user2_id', $user->id)
+            ->orderBy('created_at', 'asc')
+            ->first();
+
         if ($fHist) {
-            if ($fHist->user1_id == $user->id) {
-                return $fHist->old_user1_balance;
-            } else {
-                return $fHist->old_user2_balance;
-            }
-        } else {
-            return $user->balance;
+            return ($fHist->user1_id == $user->id) ? $fHist->old_user1_balance : $fHist->old_user2_balance;
         }
+
+        return $user->balance;
     }
 }

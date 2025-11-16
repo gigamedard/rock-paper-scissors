@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Log;
 
 class InternalApiAuth
 {
@@ -15,16 +16,17 @@ class InternalApiAuth
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // On récupère la clé secrète depuis les fichiers de configuration
+        Log::info('InternalApiAuth middleware processing request');
+        Log::info('Request headers: ' . json_encode($request->headers->all()));
+
         $secret = config('app.internal_api_secret');
 
-        // On vérifie que la clé est bien configurée ET que l'en-tête de la requête correspond
         if (!$secret || $request->header('X-Internal-Secret') !== $secret) {
-            // Si la clé est manquante ou incorrecte, on bloque la requête.
+            Log::warning('Internal API authentication failed');
             abort(403, 'Unauthorized action.');
         }
 
-        // Si tout est bon, on laisse la requête continuer.
+        Log::info('Internal API authentication successful');
         return $next($request);
     }
 }
