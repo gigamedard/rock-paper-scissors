@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\PoolFinishedEvent;
 use App\Events\UserBalanceUpdated;
+use App\Events\SessionFinishedEvent;
 use App\Helpers\Web3Helper;
 use App\Models\Fight;
 use App\Models\Pool;
@@ -50,6 +51,8 @@ class PoolLifecycleService
             $this->executeMatchingRound($pool);
             $pool->load('users'); // Refresh the users collection
         }
+
+        $this->finishPool($pool);
 
         event(new PoolFinishedEvent($poolId));
     }
@@ -154,5 +157,15 @@ class PoolLifecycleService
     private function hasSufficientUsersForMatch($userCount, $minUsers): bool
     {
         return $userCount >= $minUsers && $userCount >= 2;
+    }
+
+    private function finishPool(Pool $pool)
+    {
+        foreach ($pool->users as $user) {
+            $user->balance += $user->battle_balance;
+            $user->battle_balance = 0;
+            $user->save();
+            event(new SessionFinishedEvent($user->id));
+        }
     }
 }

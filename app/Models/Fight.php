@@ -24,6 +24,14 @@ class Fight extends Model
         'pool_id',
     ];
 
+    protected $fightService;
+
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->fightService = app(FightService::class);
+    }
+
     public function user1(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user1_id');
@@ -74,11 +82,11 @@ class Fight extends Model
 
     public function handleAutoplayFight()
     {
-        return app(FightService::class)->handleAutoplayFight($this);
+        return $this->fightService->handleAutoplayFight($this);
     }
 
     public function handlePoolAutoplayFight($baseBet, $poolSize)
     {
-        return app(FightService::class)->handlePoolAutoplayFight($this, $baseBet, $poolSize);
+        return $this->fightService->handlePoolAutoplayFight($this, $baseBet, $poolSize);
     }
 }

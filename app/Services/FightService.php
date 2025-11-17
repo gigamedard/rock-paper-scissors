@@ -60,7 +60,6 @@ class FightService
             $this->transferBalances($winnerId, $loserId);
             $this->removeUserFromPool($loserId, $fight->pool);
             User::where('id', $loserId)->update(['status' => 'available']);
-            $this->addUserToNewPool($loserId, $baseBet, $poolSize);
         }
 
         $this->updateBattleBalances($fight, $result);
@@ -71,7 +70,7 @@ class FightService
         $this->historicalFightService->archiveFight($fight->id, $fHist);
     }
 
-    private function getPreMove($userId)
+    public function getPreMove($userId)
     {
         $preMove = DB::table('pre_moves')->where('user_id', $userId)->first();
         if (!$preMove) {
@@ -87,7 +86,7 @@ class FightService
         return $nextMove;
     }
 
-    private function determineResult($user1Move, $user2Move)
+    public function determineResult($user1Move, $user2Move)
     {
         $winningCombinations = ['rock' => 'scissors', 'scissors' => 'paper', 'paper' => 'rock'];
         if (!$user1Move) return 'user2_win';
@@ -96,7 +95,7 @@ class FightService
         return $winningCombinations[$user1Move] === $user2Move ? 'user1_win' : 'user2_win';
     }
 
-    private function updateBalances(Fight $fight, $result)
+    protected function updateBalances(Fight $fight, $result)
     {
         $betAmount = $fight->base_bet_amount;
         if ($result === 'user1_win') {
@@ -108,7 +107,7 @@ class FightService
         }
     }
 
-    private function transferBalances($winnerId, $loserId)
+    protected function transferBalances($winnerId, $loserId)
     {
         $loserUser = User::find($loserId);
         $winnerUser = User::find($winnerId);
@@ -120,37 +119,12 @@ class FightService
         $loserUser->save();
     }
 
-    private function removeUserFromPool(int $userId, Pool $pool): void
+    protected function removeUserFromPool(int $userId, Pool $pool): void
     {
         User::where('id', $userId)->update(['pool_id' => null]);
     }
 
-    private function addUserToNewPool(int $userId, float $baseBet, int $poolSize): void
-    {
-        if (!$this->web3Helper->premoveExists($userId)) {
-            return;
-        }
-
-        $pool = Pool::where('base_bet', $baseBet)
-            ->whereDoesntHave('users', function ($query) use ($poolSize) {
-                $query->havingRaw('COUNT(*) >= ?', [$poolSize]);
-            })
-            ->first();
-
-        if (!$pool) {
-            $pool = Pool::create(['base_bet' => $baseBet, 'pool_size' => $poolSize]);
-            $pool->status = 'from_server_waitting';
-            $pool->save();
-        }
-
-        $pool->pool_id = $pool->id;
-        $pool->status = 'from_server_waitting';
-        $pool->save();
-
-        User::where('id', $userId)->update(['pool_id' => $pool->id]);
-    }
-
-    private function updateBattleBalances(Fight $fight, $result)
+    protected function updateBattleBalances(Fight $fight, $result)
     {
         $user1 = $fight->user1;
         $user2 = $fight->user2;
