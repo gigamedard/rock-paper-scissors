@@ -124,6 +124,34 @@ class FightService
         User::where('id', $userId)->update(['pool_id' => null]);
     }
 
+    public function addUserToNewPool(int $userId, float $baseBet, int $poolSize): void
+    {
+        if (!$this->web3Helper->premoveExists($userId)) {
+            return;
+        }
+
+        $pool = Pool::where('base_bet', $baseBet)
+            ->where('status', 'from_server_waitting') // Only pick waiting pools
+            ->has('users', '<', $poolSize)
+            ->first();
+
+        if (!$pool) {
+            $pool = Pool::create([
+                'base_bet' => $baseBet, 
+                'pool_size' => $poolSize,
+                'salt' => \Illuminate\Support\Str::random(10),
+            ]);
+            $pool->status = 'from_server_waitting';
+            $pool->save();
+        }
+
+        $pool->pool_id = $pool->id;
+        $pool->status = 'from_server_waitting';
+        $pool->save();
+
+        User::where('id', $userId)->update(['pool_id' => $pool->id]);
+    }
+
     protected function updateBattleBalances(Fight $fight, $result)
     {
         $user1 = $fight->user1;
