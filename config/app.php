@@ -103,6 +103,7 @@ return [
     // --- AJOUTE CES LIGNES ---
     'INTERNAL_API_SECRET' => env('INTERNAL_API_SECRET'),
     'NODE_WORKER_URL' => env('NODE_WORKER_URL'),
+    'inner_script_token' => env('INNER_SCRIPT_TOKEN'),
 
 
     'previous_keys' => [

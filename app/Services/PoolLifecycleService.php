@@ -40,7 +40,7 @@ class PoolLifecycleService
     {
         $pool = Pool::with(['users' => function ($query) {
             $query->where('status', 'in_pool')->orderBy('id');
-        }])->where('pool_id', $poolId)->firstOrFail();
+        }])->findOrFail($poolId);
 
         $minUsers = ceil($pool->pool_size * config('pool.percentage_limit_of_pool_size'));
         if ($minUsers < 2) {
@@ -161,11 +161,21 @@ class PoolLifecycleService
 
     private function finishPool(Pool $pool)
     {
-        foreach ($pool->users as $user) {
+        // Retrieve all users who participated in the pool via fights
+        $userIds = Fight::where('pool_id', $pool->id)
+            ->get()
+            ->flatMap(function ($fight) {
+                return [$fight->user1_id, $fight->user2_id];
+            })
+            ->unique();
+
+        $users = User::whereIn('id', $userIds)->get();
+
+        foreach ($users as $user) {
             $user->balance += $user->battle_balance;
             $user->battle_balance = 0;
             $user->save();
-            event(new SessionFinishedEvent($user->id));
+            event(new SessionFinishedEvent($user->id, $pool));
         }
     }
 }

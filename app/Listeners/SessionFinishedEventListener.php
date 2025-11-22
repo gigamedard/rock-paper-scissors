@@ -33,8 +33,8 @@ class SessionFinishedEventListener
                 return;
             }
 
-            // Capture pool details before any potential reset
-            $pool = $user->pools; // Assuming belongsTo relationship is 'pools' based on User model
+            // Capture pool details from the event
+            $pool = $event->pool;
             $baseBet = $pool ? $pool->base_bet : 0;
             $poolSize = $pool ? $pool->pool_size : 0;
 

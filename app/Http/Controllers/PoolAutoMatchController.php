@@ -7,6 +7,7 @@ use App\Services\HistoricalFightService;
 use App\Services\BatchProcessingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class PoolAutoMatchController extends Controller
 {
@@ -66,7 +67,7 @@ class PoolAutoMatchController extends Controller
 
     public function poolEmitedRequest(Request $request): JsonResponse
     {
-        if ($request->query('token') !== env('INNER_SCRIPT_TOKEN')) {
+        if ($request->query('token') !== config('app.inner_script_token')) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
@@ -80,8 +81,8 @@ class PoolAutoMatchController extends Controller
 
         try {
             $serviceData = $validated;
-            $serviceData['users'] = json_encode($validated['users']);
-            $serviceData['premove_cids'] = json_encode($validated['premove_cids']);
+            $serviceData['users'] = implode(',', $validated['users']);
+            $serviceData['premove_cids'] = implode(',', $validated['premove_cids']);
 
             $result = $this->poolService->handlePoolEmitedEvent($serviceData);
 

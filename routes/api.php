@@ -98,6 +98,7 @@ Route::prefix('internal')->middleware('auth.internal')->group(function () {
     
     Route::post('/update-balance', [BlockchainController::class, 'updateUserBalance']); 
     Route::post('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+    Route::get('/batch-processing', [PoolAutoMatchController::class, 'processBatch']);
     //todo: do not forget sendPremove from frontend to backend since we use now we use token auth middleware
     
 });
