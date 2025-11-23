@@ -33,6 +33,6 @@ class Pool extends Model
 
     public function match(): void
     {
-        app(PoolMatchingService::class)->match($this);
+        app(\App\Services\PoolLifecycleService::class)->processPoolAutoMatch($this->id);
     }
 }

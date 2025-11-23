@@ -27,7 +27,7 @@ export const MARKETPLACE_WALLET_PK = "***REMOVED***"; // Clé privée pour le Ma
 export const contracts = {
   // --- Contrat du JEU (de listener3.js) ---
   game: {
-    address: "0x95A99C0673a02c458c45B6dD0Cb146a80318805b",// oldaddress: "0x7b5655B69546A9E630397985D2Ac3bb23932B910", // L'adresse que tu avais
+    address: "0x68270C5e76111D0A7fbdf392813d71481bECa3eD",// oldaddress: "0x95A99C0673a02c458c45B6dD0Cb146a80318805b", // L'adresse que tu avais
     abi: [
       {
         "inputs": [],

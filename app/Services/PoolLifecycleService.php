@@ -31,9 +31,12 @@ class PoolLifecycleService
 
         $this->processUsersForPool($users, $premoveCIDs, $pool->id, $pool->base_bet);
 
-        $this->processPoolAutoMatch($pool->id);
+        $pool->status = 'from_server_waitting';
+        $pool->save();
 
-        return ['pool_id' => $data['pool_id'], 'status' => 'processed'];
+        // $this->processPoolAutoMatch($pool->id);
+
+        return ['pool_id' => $data['pool_id'], 'status' => 'queued_for_batch_processing'];
     }
 
     public function processPoolAutoMatch(int $poolId)
@@ -47,9 +50,17 @@ class PoolLifecycleService
             $minUsers = 2;
         }
 
-        while ($this->hasSufficientUsersForMatch($pool->users->count(), $minUsers)) {
+        $maxIterations = 100; // Safety limit
+        $iterations = 0;
+        
+        while ($this->hasSufficientUsersForMatch($pool->users->count(), $minUsers) && $iterations < $maxIterations) {
             $this->executeMatchingRound($pool);
             $pool->load('users'); // Refresh the users collection
+            $iterations++;
+        }
+        
+        if ($iterations >= $maxIterations) {
+            Log::warning("Pool {$pool->id} reached maximum iterations ({$maxIterations}). Breaking loop.");
         }
 
         $this->finishPool($pool);
