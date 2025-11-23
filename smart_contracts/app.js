@@ -1,7 +1,7 @@
 // app.js (Le nouveau script qui remplace server.js ET listener3.js)
 
 import express from "express";
-import { JsonRpcProvider, Wallet, Contract } from "ethers";
+import { JsonRpcProvider, Wallet, Contract, formatEther } from "ethers";
 import {
     LARAVEL_API_URL,
     INTERNAL_API_SECRET,
@@ -51,8 +51,8 @@ app.post("/sendPoolCID", async (req, res) => {
 
         console.log(`📡 Sending  CID on smart contract...`);
         // Call the smart contract function (Replace with actual function name)
-       const tx = await gameContract.storeMatchHistoryCID(poolId, CID);
-       await tx.wait();
+        const tx = await gameContract.storeMatchHistoryCID(poolId, CID);
+        await tx.wait();
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -67,9 +67,9 @@ app.post("/sendSessionCID", async (req, res) => {
 
         if (!wallet || !CID) {
             return res.status(400).json({ error: "Missing required parameters." });
-        }  
+        }
 
-        console.log(`📡 Sending session  CID on smart contract...`) 
+        console.log(`📡 Sending session  CID on smart contract...`)
         // Call the smart contract function (Replace with actual function name)
         const tx = await gameContract.storeSessionCID(wallet, CID);
         await tx.wait();
@@ -95,8 +95,8 @@ app.post("/sendPayment", async (req, res) => {
         // Call the smart contract function (Replace with actual function name)
         //const nonce = await provider.getTransactionCount(wallet, 'latest');
 
-       
-        const balanceBefore = await provider.getBalance(wallet);
+
+        const balanceBefore = await gameProvider.getBalance(wallet);
 
         // Step 2: Send the payout transaction
         const tx = await gameContract.payOut(wallet, amount);
@@ -106,7 +106,7 @@ app.post("/sendPayment", async (req, res) => {
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Step 4: Get balance after payment
-        const balanceAfter = await provider.getBalance(wallet);
+        const balanceAfter = await gameProvider.getBalance(wallet);
 
         // Step 5: Calculate difference
         const balanceDiff = balanceAfter - balanceBefore;
@@ -201,7 +201,7 @@ app.get("/get-game-config", (req, res) => {
         res.status(200).json({
             abi: contracts.game.abi,
             address: contracts.game.address,
-            security_coefficient: SECURITY_COEFFICIENT ,
+            security_coefficient: SECURITY_COEFFICIENT,
             pinata_secret: pinata.PINATA_SECRET,
             pinata_api_url: pinata.PINATA_API_URL,
             pinata_api_key: pinata.PINATA_API_KEY
@@ -245,66 +245,52 @@ async function postToLaravel(endpoint, body) {
 /**
  * Démarre tous les listeners de blockchain
  */
-function startBlockchainListeners() {
-    console.log("🔊 Démarrage des listeners de blockchain...");
+let lastBlock = 0;
 
-    // --- Listeners du Contrat de JEU (de listener3.js) ---
-    gameContract.on("DepositReceived", (user, balance) => {
-        console.log(`🔔 [JEU] DepositReceived: ${user}, ${balance}`);
-        postToLaravel('/internal/update-balance', { wallet_address: user, balance: balance.toString() });
-    });
+async function startBlockchainListeners() {
+    console.log("🔄 Starting Polling Listeners (Robust Mode)...");
 
-    gameContract.on("PoolEmitted", (poolId, baseBet, users, premoveCIDs, poolSalt) => {
-        console.log(`🔔 [JEU] PoolEmitted: ${poolId}`);
-        postToLaravel('/internal/handle-pool-emited', {
-            pool_id: poolId.toString(),
-            base_bet: baseBet.toString(),
-            users: users,
-            premove_cids: premoveCIDs,
-            pool_salt: poolSalt
-        });
-    });
+    try {
+        lastBlock = await gameProvider.getBlockNumber();
+        console.log(`   Current Block: ${lastBlock}`);
+    } catch (e) {
+        console.error("Failed to get initial block:", e);
+    }
 
-    /* --- Listeners du Contrat MARKETPLACE (de ton ancien listener.js) ---
-    marketplaceContract.on("OfferCreated", (offerId, seller, sntAmount, avaxAmount, expiresAt) => {
-        console.log(`🔔 [MARKETPLACE] OfferCreated: #${offerId}`);
-        postToLaravel('/internal/trades/create', { 
-            offerId: offerId.toString(),
-            seller: seller,
-            sntAmount: sntAmount.toString(),
-            avaxAmount: avaxAmount.toString(),
-            expiresAt: expiresAt.toString()
-        });
-    });
+    setInterval(async () => {
+        try {
+            const currentBlock = await gameProvider.getBlockNumber();
+            if (currentBlock > lastBlock) {
+                // console.log(`   Checking blocks ${lastBlock + 1} to ${currentBlock}...`);
 
-    marketplaceContract.on("OfferFulfilled", (offerId, buyer, seller, feeAmount) => {
-        console.log(`🔔 [MARKETPLACE] OfferFulfilled: #${offerId}`);
-        // Met à jour le statut du trade
-        postToLaravel('/internal/trades/update-status', { 
-            offerId: offerId.toString(), 
-            newStatus: 'fulfilled', 
-            buyerAddress: buyer 
-        });
-        // Déclenche la vérification du parrainage
-        postToLaravel('/internal/trades/trigger-referral-check', { 
-            buyer_address: buyer 
-        });
-        // Enregistre les frais pour l'influenceur
-        postToLaravel('/internal/influencer/log-fee', { 
-            seller_address: seller,
-            fee_amount: feeAmount.toString()
-        });
-    });
+                // 1. PoolEmitted
+                const poolEvents = await gameContract.queryFilter("PoolEmitted", lastBlock + 1, currentBlock);
+                for (const event of poolEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] PoolEmitted: ${args[0]}`);
+                    postToLaravel('/internal/handle-pool-emited', {
+                        pool_id: args[0].toString(),
+                        base_bet: args[1].toString(),
+                        users: args[2],
+                        premove_cids: args[3],
+                        pool_salt: args[4]
+                    });
+                }
 
-    marketplaceContract.on("OfferCancelled", (offerId) => {
-        console.log(`🔔 [MARKETPLACE] OfferCancelled: #${offerId}`);
-        postToLaravel('/internal/trades/update-status', { 
-            offerId: offerId.toString(), 
-            newStatus: 'cancelled' 
-        });
-    });
+                // 2. DepositReceived
+                const depositEvents = await gameContract.queryFilter("DepositReceived", lastBlock + 1, currentBlock);
+                for (const event of depositEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] DepositReceived: ${args[0]}, ${args[1]}`);
+                    postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: args[1].toString() });
+                }
 
-    */console.log("✅ Tous les listeners sont actifs.");
+                lastBlock = currentBlock;
+            }
+        } catch (error) {
+            console.error("Polling Error:", error.message);
+        }
+    }, 5000); // Poll every 5 seconds
 }
 
 
@@ -333,7 +319,7 @@ function startBlockchainListeners() {
 // ===================================
 app.listen(NODE_SERVER_PORT, () => {
     console.log(`🚀 Serveur API Node.js unifié démarré sur http://127.0.0.1:${NODE_SERVER_PORT}`);
-    
+
     // Une fois le serveur démarré, on lance les listeners
     startBlockchainListeners();
 });

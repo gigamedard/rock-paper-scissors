@@ -7,7 +7,7 @@ use App\Http\Controllers\BlockchainController;
 use App\Http\Controllers\PoolAutoMatchController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\InfluencerController;
-use App\Http\Controllers\EscrowController;
+use App\Http\Controllers\InternalPayoutController;
 use App\Http\Controllers\WalletAuthController;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\MarketplaceController;
@@ -37,12 +37,25 @@ Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard'
 
 Route::post('/debug-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
 
+Route::post('/debug-session-finish', function (Request $request) {
+    $userId = $request->input('user_id');
+    $user = \App\Models\User::find($userId);
+    if (!$user) return response()->json(['error' => 'User not found'], 404);
+    
+    // Mock a pool for the event (optional, listener handles null pool gracefully-ish, but better to have one)
+    $pool = \App\Models\Pool::first(); 
+    
+    event(new \App\Events\SessionFinishedEvent($userId, $pool));
+    
+    return response()->json(['message' => 'SessionFinishedEvent fired']);
+});
+
 // Public routes
 Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard']);
 Route::get('/influencer/pools', [InfluencerController::class, 'getPools']);
-Route::get('/escrow/trades', [EscrowController::class, 'getTrades']);
-Route::get('/escrow/trade/{tradeId}', [EscrowController::class, 'getTrade']);
-Route::get('/escrow/stats', [EscrowController::class, 'getStats']);
+// Route::get('/escrow/trades', [EscrowController::class, 'getTrades']);
+// Route::get('/escrow/trade/{tradeId}', [EscrowController::class, 'getTrade']);
+// Route::get('/escrow/stats', [EscrowController::class, 'getStats']);
 
 
 
@@ -99,6 +112,7 @@ Route::prefix('internal')->middleware('auth.internal')->group(function () {
     Route::post('/update-balance', [BlockchainController::class, 'updateUserBalance']); 
     Route::post('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
     Route::get('/batch-processing', [PoolAutoMatchController::class, 'processBatch']);
+    Route::post('/payout', [InternalPayoutController::class, 'payout']);
     //todo: do not forget sendPremove from frontend to backend since we use now we use token auth middleware
     
 });

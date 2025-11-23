@@ -7,7 +7,7 @@ use App\Traits\UserBalanceTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Events\testevent;
-
+use App\Helpers\Web3Helper;
 use Illuminate\Support\Facades\Http;
 class BlockchainController extends Controller
 {
@@ -21,21 +21,24 @@ class BlockchainController extends Controller
         ]);
 
         $walletAddress = strtolower($validated['wallet_address']);
-        $balance = $validated['balance'];
+        $balanceWei = $validated['balance'];
+        
+        // Convert from wei to ETH for database storage
+        $balanceEth = Web3Helper::weiToEther($balanceWei);
 
         try {
             $user = User::where('wallet_address', $walletAddress)->first();
 
             if ($user) {
-                $user->update(['balance' => $balance]); // From the trait
+                $user->update(['balance' => $balanceEth]); // From the trait
             } else {
-                $user = $this->createNewUser($walletAddress, $balance); // From the trait
+                $user = $this->createNewUser($walletAddress, $balanceEth); // From the trait
             }
 
-            Log::info("User balance updated: Address: {$walletAddress}, Balance: {$balance}");
+            Log::info("User balance updated: Address: {$walletAddress}, Balance: {$balanceEth} ETH (from {$balanceWei} wei)");
 
             try {
-              event(new testevent(1,$balance));
+              event(new testevent(1,$balanceEth));
             } catch (\Throwable $e) {
                 Log::error("Error emit event: {$e->getMessage()}");
             }
@@ -45,7 +48,8 @@ class BlockchainController extends Controller
             return response()->json([
                 'message' => 'User balance updated successfully.',
                 'address' => $walletAddress,
-                'balance' => $balance,
+                'balance_eth' => $balanceEth,
+                'balance_wei' => $balanceWei,
             ], 200);
 
         } catch (\Throwable $e) {
@@ -90,6 +94,56 @@ class BlockchainController extends Controller
             return response()->json([
                 'error' => 'Erreur de communication avec le service interne.',
                 'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function triggerPayout(Request $request)
+    {
+        $validated = $request->validate([
+            'wallet_address' => 'required|string',
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        $walletAddress = strtolower($validated['wallet_address']);
+        $amountEth = $validated['amount'];
+
+        Log::info("Triggering payout: Wallet: {$walletAddress}, Amount: {$amountEth} ETH");
+
+        try {
+            // Get Node.js worker URL from config
+            $nodeWorkerUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+
+            // Call Node.js worker to send payment via smart contract
+            $result = Web3Helper::sendPayement($nodeWorkerUrl, $walletAddress, $amountEth);
+
+            if (isset($result['success']) && $result['success']) {
+                Log::info("Payout successful: TxHash: {$result['txHash']}");
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payout sent successfully.',
+                    'txHash' => $result['txHash'],
+                    'wallet_address' => $walletAddress,
+                    'amount_eth' => $amountEth,
+                ], 200);
+            } else {
+                Log::error("Payout failed: " . json_encode($result));
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payout failed.',
+                    'error' => $result['error'] ?? 'Unknown error',
+                ], 500);
+            }
+
+        } catch (\Throwable $e) {
+            Log::error("Error triggering payout: {$e->getMessage()}");
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error triggering payout.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

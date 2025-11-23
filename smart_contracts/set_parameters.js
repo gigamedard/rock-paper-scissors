@@ -2,10 +2,10 @@
 // Rôle : Modifier les paramètres globaux (admin) du contrat.
 
 import { JsonRpcProvider, Wallet, Contract } from "ethers";
-import { 
-    FUJI_RPC_URL, 
+import {
+    FUJI_RPC_URL,
     GAME_WALLET_PK, // Doit être la clé du "owner" du contrat
-    contracts 
+    contracts
 } from "./config.js";
 
 // ===================================
@@ -13,10 +13,10 @@ import {
 // ===================================
 
 // La nouvelle valeur pour le coefficient de sécurité (ex: 1)
-const NOUVEAU_COEFFICIENT = 1; 
+const NOUVEAU_COEFFICIENT = 1;
 
-// La nouvelle valeur pour la taille maximale par défaut des pools (ex: 2)
-const NOUVELLE_TAILLE_MAX = 3; 
+// La nouvelle valeur pour la taille maximale par défaut des pools (ex: 5)
+const NOUVELLE_TAILLE_MAX = 5;
 
 // ===================================
 
@@ -27,13 +27,13 @@ async function main() {
     // 1. Connexion au Provider et au Wallet (doit être le 'owner')
     const provider = new JsonRpcProvider(FUJI_RPC_URL);
     const ownerWallet = new Wallet(GAME_WALLET_PK, provider);
-    
+
     // 2. Connexion au contrat (il doit avoir le NOUVEL ABI)
     const contract = new Contract(contracts.game.address, contracts.game.abi, ownerWallet);
 
     console.log(`   - Contrat: ${contracts.game.address}`);
     console.log(`   - Propriétaire (Owner): ${ownerWallet.address}`);
-    
+
     try {
         // === 1. MISE À JOUR DU COEFFICIENT ===
         console.log("\n--- Mise à jour du Security Coefficient ---");
@@ -47,7 +47,7 @@ async function main() {
         } else {
             console.log("   Valeur déjà à jour.");
         }
-        
+
         // === 2. MISE À JOUR DE LA TAILLE MAX PAR DÉFAUT ===
         console.log("\n--- Mise à jour de la Default Pool Max Size ---");
         const oldSize = await contract.defaultPoolMaxSize(); // Appel de la nouvelle fonction

@@ -67,10 +67,8 @@ class PoolAutoMatchController extends Controller
 
     public function poolEmitedRequest(Request $request): JsonResponse
     {
-        if ($request->query('token') !== config('app.inner_script_token')) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
+        // Authentication is handled by auth.internal middleware
+        
         $validated = $request->validate([
             'pool_id'      => 'required|string',
             'base_bet'     => 'required|string',
