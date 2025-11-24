@@ -20,6 +20,9 @@ Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySig
 
 // Protected routes (using our custom ApiAuth middleware)
 Route::middleware('token.auth')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
     Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
     Route::get('/referral/status', [ReferralController::class, 'getStatus']);
     Route::get('/referral/reward-history', [ReferralController::class, 'getRewardHistory']);
@@ -90,6 +93,22 @@ Route::prefix('influencer')->middleware('token.auth')->group(function () {
 
     // Route pour réclamer la récompense
     Route::post('/claim-reward', [InfluencerController::class, 'claimReward']);
+    
+    // Route de TEST pour devenir influenceur
+    Route::post('/join-test', [InfluencerController::class, 'joinTestProgram']);
+
+    // --- Gestion des Candidatures ---
+    Route::post('/apply', [InfluencerController::class, 'apply']);
+    Route::get('/application-status', [InfluencerController::class, 'getApplicationStatus']);
+});
+
+// ===============================================
+// == Routes ADMIN (Protected by checkAdmin)    ==
+// ===============================================
+Route::prefix('admin')->middleware('token.auth')->group(function () {
+    Route::get('/applications', [\App\Http\Controllers\AdminController::class, 'getApplications']);
+    Route::post('/applications/{id}/approve', [\App\Http\Controllers\AdminController::class, 'approveApplication']);
+    Route::post('/applications/{id}/reject', [\App\Http\Controllers\AdminController::class, 'rejectApplication']);
 });
 
 

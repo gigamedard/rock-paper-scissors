@@ -99,11 +99,15 @@ class WalletAuthController extends Controller
 
             $user->save();
 
+            // Check if user has already applied a referral code
+            $user->has_used_referral_code = $user->referredBy()->exists();
+
             return response()->json([
                 'message' => 'Authenticated successfully',
                 'token'   => $token,
                 'user'    => $user,
                 'locale'  => $user->language,
+                'is_admin'=> $user->is_admin // Explicitly return this
             ]);
 
         } catch (\Exception $e) {

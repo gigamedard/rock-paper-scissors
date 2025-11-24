@@ -313,5 +313,93 @@ class InfluencerController extends Controller
                 return $item;
             });
     }
+    /**
+     * Rejoindre le programme influenceur (POUR TEST UNIQUEMENT)
+     */
+    public function joinTestProgram(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. Créer un pool par défaut s'il n'existe pas
+        $pool = InfluencerPool::firstOrCreate(
+            ['name' => 'Global Influencers'],
+            [
+                'language' => 'en',
+                'milestone' => 5,          // Objectif perso : 5 parrainages
+                'pool_milestone' => 50,    // Objectif global : 50 parrainages
+                'reward_amount' => 100,    // 100 AVAX à partager
+                'is_active' => true
+            ]
+        );
+
+        // 2. Ajouter l'utilisateur comme influenceur
+        $influencer = Influencer::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'pool_id' => $pool->id,
+                'is_eligible' => true,
+                'has_claimed' => false
+            ]
+        );
+
+        // 3. Initialiser les stats
+        InfluencerStat::firstOrCreate(
+            ['influencer_id' => $influencer->id],
+            [
+                'referral_count' => 0,
+                'total_avax_spent' => 0
+            ]
+        );
+
+        return response()->json(['message' => 'Welcome to the Influencer Program!']);
+    }
+
+    /**
+     * Submit an influencer application.
+     */
+    public function apply(Request $request)
+    {
+        $user = $request->user();
+
+        // Check if already applied
+        $existing = \App\Models\InfluencerApplication::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->first();
+
+        if ($existing) {
+            return response()->json(['error' => 'You have already applied or are already an influencer.'], 400);
+        }
+
+        $validated = $request->validate([
+            'pseudo' => 'required|string|max:255',
+            'social_links' => 'required|array|min:1',
+            'social_links.*.platform' => 'required|string',
+            'social_links.*.url' => 'required|url'
+        ]);
+
+        $application = \App\Models\InfluencerApplication::create([
+            'user_id' => $user->id,
+            'pseudo' => $validated['pseudo'],
+            'social_links' => $validated['social_links'],
+            'status' => 'pending'
+        ]);
+
+        return response()->json(['message' => 'Application submitted successfully', 'application' => $application]);
+    }
+
+    /**
+     * Get application status.
+     */
+    public function getApplicationStatus(Request $request)
+    {
+        $user = $request->user();
+        $application = \App\Models\InfluencerApplication::where('user_id', $user->id)->latest()->first();
+
+        if (!$application) {
+            return response()->json(['status' => 'none']);
+        }
+
+        return response()->json(['status' => $application->status, 'application' => $application]);
+    }
 }
 

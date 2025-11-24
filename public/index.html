@@ -225,9 +225,17 @@
             box-shadow: inset 3px 3px 0px rgba(0, 0, 0, 0.1);
         }
 
-        #bet-amount-input {
+        #bet-amount-input,
+        .form-input[type="number"] {
             -moz-appearance: textfield;
             appearance: textfield;
+        }
+
+        /* Hide spinners for Chrome, Safari, Edge, Opera */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
 
         .input-group {
@@ -1460,29 +1468,17 @@
         <div class="container">
             <div class="card">
                 <h1>🤝 Programme de Parrainage</h1>
-                <div class="card" style="background-color: #fffbe6; border: 2px solid #f59e0b;">
-                    <h2>⚙️ Panneau de Test - Validation Manuelle</h2>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="referred-user-id" style="font-weight: 600; display: block; margin-bottom: 5px;">
-                            ID de l'utilisateur filleul à valider :
-                        </label>
-                        <input type="number" id="referred-user-id" placeholder="Ex: 2"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    </div>
-                    <button class="btn btn-primary" onclick="validateReferralFromUI()">
-                        🚀 Valider le Parrainage
-                    </button>
-                    <p id="validation-result" style="margin-top: 15px; font-weight: 600; text-align: center;"></p>
-                </div>
+
                 <div class="referral-code-section">
                     <h3>Votre Code de Parrainage</h3>
                     <div class="code-input">
                         <input type="text" id="referral-code-input-dash" value="Chargement..." readonly>
                         <button class="btn btn-primary" onclick="copyReferralCode(event)">
-                            📋 Copier
+                            📋 Copy Code
                         </button>
-                        <button class="btn btn-success">
-                            📤 Partager
+                        <button class="btn btn-primary" style="background-color: #4f46e5;"
+                            onclick="copyReferralLink(event)">
+                            🔗 Copy Link
                         </button>
                     </div>
                     <p id="loading-message" style="color: #4f46e5; margin-top: 10px; text-align: center;">
@@ -1594,6 +1590,65 @@
         </div>
     </div>
 
+    <div id="influencer-application-page" class="page">
+        <div class="container">
+            <div class="card">
+                <h1>🚀 Devenir Influenceur</h1>
+                <p>Rejoignez notre programme pour gagner des récompenses exclusives.</p>
+
+                <div id="application-status-message"
+                    style="display:none; padding: 20px; text-align: center; font-weight: bold;"></div>
+
+                <form id="influencer-application-form">
+                    <div class="form-group">
+                        <label class="form-label">Pseudo d'Influenceur</label>
+                        <input type="text" id="app-pseudo" class="form-input" required placeholder="Votre nom public">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Réseaux Sociaux</label>
+                        <div id="social-links-container">
+                            <!-- Links will be added here -->
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addSocialLinkField()"
+                            style="margin-top: 10px;">
+                            + Ajouter un lien
+                        </button>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">
+                        Envoyer ma Candidature
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-dashboard-page" class="page">
+        <div class="container">
+            <div class="card">
+                <h1>🛡️ Admin Dashboard</h1>
+
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showAdminTab('applications')">Candidatures</button>
+                    <button class="tab-btn" onclick="showAdminTab('settings')">Paramètres</button>
+                </div>
+
+                <div id="admin-tab-applications" class="tab-content active">
+                    <h2>Candidatures en Attente</h2>
+                    <div id="applications-list" class="list-group">
+                        <div class="loading">Chargement...</div>
+                    </div>
+                </div>
+
+                <div id="admin-tab-settings" class="tab-content" style="display:none;">
+                    <h2>Paramètres de l'App</h2>
+                    <p>Configuration des pools et des frais (À venir).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="marketplace-page" class="page">
         <div class="container">
             <div id="notification-banner" class="notification" style="display:none; border-radius: 20px 20px 0 0;">
@@ -1636,26 +1691,29 @@
                         <div style="padding: 25px;">
                             <form id="create-offer-form">
                                 <div class="form-group">
-                                    <label class="form-label" for="snt-amount">Montant SNT à vendre</label>
-                                    <input type="number" id="snt-amount" class="form-input" placeholder="1000" min="1"
-                                        required>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <label class="form-label" for="snt-amount">You Sell (SNT)</label>
+                                        <span
+                                            style="font-size: 0.8em; color: #6b7280; cursor: pointer; text-decoration: underline;"
+                                            onclick="fillMaxSnt()">Max: <span id="user-snt-balance">--</span></span>
+                                    </div>
+                                    <input type="number" id="snt-amount" class="form-input" placeholder="e.g. 1000"
+                                        min="0.000001" step="any" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label" for="avax-amount">Montant AVAX souhaité</label>
-                                    <input type="number" id="avax-amount" class="form-input" placeholder="2.85"
-                                        min="0.01" step="0.01" required>
+                                    <label class="form-label" for="avax-amount">You Receive (AVAX)</label>
+                                    <input type="number" id="avax-amount" class="form-input" placeholder="e.g. 2.5"
+                                        min="0.000001" step="any" required>
                                 </div>
 
                                 <div class="price-info">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                        <span>Prix par SNT:</span>
-                                        <span id="calculated-price">-</span>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                        <span>Price per SNT:</span>
+                                        <span id="calculated-price" style="font-weight: bold; color: #4f46e5;">-</span>
                                     </div>
-                                    <div
-                                        style="display: flex; justify-content: space-between; font-size: 0.9em; color: #64748b;">
-                                        <span>Prix du marché:</span>
-                                        <span id="market-price">0.00285 AVAX</span>
+                                    <div style="font-size: 0.8em; color: #64748b;">
+                                        * The buyer will pay gas fees for the trade.
                                     </div>
                                 </div>
 
@@ -1725,7 +1783,9 @@
         const SNT_TOKEN_ADDRESS = "0x05A26c7f06127710463692263E12c1BF51A34184";
         const MARKETPLACE_ADDRESS = "0xb0Fe23c18bCc490CDFe4E244e9F1c4e54A10cE6c";
         const SNT_TOKEN_ABI = [
-            { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" }
+            { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
+            { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },
+            { "constant": true, "inputs": [{ "name": "owner", "type": "address" }, { "name": "spender", "type": "address" }], "name": "allowance", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }
         ];
         const MARKETPLACE_ABI = [
             { "inputs": [{ "internalType": "address", "name": "_tokenAddress", "type": "address" }, { "internalType": "address", "name": "_initialOwner", "type": "address" }], "stateMutability": "nonpayable", "type": "constructor" },
@@ -2041,7 +2101,7 @@
 
                     const user = JSON.parse(localStorage.getItem('user'));
 
-                    if (user && user.referral_code) {
+                    if (user && user.has_used_referral_code) {
                         showPage('autoplay-page');
                         initializeGamePage();
                     } else {
@@ -2347,11 +2407,22 @@
 
             if (referralCode === 'Chargement...' || referralCode.includes('ERR')) return;
 
-            const referralLink = `${window.location.origin}/?ref=${referralCode}`;
-            const btn = event.currentTarget;
+            copyToClipboard(referralCode, event.currentTarget, '✅ Code Copied!');
+        }
 
+        function copyReferralLink(event) {
+            const input = document.getElementById('referral-code-input-dash');
+            const referralCode = input.value;
+
+            if (referralCode === 'Chargement...' || referralCode.includes('ERR')) return;
+
+            const referralLink = `${window.location.origin}/?ref=${referralCode}`;
+            copyToClipboard(referralLink, event.currentTarget, '✅ Link Copied!');
+        }
+
+        function copyToClipboard(text, btn, successText) {
             const textArea = document.createElement('textarea');
-            textArea.value = referralLink;
+            textArea.value = text;
             textArea.style.position = 'fixed';
             textArea.style.opacity = '0';
             document.body.appendChild(textArea);
@@ -2361,18 +2432,18 @@
             try {
                 document.execCommand('copy');
                 const originalText = btn.textContent;
+                const originalClass = btn.className; // Save original classes
 
-                btn.textContent = '✅ Lien Copié !';
+                btn.textContent = successText;
                 btn.classList.remove('btn-primary');
                 btn.classList.add('btn-success');
 
                 setTimeout(() => {
                     btn.textContent = originalText;
-                    btn.classList.remove('btn-success');
-                    btn.classList.add('btn-primary');
+                    btn.className = originalClass; // Restore original classes
                 }, 2000);
             } catch (err) {
-                console.error('Échec de la copie du texte :', err);
+                console.error('Failed to copy text:', err);
             }
 
             document.body.removeChild(textArea);
@@ -2483,14 +2554,41 @@
             return userState.id;
         }
 
-        async function loadInfluencerDashboardData() {
+        function updateUserInfo(user) {
+            const userInfoElement = document.getElementById('user-info');
+            if (user && userInfoElement) {
+                const shortAddress = `${user.wallet_address.substring(0, 6)}...${user.wallet_address.substring(user.wallet_address.length - 4)}`;
+                userInfoElement.textContent = `${user.name} (${shortAddress})`;
+
+                // Check for admin
+                const navLinks = document.querySelector('.nav-links');
+                const adminLink = document.getElementById('nav-admin-link');
+
+                if (user.is_admin) {
+                    if (!adminLink) {
+                        const link = document.createElement('a');
+                        link.id = 'nav-admin-link';
+                        link.textContent = '🛡️ Admin';
+                        link.onclick = () => showPage('admin-dashboard-page', loadAdminDashboard, true);
+                        navLinks.appendChild(link);
+                    }
+                } else if (adminLink) {
+                    adminLink.remove();
+                }
+            }
+        }
+
+        async function loadInfluencerDashboard() {
+            console.log("Loading Influencer Dashboard Data...");
             try {
                 const response = await secureFetch(`${API_URL}/influencer/dashboard`);
 
                 if (!response.ok) {
                     const err = await response.json();
                     if (response.status === 403) {
-                        throw new Error("Vous n'êtes pas un influenceur.");
+                        // User is not an influencer, check application status
+                        checkApplicationStatus();
+                        return;
                     }
                     throw new Error(err.error || `Erreur HTTP ${response.status}`);
                 }
@@ -2510,6 +2608,129 @@
                 }
             }
         }
+
+        async function joinTestInfluencerProgram() {
+            try {
+                const response = await secureFetch(`${API_URL}/influencer/join-test`, { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert("Succès ! " + data.message);
+                    loadInfluencerDashboard(); // Reload dashboard
+                } else {
+                    alert("Erreur : " + (data.message || "Impossible de rejoindre le programme."));
+                }
+            } catch (e) {
+                console.error("Erreur join test:", e);
+                alert("Erreur de connexion.");
+            }
+        }
+
+        async function checkApplicationStatus() {
+            try {
+                const response = await secureFetch(`${API_URL}/influencer/application-status`);
+                const data = await response.json();
+
+                if (data.status === 'pending') {
+                    showPage('influencer-application-page');
+                    document.getElementById('influencer-application-form').style.display = 'none';
+                    const msg = document.getElementById('application-status-message');
+                    msg.style.display = 'block';
+                    msg.className = 'status-pending'; // Add CSS class for styling
+                    msg.innerHTML = `
+                        <div style="background: #fffbe6; border: 2px solid #f59e0b; padding: 20px; border-radius: 10px;">
+                            <h2>⏳ Candidature en cours d'examen</h2>
+                            <p>Votre demande est en cours de traitement par notre équipe.</p>
+                            <p>Vous recevrez une notification dès qu'elle sera traitée.</p>
+                        </div>`;
+                } else if (data.status === 'rejected') {
+                    showPage('influencer-application-page');
+                    document.getElementById('influencer-application-form').style.display = 'none';
+                    const msg = document.getElementById('application-status-message');
+                    msg.style.display = 'block';
+                    msg.innerHTML = `
+                        <div style="background: #fef2f2; border: 2px solid #ef4444; padding: 20px; border-radius: 10px;">
+                            <h2>❌ Candidature Refusée</h2>
+                            <p>Désolé, votre profil ne correspond pas à nos critères actuels.</p>
+                        </div>`;
+                } else {
+                    // No application or approved (shouldn't happen if 403)
+                    showPage('influencer-application-page');
+                    document.getElementById('influencer-application-form').style.display = 'block';
+                    document.getElementById('application-status-message').style.display = 'none';
+
+                    // Initialize form if empty
+                    const container = document.getElementById('social-links-container');
+                    if (container.children.length === 0) {
+                        addSocialLinkField();
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking application status:", error);
+            }
+        }
+
+        function addSocialLinkField() {
+            const container = document.getElementById('social-links-container');
+            const div = document.createElement('div');
+            div.className = 'social-link-row';
+            div.style.display = 'flex';
+            div.style.gap = '10px';
+            div.style.marginBottom = '10px';
+
+            div.innerHTML = `
+                <select class="form-input" style="width: 120px;">
+                    <option value="twitter">Twitter</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="other">Autre</option>
+                </select>
+                <input type="url" class="form-input" placeholder="https://..." required style="flex: 1;">
+                <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 5px 10px;">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        // Handle Form Submission
+        document.getElementById('influencer-application-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const pseudo = document.getElementById('app-pseudo').value;
+            const rows = document.querySelectorAll('.social-link-row');
+            const social_links = [];
+
+            rows.forEach(row => {
+                const platform = row.querySelector('select').value;
+                const url = row.querySelector('input').value;
+                if (url) social_links.push({ platform, url });
+            });
+
+            if (social_links.length === 0) {
+                alert("Veuillez ajouter au moins un réseau social.");
+                return;
+            }
+
+            try {
+                const response = await secureFetch(`${API_URL}/influencer/apply`, {
+                    method: 'POST',
+                    body: JSON.stringify({ pseudo, social_links })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert("Candidature envoyée avec succès !");
+                    checkApplicationStatus(); // Refresh view
+                } else {
+                    alert("Erreur : " + data.error || data.message);
+                }
+            } catch (error) {
+                console.error("Error submitting application:", error);
+                alert("Erreur de connexion.");
+            }
+        });
 
         async function inf_loadPoolsData() {
             try {
@@ -2700,13 +2921,42 @@
         function loadMarketplacePageData() {
             loadMarketStats();
             loadTrades();
+            updateUserSntBalance(); // Fetch balance immediately
 
             // === MODIFIÉ ===
             clearTimer('marketStats');
             appTimers.marketStats = setInterval(() => {
                 loadMarketStats();
                 loadTrades();
+                updateUserSntBalance(); // Refresh balance periodically
             }, 15000);
+        }
+
+        async function updateUserSntBalance() {
+            if (!WEB3 || !userState.walletAddress) return;
+            try {
+                const sntContract = new WEB3.eth.Contract(SNT_TOKEN_ABI, SNT_TOKEN_ADDRESS);
+                const balanceWei = await sntContract.methods.balanceOf(userState.walletAddress).call();
+                const balanceEth = WEB3.utils.fromWei(balanceWei, 'ether');
+
+                const balanceSpan = document.getElementById('user-snt-balance');
+                if (balanceSpan) {
+                    balanceSpan.textContent = parseFloat(balanceEth).toLocaleString(undefined, { maximumFractionDigits: 2 });
+                    balanceSpan.dataset.rawBalance = balanceEth; // Store raw value for Max button
+                }
+            } catch (error) {
+                console.error("Failed to fetch SNT balance:", error);
+            }
+        }
+
+        function fillMaxSnt() {
+            const balanceSpan = document.getElementById('user-snt-balance');
+            const input = document.getElementById('snt-amount');
+            if (balanceSpan && balanceSpan.dataset.rawBalance && input) {
+                input.value = balanceSpan.dataset.rawBalance;
+                // Trigger input event to update calculated price
+                input.dispatchEvent(new Event('input'));
+            }
         }
 
         async function loadMarketStats() {
@@ -2724,7 +2974,7 @@
                     <div class="stat-card"><div class="stat-number">${parseFloat(stats.total_avax_volume).toFixed(1)}</div><div class="stat-label">Volume AVAX</div></div>
                     <div class="stat-card"><div class="stat-number">${parseFloat(stats.average_price).toFixed(5)}</div><div class="stat-label">Prix Moyen</div></div>
                     <div class="stat-card"><div class="stat-number">${parseInt(stats.last_24h_trades).toLocaleString()}</div><div class="stat-label">Trades 24h</div></div>`;
-                document.getElementById('market-price').textContent = parseFloat(stats.average_price).toFixed(5) + ' AVAX';
+
 
             } catch (error) {
                 if (!error.message.includes("Jeton d'authentification non trouvé")) {
@@ -2798,6 +3048,48 @@
             }
         }
 
+        async function checkAllowance() {
+            if (!WEB3 || !userState.walletAddress) return;
+
+            const sntAmountInput = document.getElementById('snt-amount');
+            const sntAmountVal = sntAmountInput.value;
+
+            const approveBtn = document.getElementById('approve-btn');
+            const createBtn = document.getElementById('create-offer-btn');
+
+            if (!sntAmountVal || parseFloat(sntAmountVal) <= 0) {
+                // Invalid input, reset buttons
+                approveBtn.disabled = false;
+                approveBtn.textContent = '1. Approve SNT';
+                createBtn.disabled = true;
+                return;
+            }
+
+            try {
+                const sntContract = new WEB3.eth.Contract(SNT_TOKEN_ABI, SNT_TOKEN_ADDRESS);
+                const allowanceWei = await sntContract.methods.allowance(userState.walletAddress, MARKETPLACE_ADDRESS).call();
+                const allowanceEth = WEB3.utils.fromWei(allowanceWei, 'ether');
+
+                console.log(`Current allowance: ${allowanceEth} SNT, Required: ${sntAmountVal} SNT`);
+
+                if (parseFloat(allowanceEth) >= parseFloat(sntAmountVal)) {
+                    // Sufficient allowance, skip approval
+                    approveBtn.textContent = '✅ SNT Approved';
+                    approveBtn.disabled = true;
+                    approveBtn.style.background = '#10b981'; // Green
+                    createBtn.disabled = false;
+                } else {
+                    // Insufficient allowance, require approval
+                    approveBtn.textContent = '1. Approve SNT';
+                    approveBtn.disabled = false;
+                    approveBtn.style.background = '#f59e0b'; // Orange
+                    createBtn.disabled = true;
+                }
+            } catch (error) {
+                console.error("Error checking allowance:", error);
+            }
+        }
+
         function setupMarketplaceFormHandlers() {
             const approveBtn = document.getElementById('approve-btn');
             const form = document.getElementById('create-offer-form');
@@ -2827,39 +3119,51 @@
                     priceDisplay.textContent = '-';
                 }
             }
-            sntInput.addEventListener('input', updateCalculatedPrice);
+
+            // Trigger allowance check when SNT amount changes
+            sntInput.addEventListener('input', () => {
+                updateCalculatedPrice();
+                // Debounce allowance check to avoid spamming RPC
+                clearTimeout(window.allowanceCheckTimer);
+                window.allowanceCheckTimer = setTimeout(checkAllowance, 500);
+            });
+
             avaxInput.addEventListener('input', updateCalculatedPrice);
         }
 
         async function handleApprove() {
             if (!WEB3 || !userState.walletAddress) {
-                alert("Veuillez connecter votre portefeuille.");
+                alert("Please connect your wallet.");
                 return;
             }
             const sntAmount = document.getElementById('snt-amount').value;
-            if (!sntAmount || sntAmount <= 0) { alert('Veuillez saisir un montant de SNT valide.'); return; }
+            if (!sntAmount || sntAmount <= 0) { alert('Please enter a valid SNT amount.'); return; }
 
             const sntContract = new WEB3.eth.Contract(SNT_TOKEN_ABI, SNT_TOKEN_ADDRESS);
+            // Approve a slightly larger amount (or infinite) to save future gas? 
+            // For now, let's approve exactly what is requested or a bit more for safety/UX?
+            // Let's stick to approving the requested amount to be safe, or maybe 10x?
+            // Let's approve the requested amount.
             const amountToApprove = WEB3.utils.toWei(sntAmount, 'ether');
+
             const approveBtn = document.getElementById('approve-btn');
-            const createBtn = document.getElementById('create-offer-btn');
 
             try {
-                approveBtn.textContent = 'Approbation en cours...';
+                approveBtn.textContent = 'Approving...';
                 approveBtn.disabled = true;
                 await sntContract.methods.approve(MARKETPLACE_ADDRESS, amountToApprove).send({ from: userState.walletAddress });
 
-                showMarketplaceNotification('Approbation réussie ! Vous pouvez maintenant créer l\'offre.', 'success');
-                approveBtn.style.display = 'none';
-                createBtn.disabled = false;
+                showMarketplaceNotification('✅ Approval successful!', 'success');
+                checkAllowance(); // Re-check to update UI
 
             } catch (error) {
-                console.error("Erreur d'approbation:", error);
-                showMarketplaceNotification('L\'approbation a échoué. Veuillez réessayer.', 'error');
-                approveBtn.textContent = '1. Approuver les SNT';
+                console.error("Approval error:", error);
+                approveBtn.textContent = '1. Approve SNT';
                 approveBtn.disabled = false;
+                alert("Approval failed: " + error.message);
             }
         }
+
 
         async function createOffer() {
             const createBtn = document.getElementById('create-offer-btn');
@@ -2959,7 +3263,97 @@
         }
 
 
-        // --- 11. Logique de Démarrage (DOMContentLoaded) ---
+        // --- Admin Dashboard Logic ---
+        async function loadAdminDashboard() {
+            showAdminTab('applications');
+        }
+
+        function showAdminTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(`admin-tab-${tabName}`).style.display = 'block';
+            // Find button by text content or add ID to buttons. For now, simple toggle.
+
+            if (tabName === 'applications') {
+                loadApplications();
+            }
+        }
+
+        async function loadApplications() {
+            const list = document.getElementById('applications-list');
+            list.innerHTML = '<div class="loading">Chargement...</div>';
+
+            try {
+                const response = await secureFetch(`${API_URL}/admin/applications`);
+                const apps = await response.json();
+
+                if (apps.length === 0) {
+                    list.innerHTML = '<p style="text-align:center; color: #666;">Aucune candidature en attente.</p>';
+                    return;
+                }
+
+                list.innerHTML = apps.map(app => `
+                    <div class="application-card" style="background: white; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 10px; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3>${app.pseudo} <small style="color: #666;">(${app.user.name})</small></h3>
+                                <div class="social-links">
+                                    ${app.social_links.map(l => `<a href="${l.url}" target="_blank" class="badge">${l.platform}</a>`).join(' ')}
+                                </div>
+                                <p style="margin-top: 5px; font-size: 0.9em; color: #888;">Soumis le: ${new Date(app.created_at).toLocaleDateString()}</p>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-success" onclick="approveApp(${app.id})" style="padding: 5px 10px; font-size: 0.9em;">✅ Approuver</button>
+                                <button class="btn btn-danger" onclick="rejectApp(${app.id})" style="padding: 5px 10px; font-size: 0.9em;">❌ Rejeter</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error("Error loading applications:", error);
+                list.innerHTML = '<div class="error">Erreur de chargement.</div>';
+            }
+        }
+
+        async function approveApp(id) {
+            if (!confirm("Approuver cette candidature ?")) return;
+            try {
+                const response = await secureFetch(`${API_URL}/admin/applications/${id}/approve`, { method: 'POST' });
+                if (response.ok) {
+                    alert("Candidature approuvée !");
+                    loadApplications();
+                } else {
+                    alert("Erreur lors de l'approbation.");
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function rejectApp(id) {
+            if (!confirm("Rejeter cette candidature ?")) return;
+            try {
+                const response = await secureFetch(`${API_URL}/admin/applications/${id}/reject`, { method: 'POST' });
+                if (response.ok) {
+                    alert("Candidature rejetée.");
+                    loadApplications();
+                } else {
+                    alert("Erreur lors du rejet.");
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function fetchUserProfile() {
+            try {
+                const response = await secureFetch(`${API_URL}/user`);
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (error) {
+                console.error("Failed to fetch user profile:", error);
+            }
+            return null;
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             checkForReferralCodeInUrl();
@@ -2973,7 +3367,18 @@
                 userState.walletAddress = user.wallet_address;
                 userState.userObject = user;
 
+                // Update UI immediately with cached data
                 updateUserInfo(user);
+
+                // Fetch fresh data in background
+                fetchUserProfile().then(freshUser => {
+                    if (freshUser) {
+                        console.log("User profile refreshed:", freshUser);
+                        userState.userObject = freshUser;
+                        localStorage.setItem('user', JSON.stringify(freshUser));
+                        updateUserInfo(freshUser); // Update UI with fresh data (e.g. admin link)
+                    }
+                });
 
                 initializeGamePage();
                 showPage('autoplay-page');
