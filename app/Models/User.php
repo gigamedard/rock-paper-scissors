@@ -29,6 +29,7 @@ class User extends Authenticatable
         'wallet_address',
         'referral_code',
         'token_balance',
+        'locked_balance',
         'balance',
         'battle_balance',
         'pool_id',

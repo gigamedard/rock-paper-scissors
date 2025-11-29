@@ -67,13 +67,31 @@ class ReferralController extends Controller
                 'referral_code' => $referralCode, // ✅ store code directly
             ]);
 
+            $message = 'Referral code applied successfully!';
+
+            // ===> Give 1 SNT Bonus (Locked) <===
+            if (!$referredUser->has_received_signup_bonus) {
+                $referredUser->increment('token_balance', 1);
+                $referredUser->increment('locked_balance', 1);
+                $referredUser->update(['has_received_signup_bonus' => true]);
+
+                Log::info('🎉 Signup bonus granted (LOCKED) to referred user', [
+                    'user_id' => $referredUser->id,
+                    'bonus_amount' => 1,
+                    'new_token_balance' => $referredUser->fresh()->token_balance,
+                    'new_locked_balance' => $referredUser->fresh()->locked_balance
+                ]);
+
+                $message .= ' You received 1 SNT (Locked).';
+            }
+
             Log::info('Referral created', [
                 'referrer_id' => $referrer->id,
                 'referred_id' => $referredUser->id,
                 'referral_id' => $referral->id,
             ]);
 
-            return response()->json(['message' => 'Referral code applied successfully!']);
+            return response()->json(['message' => $message]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Referral code application failed', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Invalid referral code or user'], 400);
