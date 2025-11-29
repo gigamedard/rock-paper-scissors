@@ -101,4 +101,17 @@ class PoolAutoMatchController extends Controller
     {
         return $this->batchProcessingService->processBatch();
     }
+
+    public function handleStagnantRefund(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'pool_id' => 'required|string',
+            'refunded_count' => 'required|integer',
+            'timestamp' => 'required|integer',
+        ]);
+
+        Log::info("Stagnant Pool Refund Processed", $validated);
+        
+        return response()->json(['message' => 'Stagnant pool refund logged']);
+    }
 }

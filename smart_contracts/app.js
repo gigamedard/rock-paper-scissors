@@ -285,6 +285,18 @@ async function startBlockchainListeners() {
                     postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: args[1].toString() });
                 }
 
+                // 3. PoolStagnantRefund
+                const stagnantEvents = await gameContract.queryFilter("PoolStagnantRefund", lastBlock + 1, currentBlock);
+                for (const event of stagnantEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] PoolStagnantRefund: poolId=${args[0]}, refunded=${args[1]}, timestamp=${args[2]}`);
+                    postToLaravel('/internal/handle-stagnant-refund', {
+                        pool_id: args[0].toString(),
+                        refunded_count: args[1].toString(),
+                        timestamp: args[2].toString()
+                    });
+                }
+
                 lastBlock = currentBlock;
             }
         } catch (error) {

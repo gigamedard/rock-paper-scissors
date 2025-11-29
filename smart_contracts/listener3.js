@@ -2,17 +2,17 @@ import { JsonRpcProvider, Wallet, Contract, formatEther } from "ethers";
 
 
 import {
-    LARAVEL_API_URL,
-    INTERNAL_API_SECRET,
-    BACKEND_URL,
-    LOCAL_HARDHAT_URL,
-    FUJI_RPC_URL,
-    NODE_SERVER_PORT,
-    GAME_WALLET_PK,
-    MARKETPLACE_WALLET_PK,
-    SECURITY_COEFFICIENT,
-    pinata,
-    contracts
+  LARAVEL_API_URL,
+  INTERNAL_API_SECRET,
+  BACKEND_URL,
+  LOCAL_HARDHAT_URL,
+  FUJI_RPC_URL,
+  NODE_SERVER_PORT,
+  GAME_WALLET_PK,
+  MARKETPLACE_WALLET_PK,
+  SECURITY_COEFFICIENT,
+  pinata,
+  contracts
 } from "./config.js";
 
 // Initialize provider, wallet, and contract
@@ -38,7 +38,7 @@ async function updateUserBalance(user, balance) {
 }
 
 // Function to submit to handle pool emoted event
-async function submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,poolSalt) {
+async function submitToHandlePoolEmitedEvent(poolId, baseBet, users, premoveCIDs, poolSalt) {
 
   try {
     const url = `http://${BACKEND_URL}/handle-pool-emited?token=${INTERNAL_API_SECRET}&pool_id=${poolId}&base_bet=${baseBet}&users=${users}&premove_cids=${premoveCIDs}&pool_salt=${poolSalt}`;
@@ -61,6 +61,23 @@ async function submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,p
 
 
 
+// Function to handle stagnant pool refund event
+async function handleStagnantRefund(poolId, refundedCount, timestamp) {
+  try {
+    const url = `http://127.0.0.1:8000/handle-stagnant-refund?pool_id=${poolId}&refunded_count=${refundedCount}&timestamp=${timestamp}`;
+    const response = await fetch(url);
+
+    if (response.ok) {
+      console.log(`✅ Stagnant pool refund handled for poolId: ${poolId}. Refunded ${refundedCount} users.`);
+    } else {
+      const errorText = await response.text();
+      console.error(`❌ Failed to handle stagnant refund for poolId: ${poolId}. Response: ${errorText}`);
+    }
+  } catch (error) {
+    console.error(`🚨 Error handling stagnant pool refund:`, error.message);
+  }
+}
+
 // Main function to listen for DepositReceived events
 async function main() {
   try {
@@ -71,7 +88,7 @@ async function main() {
       console.log(`- 💰balance: ${formatEther(balance)} ETH`);
 
       // Update balance in the backend
-    
+
       await updateUserBalance(user, balance);
     });
 
@@ -83,7 +100,7 @@ async function main() {
 
 
 
-    contract.on("PoolEmitted", async (poolId, baseBet,users,premoveCIDs,poolSalt) => {
+    contract.on("PoolEmitted", async (poolId, baseBet, users, premoveCIDs, poolSalt) => {
 
       console.log(`🔔 PoolEmitted Event Detected:`);
       console.log(`- User: ${users}`);
@@ -93,7 +110,17 @@ async function main() {
       console.log(`- poolSalt: ${poolSalt}`);
 
       // submit to handle pool emoted event
-      await submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,poolSalt);
+      await submitToHandlePoolEmitedEvent(poolId, baseBet, users, premoveCIDs, poolSalt);
+    });
+
+    contract.on("PoolStagnantRefund", async (poolId, refundedCount, timestamp) => {
+      console.log(`🔔 PoolStagnantRefund Event Detected:`);
+      console.log(`- poolId: ${poolId}`);
+      console.log(`- refundedCount: ${refundedCount}`);
+      console.log(`- timestamp: ${timestamp}`);
+
+      // Handle stagnant pool refund
+      await handleStagnantRefund(poolId, refundedCount, timestamp);
     });
 
   } catch (error) {
