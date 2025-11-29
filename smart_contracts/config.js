@@ -1,25 +1,49 @@
 // ===================================
 // == CONFIGURATION PRINCIPALE
 // ===================================
-export const LARAVEL_API_URL = "http://127.0.0.1:8000/api"; // L'URL de ton API Laravel
-export const INTERNAL_API_SECRET = "0x7c852118294e51e653712a81e05800f419141751be58f605c371e18990756086"; // Doit être la MÊME que dans le .env Laravel
-export const BACKEND_URL = "http://127.0.0.1:8000";
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Charger les variables d'environnement
+dotenv.config({ path: join(__dirname, '.env') });
+
+// ===================================
+// == CONFIGURATION PRINCIPALE
+// ===================================
+export const LARAVEL_API_URL = process.env.LARAVEL_API_URL || "http://127.0.0.1:8000/api";
+export const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
+export const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+
+// VALIDATION - Arrête l'application si les secrets ne sont pas définis
+if (!INTERNAL_API_SECRET) {
+  console.error('❌ INTERNAL_API_SECRET must be defined in .env file');
+  // We don't throw here to allow build/test without .env if mocked, but it's critical for runtime
+}
 
 export const SECURITY_COEFFICIENT = 100/*1000*/;
 
 // --- URLs des Réseaux ---
 export const LOCAL_HARDHAT_URL = "http://127.0.0.1:8545";
-export const FUJI_RPC_URL = "https://api.avax-test.network/ext/bc/C/rpc";
+export const FUJI_RPC_URL = process.env.FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
 
 // --- Port du Serveur Node ---
-export const NODE_SERVER_PORT = 3000;
+export const NODE_SERVER_PORT = process.env.NODE_SERVER_PORT || 3000;
 
 // ===================================
 // == PORTEFEUILLES (WALLETS)
 // ===================================
 // (Tu dois remplacer ces clés par les tiennes)
-export const GAME_WALLET_PK = "***REMOVED***"; // Clé privée pour le Battlepool (Fuji)
-export const MARKETPLACE_WALLET_PK = "***REMOVED***"; // Clé privée pour le Marketplace (Fuji)
+export const GAME_WALLET_PK = process.env.GAME_WALLET_PK;
+export const MARKETPLACE_WALLET_PK = process.env.MARKETPLACE_WALLET_PK;
+
+// VALIDATION
+if (!GAME_WALLET_PK || !MARKETPLACE_WALLET_PK) {
+  console.error('❌ Wallet private keys must be defined in .env file');
+}
 
 // ===================================
 // == CONTRATS (Harmonisation)
@@ -102,6 +126,44 @@ export const contracts = {
           }
         ],
         "name": "PayoutProcessed",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "uint256",
+            "name": "poolId",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "refundedCount",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          }
+        ],
+        "name": "PoolStagnantRefund",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "newLimit",
+            "type": "uint256"
+          }
+        ],
+        "name": "StagnantBlockLimitUpdated",
         "type": "event"
       },
       {

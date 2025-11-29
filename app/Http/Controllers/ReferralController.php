@@ -6,6 +6,7 @@ use App\Models\Referral;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ReferralController extends Controller
 {
@@ -70,20 +71,26 @@ class ReferralController extends Controller
             $message = 'Referral code applied successfully!';
 
             // ===> Give 1 SNT Bonus (Locked) <===
-            if (!$referredUser->has_received_signup_bonus) {
-                $referredUser->increment('token_balance', 1);
-                $referredUser->increment('locked_balance', 1);
-                $referredUser->update(['has_received_signup_bonus' => true]);
+            // Fix race condition using DB transaction and lockForUpdate
+            DB::transaction(function () use ($referredUser, &$message) {
+                // Lock the user row to prevent concurrent updates
+                $user = User::where('id', $referredUser->id)->lockForUpdate()->first();
 
-                Log::info('🎉 Signup bonus granted (LOCKED) to referred user', [
-                    'user_id' => $referredUser->id,
-                    'bonus_amount' => 1,
-                    'new_token_balance' => $referredUser->fresh()->token_balance,
-                    'new_locked_balance' => $referredUser->fresh()->locked_balance
-                ]);
+                if (!$user->has_received_signup_bonus) {
+                    $user->increment('token_balance', 1);
+                    $user->increment('locked_balance', 1);
+                    $user->update(['has_received_signup_bonus' => true]);
 
-                $message .= ' You received 1 SNT (Locked).';
-            }
+                    Log::info('🎉 Signup bonus granted (LOCKED) to referred user', [
+                        'user_id' => $user->id,
+                        'bonus_amount' => 1,
+                        'new_token_balance' => $user->fresh()->token_balance,
+                        'new_locked_balance' => $user->fresh()->locked_balance
+                    ]);
+
+                    $message .= ' You received 1 SNT (Locked).';
+                }
+            });
 
             Log::info('Referral created', [
                 'referrer_id' => $referrer->id,

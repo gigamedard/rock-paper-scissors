@@ -95,8 +95,7 @@ Route::get('/counter', function (Request $request) {
         "0xE6B4d7F3a2C1B9e5F8A4d7C2b3E9F1A5C6D8e7F0"
     ];
 
-$addresses = implode("','", $users); // Make sure your values are safe!
-$usersCollection = User::whereRaw("wallet_address IN ('$addresses')")->get();
+    $usersCollection = User::whereIn('wallet_address', $users)->get();
 
 Log::info('===================================>usersCollection: ' . json_encode($usersCollection));
 

@@ -67,8 +67,12 @@ class WalletAuthController extends Controller
 
         try {
             $recovered = $this->recoverAddressFromSignature($message, $validated['signature']);
-
-            if (!hash_equals($address, strtolower($recovered))) {
+            
+            // Use hash_equals for timing-safe comparison
+            // Ensure both are lowercase strings
+            if (!hash_equals(strtolower($address), strtolower($recovered))) {
+                // Add random delay to prevent timing attacks
+                usleep(random_int(100000, 300000)); // 100-300ms
                 return response()->json(['message' => 'Invalid signature'], 401);
             }
 
@@ -111,7 +115,11 @@ class WalletAuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Verification failed', 'error' => $e->getMessage()], 400);
+            Log::error('Signature verification failed', [
+                'error' => $e->getMessage(),
+                'wallet' => $address ?? 'unknown'
+            ]);
+            return response()->json(['message' => 'Authentication failed. Please try again.'], 401);
         }
     }
 

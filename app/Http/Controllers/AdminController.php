@@ -35,7 +35,11 @@ class AdminController extends Controller
     {
         $this->checkAdmin($request->user());
 
-        $application = InfluencerApplication::findOrFail($id);
+        if (!is_numeric($id) || $id <= 0) {
+            return response()->json(['error' => 'Invalid application ID'], 400);
+        }
+
+        $application = InfluencerApplication::findOrFail((int)$id);
         
         if ($application->status !== 'pending') {
             return response()->json(['error' => 'Application is not pending'], 400);
@@ -77,7 +81,11 @@ class AdminController extends Controller
     {
         $this->checkAdmin($request->user());
 
-        $application = InfluencerApplication::findOrFail($id);
+        if (!is_numeric($id) || $id <= 0) {
+            return response()->json(['error' => 'Invalid application ID'], 400);
+        }
+
+        $application = InfluencerApplication::findOrFail((int)$id);
         $application->update(['status' => 'rejected']);
 
         return response()->json(['message' => 'Application rejected']);
