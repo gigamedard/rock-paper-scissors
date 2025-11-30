@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Models\Influencer;
+use App\Models\InfluencerStat;
 
 class ReferralController extends Controller
 {
@@ -175,6 +177,27 @@ class ReferralController extends Controller
         $referral->update(['status' => 'validated']);
         
         $referrer = $referral->referrer;
+
+        // ===> INFLUENCER STATS UPDATE <===
+        // Check if the referrer is an influencer and update their stats
+        $influencer = Influencer::where('user_id', $referrer->id)->first();
+        if ($influencer) {
+            $stats = $influencer->stats;
+            if (!$stats) {
+                $stats = InfluencerStat::create([
+                    'influencer_id' => $influencer->id,
+                    'referral_count' => 0,
+                    'total_avax_spent' => 0
+                ]);
+            }
+            $stats->incrementReferralCount(1);
+            Log::info('Influencer stats updated via referral validation', [
+                'influencer_id' => $influencer->id,
+                'referrer_id' => $referrer->id,
+                'new_count' => $stats->fresh()->referral_count
+            ]);
+        }
+        // ===> END INFLUENCER STATS UPDATE <===
         $totalValidated = Referral::where('referrer_id', $referrer->id)
             ->where('status', 'validated')
             ->count();
