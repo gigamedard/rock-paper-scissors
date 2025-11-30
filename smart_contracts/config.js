@@ -51,7 +51,7 @@ if (!GAME_WALLET_PK || !MARKETPLACE_WALLET_PK) {
 export const contracts = {
   // --- Contrat du JEU (de listener3.js) ---
   game: {
-    address: "0x68270C5e76111D0A7fbdf392813d71481bECa3eD",// oldaddress: "0x95A99C0673a02c458c45B6dD0Cb146a80318805b", // L'adresse que tu avais
+    address: "0x21C29794150Eb7801D84860c2B124274F902514B",// oldaddress: "0x95A99C0673a02c458c45B6dD0Cb146a80318805b", // L'adresse que tu avais
     abi: [
       {
         "inputs": [],
@@ -101,44 +101,6 @@ export const contracts = {
           },
           {
             "indexed": false,
-            "internalType": "string",
-            "name": "cid",
-            "type": "string"
-          }
-        ],
-        "name": "MatchHistoryCIDUpdated",
-        "type": "event"
-      },
-      {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "address",
-            "name": "wallet",
-            "type": "address"
-          },
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "amount",
-            "type": "uint256"
-          }
-        ],
-        "name": "PayoutProcessed",
-        "type": "event"
-      },
-      {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          },
-          {
-            "indexed": false,
             "internalType": "uint256",
             "name": "refundedCount",
             "type": "uint256"
@@ -164,6 +126,44 @@ export const contracts = {
           }
         ],
         "name": "StagnantBlockLimitUpdated",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "uint256",
+            "name": "poolId",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "string",
+            "name": "cid",
+            "type": "string"
+          }
+        ],
+        "name": "MatchHistoryCIDUpdated",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "wallet",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "PayoutProcessed",
         "type": "event"
       },
       {
@@ -822,6 +822,45 @@ export const contracts = {
           }
         ],
         "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "stagnantBlockLimit",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_limit",
+            "type": "uint256"
+          }
+        ],
+        "name": "setStagnantBlockLimit",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "baseBet",
+            "type": "uint256"
+          }
+        ],
+        "name": "checkAndRefundStagnantPool",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
       },
       {

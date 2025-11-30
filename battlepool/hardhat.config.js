@@ -1,11 +1,12 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config({ path: "../smart_contracts/.env" });
 
 // ⚠️ IMPORTANT : Remplacez ceci par votre clé privée
 // Copiez la valeur de GAME_WALLET_PK depuis votre fichier config.js
-const FUJI_PRIVATE_KEY = "***REMOVED***";
+const FUJI_PRIVATE_KEY = process.env.GAME_WALLET_PK;
 
 // Copiez l'URL RPC depuis votre fichier config.js
-const FUJI_RPC_URL = "https://api.avax-test.network/ext/bc/C/rpc";
+const FUJI_RPC_URL = process.env.FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -23,7 +24,7 @@ module.exports = {
     // === BLOC AJOUTÉ ===
     fuji: {
       url: FUJI_RPC_URL,
-      accounts: [FUJI_PRIVATE_KEY],
+      accounts: FUJI_PRIVATE_KEY ? [FUJI_PRIVATE_KEY] : [],
       chainId: 43113
     }
     // ===================

@@ -38,7 +38,12 @@ async function main() {
         console.log("\n🏊 Step 3: Create Pool with Test Users");
         console.log("-".repeat(60));
         const baseBet = ethers.parseEther("0.001"); // 0.001 AVAX
-        const requiredDeposit = baseBet * BigInt(100); // baseBet * securityCoefficient
+
+        // Fetch security coefficient from contract
+        const securityCoefficient = await contract.securityCoefficient();
+        console.log(`Security Coefficient: ${securityCoefficient}`);
+
+        const requiredDeposit = baseBet * securityCoefficient;
 
         console.log(`Base Bet: ${ethers.formatEther(baseBet)} AVAX`);
         console.log(`Required Deposit per user: ${ethers.formatEther(requiredDeposit)} AVAX`);
@@ -54,10 +59,25 @@ async function main() {
         // Add first user if pool is empty
         if (initialUsers.length === 0) {
             console.log("\n📝 Adding first test user to pool...");
-            const user1Wallet = new ethers.Wallet("***REMOVED***", provider);
+
+            // Use a random wallet for user 1
+            const user1Wallet = ethers.Wallet.createRandom().connect(provider);
+            console.log(`Created User 1 wallet: ${user1Wallet.address}`);
+
+            // Fund user 1 from main wallet
+            console.log("Funding User 1...");
+            const fundAmount = ethers.parseEther("2.0"); // 2.0 AVAX (enough for deposit + gas)
+            const fundTx = await wallet.sendTransaction({
+                to: user1Wallet.address,
+                value: fundAmount
+            });
+            await fundTx.wait();
+            console.log(`✓ Funded User 1 with 2.0 AVAX. Tx: ${fundTx.hash}`);
+
             const user1Contract = contract.connect(user1Wallet);
 
             const addUser1Tx = await user1Contract.submitPremoveCID(
+                baseBet,
                 "QmTestCID1",
                 { value: requiredDeposit }
             );
