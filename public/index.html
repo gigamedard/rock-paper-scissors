@@ -1375,21 +1375,24 @@
     <nav class="main-nav">
         <div class="nav-brand">GameApp</div>
         <div class="nav-links">
-            <a onclick="showPage('autoplay-page', null, true)">Play</a>
-            <a onclick="showPage('referral-dashboard-page', loadReferralDashboard, true)">Referrals</a>
-            <a onclick="showPage('influencer-dashboard-page', loadInfluencerDashboard, true)">Influencer</a>
-            <a onclick="showPage('marketplace-page', loadMarketplaceDashboard, true)">Marketplace</a>
+            <a onclick="showPage('autoplay-page', null, true)" data-i18n="nav_play">Play</a>
+            <a onclick="showPage('referral-dashboard-page', loadReferralDashboard, true)"
+                data-i18n="nav_referrals">Referrals</a>
+            <a onclick="showPage('influencer-dashboard-page', loadInfluencerDashboard, true)"
+                data-i18n="nav_influencer">Influencer</a>
+            <a onclick="showPage('marketplace-page', loadMarketplaceDashboard, true)"
+                data-i18n="nav_marketplace">Marketplace</a>
         </div>
         <div class="nav-user">
             <span id="user-info">Not Connected</span>
-            <button class="logout-btn-nav" onclick="logout()">Logout</button>
+            <button class="logout-btn-nav" onclick="logout()" data-i18n="nav_logout">Logout</button>
         </div>
     </nav>
 
     <div id="language-page" class="page">
         <div class="card">
-            <h2>Choose Your Language</h2>
-            <p>Select a language to connect your wallet and start playing.</p>
+            <h2 data-i18n="lang_title">Choose Your Language</h2>
+            <p data-i18n="lang_subtitle">Select a language to connect your wallet and start playing.</p>
             <div class="flag-container">
                 <button class="flag-btn" onclick="loginWithWallet('en')"><img src="flags/en.png" alt="English"></button>
                 <button class="flag-btn" onclick="loginWithWallet('fr')"><img src="flags/fr.png"
@@ -1405,14 +1408,14 @@
 
     <div id="autoplay-page" class="page">
         <div class="card">
-            <h2>Start New Game</h2>
+            <h2 data-i18n="game_title">Start New Game</h2>
             <div class="input-group">
-                <label for="bet-amount-input">Your Base Bet (ETH):</label>
+                <label for="bet-amount-input" data-i18n="game_bet_label">Your Base Bet (ETH):</label>
                 <input type="number" id="bet-amount-input" value="0.05" step="0.01" min="0.01">
             </div>
 
             <div class="input-group">
-                <label>Select 2 to 100 Moves:</label>
+                <label data-i18n="game_moves_label">Select 2 to 100 Moves:</label>
                 <div class="move-selector">
                     <button id="move-rock" class="move-btn"><i data-lucide="rock"></i></button>
                     <button id="move-paper" class="move-btn"><i data-lucide="hand"></i></button>
@@ -1420,108 +1423,118 @@
                 </div>
                 <div id="selected-moves-display" class="moves-display">
                 </div>
-                <button id="reset-moves-btn" class="skip-btn" style="margin-top: 10px; width: 100%;">Reset All</button>
+                <button id="reset-moves-btn" class="skip-btn" style="margin-top: 10px; width: 100%;"
+                    data-i18n="game_reset_btn">Reset All</button>
             </div>
 
-            <button id="autoplay-btn" onclick="showConfirmationModal()">Review Game</button>
+            <button id="autoplay-btn" onclick="showConfirmationModal()" data-i18n="game_review_btn">Review Game</button>
         </div>
     </div>
 
     <div id="confirmation-modal" class="page">
         <div class="card">
-            <h2>Confirm Your Game</h2>
-            <p>Please review your submission. This will lock your funds in the contract.</p>
+            <h2 data-i18n="modal_title">Confirm Your Game</h2>
+            <p data-i18n="modal_subtitle">Please review your submission. This will lock your funds in the contract.</p>
 
             <div class="summary-line">
-                <strong>Your Moves:</strong>
+                <strong data-i18n="modal_moves">Your Moves:</strong>
                 <span id="confirm-moves"></span>
             </div>
             <div class="summary-line">
-                <strong>Base Bet:</strong>
+                <strong data-i18n="modal_bet">Base Bet:</strong>
                 <span id="confirm-bet"></span> ETH
             </div>
             <div class="summary-line highlight">
-                <strong>Total Deposit:</strong>
+                <strong data-i18n="modal_deposit">Total Deposit:</strong>
                 <span id="confirm-deposit"></span> ETH
             </div>
-            <p class="warning">This is the (Base Bet) x (Security Coefficient). This total amount will be sent to the
-                contract.</p>
+            <p class="warning" data-i18n="modal_warning">This is the (Base Bet) x (Security Coefficient). This total
+                amount will be sent to the contract.</p>
 
-            <button id="confirm-submit-btn" onclick="handleSubmitPremove()">Confirm & Send</button>
-            <button class="skip-btn" onclick="hideConfirmationModal()">Cancel</button>
+            <button id="confirm-submit-btn" onclick="handleSubmitPremove()" data-i18n="modal_confirm_btn">Confirm &
+                Send</button>
+            <button class="skip-btn" onclick="hideConfirmationModal()" data-i18n="modal_cancel_btn">Cancel</button>
         </div>
     </div>
 
     <div id="referral-page" class="page">
         <div class="card">
-            <h2>Have a Referral Code?</h2>
-            <p>Enter a referral code to get a bonus. You can also skip this step.</p>
+            <h2 data-i18n="ref_title">Have a Referral Code?</h2>
+            <p data-i18n="ref_subtitle">Enter a referral code to get a bonus. You can also skip this step.</p>
 
-            <input type="text" id="referral-code-input" placeholder="e.g., REF-ABC123">
+            <input type="text" id="referral-code-input" placeholder="e.g., REF-ABC123" data-i18n="ref_placeholder">
 
-            <button id="submit-referral-btn" onclick="submitReferralCode()">Continue</button>
-            <button class="skip-btn" onclick="submitReferralCode(true)">Skip for Now</button>
+            <button id="submit-referral-btn" onclick="submitReferralCode()" data-i18n="ref_submit_btn">Continue</button>
+            <button class="skip-btn" onclick="submitReferralCode(true)" data-i18n="ref_skip_btn">Skip for Now</button>
         </div>
     </div>
 
     <div id="referral-dashboard-page" class="page">
         <div class="container">
             <div class="card">
-                <h1>🤝 Programme de Parrainage</h1>
+                <h1 data-i18n="ref_dash_title">🤝 Programme de Parrainage</h1>
 
                 <div class="referral-code-section">
-                    <h3>Votre Code de Parrainage</h3>
+                    <h3 data-i18n="ref_dash_your_code">Votre Code de Parrainage</h3>
                     <div class="code-input">
-                        <input type="text" id="referral-code-input-dash" value="Chargement..." readonly>
-                        <button class="btn btn-primary" onclick="copyReferralCode(event)">
+                        <input type="text" id="referral-code-input-dash" value="Chargement..." readonly
+                            data-i18n="ref_dash_loading">
+                        <button class="btn btn-primary" onclick="copyReferralCode(event)"
+                            data-i18n="ref_dash_copy_code">
                             📋 Copy Code
                         </button>
                         <button class="btn btn-primary" style="background-color: #4f46e5;"
-                            onclick="copyReferralLink(event)">
+                            onclick="copyReferralLink(event)" data-i18n="ref_dash_copy_link">
                             🔗 Copy Link
                         </button>
                     </div>
-                    <p id="loading-message" style="color: #4f46e5; margin-top: 10px; text-align: center;">
+                    <p id="loading-message" style="color: #4f46e5; margin-top: 10px; text-align: center;"
+                        data-i18n="ref_dash_loading_stats">
                         Chargement des statistiques...
                     </p>
                 </div>
 
                 <div class="stats-grid">
                     <div class="stat-card blue">
-                        <div class="stat-label">👥 Total Parrainages</div>
+                        <div class="stat-label" data-i18n="ref_dash_total">👥 Total Parrainages</div>
                         <div class="stat-number" id="stat-total-referrals">--</div>
                     </div>
                     <div class="stat-card yellow">
-                        <div class="stat-label">⏳ En Attente</div>
+                        <div class="stat-label" data-i18n="ref_dash_pending">⏳ En Attente</div>
                         <div class="stat-number" id="stat-pending-referrals">--</div>
                     </div>
                     <div class="stat-card green">
-                        <div class="stat-label">✅ Validés</div>
+                        <div class="stat-label" data-i18n="ref_dash_validated">✅ Validés</div>
                         <div class="stat-number" id="stat-validated-referrals">--</div>
                     </div>
                     <div class="stat-card purple">
-                        <div class="stat-label">🎁 Récompenses SNT</div>
+                        <div class="stat-label" data-i18n="ref_dash_rewards">🎁 Récompenses SNT</div>
                         <div class="stat-number" id="stat-total-rewards">--</div>
                     </div>
                 </div>
 
                 <div class="instructions">
-                    <h3>Comment ça marche ?</h3>
+                    <h3 data-i18n="ref_dash_how_title">Comment ça marche ?</h3>
                     <ol>
-                        <li><strong>Partagez</strong> votre code de parrainage avec vos amis.</li>
-                        <li>Votre ami <strong>s'inscrit</strong> en utilisant votre code.</li>
-                        <li>Une fois que votre ami est marqué comme <strong>validé</strong> (après avoir rejoint une
-                            poule), il est compté dans vos parrainages.</li>
-                        <li><strong>Atteignez des paliers</strong> de parrainages validés pour gagner des récompenses !
+                        <li data-i18n="ref_dash_how_step1"><strong>Partagez</strong> votre code de parrainage avec vos
+                            amis.</li>
+                        <li data-i18n="ref_dash_how_step2">Votre ami <strong>s'inscrit</strong> en utilisant votre code.
+                        </li>
+                        <li data-i18n="ref_dash_how_step3">Une fois que votre ami est marqué comme
+                            <strong>validé</strong> (après avoir rejoint une
+                            poule), il est compté dans vos parrainages.
+                        </li>
+                        <li data-i18n="ref_dash_how_step4"><strong>Atteignez des paliers</strong> de parrainages validés
+                            pour gagner des récompenses !
                         </li>
                     </ol>
                 </div>
             </div>
 
             <div class="card leaderboard">
-                <h2>🏆 Classement des Parraineurs</h2>
+                <h2 data-i18n="ref_dash_leaderboard">🏆 Classement des Parraineurs</h2>
                 <div id="referral-leaderboard-content">
-                    <div class="loading">Chargement du classement...</div>
+                    <div class="loading" data-i18n="ref_dash_leaderboard_loading">Chargement du classement...</div>
                 </div>
             </div>
         </div>
@@ -1530,59 +1543,59 @@
     <div id="influencer-dashboard-page" class="page">
         <div class="container">
             <div class="header">
-                <h1>🏆 Dashboard Influenceur</h1>
-                <p>Gagnez des récompenses AVAX en atteignant vos objectifs</p>
+                <h1 data-i18n="inf_dash_title">🏆 Dashboard Influenceur</h1>
+                <p data-i18n="inf_dash_subtitle">Gagnez des récompenses AVAX en atteignant vos objectifs</p>
             </div>
 
             <div class="content">
                 <div class="pool-info" id="current-pool">
                     <div class="loading">
                         <div class="spinner"></div>
-                        Chargement des informations du pool...
+                        <span data-i18n="inf_dash_pool_loading">Chargement des informations du pool...</span>
                     </div>
                 </div>
 
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number" id="personal-referrals">-</div>
-                        <div class="stat-label">Mes Parrainages</div>
+                        <div class="stat-label" data-i18n="inf_dash_my_referrals">Mes Parrainages</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-number" id="avax-spent">-</div>
-                        <div class="stat-label">AVAX Dépensés</div>
+                        <div class="stat-label" data-i18n="inf_dash_avax_spent">AVAX Dépensés</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-number" id="conversion-rate">-</div>
-                        <div class="stat-label">Taux de Conversion</div>
+                        <div class="stat-label" data-i18n="inf_dash_conversion">Taux de Conversion</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-number" id="my-rank">-</div>
-                        <div class="stat-label">Mon Rang</div>
+                        <div class="stat-label" data-i18n="inf_dash_my_rank">Mon Rang</div>
                     </div>
                 </div>
 
                 <div class="pools-overview">
                     <div class="pools-header">
-                        <h2>🌍 Tous les Pools d'Influenceurs</h2>
-                        <p>Progression des différents pools linguistiques</p>
+                        <h2 data-i18n="inf_dash_all_pools">🌍 Tous les Pools d'Influenceurs</h2>
+                        <p data-i18n="inf_dash_pools_subtitle">Progression des différents pools linguistiques</p>
                     </div>
                     <div id="pools-content">
                         <div class="loading">
                             <div class="spinner"></div>
-                            Chargement des pools...
+                            <span data-i18n="inf_dash_pools_loading">Chargement des pools...</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="leaderboard">
                     <div class="leaderboard-header">
-                        <h2>🏅 Classement des Influenceurs</h2>
-                        <p>Top des influenceurs les plus performants</p>
+                        <h2 data-i18n="inf_dash_leaderboard">🏅 Classement des Influenceurs</h2>
+                        <p data-i18n="inf_dash_leaderboard_subtitle">Top des influenceurs les plus performants</p>
                     </div>
                     <div id="influencer-leaderboard-content">
                         <div class="loading">
                             <div class="spinner"></div>
-                            Chargement du classement...
+                            <span data-i18n="inf_dash_leaderboard_loading">Chargement du classement...</span>
                         </div>
                     </div>
                 </div>
@@ -1593,30 +1606,32 @@
     <div id="influencer-application-page" class="page">
         <div class="container">
             <div class="card">
-                <h1>🚀 Devenir Influenceur</h1>
-                <p>Rejoignez notre programme pour gagner des récompenses exclusives.</p>
+                <h1 data-i18n="inf_app_title">🚀 Devenir Influenceur</h1>
+                <p data-i18n="inf_app_subtitle">Rejoignez notre programme pour gagner des récompenses exclusives.</p>
 
                 <div id="application-status-message"
                     style="display:none; padding: 20px; text-align: center; font-weight: bold;"></div>
 
                 <form id="influencer-application-form">
                     <div class="form-group">
-                        <label class="form-label">Pseudo d'Influenceur</label>
-                        <input type="text" id="app-pseudo" class="form-input" required placeholder="Votre nom public">
+                        <label class="form-label" data-i18n="inf_app_pseudo">Pseudo d'Influenceur</label>
+                        <input type="text" id="app-pseudo" class="form-input" required placeholder="Votre nom public"
+                            data-i18n="inf_app_pseudo_placeholder">
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">Réseaux Sociaux</label>
+                        <label class="form-label" data-i18n="inf_app_social">Réseaux Sociaux</label>
                         <div id="social-links-container">
                             <!-- Links will be added here -->
                         </div>
                         <button type="button" class="btn btn-secondary" onclick="addSocialLinkField()"
-                            style="margin-top: 10px;">
+                            style="margin-top: 10px;" data-i18n="inf_app_add_link">
                             + Ajouter un lien
                         </button>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;"
+                        data-i18n="inf_app_submit">
                         Envoyer ma Candidature
                     </button>
                 </form>
@@ -1627,23 +1642,25 @@
     <div id="admin-dashboard-page" class="page">
         <div class="container">
             <div class="card">
-                <h1>🛡️ Admin Dashboard</h1>
+                <h1 data-i18n="admin_title">🛡️ Admin Dashboard</h1>
 
                 <div class="tabs">
-                    <button class="tab-btn active" onclick="showAdminTab('applications')">Candidatures</button>
-                    <button class="tab-btn" onclick="showAdminTab('settings')">Paramètres</button>
+                    <button class="tab-btn active" onclick="showAdminTab('applications')"
+                        data-i18n="admin_tab_applications">Candidatures</button>
+                    <button class="tab-btn" onclick="showAdminTab('settings')"
+                        data-i18n="admin_tab_settings">Paramètres</button>
                 </div>
 
                 <div id="admin-tab-applications" class="tab-content active">
-                    <h2>Candidatures en Attente</h2>
+                    <h2 data-i18n="admin_pending_title">Candidatures en Attente</h2>
                     <div id="applications-list" class="list-group">
-                        <div class="loading">Chargement...</div>
+                        <div class="loading" data-i18n="ref_dash_loading">Chargement...</div>
                     </div>
                 </div>
 
                 <div id="admin-tab-settings" class="tab-content" style="display:none;">
-                    <h2>Paramètres de l'App</h2>
-                    <p>Configuration des pools et des frais (À venir).</p>
+                    <h2 data-i18n="admin_settings_title">Paramètres de l'App</h2>
+                    <p data-i18n="admin_settings_coming">Configuration des pools et des frais (À venir).</p>
                 </div>
             </div>
         </div>
@@ -1654,17 +1671,18 @@
             <div id="notification-banner" class="notification" style="display:none; border-radius: 20px 20px 0 0;">
             </div>
             <div class="header">
-                <h1>💱 Marketplace P2P</h1>
-                <p>Échangez vos tokens SNT contre AVAX de manière décentralisée</p>
+                <h1 data-i18n="market_title">💱 Marketplace P2P</h1>
+                <p data-i18n="market_subtitle">Échangez vos tokens SNT contre AVAX de manière décentralisée</p>
             </div>
 
             <div class="content">
                 <div class="stats-section">
-                    <h2 style="margin-bottom: 20px; color: #0c4a6e;">📊 Statistiques du Marketplace</h2>
+                    <h2 style="margin-bottom: 20px; color: #0c4a6e;" data-i18n="market_stats_title">📊 Statistiques du
+                        Marketplace</h2>
                     <div class="stats-grid" id="marketplace-stats">
                         <div class="loading">
                             <div class="spinner"></div>
-                            Chargement des statistiques...
+                            <span data-i18n="market_stats_loading">Chargement des statistiques...</span>
                         </div>
                     </div>
                 </div>
@@ -1672,64 +1690,70 @@
                 <div class="main-content">
                     <div class="trades-section">
                         <div class="section-header">
-                            <h2>🔄 Trades Actifs</h2>
-                            <p>Offres d'échange disponibles</p>
+                            <h2 data-i18n="market_trades_title">🔄 Trades Actifs</h2>
+                            <p data-i18n="market_trades_subtitle">Offres d'échange disponibles</p>
                         </div>
                         <div id="trades-content">
                             <div class="loading">
                                 <div class="spinner"></div>
-                                Chargement des trades...
+                                <span data-i18n="market_trades_loading">Chargement des trades...</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="create-offer">
                         <div class="section-header">
-                            <h2>➕ Créer une Offre</h2>
-                            <p>Vendez vos SNT contre AVAX</p>
+                            <h2 data-i18n="market_create_title">➕ Créer une Offre</h2>
+                            <p data-i18n="market_create_subtitle">Vendez vos SNT contre AVAX</p>
                         </div>
                         <div style="padding: 25px;">
                             <form id="create-offer-form">
                                 <div class="form-group">
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <label class="form-label" for="snt-amount">You Sell (SNT)</label>
+                                        <label class="form-label" for="snt-amount" data-i18n="market_you_sell">You Sell
+                                            (SNT)</label>
                                         <span
                                             style="font-size: 0.8em; color: #6b7280; cursor: pointer; text-decoration: underline;"
-                                            onclick="fillMaxSnt()">Max: <span id="user-snt-balance">--</span></span>
+                                            onclick="fillMaxSnt()"><span data-i18n="market_max">Max:</span> <span
+                                                id="user-snt-balance">--</span></span>
                                     </div>
                                     <input type="number" id="snt-amount" class="form-input" placeholder="e.g. 1000"
                                         min="0.000001" step="any" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label" for="avax-amount">You Receive (AVAX)</label>
+                                    <label class="form-label" for="avax-amount" data-i18n="market_you_receive">You
+                                        Receive (AVAX)</label>
                                     <input type="number" id="avax-amount" class="form-input" placeholder="e.g. 2.5"
                                         min="0.000001" step="any" required>
                                 </div>
 
                                 <div class="price-info">
                                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                        <span>Price per SNT:</span>
+                                        <span data-i18n="market_price_per">Price per SNT:</span>
                                         <span id="calculated-price" style="font-weight: bold; color: #4f46e5;">-</span>
                                     </div>
-                                    <div style="font-size: 0.8em; color: #64748b;">
+                                    <div style="font-size: 0.8em; color: #64748b;" data-i18n="market_buyer_pays">
                                         * The buyer will pay gas fees for the trade.
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label" for="expiry-hours">Expiration (heures)</label>
+                                    <label class="form-label" for="expiry-hours" data-i18n="market_expiry">Expiration
+                                        (heures)</label>
                                     <select id="expiry-hours" class="form-input">
-                                        <option value="24">24 heures</option>
-                                        <option value="48">48 heures</option>
-                                        <option value="72">72 heures</option>
-                                        <option value="168">1 semaine</option>
+                                        <option value="24" data-i18n="market_exp_24h">24 heures</option>
+                                        <option value="48" data-i18n="market_exp_48h">48 heures</option>
+                                        <option value="72" data-i18n="market_exp_72h">72 heures</option>
+                                        <option value="168" data-i18n="market_exp_1w">1 semaine</option>
                                     </select>
                                 </div>
 
                                 <button type="button" id="approve-btn" class="create-button"
-                                    style="background: #f59e0b; margin-bottom: 10px;">1. Approuver les SNT</button>
-                                <button type="submit" id="create-offer-btn" class="create-button" disabled>2. Créer
+                                    style="background: #f59e0b; margin-bottom: 10px;" data-i18n="market_approve_btn">1.
+                                    Approuver les SNT</button>
+                                <button type="submit" id="create-offer-btn" class="create-button" disabled
+                                    data-i18n="market_create_btn">2. Créer
                                     l'Offre</button>
                             </form>
                         </div>
@@ -1744,6 +1768,332 @@
 
         // --- 1. Variables Globales et Initialisation ---
         const API_URL = 'http://127.0.0.1:8000/api';
+
+        // --- Localization ---
+        const translations = {
+            en: {
+                // Navigation
+                nav_play: "Play",
+                nav_referrals: "Referrals",
+                nav_influencer: "Influencer",
+                nav_marketplace: "Marketplace",
+                nav_logout: "Logout",
+                // Language Page
+                lang_title: "Choose Your Language",
+                lang_subtitle: "Select a language to connect your wallet and start playing.",
+                // Game Page
+                game_title: "Start New Game",
+                game_bet_label: "Your Base Bet (ETH):",
+                game_moves_label: "Select 2 to 100 Moves:",
+                game_reset_btn: "Reset All",
+                game_review_btn: "Review Game",
+                // Modal
+                modal_title: "Confirm Your Game",
+                modal_subtitle: "Please review your submission. This will lock your funds in the contract.",
+                modal_moves: "Your Moves:",
+                modal_bet: "Base Bet:",
+                modal_deposit: "Total Deposit:",
+                modal_warning: "This is the (Base Bet) x (Security Coefficient). This total amount will be sent to the contract.",
+                modal_confirm_btn: "Confirm & Send",
+                modal_cancel_btn: "Cancel",
+                // Referral Input Page
+                ref_title: "Have a Referral Code?",
+                ref_subtitle: "Enter a referral code to get a bonus. You can also skip this step.",
+                ref_placeholder: "e.g., REF-ABC123",
+                ref_submit_btn: "Continue",
+                ref_skip_btn: "Skip for Now",
+                // Referral Dashboard
+                ref_dash_title: "🤝 Referral Program",
+                ref_dash_your_code: "Your Referral Code",
+                ref_dash_loading: "Loading...",
+                ref_dash_loading_stats: "Loading statistics...",
+                ref_dash_copy_code: "📋 Copy Code",
+                ref_dash_copy_link: "🔗 Copy Link",
+                ref_dash_total: "👥 Total Referrals",
+                ref_dash_pending: "⏳ Pending",
+                ref_dash_validated: "✅ Validated",
+                ref_dash_rewards: "🎁 SNT Rewards",
+                ref_dash_how_title: "How does it work?",
+                ref_dash_how_step1: "<strong>Share</strong> your referral code with friends.",
+                ref_dash_how_step2: "Your friend <strong>signs up</strong> using your code.",
+                ref_dash_how_step3: "Once your friend is marked as <strong>validated</strong> (after joining a pool), they count in your referrals.",
+                ref_dash_how_step4: "<strong>Reach milestones</strong> of validated referrals to earn rewards!",
+                ref_dash_leaderboard: "🏆 Referrer Leaderboard",
+                ref_dash_leaderboard_loading: "Loading leaderboard...",
+                // Influencer Dashboard
+                inf_dash_title: "🏆 Influencer Dashboard",
+                inf_dash_subtitle: "Earn AVAX rewards by reaching your goals",
+                inf_dash_pool_loading: "Loading pool information...",
+                inf_dash_my_referrals: "My Referrals",
+                inf_dash_avax_spent: "AVAX Spent",
+                inf_dash_conversion: "Conversion Rate",
+                inf_dash_my_rank: "My Rank",
+                inf_dash_all_pools: "🌍 All Influencer Pools",
+                inf_dash_pools_subtitle: "Progress of different language pools",
+                inf_dash_pools_loading: "Loading pools...",
+                inf_dash_leaderboard: "🏅 Influencer Leaderboard",
+                inf_dash_leaderboard_subtitle: "Top performing influencers",
+                inf_dash_leaderboard_loading: "Loading leaderboard...",
+                // Influencer Application
+                inf_app_title: "🚀 Become an Influencer",
+                inf_app_subtitle: "Join our program to earn exclusive rewards.",
+                inf_app_pseudo: "Influencer Pseudonym",
+                inf_app_pseudo_placeholder: "Your public name",
+                inf_app_social: "Social Networks",
+                inf_app_add_link: "+ Add a link",
+                inf_app_submit: "Submit Application",
+                // Admin Dashboard
+                admin_title: "🛡️ Admin Dashboard",
+                admin_tab_applications: "Applications",
+                admin_tab_settings: "Settings",
+                admin_pending_title: "Pending Applications",
+                admin_settings_title: "App Settings",
+                admin_settings_coming: "Pool and fee configuration (Coming soon).",
+                // Marketplace
+                market_title: "💱 P2P Marketplace",
+                market_subtitle: "Trade your SNT tokens for AVAX in a decentralized way",
+                market_stats_title: "📊 Marketplace Statistics",
+                market_stats_loading: "Loading statistics...",
+                market_trades_title: "🔄 Active Trades",
+                market_trades_subtitle: "Available exchange offers",
+                market_trades_loading: "Loading trades...",
+                market_create_title: "➕ Create Offer",
+                market_create_subtitle: "Sell your SNT for AVAX",
+                market_you_sell: "You Sell (SNT)",
+                market_you_receive: "You Receive (AVAX)",
+                market_max: "Max:",
+                market_price_per: "Price per SNT:",
+                market_buyer_pays: "* The buyer will pay gas fees for the trade.",
+                market_expiry: "Expiration (hours)",
+                market_exp_24h: "24 hours",
+                market_exp_48h: "48 hours",
+                market_exp_72h: "72 hours",
+                market_exp_1w: "1 week",
+                market_approve_btn: "1. Approve SNT",
+                market_create_btn: "2. Create Offer"
+            },
+            fr: {
+                // Navigation
+                nav_play: "Jouer",
+                nav_referrals: "Parrainage",
+                nav_influencer: "Influenceur",
+                nav_marketplace: "Marché",
+                nav_logout: "Déconnexion",
+                // Language Page
+                lang_title: "Choisissez votre langue",
+                lang_subtitle: "Sélectionnez une langue pour connecter votre wallet et jouer.",
+                // Game Page
+                game_title: "Nouvelle Partie",
+                game_bet_label: "Votre Mise de Base (ETH) :",
+                game_moves_label: "Sélectionnez 2 à 100 Coups :",
+                game_reset_btn: "Tout Réinitialiser",
+                game_review_btn: "Vérifier la Partie",
+                // Modal
+                modal_title: "Confirmer la Partie",
+                modal_subtitle: "Veuillez vérifier votre soumission. Cela verrouillera vos fonds dans le contrat.",
+                modal_moves: "Vos Coups :",
+                modal_bet: "Mise de Base :",
+                modal_deposit: "Dépôt Total :",
+                modal_warning: "Ceci est (Mise de Base) x (Coefficient de Sécurité). Ce montant total sera envoyé au contrat.",
+                modal_confirm_btn: "Confirmer & Envoyer",
+                modal_cancel_btn: "Annuler",
+                // Referral Input Page
+                ref_title: "Avez-vous un Code de Parrainage ?",
+                ref_subtitle: "Entrez un code pour obtenir un bonus. Vous pouvez aussi passer cette étape.",
+                ref_placeholder: "ex: REF-ABC123",
+                ref_submit_btn: "Continuer",
+                ref_skip_btn: "Passer pour l'instant",
+                // Referral Dashboard
+                ref_dash_title: "🤝 Programme de Parrainage",
+                ref_dash_your_code: "Votre Code de Parrainage",
+                ref_dash_loading: "Chargement...",
+                ref_dash_loading_stats: "Chargement des statistiques...",
+                ref_dash_copy_code: "📋 Copy Code",
+                ref_dash_copy_link: "🔗 Copy Link",
+                ref_dash_total: "👥 Total Parrainages",
+                ref_dash_pending: "⏳ En Attente",
+                ref_dash_validated: "✅ Validés",
+                ref_dash_rewards: "🎁 Récompenses SNT",
+                ref_dash_how_title: "Comment ça marche ?",
+                ref_dash_how_step1: "<strong>Partagez</strong> votre code de parrainage avec vos amis.",
+                ref_dash_how_step2: "Votre ami <strong>s'inscrit</strong> en utilisant votre code.",
+                ref_dash_how_step3: "Une fois que votre ami est marqué comme <strong>validé</strong> (après avoir rejoint une poule), il est compté dans vos parrainages.",
+                ref_dash_how_step4: "<strong>Atteignez des paliers</strong> de parrainages validés pour gagner des récompenses !",
+                ref_dash_leaderboard: "🏆 Classement des Parraineurs",
+                ref_dash_leaderboard_loading: "Chargement du classement...",
+                // Influencer Dashboard
+                inf_dash_title: "🏆 Dashboard Influenceur",
+                inf_dash_subtitle: "Gagnez des récompenses AVAX en atteignant vos objectifs",
+                inf_dash_pool_loading: "Chargement des informations du pool...",
+                inf_dash_my_referrals: "Mes Parrainages",
+                inf_dash_avax_spent: "AVAX Dépensés",
+                inf_dash_conversion: "Taux de Conversion",
+                inf_dash_my_rank: "Mon Rang",
+                inf_dash_all_pools: "🌍 Tous les Pools d'Influenceurs",
+                inf_dash_pools_subtitle: "Progression des différents pools linguistiques",
+                inf_dash_pools_loading: "Chargement des pools...",
+                inf_dash_leaderboard: "🏅 Classement des Influenceurs",
+                inf_dash_leaderboard_subtitle: "Top des influenceurs les plus performants",
+                inf_dash_leaderboard_loading: "Chargement du classement...",
+                // Influencer Application
+                inf_app_title: "🚀 Devenir Influenceur",
+                inf_app_subtitle: "Rejoignez notre programme pour gagner des récompenses exclusives.",
+                inf_app_pseudo: "Pseudo d'Influenceur",
+                inf_app_pseudo_placeholder: "Votre nom public",
+                inf_app_social: "Réseaux Sociaux",
+                inf_app_add_link: "+ Ajouter un lien",
+                inf_app_submit: "Envoyer ma Candidature",
+                // Admin Dashboard
+                admin_title: "🛡️ Admin Dashboard",
+                admin_tab_applications: "Candidatures",
+                admin_tab_settings: "Paramètres",
+                admin_pending_title: "Candidatures en Attente",
+                admin_settings_title: "Paramètres de l'App",
+                admin_settings_coming: "Configuration des pools et des frais (À venir).",
+                // Marketplace
+                market_title: "💱 Marketplace P2P",
+                market_subtitle: "Échangez vos tokens SNT contre AVAX de manière décentralisée",
+                market_stats_title: "📊 Statistiques du Marketplace",
+                market_stats_loading: "Chargement des statistiques...",
+                market_trades_title: "🔄 Trades Actifs",
+                market_trades_subtitle: "Offres d'échange disponibles",
+                market_trades_loading: "Chargement des trades...",
+                market_create_title: "➕ Créer une Offre",
+                market_create_subtitle: "Vendez vos SNT contre AVAX",
+                market_you_sell: "You Sell (SNT)",
+                market_you_receive: "You Receive (AVAX)",
+                market_max: "Max: ",
+                market_price_per: "Price per SNT:",
+                market_buyer_pays: "* The buyer will pay gas fees for the trade.",
+                market_expiry: "Expiration (heures)",
+                market_exp_24h: "24 heures",
+                market_exp_48h: "48 heures",
+                market_exp_72h: "72 heures",
+                market_exp_1w: "1 semaine",
+                market_approve_btn: "1. Approuver les SNT",
+                market_create_btn: "2. Créer l'Offre"
+            },
+            es: {
+                // Navigation
+                nav_play: "Jugar",
+                nav_referrals: "Referencias",
+                nav_influencer: "Influencer",
+                nav_marketplace: "Mercado",
+                nav_logout: "Cerrar Sesión",
+                // Language Page
+                lang_title: "Elige tu Idioma",
+                lang_subtitle: "Selecciona un idioma para conectar tu billetera y empezar a jugar.",
+                // Game Page
+                game_title: "Nueva Partida",
+                game_bet_label: "Tu Apuesta Base (ETH):",
+                game_moves_label: "Selecciona de 2 a 100 Movimientos:",
+                game_reset_btn: "Reiniciar Todo",
+                game_review_btn: "Revisar Partida",
+                // Modal
+                modal_title: "Confirmar Partida",
+                modal_subtitle: "Por favor revisa tu envío. Esto bloqueará tus fondos en el contrato.",
+                modal_moves: "Tus Movimientos:",
+                modal_bet: "Apuesta Base:",
+                modal_deposit: "Depósito Total:",
+                modal_warning: "Esto es (Apuesta Base) x (Coeficiente de Seguridad). Esta cantidad total se enviará al contrato.",
+                modal_confirm_btn: "Confirmar y Enviar",
+                modal_cancel_btn: "Cancelar",
+                // Referral Input Page
+                ref_title: "¿Tienes un Código de Referido?",
+                ref_subtitle: "Ingresa un código para obtener un bono. También puedes omitir este paso.",
+                ref_placeholder: "ej: REF-ABC123",
+                ref_submit_btn: "Continuar",
+                ref_skip_btn: "Omitir por ahora",
+                // Referral Dashboard
+                ref_dash_title: "🤝 Programa de Referencias",
+                ref_dash_your_code: "Tu Código de Referido",
+                ref_dash_loading: "Cargando...",
+                ref_dash_loading_stats: "Cargando estadísticas...",
+                ref_dash_copy_code: "📋 Copiar Código",
+                ref_dash_copy_link: "🔗 Copiar Enlace",
+                ref_dash_total: "👥 Referencias Totales",
+                ref_dash_pending: "⏳ Pendientes",
+                ref_dash_validated: "✅ Validadas",
+                ref_dash_rewards: "🎁 Recompensas SNT",
+                ref_dash_how_title: "¿Cómo funciona?",
+                ref_dash_how_step1: "<strong>Comparte</strong> tu código de referido con amigos.",
+                ref_dash_how_step2: "Tu amigo se <strong>registra</strong> usando tu código.",
+                ref_dash_how_step3: "Una vez que tu amigo sea marcado como <strong>validado</strong> (tras unirse a un pool), se contará en tus referencias.",
+                ref_dash_how_step4: "¡<strong>Alcanza hitos</strong> de referencias validadas para ganar recompensas!",
+                ref_dash_leaderboard: "🏆 Tabla de Clasificación",
+                ref_dash_leaderboard_loading: "Cargando clasificación...",
+                // Influencer Dashboard
+                inf_dash_title: "🏆 Panel del Influencer",
+                inf_dash_subtitle: "Gana recompensas AVAX alcanzando tus objetivos",
+                inf_dash_pool_loading: "Cargando información del pool...",
+                inf_dash_my_referrals: "Mis Referencias",
+                inf_dash_avax_spent: "AVAX Gastados",
+                inf_dash_conversion: "Tasa de Conversión",
+                inf_dash_my_rank: "Mi Rango",
+                inf_dash_all_pools: "🌍 Todos los Pools de Influencers",
+                inf_dash_pools_subtitle: "Progreso de diferentes pools de idiomas",
+                inf_dash_pools_loading: "Cargando pools...",
+                inf_dash_leaderboard: "🏅 Clasificación de Influencers",
+                inf_dash_leaderboard_subtitle: "Influencers con mejor rendimiento",
+                inf_dash_leaderboard_loading: "Cargando clasificación...",
+                // Influencer Application
+                inf_app_title: "🚀 Convertirse en Influencer",
+                inf_app_subtitle: "Únete a nuestro programa para ganar recompensas exclusivas.",
+                inf_app_pseudo: "Seudónimo de Influencer",
+                inf_app_pseudo_placeholder: "Tu nombre público",
+                inf_app_social: "Redes Sociales",
+                inf_app_add_link: "+ Agregar enlace",
+                inf_app_submit: "Enviar Solicitud",
+                // Admin Dashboard
+                admin_title: "🛡️ Panel de Administración",
+                admin_tab_applications: "Solicitudes",
+                admin_tab_settings: "Configuración",
+                admin_pending_title: "Solicitudes Pendientes",
+                admin_settings_title: "Configuración de la App",
+                admin_settings_coming: "Configuración de pools y tarifas (Próximamente).",
+                // Marketplace
+                market_title: "💱 Marketplace P2P",
+                market_subtitle: "Intercambia tus tokens SNT por AVAX de forma descentralizada",
+                market_stats_title: "📊 Estadísticas del Marketplace",
+                market_stats_loading: "Cargando estadísticas...",
+                market_trades_title: "🔄 Operaciones Activas",
+                market_trades_subtitle: "Ofertas de intercambio disponibles",
+                market_trades_loading: "Cargando operaciones...",
+                market_create_title: "➕ Crear Oferta",
+                market_create_subtitle: "Vende tus SNT por AVAX",
+                market_you_sell: "Vendes (SNT)",
+                market_you_receive: "Recibes (AVAX)",
+                market_max: "Máx: ",
+                market_price_per: "Precio por SNT:",
+                market_buyer_pays: "* El comprador pagará las tarifas de gas.",
+                market_expiry: "Expiración (horas)",
+                market_exp_24h: "24 horas",
+                market_exp_48h: "48 horas",
+                market_exp_72h: "72 horas",
+                market_exp_1w: "1 semana",
+                market_approve_btn: "1. Aprobar SNT",
+                market_create_btn: "2. Crear Oferta"
+            }
+        };
+
+        function updateLanguage(locale) {
+            if (!translations[locale]) return;
+
+            const t = translations[locale];
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (t[key]) {
+                    if (element.tagName === 'INPUT' && element.getAttribute('placeholder')) {
+                        element.placeholder = t[key];
+                    } else {
+                        element.textContent = t[key];
+                    }
+                }
+            });
+
+            // Store preference
+            localStorage.setItem('user_locale', locale);
+        }
 
         let WEB3;
         let gameContract;
@@ -2045,8 +2395,14 @@
         // --- 5. Logique d'Authentification (index.html) ---
 
         async function loginWithWallet(locale) {
-            console.log(`Starting login with locale: ${locale}`);
-            if (!window.ethereum) {
+            console.log("Login initiated with locale:", locale);
+            console.log("Checking for window.ethereum:", window.ethereum);
+            console.log("Checking for window.web3:", window.web3);
+
+            // Update UI immediately
+            updateLanguage(locale);
+
+            if (typeof window.ethereum === 'undefined') {
                 console.error("MetaMask not detected!");
                 alert('Please install a wallet like MetaMask!');
                 return;
@@ -3357,6 +3713,12 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Restore language preference
+            const savedLocale = localStorage.getItem('user_locale');
+            if (savedLocale) {
+                updateLanguage(savedLocale);
+            }
+
             checkForReferralCodeInUrl();
 
             const token = getAuthToken();
