@@ -34,11 +34,11 @@ class BatchProcessingService
         $this->poolProcessorService = $poolProcessorService;
     }
 
-    public function processBatch(): JsonResponse
+    public function processBatch(float $baseBet): array
     {
         $criteriaResult = $this->batchCriteriaService->getTargetPoolSize();
         if ($criteriaResult['error']) {
-            return response()->json(['message' => $criteriaResult['error']], 500);
+            return ['status' => 'error', 'message' => $criteriaResult['error'], 'http_code' => 500];
         }
         $targetPoolSize = $criteriaResult['targetPoolSize'];
 
@@ -48,21 +48,22 @@ class BatchProcessingService
         try {
             $resultData = DB::transaction(function () use (
                 $targetPoolSize,
+                $baseBet,
                 &$poolsToProcess,
                 &$batchForProcessing
             ) {
-                $batch = $this->batchFinderService->findActiveBatchWithLock($targetPoolSize);
+                $batch = $this->batchFinderService->findActiveBatchWithLock($targetPoolSize, $baseBet);
 
                 if (!$batch) {
-                    if (!$this->poolFetcherService->processablePoolsExist($targetPoolSize)) {
-                        return ['status' => 'no_work', 'message' => "No active batch or available pools for pool_size {$targetPoolSize}."];
+                    if (!$this->poolFetcherService->processablePoolsExist($targetPoolSize, $baseBet)) {
+                        return ['status' => 'no_work', 'message' => "No active batch or available pools for pool_size {$targetPoolSize} base_bet {$baseBet}."];
                     }
-                    $initialPools = $this->poolFetcherService->fetchInitialPools($targetPoolSize, config('pool.batch_initial_limit', 50));
+                    $initialPools = $this->poolFetcherService->fetchInitialPools($targetPoolSize, $baseBet, config('pool.batch_initial_limit', 50));
                     if ($initialPools->isEmpty()) {
-                        return ['status' => 'no_work', 'message' => "No pools available to form an initial batch for pool_size {$targetPoolSize}."];
+                        return ['status' => 'no_work', 'message' => "No pools available to form an initial batch for pool_size {$targetPoolSize} base_bet {$baseBet}."];
                     }
-                    $createdBatch = $this->batchManagerService->createBatch($targetPoolSize, $initialPools);
-                    return ['status' => 'created', 'message' => "New batch {$createdBatch->id} for pool_size {$targetPoolSize} created and is {$createdBatch->status}."];
+                    $createdBatch = $this->batchManagerService->createBatch($targetPoolSize, $baseBet, $initialPools);
+                    return ['status' => 'created', 'message' => "New batch {$createdBatch->id} for pool_size {$targetPoolSize} base_bet {$baseBet} created and is {$createdBatch->status}."];
                 }
 
                 if ($batch->status === 'waiting' && $batch->number_of_pools < $batch->max_size) {
@@ -99,25 +100,29 @@ class BatchProcessingService
 
             if (isset($resultData['status']) && $resultData['status'] === 'processing_deferred') {
                 if (!$batchForProcessing || $poolsToProcess->isEmpty()) {
-                    return response()->json(['message' => 'Internal error during deferred processing setup.'], 500);
+                    return ['status' => 'error', 'message' => 'Internal error during deferred processing setup.', 'http_code' => 500];
                 }
                 $processingResult = $this->poolProcessorService->processPools($poolsToProcess, $batchForProcessing);
                 $updatedBatch = $this->batchManagerService->updateBatchStatusAfterProcessing($batchForProcessing->id, !is_null($processingResult['error']), $processingResult['processedCount']);
 
                 if ($processingResult['error']) {
-                    return response()->json([
+                    return [
+                        'status' => 'partial_error',
                         'message' => "Batch {$updatedBatch->id} (pool_size {$updatedBatch->pool_size}) processed with errors. Final Status: {$updatedBatch->status}",
                         'processed_count' => $processingResult['processedCount'],
                         'total_in_batch' => $poolsToProcess->count(),
                         'iteration' => $updatedBatch->iteration_count,
-                        'error' => $processingResult['error']->getMessage()
-                    ], 207);
+                        'error' => $processingResult['error']->getMessage(),
+                        'http_code' => 207
+                    ];
                 } else {
-                    return response()->json([
+                    return [
+                        'status' => 'success',
                         'message' => "Batch {$updatedBatch->id} (pool_size {$updatedBatch->pool_size}) processed successfully. Final Status: {$updatedBatch->status}",
                         'processed_count' => $processingResult['processedCount'],
-                        'iteration' => $updatedBatch->iteration_count
-                    ], 200);
+                        'iteration' => $updatedBatch->iteration_count,
+                        'http_code' => 200
+                    ];
                 }
             } elseif (isset($resultData['status'])) {
                 $httpStatusCode = match ($resultData['status']) {
@@ -126,13 +131,13 @@ class BatchProcessingService
                     'error', 'no_action' => 400,
                     default => 200,
                 };
-                return response()->json(['message' => $resultData['message'], 'target_pool_size' => $targetPoolSize], $httpStatusCode);
+                return ['status' => $resultData['status'], 'message' => $resultData['message'], 'target_pool_size' => $targetPoolSize, 'http_code' => $httpStatusCode];
             } else {
-                return response()->json(['message' => 'An unexpected server error occurred (unknown state).'], 500);
+                return ['status' => 'error', 'message' => 'An unexpected server error occurred (unknown state).', 'http_code' => 500];
             }
         } catch (\Exception $e) {
             Log::error('Error in BatchProcessingService: ' . $e->getMessage());
-            return response()->json(['message' => 'An error occurred during batch processing: ' . $e->getMessage()], 500);
+            return ['status' => 'error', 'message' => 'An error occurred during batch processing: ' . $e->getMessage(), 'http_code' => 500];
         }
     }
 }

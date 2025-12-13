@@ -15,17 +15,20 @@ class PoolAutoMatchController extends Controller
     protected $preMoveService;
     protected $historicalFightService;
     protected $batchProcessingService;
+    protected $internalPoolService;
 
     public function __construct(
         PoolService $poolService,
         PreMoveService $preMoveService,
         HistoricalFightService $historicalFightService,
-        BatchProcessingService $batchProcessingService
+        BatchProcessingService $batchProcessingService,
+        \App\Services\InternalPoolService $internalPoolService
     ) {
         $this->poolService = $poolService;
         $this->preMoveService = $preMoveService;
         $this->historicalFightService = $historicalFightService;
         $this->batchProcessingService = $batchProcessingService;
+        $this->internalPoolService = $internalPoolService;
     }
 
     public function processAutoMatch($betAmount, $instanceNumber, $limit = 10): JsonResponse
@@ -97,9 +100,17 @@ class PoolAutoMatchController extends Controller
         return response()->json(['message' => 'Historical fights archived', 'result' => $result]);
     }
 
-    public function processBatch(): JsonResponse
+    public function processBatch(Request $request): JsonResponse
     {
-        return $this->batchProcessingService->processBatch();
+        $validated = $request->validate(['base_bet' => 'required|numeric']);
+        $result = $this->batchProcessingService->processBatch($validated['base_bet']);
+        return response()->json($result, $result['http_code'] ?? 200);
+    }
+
+    public function processInternalPools(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['base_bet' => 'required|numeric']);
+        return response()->json($this->internalPoolService->processInternalPools($validated['base_bet']));
     }
 
     public function handleStagnantRefund(Request $request): JsonResponse

@@ -13,11 +13,13 @@ class FightService
 {
     protected $historicalFightService;
     protected $web3Helper;
+    protected $notificationService;
 
-    public function __construct(HistoricalFightService $historicalFightService, Web3Helper $web3Helper)
+    public function __construct(HistoricalFightService $historicalFightService, Web3Helper $web3Helper, NotificationService $notificationService)
     {
         $this->historicalFightService = $historicalFightService;
         $this->web3Helper = $web3Helper;
+        $this->notificationService = $notificationService;
     }
 
     public function handleAutoplayFight(Fight $fight)
@@ -58,11 +60,27 @@ class FightService
             $loserId = ($result === 'user1_win') ? $fight->user2_id : $fight->user1_id;
 
             $this->transferBalances($winnerId, $loserId);
+            
+            // Notify winner
+            $winnerUser = User::find($winnerId);
+            if ($winnerUser) {
+                // The gain is the loser's battle_balance. Detailed calc might be needed if exact gain is required.
+                // transferBalances moves entire battle_balance. 
+                // We'll approximate or just notify 'win'. The requirement says "gain".
+                // In transferBalances: $winnerUser->battle_balance += $loserUser->battle_balance;
+                // We should calculate that amount.
+                $loserUser = User::find($loserId); // transferBalances re-fetches, but we need amount here.
+                // Actually transferBalances fetches it. I should maybe modify transferBalances or fetch here.
+                // Fetching here is safer for now.
+                $gain = $loserUser ? $loserUser->battle_balance : 0; 
+                $this->notificationService->notifyFightWin($winnerUser, $gain, $fight->id);
+            }
+
             $this->removeUserFromPool($loserId, $fight->pool);
             User::where('id', $loserId)->update(['status' => 'available']);
         }
 
-        $this->updateBattleBalances($fight, $result);
+
 
         $fight->status = 'completed';
         $fight->save();
@@ -133,6 +151,7 @@ class FightService
         $pool = Pool::where('base_bet', $baseBet)
             ->where('status', 'from_server_waitting') // Only pick waiting pools
             ->has('users', '<', $poolSize)
+            ->orderBy('id', 'desc')
             ->first();
 
         if (!$pool) {
@@ -149,23 +168,18 @@ class FightService
         $pool->status = 'from_server_waitting';
         $pool->save();
 
-        User::where('id', $userId)->update(['pool_id' => $pool->id]);
-    }
-
-    protected function updateBattleBalances(Fight $fight, $result)
-    {
-        $user1 = $fight->user1;
-        $user2 = $fight->user2;
-
-        if ($result === 'user1_win') {
-            $user1->battle_balance += $user2->battle_balance;
-            $user2->battle_balance = 0;
-        } elseif ($result === 'user2_win') {
-            $user2->battle_balance += $user1->battle_balance;
-            $user1->battle_balance = 0;
+        User::where('id', $userId)->update([
+            'pool_id' => $pool->id,
+            'status' => 'in_pool'
+        ]);
+        
+        // Notify Pool Entry
+        $user = User::find($userId);
+        if ($user) {
+            // Logic to determine reason could be passed in, but contextually this method is called for continuing users (winners)
+            $this->notificationService->notifyPoolEntry($user, $pool, 'pool_winner');
         }
-
-        $user1->save();
-        $user2->save();
     }
+
+
 }

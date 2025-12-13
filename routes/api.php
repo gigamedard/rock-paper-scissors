@@ -131,7 +131,8 @@ Route::prefix('internal')->middleware('auth.internal')->group(function () {
     Route::post('/update-balance', [BlockchainController::class, 'updateUserBalance']); 
     Route::post('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
     Route::post('/handle-stagnant-refund', [PoolAutoMatchController::class, 'handleStagnantRefund']);
-    Route::get('/batch-processing', [PoolAutoMatchController::class, 'processBatch']);
+    Route::post('/batch-processing', [PoolAutoMatchController::class, 'processBatch']);
+    Route::post('/internal-pools', [PoolAutoMatchController::class, 'processInternalPools']);
     Route::post('/payout', [InternalPayoutController::class, 'payout']);
     //todo: do not forget sendPremove from frontend to backend since we use now we use token auth middleware
     

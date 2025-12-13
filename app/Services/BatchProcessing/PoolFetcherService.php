@@ -17,17 +17,20 @@ class PoolFetcherService
      * @param int $poolSize
      * @return bool
      */
-    public function processablePoolsExist(int $poolSize): bool
+    public function processablePoolsExist(int $poolSize, float $baseBet): bool
     {
         // Find the last pool ID that was included in any previous batch for this size.
-        $lastBatchedPoolId = Batch::where('pool_size', $poolSize)->max('last_pool_id') ?? 0;
+        $lastBatchedPoolId = Batch::where('pool_size', $poolSize)
+                                  ->where('base_bet', $baseBet)
+                                  ->max('last_pool_id') ?? 0;
 
         $exists = Pool::where('pool_size', $poolSize)
+            ->where('base_bet', $baseBet)
             ->where('status', self::POOL_STATUS_WAITING)
             ->where('id', '>', $lastBatchedPoolId) // <-- Check for pools after the last batch
             ->exists();
 
-        Log::debug("Check processable pools exist for pool size ($poolSize) after ID ($lastBatchedPoolId): " . ($exists ? 'Yes' : 'No'));
+        Log::debug("Check processable pools exist for pool size ($poolSize) base_bet ($baseBet) after ID ($lastBatchedPoolId): " . ($exists ? 'Yes' : 'No'));
 
         return $exists;
     }
@@ -39,18 +42,21 @@ class PoolFetcherService
      * @param int $limit
      * @return Collection<Pool>
      */
-    public function fetchInitialPools(int $poolSize, int $limit): Collection
+    public function fetchInitialPools(int $poolSize, float $baseBet, int $limit): Collection
     {
         // --- MODIFICATION START ---
 
         // 1. Find the maximum 'last_pool_id' from existing batches for this pool size.
         // This ensures the new batch starts after the previous one.
-        $lastBatchedPoolId = Batch::where('pool_size', $poolSize)->max('last_pool_id') ?? 0;
+        $lastBatchedPoolId = Batch::where('pool_size', $poolSize)
+                                  ->where('base_bet', $baseBet)
+                                  ->max('last_pool_id') ?? 0;
 
-        Log::debug("Fetching initial ($limit) pools for pool_size ($poolSize), starting after Pool ID ($lastBatchedPoolId)");
+        Log::debug("Fetching initial ($limit) pools for pool_size ($poolSize) base_bet ($baseBet), starting after Pool ID ($lastBatchedPoolId)");
 
         // 2. Modify the query to fetch pools with an ID greater than the last one.
         return Pool::where('pool_size', $poolSize)
+            ->where('base_bet', $baseBet)
             ->where('status', self::POOL_STATUS_WAITING)
             ->where('id', '>', $lastBatchedPoolId) // <-- This is the key change
             ->orderBy('id')
@@ -72,6 +78,7 @@ class PoolFetcherService
         Log::debug("Fetching ($needed) pools to load into batch ($batch->id) (pool_size ($batch->pool_size)), after pool ID {$batch->last_pool_id}");
 
         return Pool::where('pool_size', $batch->pool_size)
+            ->where('base_bet', $batch->base_bet)
             ->where('status', self::POOL_STATUS_WAITING)
             ->where('id', '>', $batch->last_pool_id) // Ensure pools after the current last one
             ->orderBy('id')

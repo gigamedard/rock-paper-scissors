@@ -57,7 +57,7 @@ class SessionFinishedEventListener
     private function processUserBalance(User $user, float $q, float $baseBet, int $poolSize): void
     {
         if ($q >= config('game_settings.gain_coefficient')) {
-            $this->transferBattleBalance($user);
+            $this->transferBattleBalance($user, 'stopped');
             $this->archiveSessionHistory($user);
             $this->sendPayment($user);
         } elseif ($q < 1 && $user->balance < $user->bet_amount) {
@@ -76,14 +76,14 @@ class SessionFinishedEventListener
         }
     }
 
-    private function transferBattleBalance(User $user): void
+    private function transferBattleBalance(User $user, string $newStatus = 'available'): void
     {
         $user->balance += $user->battle_balance;
         $user->pool_id = null;
         $user->battle_balance = 0;
         $user->bet_amount = 0;
         $user->preMove->current_index = 0;
-        $user->status = 'available';
+        $user->status = $newStatus;
         $user->session_started = false;
         $user->session_start_balance = 0;
         $user->session_start_battle_balance = 0;

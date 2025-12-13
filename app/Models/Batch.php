@@ -14,6 +14,7 @@ class Batch extends Model
      * @var array
      */
     protected $fillable = [
+        'base_bet',
         'pool_size', // Add pool_size
         'first_pool_id',
         'last_pool_id',
