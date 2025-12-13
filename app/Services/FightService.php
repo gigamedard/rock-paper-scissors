@@ -59,25 +59,30 @@ class FightService
             $winnerId = ($result === 'user1_win') ? $fight->user1_id : $fight->user2_id;
             $loserId = ($result === 'user1_win') ? $fight->user2_id : $fight->user1_id;
 
-            $this->transferBalances($winnerId, $loserId);
+            // Transfer the base bet amount from loser to winner in battle_balance
+            $this->transferBattleBalance($winnerId, $loserId, $baseBet);
             
-            // Notify winner
+            // Notify winner (User gains baseBet)
             $winnerUser = User::find($winnerId);
             if ($winnerUser) {
-                // The gain is the loser's battle_balance. Detailed calc might be needed if exact gain is required.
-                // transferBalances moves entire battle_balance. 
-                // We'll approximate or just notify 'win'. The requirement says "gain".
-                // In transferBalances: $winnerUser->battle_balance += $loserUser->battle_balance;
-                // We should calculate that amount.
-                $loserUser = User::find($loserId); // transferBalances re-fetches, but we need amount here.
-                // Actually transferBalances fetches it. I should maybe modify transferBalances or fetch here.
-                // Fetching here is safer for now.
-                $gain = $loserUser ? $loserUser->battle_balance : 0; 
-                $this->notificationService->notifyFightWin($winnerUser, $gain, $fight->id);
+                $this->notificationService->notifyFightWin($winnerUser, $baseBet, $fight->id);
             }
 
-            $this->removeUserFromPool($loserId, $fight->pool);
-            User::where('id', $loserId)->update(['status' => 'available']);
+            // Check loser's remaining battle balance
+            $loserUser = User::find($loserId);
+            if ($loserUser->battle_balance < $baseBet) {
+                // Eliminate from pool
+                $this->removeUserFromPool($loserId, $fight->pool);
+                
+                // Double the base bet for next pool 
+                $loserUser = $loserUser->fresh(); // Refresh to get updated status/pool_id
+                $loserUser->bet_amount = $loserUser->bet_amount * 2;
+                $loserUser->save();
+            } else {
+                // Keep in pool
+                $loserUser->status = 'in_pool';
+                $loserUser->save();
+            }
         }
 
 
@@ -125,21 +130,26 @@ class FightService
         }
     }
 
-    protected function transferBalances($winnerId, $loserId)
+    protected function transferBattleBalance($winnerId, $loserId, $amount)
     {
         $loserUser = User::find($loserId);
         $winnerUser = User::find($winnerId);
 
-        $winnerUser->battle_balance += $loserUser->battle_balance;
-        $winnerUser->save();
-
-        $loserUser->battle_balance = 0;
-        $loserUser->save();
+        if ($loserUser && $winnerUser) {
+            $loserUser->battle_balance -= $amount;
+            $winnerUser->battle_balance += $amount;
+            
+            $loserUser->save();
+            $winnerUser->save();
+        }
     }
 
     protected function removeUserFromPool(int $userId, Pool $pool): void
     {
-        User::where('id', $userId)->update(['pool_id' => null]);
+        User::where('id', $userId)->update([
+            'pool_id' => null,
+            'status' => 'available'
+        ]);
     }
 
     public function addUserToNewPool(int $userId, float $baseBet, int $poolSize): void
