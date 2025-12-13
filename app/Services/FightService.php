@@ -76,7 +76,17 @@ class FightService
                 
                 // Double the base bet for next pool 
                 $loserUser = $loserUser->fresh(); // Refresh to get updated status/pool_id
-                $loserUser->bet_amount = $loserUser->bet_amount * 2;
+                $newBetAmount = $loserUser->bet_amount * 2;
+                $loserUser->bet_amount = $newBetAmount;
+                
+                // Check if user has enough funds (balance + battle_balance) for the NEXT doubled bet
+                $totalFunds = $loserUser->balance + $loserUser->battle_balance;
+                
+                if ($totalFunds < $newBetAmount) {
+                    $loserUser->status = 'stopped';
+                    $this->notificationService->notifyInsufficientBalance($loserUser);
+                }
+                
                 $loserUser->save();
             } else {
                 // Keep in pool

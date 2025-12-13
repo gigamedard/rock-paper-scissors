@@ -35,6 +35,7 @@ class FightServiceLogicTest extends TestCase
         
         $this->notificationService = Mockery::mock(NotificationService::class);
         $this->notificationService->shouldReceive('notifyFightWin')->andReturnNull();
+        $this->notificationService->shouldReceive('notifyInsufficientBalance')->andReturnNull();
 
         $this->fightService = new FightService(
             $this->historicalFightService,
@@ -77,8 +78,8 @@ class FightServiceLogicTest extends TestCase
 
     public function testLoserEliminatedWhenBalanceZero()
     {
-        // Set User2 balance to 5, so losing 5 makes it 0
-        $this->user2->update(['battle_balance' => 5]);
+        // Set User2 balance to 5, so losing 5 makes it 0. Total funds large enough.
+        $this->user2->update(['battle_balance' => 5, 'balance' => 100]);
 
         $fight = Fight::create([
             'user1_id' => $this->user1->id,
@@ -92,9 +93,35 @@ class FightServiceLogicTest extends TestCase
 
         $user2 = $this->user2->fresh();
         $this->assertEquals(0, $user2->battle_balance);
-        $this->assertEquals('available', $user2->status); // Eliminated
+        $this->assertEquals('available', $user2->status); // Eliminated but available
         $this->assertNull($user2->pool_id);
         $this->assertEquals(10, $user2->bet_amount); // Doubled (5 * 2)
+    }
+
+    public function testLoserStoppedWhenTotalBalanceInsufficient()
+    {
+        // Set User2 balance so that total funds < 10 (next bet).
+        // Lose 5. battle_balance becomes 0.
+        // next bet = 10.
+        // User needs balance + 0 >= 10.
+        // So set balance = 5. Total = 5. Insufficient.
+        $this->user2->update(['battle_balance' => 5, 'balance' => 5]);
+
+        $fight = Fight::create([
+            'user1_id' => $this->user1->id,
+            'user2_id' => $this->user2->id,
+            'base_bet_amount' => 5,
+            'status' => 'waiting_for_both',
+            'pool_id' => $this->pool->id
+        ]);
+
+        $this->fightService->handlePoolAutoplayFight($fight, 5, 2);
+
+        $user2 = $this->user2->fresh();
+        $this->assertEquals(0, $user2->battle_balance);
+        $this->assertEquals('stopped', $user2->status); // STOPPED
+        $this->assertNull($user2->pool_id);
+        $this->assertEquals(10, $user2->bet_amount);
     }
 
     public function testLoserEliminatedWhenBalanceBelowZero()

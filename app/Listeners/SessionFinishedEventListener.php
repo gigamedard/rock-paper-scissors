@@ -56,6 +56,12 @@ class SessionFinishedEventListener
 
     private function processUserBalance(User $user, float $q, float $baseBet, int $poolSize): void
     {
+        // If user is already available (waiting for batch) or stopped (insufficient funds), do not process session continuity
+        if (in_array($user->status, ['available', 'stopped'])) {
+            Log::info("SessionFinishedEventListener: User {$user->id} has status '{$user->status}'. Skipping immediate re-pool.");
+            return;
+        }
+
         if ($q >= config('game_settings.gain_coefficient')) {
             $this->transferBattleBalance($user, 'stopped');
             $this->archiveSessionHistory($user);

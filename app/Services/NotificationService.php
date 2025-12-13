@@ -50,4 +50,15 @@ class NotificationService
         // Placeholder for real notification logic
         Log::info("Notification: {$message}");
     }
+
+    /**
+     * Notify user of insufficient balance to continue.
+     *
+     * @param User $user
+     * @return void
+     */
+    public function notifyInsufficientBalance(User $user)
+    {
+        Log::info("Notification: User {$user->id} has insufficient balance to continue and has been stopped.");
+    }
 }
