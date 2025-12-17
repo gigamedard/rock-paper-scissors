@@ -5,7 +5,8 @@ USER root
 
 # Installer les dépendances système nécessaires
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git curl unzip libzip-dev libicu-dev \
+    && apt-get install -y --no-install-recommends git curl unzip libzip-dev libicu-dev libgmp-dev \
+    && docker-php-ext-install gmp \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
