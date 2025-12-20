@@ -23,7 +23,7 @@ const contract = new Contract(contracts.game.address, contracts.game.abi, wallet
 // Function to update user balance in the backend
 async function updateUserBalance(user, balance) {
   try {
-    const url = `http://127.0.0.1:8000/update-balance?balance=${formatEther(balance)}&wallet_address=${user}`;
+    const url = `http://72.60.211.162/update-balance?balance=${formatEther(balance)}&wallet_address=${user}`;
     const response = await fetch(url);
 
     if (response.ok) {
@@ -64,7 +64,7 @@ async function submitToHandlePoolEmitedEvent(poolId, baseBet, users, premoveCIDs
 // Function to handle stagnant pool refund event
 async function handleStagnantRefund(poolId, refundedCount, timestamp) {
   try {
-    const url = `http://127.0.0.1:8000/handle-stagnant-refund?pool_id=${poolId}&refunded_count=${refundedCount}&timestamp=${timestamp}`;
+    const url = `http://72.60.211.162/handle-stagnant-refund?pool_id=${poolId}&refunded_count=${refundedCount}&timestamp=${timestamp}`;
     const response = await fetch(url);
 
     if (response.ok) {

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,7 +24,7 @@
             margin: 0 auto;
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
 
@@ -295,8 +296,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .claim-button {
@@ -323,6 +329,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -403,10 +410,10 @@
         // =================================================================
 
         // --- Configuration ---
-        const API_URL = 'http://127.0.0.1:8000/api'; // L'URL de ton API Laravel
+        const API_URL = '/api'; // L'URL de ton API Laravel
 
         // --- Fonctions d'aide (Helpers) ---
-        
+
         /**
          * Récupère le jeton d'authentification depuis le localStorage.
          */
@@ -423,9 +430,9 @@
         }
 
         // --- Initialisation ---
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             loadDashboardData();
-            
+
             // Pas besoin de rafraîchir les stats personnelles ou le classement trop souvent
             // Mais on rafraîchit les pools pour voir la progression.
             setInterval(loadPoolsData, 30000); // Rafraîchit les pools toutes les 30s
@@ -453,7 +460,7 @@
 
                 if (!response.ok) {
                     const err = await response.json();
-                    if(response.status === 403) {
+                    if (response.status === 403) {
                         throw new Error("Vous n'êtes pas un influenceur.");
                     }
                     throw new Error(err.error || `Erreur HTTP ${response.status}`);
@@ -484,7 +491,7 @@
                 });
                 if (!response.ok) return; // Échoue silencieusement
                 const data = await response.json();
-                
+
                 renderMyPool(data.myPool);
                 renderAllPools(data.allPools, data.myPool.id);
             } catch (error) {
@@ -511,7 +518,7 @@
             const personalProgress = Math.min(pool.personal_progress_percentage, 100);
             const poolProgress = Math.min(pool.progress_percentage, 100);
             const canClaim = pool.canClaim; // Le backend calcule cela pour nous
-            
+
             container.innerHTML = `
                 <div class="pool-header">
                     <div class="pool-name">${pool.name} (Mon Pool)</div>
@@ -560,7 +567,7 @@
                 if (pool.id === myPoolId) return; // On ne ré-affiche pas le pool de l'utilisateur
 
                 const progressPercentage = Math.min(pool.progress_percentage, 100);
-                
+
                 html += `
                     <div class="pool-item">
                         <div class="pool-item-header">
@@ -592,12 +599,12 @@
                 contentDiv.innerHTML = '<div class="loading">Aucune donnée disponible</div>';
                 return;
             }
-            
+
             let html = '';
             leaderboard.forEach(influencer => {
                 const isCurrentUser = influencer.user_id === myUserId;
                 const highlightClass = isCurrentUser ? 'style="background: #fef3c7;"' : '';
-                
+
                 html += `
                     <div class="leaderboard-item" ${highlightClass}>
                         <div class="rank">#${influencer.rank}</div>
@@ -653,5 +660,5 @@
         }
     </script>
 </body>
-</html>
 
+</html>

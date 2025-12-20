@@ -14,9 +14,9 @@ dotenv.config({ path: join(__dirname, '.env') });
 // ===================================
 // == CONFIGURATION PRINCIPALE
 // ===================================
-export const LARAVEL_API_URL = process.env.LARAVEL_API_URL || "http://127.0.0.1:8000/api";
+export const LARAVEL_API_URL = process.env.LARAVEL_API_URL || "http://72.60.211.162/api";
 export const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
-export const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+export const BACKEND_URL = process.env.BACKEND_URL || "http://72.60.211.162";
 
 // VALIDATION - Arrête l'application si les secrets ne sont pas définis
 if (!INTERNAL_API_SECRET) {

@@ -2,7 +2,7 @@
 // ==              LISTENER D'ÉVÉNEMENTS BLOCKCHAIN               ==
 // =================================================================
 import { WebSocketProvider, Contract, formatUnits } from 'ethers';
-import { marketplaceAddress,internalApiSecret } from "./_config.js";
+import { marketplaceAddress, internalApiSecret } from "./_config.js";
 import 'dotenv/config';
 
 // --- CONFIGURATION ---
@@ -371,59 +371,59 @@ const marketplaceAbi = [
 		"type": "function"
 	}
 ];
-const laravelApiUrl = process.env.LARAVEL_API_URL || 'http://127.0.0.1:8000/api';
+const laravelApiUrl = process.env.LARAVEL_API_URL || 'http://72.60.211.162/api';
 
 
 if (!marketplaceAddress || !laravelApiUrl || !internalApiSecret) {
-    throw new Error("Variables d'environnement manquantes (MARKETPLACE_ADDRESS, etc.)");
+	throw new Error("Variables d'environnement manquantes (MARKETPLACE_ADDRESS, etc.)");
 }
 
 async function main() {
-    console.log("📡 Démarrage du listener d'événements...");
-    const provider = new WebSocketProvider(fujiWebSocketRpcUrl);
-    const contract = new Contract(marketplaceAddress, marketplaceAbi, provider);
+	console.log("📡 Démarrage du listener d'événements...");
+	const provider = new WebSocketProvider(fujiWebSocketRpcUrl);
+	const contract = new Contract(marketplaceAddress, marketplaceAbi, provider);
 
-    console.log(`👂 Écoute des événements sur le contrat Marketplace à l'adresse : ${marketplaceAddress}`);
+	console.log(`👂 Écoute des événements sur le contrat Marketplace à l'adresse : ${marketplaceAddress}`);
 
-    // --- Écouteur pour l'événement "OfferCreated" ---
-    contract.on("OfferCreated", (offerId, seller, sntAmount, avaxAmount, event) => {
-        console.log("✅ Événement 'OfferCreated' détecté !");
-        
-        // On récupère le timestamp du bloc pour l'expiration
-        event.getBlock().then(block => {
-            const expiresAt = block.timestamp + (24 * 60 * 60); // Suppose 24h, à ajuster si la durée est dans l'event
+	// --- Écouteur pour l'événement "OfferCreated" ---
+	contract.on("OfferCreated", (offerId, seller, sntAmount, avaxAmount, event) => {
+		console.log("✅ Événement 'OfferCreated' détecté !");
 
-            const offerData = {
-                offerId: offerId.toString(),
-                seller: seller,
-                sntAmount: formatUnits(sntAmount, 18), // Conversion de Wei en unité lisible
-                avaxAmount: formatUnits(avaxAmount, 18),
-                expiresAt: expiresAt
-            };
+		// On récupère le timestamp du bloc pour l'expiration
+		event.getBlock().then(block => {
+			const expiresAt = block.timestamp + (24 * 60 * 60); // Suppose 24h, à ajuster si la durée est dans l'event
 
-            console.log("📦 Préparation de l'envoi des données à Laravel:", offerData);
-            
-            // Envoi des données à l'API interne de Laravel
-            fetch(`${laravelApiUrl}/internal/trades/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-Internal-Secret': internalApiSecret // En-tête de sécurité
-                },
-                body: JSON.stringify(offerData)
-            })
-            .then(res => {
-                if (!res.ok) {
-                    console.error(`❌ Erreur de Laravel : ${res.statusText}`);
-                    res.text().then(text => console.error(text));
-                } else {
-                    console.log("🚀 Données de l'offre envoyées à Laravel avec succès !");
-                }
-            })
-            .catch(err => console.error("❌ Erreur de connexion à Laravel:", err));
-        });
-    });
+			const offerData = {
+				offerId: offerId.toString(),
+				seller: seller,
+				sntAmount: formatUnits(sntAmount, 18), // Conversion de Wei en unité lisible
+				avaxAmount: formatUnits(avaxAmount, 18),
+				expiresAt: expiresAt
+			};
+
+			console.log("📦 Préparation de l'envoi des données à Laravel:", offerData);
+
+			// Envoi des données à l'API interne de Laravel
+			fetch(`${laravelApiUrl}/internal/trades/create`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Accept': 'application/json',
+					'X-Internal-Secret': internalApiSecret // En-tête de sécurité
+				},
+				body: JSON.stringify(offerData)
+			})
+				.then(res => {
+					if (!res.ok) {
+						console.error(`❌ Erreur de Laravel : ${res.statusText}`);
+						res.text().then(text => console.error(text));
+					} else {
+						console.log("🚀 Données de l'offre envoyées à Laravel avec succès !");
+					}
+				})
+				.catch(err => console.error("❌ Erreur de connexion à Laravel:", err));
+		});
+	});
 
 	contract.on("OfferFulfilled", (offerId, buyer, event) => {
 		console.log(`✅ Événement 'OfferFulfilled' détecté pour l'offre #${offerId.toString()} par ${buyer}`);
@@ -466,37 +466,37 @@ async function main() {
 
 
 	contract.on("OfferCancelled", (offerId, event) => {
-    console.log(`🟡 Événement 'OfferCancelled' détecté pour l'offre #${offerId.toString()}`);
+		console.log(`🟡 Événement 'OfferCancelled' détecté pour l'offre #${offerId.toString()}`);
 
-    const updateData = {
-        offerId: offerId.toString(),
-        newStatus: 'cancelled'
-        // Pas besoin de 'buyerAddress' ici
-    };
+		const updateData = {
+			offerId: offerId.toString(),
+			newStatus: 'cancelled'
+			// Pas besoin de 'buyerAddress' ici
+		};
 
-    fetch(`${laravelApiUrl}/internal/trades/update-status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Internal-Secret': internalApiSecret
-        },
-        body: JSON.stringify(updateData)
-    })
-    .then(res => {
-        if (!res.ok) {
-            console.error(`❌ Erreur de Laravel lors de la mise à jour (annulation) : ${res.statusText}`);
-        } else {
-            console.log(`🚀 Statut de l'offre #${offerId.toString()} mis à jour sur 'cancelled' dans Laravel.`);
-        }
-    })
-    .catch(err => console.error("❌ Erreur de connexion à Laravel:", err));
+		fetch(`${laravelApiUrl}/internal/trades/update-status`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json',
+				'X-Internal-Secret': internalApiSecret
+			},
+			body: JSON.stringify(updateData)
+		})
+			.then(res => {
+				if (!res.ok) {
+					console.error(`❌ Erreur de Laravel lors de la mise à jour (annulation) : ${res.statusText}`);
+				} else {
+					console.log(`🚀 Statut de l'offre #${offerId.toString()} mis à jour sur 'cancelled' dans Laravel.`);
+				}
+			})
+			.catch(err => console.error("❌ Erreur de connexion à Laravel:", err));
 	});
 
-    
+
 }
 
 main().catch(error => {
-    console.error("Le listener a rencontré une erreur fatale:", error);
-    process.exit(1);
+	console.error("Le listener a rencontré une erreur fatale:", error);
+	process.exit(1);
 });
