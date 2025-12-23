@@ -66,7 +66,7 @@ class BlockchainController extends Controller
     {
         Log::info("Fetching game config from Node.js worker...");
         // Récupère l'URL du worker et le secret depuis ton .env
-        $nodeWorkerUrl = config('app.node_worker_url');
+        $nodeWorkerUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
         $internalSecret = config('app.INTERNAL_API_SECRET');
 
         Log::info("Internal API Secret: {$internalSecret}");
@@ -112,7 +112,7 @@ class BlockchainController extends Controller
 
         try {
             // Get Node.js worker URL from config
-            $nodeWorkerUrl = config('app.node_worker_url');
+            $nodeWorkerUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
 
             // Call Node.js worker to send payment via smart contract
             $result = Web3Helper::sendPayement($nodeWorkerUrl, $walletAddress, $amountEth);
