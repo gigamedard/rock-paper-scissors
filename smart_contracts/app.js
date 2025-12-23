@@ -329,8 +329,8 @@ async function startBlockchainListeners() {
 // ===================================
 // == DÉMARRAGE DU SERVEUR
 // ===================================
-app.listen(NODE_SERVER_PORT, () => {
-    console.log(`🚀 Serveur API Node.js unifié démarré sur http://127.0.0.1:${NODE_SERVER_PORT}`);
+app.listen(NODE_SERVER_PORT, '0.0.0.0', () => {
+    console.log(`🚀 Serveur API Node.js unifié démarré on port ${NODE_SERVER_PORT}`);
 
     // Une fois le serveur démarré, on lance les listeners
     startBlockchainListeners();

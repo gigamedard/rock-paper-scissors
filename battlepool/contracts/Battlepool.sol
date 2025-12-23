@@ -19,6 +19,7 @@ contract Battlepool {
     mapping(address => string[]) public sessionHistoryCIDs; // Allows multiple CIDs per user
     mapping(address => string) public userPremoveCIDs; // Maps user address to IPFS CID for premoves
     mapping(address => bool) public isUserInAnyPool;
+    mapping(address => uint256) public nextSessionAllowedTime; // Track when user can play again
     event PoolCreated(uint256 indexed poolId, uint256 baseBet, uint256 maxSize);
     event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, string poolSalt); // Changed poolSalt to string
     event DepositReceived(address indexed user, uint256 amount);
@@ -31,6 +32,7 @@ contract Battlepool {
     event DefaultPoolMaxSizeChanged(uint256 newSize); // <<<--- AJOUTEZ CETTE LIGNE
     event PoolStagnantRefund(uint256 indexed poolId, uint256 refundedCount, uint256 timestamp);
     event StagnantBlockLimitUpdated(uint256 newLimit);
+    event NextSessionTimeUpdated(address indexed user, uint256 nextTime);
 
     address public owner;
     uint256 public securityCoefficient = 1000;
@@ -112,6 +114,7 @@ contract Battlepool {
             require(users[i] != address(0), "Invalid user address"); // Validate user address
             require(!pool.isUserInPool[users[i]], "User already in pool"); // Ensure user is not already in the pool
             require(!isUserInAnyPool[users[i]], "User in another pool");
+            require(block.timestamp >= nextSessionAllowedTime[users[i]], "User is in cooldown");
 
             pool.users.push(users[i]);
             pool.isUserInPool[users[i]] = true; // Mark user as added to the pool
@@ -131,6 +134,7 @@ contract Battlepool {
         require(user != address(0), "Invalid user address");
         
         require(!isUserInAnyPool[user], "User in another pool");
+        require(block.timestamp >= nextSessionAllowedTime[user], "User is in cooldown");
         
         
         Pool storage pool = pools[baseBet];
@@ -332,6 +336,11 @@ contract Battlepool {
     function setStagnantBlockLimit(uint256 _limit) external onlyOwner {
         stagnantBlockLimit = _limit;
         emit StagnantBlockLimitUpdated(_limit);
+    }
+
+    function setUserNextSessionTime(address user, uint256 nextTime) external onlyOwner {
+        nextSessionAllowedTime[user] = nextTime;
+        emit NextSessionTimeUpdated(user, nextTime);
     }
 
     function checkAndRefundStagnantPool(uint256 baseBet) external {

@@ -62,10 +62,17 @@ class SessionFinishedEventListener
             return;
         }
 
-        if ($q >= config('game_settings.gain_coefficient')) {
+        // Retrieve multiplier based on user level
+        $multiplierLevel = $user->multiplier_level ?? 1;
+        $multiplier = config("game_levels.multiplier.{$multiplierLevel}", 2.0);
+
+        if ($q >= $multiplier) {
             $this->transferBattleBalance($user, 'stopped');
             $this->archiveSessionHistory($user);
             $this->sendPayment($user);
+            
+            // Set Cooldown
+            $this->setNextSessionTime($user);
         } elseif ($q < 1 && $user->balance < $user->bet_amount) {
             // TODO: event(new UseAssurenceEvent($user->id));
             Log::info("SessionFinishedEventListener: User ID: {$user->id} triggered UseAssurenceEvent.");
@@ -134,5 +141,19 @@ class SessionFinishedEventListener
     private function sendPayment(User $user): void
     {
         $this->web3Helper->sendPayement(env('NODE_URL'), $user->wallet_address, $user->balance);
+    }
+
+    private function setNextSessionTime(User $user): void
+    {
+        $recoveryLevel = $user->recovery_level ?? 1;
+        $minutes = config("game_levels.recovery_time.{$recoveryLevel}", 1440); // Default 24h
+        $nextTime = now()->addMinutes($minutes)->timestamp;
+
+        try {
+            $this->web3Helper->setUserNextSessionTime(env('NODE_URL'), $user->wallet_address, $nextTime);
+            Log::info("Set cooldown for User {$user->id} until " . date('Y-m-d H:i:s', $nextTime));
+        } catch (\Exception $e) {
+            Log::error("Failed to set cooldown for User {$user->id}: " . $e->getMessage());
+        }
     }
 }
