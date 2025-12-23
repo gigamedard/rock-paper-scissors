@@ -66,7 +66,7 @@ class BlockchainController extends Controller
     {
         Log::info("Fetching game config from Node.js worker...");
         // Récupère l'URL du worker et le secret depuis ton .env
-        $nodeWorkerUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+        $nodeWorkerUrl = config('app.NODE_WORKER_URL');
         $internalSecret = config('app.INTERNAL_API_SECRET');
 
         Log::info("Internal API Secret: {$internalSecret}");
