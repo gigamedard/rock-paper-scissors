@@ -102,7 +102,7 @@ return [
     'MARKETPLACE_ADDRESS' => env('MARKETPLACE_ADDRESS'),
     // --- AJOUTE CES LIGNES ---
     'INTERNAL_API_SECRET' => env('INTERNAL_API_SECRET'),
-    'NODE_WORKER_URL' => env('NODE_WORKER_URL'),
+    'node_worker_url' => env('NODE_WORKER_URL', 'http://127.0.0.1:3000'),
     'inner_script_token' => env('INNER_SCRIPT_TOKEN'),
 
 
