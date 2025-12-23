@@ -2402,16 +2402,28 @@
             // Update UI immediately
             updateLanguage(locale);
 
-            if (typeof window.ethereum === 'undefined') {
-                console.error("MetaMask not detected!");
-                alert('Please install a wallet like MetaMask!');
+            // Check for Core Wallet (Avalanche) or fallback to Ethereum (MetaMask)
+            let provider = window.ethereum;
+
+            if (window.avalanche) {
+                 console.log("Core Wallet (Avalanche) detected!");
+                 provider = window.avalanche;
+            } else if (window.ethereum) {
+                 console.log("Using standard window.ethereum provider");
+                 provider = window.ethereum;
+            }
+
+            if (!provider) {
+                console.error("No wallet detected!");
+                alert('Please install a Web3 wallet like Core or MetaMask!');
                 return;
             }
 
-            WEB3 = new Web3(window.ethereum);
+            WEB3 = new Web3(provider);
 
             try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                // Request accounts from the selected provider
+                await provider.request({ method: 'eth_requestAccounts' });
                 const accounts = await WEB3.eth.getAccounts();
                 const walletAddress = accounts[0];
 
