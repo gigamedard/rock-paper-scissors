@@ -2344,13 +2344,23 @@
 
             console.log("Initializing game page for user:", userState);
 
-            if (!WEB3 && window.ethereum) {
-                console.log("Initializing Web3 for returning user...");
-                WEB3 = new Web3(window.ethereum);
-            } else if (!WEB3) {
-                console.error("MetaMask or Web3 provider not detected.");
-                alert("Please install MetaMask to play.");
-                return;
+            if (!WEB3) {
+                let provider = window.ethereum;
+                if (window.avalanche) {
+                    console.log("Initializing Game Page: Core Wallet (Avalanche) detected!");
+                    provider = window.avalanche;
+                } else if (window.ethereum) {
+                    console.log("Initializing Game Page: Using standard window.ethereum provider");
+                }
+
+                if (provider) {
+                    console.log("Initializing Web3 for returning user with provider:", provider);
+                    WEB3 = new Web3(provider);
+                } else {
+                    console.error("MetaMask or Web3 provider not detected during initialization.");
+                    alert("Please install a Web3 wallet like Core or MetaMask to play.");
+                    return;
+                }
             }
 
             try {
@@ -2406,11 +2416,11 @@
             let provider = window.ethereum;
 
             if (window.avalanche) {
-                 console.log("Core Wallet (Avalanche) detected!");
-                 provider = window.avalanche;
+                console.log("Core Wallet (Avalanche) detected!");
+                provider = window.avalanche;
             } else if (window.ethereum) {
-                 console.log("Using standard window.ethereum provider");
-                 provider = window.ethereum;
+                console.log("Using standard window.ethereum provider");
+                provider = window.ethereum;
             }
 
             if (!provider) {
