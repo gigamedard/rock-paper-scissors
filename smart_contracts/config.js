@@ -14,9 +14,9 @@ dotenv.config({ path: join(__dirname, '.env') });
 // ===================================
 // == CONFIGURATION PRINCIPALE
 // ===================================
-export const LARAVEL_API_URL = process.env.LARAVEL_API_URL || "http://72.60.211.162/api";
+export const LARAVEL_API_URL = "http://127.0.0.1:8081/api"; // Force local Docker access
 export const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
-export const BACKEND_URL = process.env.BACKEND_URL || "http://72.60.211.162";
+export const BACKEND_URL = "https://srv1198092.hstgr.cloud"; // Force correct domain
 
 // VALIDATION - Arrête l'application si les secrets ne sont pas définis
 if (!INTERNAL_API_SECRET) {
@@ -1236,7 +1236,15 @@ export const contracts = {
       }
     ]
   },
-
+  // --- Contrat SNT Token (ERC20) ---
+  snt: {
+    address: "0x05A26c7f06127710463692263E12c1BF51A34184",
+    abi: [
+      { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
+      { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },
+      { "constant": true, "inputs": [{ "name": "owner", "type": "address" }, { "name": "spender", "type": "address" }], "name": "allowance", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }
+    ]
+  }
 };
 
 export const pinata = {

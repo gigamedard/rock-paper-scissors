@@ -2112,6 +2112,8 @@
         let contractConfig = {
             abi: null,
             address: null,
+            marketplace: { address: null, abi: null },
+            snt: { address: null, abi: null },
             securityCoefficient: 1000,
             PINATA_API_KEY: null,
             PINATA_SECRET: null,
@@ -2130,40 +2132,8 @@
         };
 
         // --- 2. Marketplace Global Config ---
-        const SNT_TOKEN_ADDRESS = "0x05A26c7f06127710463692263E12c1BF51A34184";
-        const MARKETPLACE_ADDRESS = "0xb0Fe23c18bCc490CDFe4E244e9F1c4e54A10cE6c";
-        const SNT_TOKEN_ABI = [
-            { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
-            { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },
-            { "constant": true, "inputs": [{ "name": "owner", "type": "address" }, { "name": "spender", "type": "address" }], "name": "allowance", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" }
-        ];
-        const MARKETPLACE_ABI = [
-            { "inputs": [{ "internalType": "address", "name": "_tokenAddress", "type": "address" }, { "internalType": "address", "name": "_initialOwner", "type": "address" }], "stateMutability": "nonpayable", "type": "constructor" },
-            { "inputs": [], "name": "EnforcedPause", "type": "error" },
-            { "inputs": [], "name": "ExpectedPause", "type": "error" },
-            { "inputs": [{ "internalType": "address", "name": "owner", "type": "address" }], "name": "OwnableInvalidOwner", "type": "error" },
-            { "inputs": [{ "internalType": "address", "name": "account", "type": "address" }], "name": "OwnableUnauthorizedAccount", "type": "error" },
-            { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "uint256", "name": "offerId", "type": "uint256" }], "name": "OfferCancelled", "type": "event" },
-            { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "uint256", "name": "offerId", "type": "uint256" }, { "indexed": true, "internalType": "address", "name": "seller", "type": "address" }, { "indexed": false, "internalType": "uint256", "name": "sntAmount", "type": "uint256" }, { "indexed": false, "internalType": "uint256", "name": "avaxAmount", "type": "uint256" }], "name": "OfferCreated", "type": "event" },
-            { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "uint256", "name": "offerId", "type": "uint256" }, { "indexed": true, "internalType": "address", "name": "buyer", "type": "address" }], "name": "OfferFulfilled", "type": "event" },
-            { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" }, { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }], "name": "OwnershipTransferred", "type": "event" },
-            { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "address", "name": "account", "type": "address" }], "name": "Paused", "type": "event" },
-            { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "address", "name": "account", "type": "address" }], "name": "Unpaused", "type": "event" },
-            { "inputs": [{ "internalType": "uint256", "name": "_offerId", "type": "uint256" }], "name": "cancelOffer", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-            { "inputs": [{ "internalType": "uint256", "name": "_sntAmount", "type": "uint256" }, { "internalType": "uint256", "name": "_avaxAmount", "type": "uint256" }, { "internalType": "uint256", "name": "_durationHours", "type": "uint256" }], "name": "createOffer", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-            { "inputs": [], "name": "feePercentage", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
-            { "inputs": [{ "internalType": "uint256", "name": "_offerId", "type": "uint256" }], "name": "fulfillOffer", "outputs": [], "stateMutability": "payable", "type": "function" },
-            { "inputs": [], "name": "nextOfferId", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
-            { "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "offers", "outputs": [{ "internalType": "uint256", "name": "id", "type": "uint256" }, { "internalType": "address payable", "name": "seller", "type": "address" }, { "internalType": "uint256", "name": "sntAmount", "type": "uint256" }, { "internalType": "uint256", "name": "avaxAmount", "type": "uint256" }, { "internalType": "uint256", "name": "expiresAt", "type": "uint256" }, { "internalType": "enum MarketplaceEscrow.Status", "name": "status", "type": "uint8" }], "stateMutability": "view", "type": "function" },
-            { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
-            { "inputs": [], "name": "pause", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-            { "inputs": [], "name": "paused", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "view", "type": "function" },
-            { "inputs": [], "name": "renounceOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-            { "inputs": [{ "internalType": "uint256", "name": "_newFee", "type": "uint256" }], "name": "setFeePercentage", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-            { "inputs": [], "name": "sntToken", "outputs": [{ "internalType": "contract IERC20", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
-            { "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }], "name": "transferOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-            { "inputs": [], "name": "unpause", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
-        ];
+        // --- 2. Marketplace Global Config (Loaded Dynamically) ---
+        // Constants removed - using contractConfig.marketplace and contractConfig.snt
 
         // --- 3. Fonctions Utilitaires Centralisées ---
 
@@ -2380,6 +2350,8 @@
 
                 contractConfig.abi = data.abi;
                 contractConfig.address = data.address;
+                contractConfig.marketplace = data.marketplace;
+                contractConfig.snt = data.snt;
                 contractConfig.securityCoefficient = data.security_coefficient || 1000;
                 contractConfig.PINATA_API_KEY = data.pinata_api_key;
                 contractConfig.PINATA_SECRET = data.pinata_secret;
@@ -2406,29 +2378,68 @@
 
         async function loginWithWallet(locale) {
             console.log("Login initiated with locale:", locale);
-            console.log("Checking for window.ethereum:", window.ethereum);
-            console.log("Checking for window.web3:", window.web3);
 
             // Update UI immediately
             updateLanguage(locale);
 
-            // Check for Core Wallet (Avalanche) or fallback to Ethereum (MetaMask)
-            let provider = window.ethereum;
+            // --- HELPER: Detect Core via EIP-6963 ---
+            // This wraps the event listener in a Promise so we can "await" it.
+            const getCoreProvider = () => {
+                return new Promise((resolve) => {
+                    let found = false;
 
-            if (window.avalanche) {
-                console.log("Core Wallet (Avalanche) detected!");
+                    const handleAnnouncement = (event) => {
+                        // Check specifically for Core Wallet's identifier
+                        if (event.detail && event.detail.info.rdns === "app.core.extension") {
+                            found = true;
+                            window.removeEventListener("eip6963:announceProvider", handleAnnouncement);
+                            resolve(event.detail.provider);
+                        }
+                    };
+
+                    window.addEventListener("eip6963:announceProvider", handleAnnouncement);
+
+                    // Trigger the wallets to announce themselves
+                    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+                    // If Core doesn't answer within 500ms, resolve as null (move to fallback)
+                    setTimeout(() => {
+                        if (!found) {
+                            window.removeEventListener("eip6963:announceProvider", handleAnnouncement);
+                            resolve(null);
+                        }
+                    }, 500);
+                });
+            };
+
+            // 1. Try EIP-6963 (Best Practice)
+            console.log("Attempting to detect Core via EIP-6963...");
+            let provider = await getCoreProvider();
+
+            if (provider) {
+                console.log("Core Wallet detected via EIP-6963!");
+            }
+            // 2. Legacy Fallback: Direct object check
+            else if (window.avalanche) {
+                console.log("Core Wallet detected via window.avalanche (Legacy)!");
                 provider = window.avalanche;
-            } else if (window.ethereum) {
+            }
+            // 3. Standard Fallback: MetaMask / Generic
+            else if (window.ethereum) {
                 console.log("Using standard window.ethereum provider");
                 provider = window.ethereum;
             }
 
+            // No wallet found
             if (!provider) {
                 console.error("No wallet detected!");
                 alert('Please install a Web3 wallet like Core or MetaMask!');
                 return;
             }
 
+            // --- IMPORTANT FIX BELOW ---
+            // Originally, you had: WEB3 = new Web3(window.ethereum);
+            // This ignored the 'provider' logic above. We must use the 'provider' variable.
             WEB3 = new Web3(provider);
 
             try {
@@ -3314,7 +3325,7 @@
         async function updateUserSntBalance() {
             if (!WEB3 || !userState.walletAddress) return;
             try {
-                const sntContract = new WEB3.eth.Contract(SNT_TOKEN_ABI, SNT_TOKEN_ADDRESS);
+                const sntContract = new WEB3.eth.Contract(contractConfig.snt.abi, contractConfig.snt.address);
                 const balanceWei = await sntContract.methods.balanceOf(userState.walletAddress).call();
                 const balanceEth = WEB3.utils.fromWei(balanceWei, 'ether');
 
@@ -3445,8 +3456,8 @@
             }
 
             try {
-                const sntContract = new WEB3.eth.Contract(SNT_TOKEN_ABI, SNT_TOKEN_ADDRESS);
-                const allowanceWei = await sntContract.methods.allowance(userState.walletAddress, MARKETPLACE_ADDRESS).call();
+                const sntContract = new WEB3.eth.Contract(contractConfig.snt.abi, contractConfig.snt.address);
+                const allowanceWei = await sntContract.methods.allowance(userState.walletAddress, contractConfig.marketplace.address).call();
                 const allowanceEth = WEB3.utils.fromWei(allowanceWei, 'ether');
 
                 console.log(`Current allowance: ${allowanceEth} SNT, Required: ${sntAmountVal} SNT`);
@@ -3518,7 +3529,7 @@
             const sntAmount = document.getElementById('snt-amount').value;
             if (!sntAmount || sntAmount <= 0) { alert('Please enter a valid SNT amount.'); return; }
 
-            const sntContract = new WEB3.eth.Contract(SNT_TOKEN_ABI, SNT_TOKEN_ADDRESS);
+            const sntContract = new WEB3.eth.Contract(contractConfig.snt.abi, contractConfig.snt.address);
             // Approve a slightly larger amount (or infinite) to save future gas? 
             // For now, let's approve exactly what is requested or a bit more for safety/UX?
             // Let's stick to approving the requested amount to be safe, or maybe 10x?
@@ -3530,7 +3541,7 @@
             try {
                 approveBtn.textContent = 'Approving...';
                 approveBtn.disabled = true;
-                await sntContract.methods.approve(MARKETPLACE_ADDRESS, amountToApprove).send({ from: userState.walletAddress });
+                await sntContract.methods.approve(contractConfig.marketplace.address, amountToApprove).send({ from: userState.walletAddress });
 
                 showMarketplaceNotification('✅ Approval successful!', 'success');
                 checkAllowance(); // Re-check to update UI
@@ -3559,7 +3570,7 @@
             createBtn.disabled = true;
 
             try {
-                const marketplaceContract = new WEB3.eth.Contract(MARKETPLACE_ABI, MARKETPLACE_ADDRESS);
+                const marketplaceContract = new WEB3.eth.Contract(contractConfig.marketplace.abi, contractConfig.marketplace.address);
                 const sntAmountWei = WEB3.utils.toWei(sntAmount, 'ether');
                 const avaxAmountWei = WEB3.utils.toWei(avaxAmount, 'ether');
 
@@ -3594,7 +3605,7 @@
                 alert("Veuillez connecter votre portefeuille.");
                 return;
             }
-            const marketplaceContract = new WEB3.eth.Contract(MARKETPLACE_ABI, MARKETPLACE_ADDRESS);
+            const marketplaceContract = new WEB3.eth.Contract(contractConfig.marketplace.abi, contractConfig.marketplace.address);
 
             if (trade.is_own_trade) {
                 const confirmation = confirm(`Confirmer l'annulation de l'offre de ${parseFloat(trade.snt_amount).toLocaleString()} SNT ?`);

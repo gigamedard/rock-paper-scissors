@@ -31,11 +31,10 @@ const gameContract = new Contract(contracts.game.address, contracts.game.abi, ga
 
 console.log(`[DEBUG] Le worker écoute le contrat Battlepool à l'adresse: ${contracts.game.address}`);
 
-/* --- Connexion au Marketplace (Fuji) ---
-const marketplaceProvider = new JsonRpcProvider(FUJI_RPC_URL);
-const marketplaceWallet = new Wallet(MARKETPLACE_WALLET_PK, marketplaceProvider);
-const marketplaceContract = new Contract(contracts.marketplace.address, contracts.marketplace.abi, marketplaceWallet);
-*/
+// --- Connexion au Marketplace (Fuji) ---
+// const marketplaceProvider = new JsonRpcProvider(FUJI_RPC_URL); // Utilise gameProvider pour économiser les ressources
+// const marketplaceWallet = new Wallet(MARKETPLACE_WALLET_PK, gameProvider);
+const marketplaceContract = new Contract(contracts.marketplace.address, contracts.marketplace.abi, gameWallet);
 // ===================================
 // == API SERVER (Logique de server.js)
 // ===================================
@@ -201,6 +200,8 @@ app.get("/get-game-config", (req, res) => {
         res.status(200).json({
             abi: contracts.game.abi,
             address: contracts.game.address,
+            marketplace: contracts.marketplace,
+            snt: contracts.snt,
             security_coefficient: SECURITY_COEFFICIENT,
             pinata_secret: pinata.PINATA_SECRET,
             pinata_api_url: pinata.PINATA_API_URL,
@@ -294,6 +295,65 @@ async function startBlockchainListeners() {
                         pool_id: args[0].toString(),
                         refunded_count: args[1].toString(),
                         timestamp: args[2].toString()
+                    });
+                }
+
+                // --- LISTENERS MARKETPLACE ---
+
+                // 4. OfferCreated
+                const offerCreatedEvents = await marketplaceContract.queryFilter("OfferCreated", lastBlock + 1, currentBlock);
+                for (const event of offerCreatedEvents) {
+                    const { args } = event;
+                    const offerId = args[0];
+                    console.log(`🔔 [MARKET] OfferCreated: ID=${offerId}, Seller=${args[1]}`);
+
+                    try {
+                        // Fetch details (expiration) form contract
+                        const offerDetails = await marketplaceContract.offers(offerId);
+                        const expiresAt = offerDetails.expiresAt;
+
+                        postToLaravel('/internal/trades/create', {
+                            offerId: offerId.toString(),
+                            seller: args[1],
+                            sntAmount: formatEther(args[2]), // Wei to Eth/Token unit if needed, check controller expectations. 
+                            // Controller validation says numeric. internalTradeController stores strictly what receives.
+                            // Frontend sends Wei to contract. Contract emits Wei.
+                            // However, DB usually stores "human readable" or consistent units.
+                            // 'formatEther' converts Wei to string decimal.
+                            // Let's assume Laravel expects human readable for display or verify internalTradeController logic.
+                            // internalTradeController just stores it. Frontend displays it.
+                            // Frontend `loadTrades` does `parseFloat(trade.snt_amount).toLocaleString()`. 
+                            // If we store Wei, parseFloat might be huge. 
+                            // Let's use formatEther to store as "tokens" not "wei".
+                            sntAmount: formatEther(args[2]),
+                            avaxAmount: formatEther(args[3]),
+                            expiresAt: expiresAt.toString()
+                        });
+                    } catch (err) {
+                        console.error(`❌ Failed to fetch offer details for ${offerId}:`, err);
+                    }
+                }
+
+                // 5. OfferFulfilled
+                const offerFulfilledEvents = await marketplaceContract.queryFilter("OfferFulfilled", lastBlock + 1, currentBlock);
+                for (const event of offerFulfilledEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [MARKET] OfferFulfilled: ID=${args[0]}, Buyer=${args[1]}`);
+                    postToLaravel('/internal/trades/update-status', {
+                        offerId: args[0].toString(),
+                        newStatus: 'fulfilled',
+                        buyerAddress: args[1]
+                    });
+                }
+
+                // 6. OfferCancelled
+                const offerCancelledEvents = await marketplaceContract.queryFilter("OfferCancelled", lastBlock + 1, currentBlock);
+                for (const event of offerCancelledEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [MARKET] OfferCancelled: ID=${args[0]}`);
+                    postToLaravel('/internal/trades/update-status', {
+                        offerId: args[0].toString(),
+                        newStatus: 'cancelled'
                     });
                 }
 
