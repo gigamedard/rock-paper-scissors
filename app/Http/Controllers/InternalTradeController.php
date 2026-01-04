@@ -90,6 +90,16 @@ class InternalTradeController extends Controller
                                 'user_id' => $buyer->id, 
                                 'new_balance' => $buyer->fresh()->token_balance
                             ]);
+
+                            // 4. TRIGGER REFERRAL CHECK (Mimicking Logic)
+                            // We check if the buyer has enough tokens and a pending referral
+                            // This ensures validation happens immediately upon trade fulfillment.
+                            $minimumBalance = 5;
+                            $buyer->refresh(); // Encure we have latest balance
+                            if ($buyer->token_balance >= $minimumBalance) {
+                                $this->referralService->processReferralValidation($buyer);
+                            }
+
                         } else {
                             Log::warning('==> [LISTENER] L\'acheteur n\'a pas été trouvé en BDD, solde non mis à jour.', ['address' => $data['buyerAddress']]);
                         }
