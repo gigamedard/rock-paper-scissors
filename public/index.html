@@ -1406,6 +1406,79 @@
         </div>
     </div>
 
+    <!-- Referral Dashboard Page -->
+    <div id="referral-dashboard-page" class="page">
+        <div class="container">
+            <h1>🤝 Referral Program</h1>
+
+            <!-- Section 1: Apply a Referral Code (For new users) -->
+            <div class="card" style="margin-bottom: 2rem; background: #fffbe6; border: 2px solid #f59e0b;">
+                <h2>🎁 Have a Referral Code?</h2>
+                <p>Enter a friend's code to get a start bonus!</p>
+                <div class="form-group">
+                    <input type="text" id="apply-referral-input" class="form-input" placeholder="REF-XXXXX"
+                        style="text-align: center; font-size: 1.2em; letter-spacing: 2px; text-transform: uppercase;">
+                </div>
+                <button class="btn btn-primary" onclick="submitReferralCode()" style="width: 100%; margin-top: 10px;">
+                    🚀 Apply Code
+                </button>
+            </div>
+
+            <!-- Section 2: Your Referral Code -->
+            <div class="referral-code-section">
+                <h3>Your Referral Code</h3>
+                <p>Share this code to earn rewards!</p>
+                <div class="code-input">
+                    <input type="text" id="referral-code-display" value="Loading..." readonly>
+                    <button class="btn btn-primary" onclick="copyCode(event)">
+                        📋 Copy
+                    </button>
+                </div>
+                <p id="loading-message" style="color: #4f46e5; margin-top: 10px; text-align: center;">
+                    Loading stats...
+                </p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="stat-label">👥 Total Referrals</div>
+                    <div class="stat-number" id="stat-total-referrals">--</div>
+                </div>
+                <div class="stat-card yellow">
+                    <div class="stat-label">⏳ Pending</div>
+                    <div class="stat-number" id="stat-pending-referrals">--</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-label">✅ Validated</div>
+                    <div class="stat-number" id="stat-validated-referrals">--</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-label">🎁 Rewards (SNT)</div>
+                    <div class="stat-number" id="stat-total-rewards">--</div>
+                </div>
+            </div>
+
+            <div class="instructions">
+                <h3>How it works</h3>
+                <ol style="text-align: left; padding-left: 20px;">
+                    <li><strong>Share</strong> your code with friends.</li>
+                    <li>They <strong>sign up</strong> using your code.</li>
+                    <li>Once they are <strong>validated</strong> (after joining a pool), you get credit.</li>
+                    <li><strong>Earn SNT</strong> for every validated referral!</li>
+                </ol>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="card leaderboard" style="margin-top: 2rem;">
+                <h2>🏆 Top Referrers</h2>
+                <div id="leaderboard-content">
+                    <div class="loading">Loading leaderboard...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="autoplay-page" class="page">
         <div class="card">
             <h2 data-i18n="game_title">Start New Game</h2>
@@ -2693,7 +2766,7 @@
             const params = new URLSearchParams(window.location.search);
             const refCode = params.get('ref');
             if (refCode) {
-                const inputElement = document.getElementById('referral-code-input');
+                const inputElement = document.getElementById('apply-referral-input');
                 if (inputElement) {
                     inputElement.value = refCode;
                     console.log(`Referral code '${refCode}' found in URL.`);
@@ -2703,7 +2776,7 @@
 
         async function submitReferralCode(skipped = false) {
             const token = getAuthToken();
-            const inputElement = document.getElementById('referral-code-input');
+            const inputElement = document.getElementById('apply-referral-input');
             const referralCode = inputElement.value;
 
             if (!skipped && referralCode.trim() !== '' && token) {
@@ -2792,7 +2865,7 @@
         }
 
         function copyReferralCode(event) {
-            const input = document.getElementById('referral-code-input-dash');
+            const input = document.getElementById('referral-code-display');
             const referralCode = input.value;
 
             if (referralCode === 'Chargement...' || referralCode.includes('ERR')) return;
@@ -2801,7 +2874,7 @@
         }
 
         function copyReferralLink(event) {
-            const input = document.getElementById('referral-code-input-dash');
+            const input = document.getElementById('referral-code-display');
             const referralCode = input.value;
 
             if (referralCode === 'Chargement...' || referralCode.includes('ERR')) return;
@@ -2850,11 +2923,11 @@
 
                 if (!response.ok) {
                     loadingMsg.textContent = `Erreur: ${data.message || 'Problème de serveur.'}`;
-                    document.getElementById('referral-code-input-dash').value = 'ERREUR-API';
+                    document.getElementById('referral-code-display').value = 'ERREUR-API';
                     throw new Error(data.message || `Erreur HTTP ${response.status}`);
                 }
 
-                document.getElementById('referral-code-input-dash').value = data.code;
+                document.getElementById('referral-code-display').value = data.code;
                 document.getElementById('stat-total-referrals').textContent = data.totalReferrals.toLocaleString('fr-FR');
                 document.getElementById('stat-pending-referrals').textContent = data.pendingReferrals.toLocaleString('fr-FR');
                 document.getElementById('stat-validated-referrals').textContent = data.validatedReferrals.toLocaleString('fr-FR');
