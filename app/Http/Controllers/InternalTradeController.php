@@ -148,4 +148,59 @@ class InternalTradeController extends Controller
             Log::info('==> [LISTENER] Conditions non remplies pour la validation.');
             return response()->json(['status' => 'conditions_not_met']);
         }
+
+    public function syncTransfer(Request $request)
+    {
+        // 1. Log & Decode
+        Log::info('==> [LISTENER] Sync Transfer Event: ' . $request->getContent());
+        $data = json_decode($request->getContent(), true);
+
+        if (empty($data) || !isset($data['to'])) {
+            return response()->json(['status' => 'invalid_json'], 400);
+        }
+
+        $fromAddress = $data['from'] ?? null;
+        $toAddress = $data['to'];
+        $amount = $data['amount'] ?? 0; // Amount in human readable units (e.g. 5.0)
+
+        DB::transaction(function () use ($fromAddress, $toAddress, $amount) {
+            // 2. Handle Sender (Decrement)
+            if ($fromAddress && $fromAddress !== '0x0000000000000000000000000000000000000000') {
+                $sender = User::where('wallet_address', $fromAddress)->first();
+                if ($sender) {
+                    $sender->decrement('token_balance', $amount);
+                    Log::info("Décrémenté $amount tokens de $fromAddress");
+                }
+            }
+
+            // 3. Handle Receiver (Increment)
+            $receiver = User::where('wallet_address', $toAddress)->first();
+            if ($receiver) {
+                $receiver->increment('token_balance', $amount);
+                Log::info("Incrémenté $amount tokens pour $toAddress");
+
+                // 4. Trigger Referral Check DIRECTLY within the transaction
+                $this->checkReferralForUser($receiver);
+            }
+        });
+
+        return response()->json(['status' => 'synced']);
+    }
+
+    private function checkReferralForUser(User $user)
+    {
+        $minimumBalance = 5;
+        $pendingReferral = Referral::where('referred_id', $user->id)->where('status', 'pending')->exists();
+
+        // Refresh user to get updated balance is optional inside transaction if we just incremented, 
+        // but $user->increment changes DB, not the model instance immediately unless refreshed or set.
+        // Usually increment() doesn't update the model instance attributes in memory automatically in old Laravel, 
+        // but we can just use fresh() or refresh().
+        $currentBalance = $user->fresh()->token_balance;
+
+        if ($pendingReferral && $currentBalance >= $minimumBalance) {
+            Log::info("Validation parrainage déclenchée pour User {$user->id} suite à un transfert.");
+            $this->referralService->processReferralValidation($user);
+        }
+    }
     }

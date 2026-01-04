@@ -121,6 +121,7 @@ Route::prefix('internal')->middleware('auth.internal')->group(function () {
     Route::post('/trades/create', [InternalTradeController::class, 'create']);
     Route::post('/trades/update-status', [InternalTradeController::class, 'updateStatus']);
     Route::post('/trades/trigger-referral-check', [InternalTradeController::class, 'triggerReferralCheck']);
+    Route::post('/trades/sync-transfer', [InternalTradeController::class, 'syncTransfer']);
     
     // --- Routes des Influenceurs ---
     Route::post('/influencer/log-fee', [InfluencerController::class, 'logFee']);

@@ -357,6 +357,25 @@ async function startBlockchainListeners() {
                     });
                 }
 
+                // 7. SNT Transfer (Sync Balance & Referral Check)
+                // We use sntContract declared below or we instantiate it here if not global.
+                // Assuming we need to instantiate it similar to gameContract.
+                // Re-using gameWallet (provider) for reading events.
+                const sntContract = new Contract(contracts.snt.address, contracts.snt.abi, gameWallet);
+                const transferEvents = await sntContract.queryFilter("Transfer", lastBlock + 1, currentBlock);
+
+                for (const event of transferEvents) {
+                    const { args } = event;
+                    // args: from, to, value
+                    console.log(`🔔 [SNT] Transfer: From=${args[0]} To=${args[1]} Value=${formatEther(args[2])}`);
+
+                    postToLaravel('/internal/trades/sync-transfer', {
+                        from: args[0],
+                        to: args[1],
+                        amount: formatEther(args[2])
+                    });
+                }
+
                 lastBlock = currentBlock;
             }
         } catch (error) {
