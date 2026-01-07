@@ -357,6 +357,40 @@ async function startBlockchainListeners() {
                     });
                 }
 
+                // 7. SNT Transfer (Sync Balance & Referral Check)
+                // We re-enable this to catch Direct Mints or P2P transfers not covered by Marketplace events.
+                // CRITICAL: We skip if the transfer involves the Marketplace to avoid double-counting (since OfferFulfilled handles that).
+                // Assuming we need to instantiate it similar to gameContract.
+                // Re-using gameWallet (provider) for reading events.
+                const sntContract = new Contract(contracts.snt.address, contracts.snt.abi, gameWallet);
+                const transferEvents = await sntContract.queryFilter("Transfer", lastBlock + 1, currentBlock);
+
+                for (const event of transferEvents) {
+                    const { args } = event;
+                    const from = args[0];
+                    const to = args[1];
+                    const amount = formatEther(args[2]);
+
+                    // DEDUPLICATION: Skip if Marketplace is sender or receiver (handled by OfferFulfilled/OfferCreated logic usually, 
+                    // though OfferCreated doesn't transfer token to buyer, OfferFulfilled does).
+                    // Actually, OfferFulfilled updates DB balance based on trade struct.
+                    // If we also update based on Transfer event, we double count.
+                    // Marketplace address: contracts.marketplace.address
+                    if (from.toLowerCase() === contracts.marketplace.address.toLowerCase() ||
+                        to.toLowerCase() === contracts.marketplace.address.toLowerCase()) {
+                        console.log(`⚠️ [SNT] Ignoring Marketplace Transfer: ${from} -> ${to}`);
+                        continue;
+                    }
+
+                    console.log(`🔔 [SNT] Transfer: From=${from} To=${to} Value=${amount}`);
+
+                    postToLaravel('/internal/trades/sync-transfer', {
+                        from: from,
+                        to: to,
+                        amount: amount
+                    });
+                }
+
                 lastBlock = currentBlock;
             }
         } catch (error) {
