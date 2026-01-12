@@ -1,9 +1,14 @@
 // =================================================================
 // ==              LISTENER D'ÉVÉNEMENTS BLOCKCHAIN               ==
 // =================================================================
-import { WebSocketProvider, Contract, formatUnits } from 'ethers';
-import { marketplaceAddress, internalApiSecret } from "./_config.js";
+import { WebSocketProvider, Contract, formatUnits, JsonRpcProvider } from 'ethers';
+// import { marketplaceAddress, internalApiSecret } from "./_config.js";
 import 'dotenv/config';
+
+const marketplaceAddress = "0xb0Fe23c18bCc490CDFe4E244e9F1c4e54A10cE6c";
+const internalApiSecret = "Dyx4n8qdBq+J5ulNBkUlxJj7byjoUKOEajsdxGNzAA8=";
+// Force localhost for API
+process.env.LARAVEL_API_URL = "http://127.0.0.1:8000/api";
 
 // --- CONFIGURATION ---
 const fujiWebSocketRpcUrl = "wss://api.avax-test.network/ext/bc/C/ws"; // URL WebSocket
@@ -382,7 +387,9 @@ async function main() {
 	console.log("📡 Démarrage du listener d'événements...");
 	const provider = new WebSocketProvider(fujiWebSocketRpcUrl);
 	const contract = new Contract(marketplaceAddress, marketplaceAbi, provider);
-
+	let lastBlock = await new JsonRpcProvider("https://api.avax-test.network/ext/bc/C/rpc").getBlockNumber();
+	lastBlock = lastBlock - 50000; // REPLAY LAST 50000 BLOCKS
+	console.log(`   Current Block: ${lastBlock + 50000}, Replaying from: ${lastBlock}`);
 	console.log(`👂 Écoute des événements sur le contrat Marketplace à l'adresse : ${marketplaceAddress}`);
 
 	// --- Écouteur pour l'événement "OfferCreated" ---

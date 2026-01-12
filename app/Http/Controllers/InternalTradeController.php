@@ -80,29 +80,12 @@ class InternalTradeController extends Controller
 
                     if (isset($data['buyerAddress'])) {
                         $trade->buyer_wallet_address = $data['buyerAddress'];
+                        $trade->save(); // Save buyer address
                         
-                        // 3. ON TROUVE L'ACHETEUR ET ON MET À JOUR SON SOLDE
-                        $buyer = User::where('wallet_address', $data['buyerAddress'])->first();
-                        if ($buyer) {
-                            // On incrémente son solde avec le montant du trade
-                            $buyer->increment('token_balance', $trade->snt_amount);
-                            Log::info('==> [LISTENER] Solde du SNT de l\'acheteur mis à jour.', [
-                                'user_id' => $buyer->id, 
-                                'new_balance' => $buyer->fresh()->token_balance
-                            ]);
-
-                            // 4. TRIGGER REFERRAL CHECK (Mimicking Logic)
-                            // We check if the buyer has enough tokens and a pending referral
-                            // This ensures validation happens immediately upon trade fulfillment.
-                            $minimumBalance = 5;
-                            $buyer->refresh(); // Encure we have latest balance
-                            if ($buyer->token_balance >= $minimumBalance) {
-                                $this->referralService->processReferralValidation($buyer);
-                            }
-
-                        } else {
-                            Log::warning('==> [LISTENER] L\'acheteur n\'a pas été trouvé en BDD, solde non mis à jour.', ['address' => $data['buyerAddress']]);
-                        }
+                        // NOTE: Balance update is now handled by the SNT Transfer Listener (app.js)
+                        // This prevents double-counting tokens if we listen to both Marketplace and Token events.
+                        // We still log the event for debugging.
+                        Log::info('==> [LISTENER] Trade fulfilled. Buyer: ' . $data['buyerAddress'] . '. Balance update delegated to Transfer event.');
                     }
                     
                     $trade->save();
