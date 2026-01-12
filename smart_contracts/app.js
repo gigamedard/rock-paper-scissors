@@ -258,7 +258,12 @@ async function startBlockchainListeners() {
         console.error("Failed to get initial block:", e);
     }
 
+    let isPolling = false;
+
     setInterval(async () => {
+        if (isPolling) return;
+        isPolling = true;
+
         try {
             const currentBlock = await gameProvider.getBlockNumber();
             if (currentBlock > lastBlock) {
@@ -395,6 +400,8 @@ async function startBlockchainListeners() {
             }
         } catch (error) {
             console.error("Polling Error:", error.message);
+        } finally {
+            isPolling = false;
         }
     }, 5000); // Poll every 5 seconds
 }
