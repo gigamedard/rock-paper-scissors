@@ -90,44 +90,24 @@ class Web3Helper
     {
         return bcmul($eth, '1000000000000000000', 0); // 1 Ether = 10^18 Wei
     }
-    // send achive to pinata
+    // send achive to ipfs
     public static function sendArchiveToPinata($data)
     {   
-        Log::info('Pinata request: ' . json_encode($data));
-        //log data type
-        Log::info('Pinata request data type: ' . gettype($data));
-        $ch = curl_init();
+        Log::info('IPFS request (via Web3Helper): ' . json_encode($data));
+        
+        // Resolve IpfsService from container
+        $ipfsService = app(\App\Services\IpfsService::class);
+        
+        $cid = $ipfsService->uploadJson($data);
 
-        curl_setopt($ch, CURLOPT_URL, 'https://api.pinata.cloud/pinning/pinJSONToIPFS');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, 1);
+        Log::info('IPFS response CID: ' . $cid);
 
-        $headers = array();
-        $headers[] = 'Content-Type: application/json';
-        $headers[] = 'pinata_api_key: ' . env('PINATA_API_KEY');
-        $headers[] = 'pinata_secret_api_key: ' . env('PINATA_SECRET_API_KEY');
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-        $data = json_encode($data);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-
-        $result = curl_exec($ch);
-        if (curl_errno($ch)) {
-            return 'Error:' . curl_error($ch);
-        }
-        curl_close($ch);
-        //{"cid":"{\"IpfsHash\":\"QmZJD8z11RdwcWWetFBaPD28GZ18zsaN18BjSBnXZnjYoU\",\"PinSize\":428,\"Timestamp\":\"2025-02-16T12:42:20.693Z\"}"}
-        //return only the ipfsHash
-        $result = json_decode($result, true);
-
-        Log::info('Pinata response: ' . json_encode($result));
-
-        if(!isset($result['IpfsHash'])) {
-            Log::error('Pinata response does not contain IpfsHash: ' . json_encode($result));
-            $result['IpfsHash'] = '';
+        if (!$cid) {
+             Log::error('IPFS upload failed.');
+             return '';
         }
         
-        return $result['IpfsHash'];
+        return $cid;
     }
 
     public static function sendPoolCIDToSmartContract($nodeUrl,$CID,$poolId)

@@ -31,33 +31,26 @@ trait IPFSTrait
     public function uploadJsonToPinata(array $data, string $fileName = 'poolHistory.json')
     {
         try {
-            // Convert the JSON data to a string
-            $jsonContent = json_encode($data);
+            $ipfsService = app(\App\Services\IpfsService::class);
+            $cid = $ipfsService->uploadJson($data);
 
-            // Upload the JSON data to Pinata
-            $response = $this->client->post('pinning/pinJSONToIPFS', [
-                'json' => [
-                    'pinataContent' => $data, // The JSON data to upload
-                    'pinataMetadata' => [
-                        'name' => $fileName, // Optional: Name for the file
-                    ],
-                ],
-            ]);
-
-            // Get the CID of the uploaded file
-            $cid = json_decode($response->getBody(), true)['IpfsHash'];
-
-            return [
-                'success' => true,
-                'cid' => $cid,
-            ];
+            if ($cid) {
+                return [
+                    'success' => true,
+                    'cid' => $cid,
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to upload JSON to IPFS.',
+                ];
+            }
         } catch (\Exception $e) {
-            // Log the error
-            Log::error('Failed to upload JSON to Pinata: ' . $e->getMessage());
+            Log::error('Failed to upload JSON to IPFS: ' . $e->getMessage());
 
             return [
                 'success' => false,
-                'message' => 'Failed to upload JSON to Pinata.',
+                'message' => 'Failed to upload JSON to IPFS.',
             ];
         }
     }
@@ -71,18 +64,17 @@ trait IPFSTrait
     public function retrieveJsonFromPinata($cid)
     {
         try {
-            // Construct the IPFS gateway URL
-            $gatewayUrl = "https://gateway.pinata.cloud/ipfs/$cid";
+            $ipfsService = app(\App\Services\IpfsService::class);
+            $data = $ipfsService->retrieveJson($cid);
 
-            // Fetch the JSON data
-            $response = file_get_contents($gatewayUrl);
+            if ($data) {
+                return $data;
+            }
 
-            // Decode the JSON data
-            return json_decode($response, true);
+            Log::error('Failed to retrieve JSON from IPFS for CID: ' . $cid);
+            return null;
         } catch (\Exception $e) {
-            // Log the error
-            Log::error('Failed to retrieve JSON from Pinata: ' . $e->getMessage());
-
+            Log::error('Failed to retrieve JSON from IPFS: ' . $e->getMessage());
             return null;
         }
     }

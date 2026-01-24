@@ -47,9 +47,7 @@ Route::get('/', function () {
 });
 
 // Route "catch-all" pour que le rafraîchissement (F5) fonctionne sur des sous-pages
-Route::get('/{any}', function () {
-    return file_get_contents(public_path('index.html'));
-})->where('any', '.*');
+
 
 Route::get('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
 Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
@@ -434,7 +432,32 @@ Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);
 */
 
     
+
+Route::get('/test-ipfs-direct', function () {
+    $data = ['message' => 'Hello from Direct IPFS!', 'timestamp' => time()];
+    $ipfsService = app(\App\Services\IpfsService::class);
+    
+    // Test Upload
+    $cid = $ipfsService->uploadJson($data);
+    
+    if (!$cid) {
+        return response()->json(['success' => false, 'message' => 'Upload failed'], 500);
+    }
+    
+    // Test Retrieve
+    $retrievedData = $ipfsService->retrieveJson($cid);
+    
+    return response()->json([
+        'success' => true,
+        'cid' => $cid,
+        'original_data' => $data,
+        'retrieved_data' => $retrievedData,
+        'match' => ($data == $retrievedData)
+    ]);
+});
+
 /*
+
 
 Route::get('/debug', function () {
     Log::info('Backtrace', debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10));
@@ -561,6 +584,12 @@ Route::get('/setup-test-data', function () {
 
 // Auth routes
 require __DIR__.'/auth.php';
+
+// Route "catch-all" pour que le rafraîchissement (F5) fonctionne sur des sous-pages
+Route::get('/{any}', function () {
+    return file_get_contents(public_path('index.html'));
+})->where('any', '.*');
+
 
 /*
 // Routes d'inscription améliorée avec parrainage et sélection de langue
