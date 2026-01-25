@@ -25,32 +25,75 @@ class IpfsService
      */
     public function uploadJson($data): ?string
     {
+        // 1. Try Local IPFS (Node.js Worker with Helia)
         try {
-            // If data is an array/object, encode it. If it's a string, try to decode/encode to ensure it's valid JSON
-            // or just pass it if we assume it's pre-formatted.
-            // Best practice: accept array and encode it here.
-            $jsonContent = is_string($data) ? $data : json_encode($data);
+            // Check if we have a custom internal node URL, otherwise default to the worker port 3000
+            $nodeWorkerUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+            
+            // Allow raw array/object to be sent as JSON body
+            $payload = is_string($data) ? json_decode($data, true) : $data;
+            if (is_null($payload) && is_string($data)) $payload = ['content' => $data]; // Fallback wrapper
 
-            // Using the IPFS 'add' endpoint
-            // The file needs to be sent as multipart/form-data
-            $response = Http::attach(
-                'file', $jsonContent, 'data.json'
-            )->post("{$this->nodeUrl}/api/v0/add", [
-                'pin' => 'true' // Optional: Pin it immediately
-            ]);
+            $response = Http::timeout(5)->post("{$nodeWorkerUrl}/ipfs/add-json", $payload);
 
             if ($response->successful()) {
                 $result = $response->json();
                 $cid = $result['Hash'] ?? null;
-                Log::info("IPFS Upload Success. CID: {$cid}");
+                Log::info("Local IPFS (Helia) Upload Success. CID: {$cid}");
                 return $cid;
             } else {
-                Log::error("IPFS Upload Failed: " . $response->body());
+                Log::error("Local IPFS (Helia) Error. Status: " . $response->status() . " Body: " . $response->body());
+            }
+        } catch (\Exception $e) {
+            Log::warning("Local IPFS (Helia) failed: " . $e->getMessage() . ". Falling back to Pinata.");
+        }
+
+        // 2. Fallback to Pinata
+        return $this->uploadToPinata($data);
+    }
+
+    protected function uploadToPinata($data): ?string
+    {
+        try {
+            $apiKey = env('PINATA_API_KEY');
+            $apiSecret = env('PINATA_SECRET_API_KEY');
+            // Or JWT if preferred
+            $jwt = env('PINATA_JWT');
+
+            Log::info("Attempting Pinata Fallback...");
+
+            $url = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
+            
+            $payload = [
+                'pinataContent' => $data,
+                'pinataMetadata' => [
+                    'name' => 'Backup-Upload-' . time()
+                ]
+            ];
+
+            // Use JWT if available, else keys
+            $headers = ['Content-Type' => 'application/json'];
+            if ($jwt) {
+                $headers['Authorization'] = "Bearer $jwt";
+            } else {
+                $headers['pinata_api_key'] = $apiKey;
+                $headers['pinata_secret_api_key'] = $apiSecret;
+            }
+
+            $response = Http::withHeaders($headers)->post($url, $payload);
+
+            if ($response->successful()) {
+                $result = $response->json();
+                $cid = $result['IpfsHash'] ?? null;
+                Log::info("Pinata Fallback Success. CID: {$cid}");
+                return $cid;
+            } else {
+                Log::error("Pinata Fallback Failed: " . $response->body());
                 return null;
             }
 
         } catch (\Exception $e) {
-            Log::error("IPFS Service Exception: " . $e->getMessage());
+            Log::error("Pinata Fallback Exception: " . $e->getMessage());
             return null;
         }
     }

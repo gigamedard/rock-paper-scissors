@@ -2428,6 +2428,7 @@
                 contractConfig.securityCoefficient = data.security_coefficient || 1000;
                 contractConfig.PINATA_API_KEY = data.pinata_api_key;
                 contractConfig.PINATA_SECRET = data.pinata_secret;
+                contractConfig.PINATA_JWT = data.pinata_jwt;
                 contractConfig.PINATA_API_URL = data.pinata_api_url;
                 console.log("Contract configuration loaded:", contractConfig);
 
@@ -2673,14 +2674,13 @@
                 }
             };
 
-            const response = await fetch(contractConfig.PINATA_API_URL, {
+            // Use local backend proxy for IPFS/Pinata
+            const response = await secureFetch(`${API_URL}/ipfs/upload`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'pinata_api_key': contractConfig.PINATA_API_KEY,
-                    'pinata_secret_api_key': contractConfig.PINATA_SECRET
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(pinataData)
+                body: JSON.stringify({ data: pinataData.pinataContent }) // Send just the content, backend handles metadata wrapper for Pinata
             });
 
             const data = await response.json();

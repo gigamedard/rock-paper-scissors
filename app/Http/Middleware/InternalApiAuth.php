@@ -16,7 +16,16 @@ class InternalApiAuth
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$secret || !$providedSecret || !hash_equals($secret, $providedSecret)) {
+        $secret = config('app.INTERNAL_API_SECRET');
+        $providedSecret = $request->header('X-Internal-Secret');
+
+        // Check if secret is configured
+        if (empty($secret)) {
+            Log::error('INTERNAL_API_SECRET is not configured in .env');
+            abort(500, 'Server configuration error');
+        }
+
+        if (!$providedSecret || !hash_equals($secret, $providedSecret)) {
             Log::warning('Internal API authentication failed', ['ip' => $request->ip()]);
             abort(403, 'Unauthorized action.');
         }

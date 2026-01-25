@@ -14,7 +14,7 @@ dotenv.config({ path: join(__dirname, '.env') });
 // ===================================
 // == CONFIGURATION PRINCIPALE
 // ===================================
-export const LARAVEL_API_URL = "http://127.0.0.1:8081/api"; // Force local Docker access
+export const LARAVEL_API_URL = "http://127.0.0.1:8000/api"; // Local Access
 export const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 export const BACKEND_URL = "https://srv1198092.hstgr.cloud"; // Force correct domain
 

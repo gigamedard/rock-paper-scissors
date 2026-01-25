@@ -10,13 +10,14 @@ import {
 } from "./config.js";
 
 // Configuration
-const BATCH_SIZE = 5; // Process 5 users at a time
+const BATCH_SIZE = 1; // Process 1 user at a time for local stability
 const DELAY_BETWEEN_BATCHES = 2000; // 2 seconds
 const BASE_BET_ETH = "0.001";
 const MOVES_OPTIONS = ["rock", "paper", "scissors"];
 
 async function main() {
     console.log("🚀 Starting Large Scale Simulation...");
+    console.log("Global Config URL:", LARAVEL_API_URL);
 
     // 1. Load Accounts
     if (!fs.existsSync("simulation_accounts.json")) {
@@ -88,18 +89,20 @@ async function processUser(account, provider, gameContract) {
             pinataMetadata: { name: `Sim-${wallet.address}-${Date.now()}` }
         };
 
-        response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'pinata_api_key': pinata.PINATA_API_KEY,
-                'pinata_secret_api_key': pinata.PINATA_SECRET
-            },
-            body: JSON.stringify(pinataData)
-        });
-        const pinataResult = await response.json();
-        const cid = pinataResult.IpfsHash;
-        if (!cid) throw new Error("Pinata upload failed");
+        // response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //         'pinata_api_key': pinata.PINATA_API_KEY,
+        //         'pinata_secret_api_key': pinata.PINATA_SECRET
+        //     },
+        //     body: JSON.stringify(pinataData)
+        // });
+        // const pinataResult = await response.json();
+        // const cid = pinataResult.IpfsHash;
+        // if (!cid) throw new Error("Pinata upload failed");
+
+        const cid = "QmDummyCidForSimulationBypassPinataRateLimit" + Date.now(); // Mock CID
 
         // D. Submit to Backend
         response = await fetch(`${LARAVEL_API_URL}/user/pre-moves`, {

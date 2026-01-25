@@ -30,6 +30,7 @@ Route::middleware('token.auth')->group(function () {
     Route::post('/marketplace/purchase', [MarketplaceController::class, 'handleTokenPurchase']);
     Route::post('/user/pre-moves', [PoolAutoMatchController::class, 'storePremoves']);
     Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
+    Route::post('/ipfs/upload', [\App\Http\Controllers\IpfsController::class, 'upload']);
 
 });
 
