@@ -7,6 +7,7 @@ use App\Models\ApiToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Elliptic\EC;
 use kornrunner\Keccak;
 
@@ -83,6 +84,7 @@ class WalletAuthController extends Controller
                     'name'     => $this->generateReadableName($address),
                     'email'    => $this->fromUsername($this->generateReadableName($address)),
                     'password' => bcrypt(hash('sha256', $address)),
+                    'email_verified_at' => now(), // Mark as verified immediately
                 ]
             );
             $user->update(['is_online' => true]);
@@ -175,5 +177,27 @@ class WalletAuthController extends Controller
     private function fromUsername(string $username): string
     {
         return sprintf('%s@game.web3', strtolower($username));
+    }
+
+    public function loginByToken(Request $request)
+    {
+        $token = $request->query('token');
+
+        if (!$token) {
+            abort(401, 'Token required');
+        }
+
+        // Validate using custom ApiToken model
+        $hashed = hash('sha256', $token);
+        $accessToken = \App\Models\ApiToken::where('token', $hashed)->first();
+
+        if (!$accessToken || !$accessToken->isValid()) {
+             abort(401, 'Invalid token or expired');
+        }
+
+        // Log the user in via session guard
+        Auth::login($accessToken->user);
+
+        return redirect()->route('admin.settings.index');
     }
 }

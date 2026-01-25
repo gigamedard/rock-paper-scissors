@@ -585,6 +585,15 @@ Route::get('/setup-test-data', function () {
 // Auth routes
 require __DIR__.'/auth.php';
 
+// Token to Session Bridge for Admin
+Route::get('/admin/login-via-token', [\App\Http\Controllers\WalletAuthController::class, 'loginByToken']);
+
+// Admin Settings Routes
+Route::prefix('admin')->middleware(['auth'])->group(function () {
+    Route::get('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'index'])->name('admin.settings.index');
+    Route::post('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'update'])->name('admin.settings.update');
+});
+
 // Route "catch-all" pour que le rafraîchissement (F5) fonctionne sur des sous-pages
 Route::get('/{any}', function () {
     return file_get_contents(public_path('index.html'));

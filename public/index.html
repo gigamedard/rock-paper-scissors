@@ -3023,23 +3023,32 @@
                 const shortAddress = `${user.wallet_address.substring(0, 6)}...${user.wallet_address.substring(user.wallet_address.length - 4)}`;
                 userInfoElement.textContent = `${user.name} (${shortAddress})`;
 
-                // Check for admin
-                const navLinks = document.querySelector('.nav-links');
-                const adminLink = document.getElementById('nav-admin-link');
-
                 if (user.is_admin) {
-                    if (!adminLink) {
-                        const link = document.createElement('a');
-                        link.id = 'nav-admin-link';
-                        link.textContent = '🛡️ Admin';
-                        link.onclick = () => showPage('admin-dashboard-page', loadAdminDashboard, true);
-                        navLinks.appendChild(link);
+                    const navLinks = document.querySelector('.nav-links');
+                    // Check if it already exists
+                    if (navLinks && !document.getElementById('admin-link')) {
+                        const token = localStorage.getItem('auth_token');
+                        if (token) {
+                            const adminLink = document.createElement('a');
+                            adminLink.id = 'admin-link';
+                            // Point to the bridge route
+                            adminLink.href = `/admin/login-via-token?token=${token}`;
+                            adminLink.textContent = 'Admin';
+                            adminLink.style.color = 'var(--danger-red)'; // Distinguish admin link
+                            adminLink.target = '_blank'; // Open in new tab
+
+                            // Insert as first item
+                            navLinks.insertBefore(adminLink, navLinks.firstChild);
+                        }
                     }
-                } else if (adminLink) {
-                    adminLink.remove();
+                } else {
+                    // Remove if exists
+                    const existingLink = document.getElementById('admin-link');
+                    if (existingLink) existingLink.remove();
                 }
             }
         }
+
 
         async function loadInfluencerDashboard() {
             console.log("Loading Influencer Dashboard Data...");
