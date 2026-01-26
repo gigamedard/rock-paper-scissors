@@ -352,6 +352,71 @@
             z-index: 1000;
         }
 
+        /* Main Card Styling */
+        .card {
+            background-color: var(--bg-primary);
+            border: 4px solid var(--border-dark);
+            border-radius: 20px;
+            box-shadow: 0 10px 0 rgba(0, 0, 0, 0.2);
+            padding: 2rem;
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            position: relative;
+            margin-top: 20px;
+            /* Space for nav */
+            margin-bottom: 20px;
+            /* Space for scrolling */
+        }
+
+        /* Toast Notification Container */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: white;
+            border-left: 5px solid var(--accent-primary);
+            padding: 15px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .toast.type-PAYOUT {
+            border-color: #10B981;
+        }
+
+        .toast.type-BANKRUPTCY {
+            border-color: #EF4444;
+        }
+
+        .toast.type-BATTLE_STARTED {
+            border-color: #3B82F6;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
         .nav-brand {
             font-size: 1.75rem;
             font-weight: 700;
@@ -3875,6 +3940,75 @@
         });
 
 
+    </script>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script>
+        // ... existing scripts ...
+
+        // --- POLLING NOTIFICATIONS ---
+        async function pollNotifications() {
+            if (!localStorage.getItem('auth_token')) return; // Only if logged in
+
+            try {
+                const response = await fetch('/api/notifications/poll', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // 1. Show Notifications
+                    if (data.notifications && data.notifications.length > 0) {
+                        data.notifications.forEach(notif => {
+                            showToast(notif);
+                        });
+                    }
+
+                    // 2. Sync User State (Optional: Update UI elements if balance changed)
+                    if (data.state) {
+                        // Example: Update balance display if it exists
+                        /* 
+                        const balEl = document.getElementById('user-balance-display');
+                        if(balEl) balEl.innerText = data.state.balance_eth + ' ETH';
+                        */
+                    }
+                }
+            } catch (e) {
+                console.error("Polling error:", e);
+            }
+        }
+
+        function showToast(notification) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast type-${notification.type}`;
+
+            let message = "New Event";
+            switch (notification.type) {
+                case 'POOL_JOINED': message = `Joined Pool! (Bet: ${notification.data.bet_amount} ETH)`; break;
+                case 'BATTLE_STARTED': message = `⚔️ Battle Started! (Fight ID: ${notification.data.fight_id})`; break;
+                case 'PAYOUT': message = `💰 Payout Received: ${notification.data.amount} ETH!`; break;
+                case 'BANKRUPTCY': message = `⚠️ Bankruptcy Warning! Balance low.`; break;
+                default: message = JSON.stringify(notification.data);
+            }
+
+            toast.innerText = message;
+            container.appendChild(toast);
+
+            // Auto remove after 5s
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // Poll every 3 seconds
+        setInterval(pollNotifications, 3000);
     </script>
 </body>
 

@@ -382,6 +382,7 @@ Route::get('/wallet/testrecovery', [WalletAuthController::class, 'testRecovery']
 Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
 */
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
+Route::middleware('auth:sanctum')->get('/notifications/poll', [\App\Http\Controllers\NotificationController::class, 'poll']);
 
 // get route for simulate-user
 Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);

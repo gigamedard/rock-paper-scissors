@@ -17,6 +17,7 @@ class GameSettingsSeeder extends Seeder
         // Tokenomics
         GameSetting::setValue('game_fee_percentage', '5', 'float', 'tokenomics', 'Percentage fee taken from each pot');
         GameSetting::setValue('min_bet_amount', '0.1', 'float', 'tokenomics', 'Minimum bet amount in AVAX');
+        GameSetting::setValue('security_coefficient', '1000', 'integer', 'tokenomics', 'Security Multiplier (Deposit = Bet * Coeff)');
         
         // Game Parameters
         GameSetting::setValue('pool_size_small', '2', 'integer', 'game', 'Number of players in a small pool');

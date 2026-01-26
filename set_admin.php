@@ -1,23 +1,38 @@
 <?php
 
 use App\Models\User;
+use App\Models\ApiToken;
 
-$address = '***REMOVED***';
-$user = User::where('wallet_address', $address)->first();
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
+$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
+echo "Setting up Admin User...\n";
+
+// Find user or create 
+$user = User::first();
 if (!$user) {
-    // Try adding 0x
-    $address0x = '0x' . $address;
-    $user = User::where('wallet_address', $address0x)->first();
+    echo "No users found. Creating one.\n";
+    $user = User::factory()->create([
+        'wallet_address' => '0x' . bin2hex(random_bytes(20)),
+        'name' => 'AdminUser'
+    ]);
 }
 
-if ($user) {
-    $user->is_admin = true;
-    $user->save();
-    echo "User found (ID: {$user->id}, Address: {$user->wallet_address}) and set to admin.\n";
-} else {
-    echo "User NOT FOUND with address: $address (or with 0x prefix).\n";
-    // Check if it's a private key and we can derive the address? 
-    // Actually, maybe the user GAVE me the private key and wants me to find the address.
-    // I can try to use a node script to derive address from private key if needed.
+// Make Admin
+$user->is_admin = true;
+$user->save();
+
+echo "User {$user->name} ({$user->wallet_address}) is now ADMIN.\n";
+
+// Generate Token
+// Assuming ApiToken model has this method as seen in Controller
+try {
+    $token = ApiToken::generateForUser($user, 60); // 60 minutes
+    echo "\n-------------------------------------------------------\n";
+    echo "ADMIN LOGIN LINK (Valid for 1 hour):\n";
+    echo "http://127.0.0.1:8000/admin/login-via-token?token={$token}\n";
+    echo "-------------------------------------------------------\n";
+} catch (\Exception $e) {
+    echo "Error generating token: " . $e->getMessage();
 }

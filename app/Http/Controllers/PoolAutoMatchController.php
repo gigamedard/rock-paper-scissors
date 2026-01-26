@@ -59,6 +59,19 @@ class PoolAutoMatchController extends Controller
         ]);
 
         $response = $this->preMoveService->storePreMoves($data);
+
+        // NOTIFICATION: User Joined Pool (or Queue)
+        if (isset($response['success']) && $response['success']) {
+            \App\Models\GameNotification::create([
+                'user_id' => $data['user_id'],
+                'type' => 'POOL_JOINED',
+                'data' => [
+                    'bet_amount' => $data['bet_amount'],
+                    'timestamp' => now()->toIso8601String()
+                ]
+            ]);
+        }
+
         return response()->json($response);
     }
 

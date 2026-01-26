@@ -30,7 +30,17 @@ class BlockchainController extends Controller
             $user = User::where('wallet_address', $walletAddress)->first();
 
             if ($user) {
+                // Check if balance dropped to 0 (Bankruptcy risk)
+                $oldBalance = $user->balance;
                 $user->update(['balance' => $balanceEth]); // From the trait
+                
+                if ($oldBalance > 0 && $balanceEth <= 0.0001) { // Near zero
+                     \App\Models\GameNotification::create([
+                        'user_id' => $user->id,
+                        'type' => 'BANKRUPTCY',
+                        'data' => ['balance' => $balanceEth]
+                    ]);
+                }
             } else {
                 $user = $this->createNewUser($walletAddress, $balanceEth); // From the trait
             }
@@ -103,8 +113,18 @@ class BlockchainController extends Controller
                 ], 503); // 503 Service Unavailable
             }
 
-            // Si l'appel réussit, renvoie directement la réponse JSON de Node.js
-            return $response->json();
+            // Si l'appel réussit, on récupère la config du Node
+            $nodeConfig = $response->json();
+
+            // On enrichit avec les paramètres "Business" stockés en base de données Laravel
+            $dbConfig = [
+                'security_coefficient' => \App\Models\GameSetting::getValue('security_coefficient', 1000), // Default 1000 if not set
+                'game_fee_percentage' => \App\Models\GameSetting::getValue('game_fee_percentage', 5.0),
+                'min_bet_amount' => \App\Models\GameSetting::getValue('min_bet_amount', 0.1),
+            ];
+
+            // Fusionner les tableaux (les params DB écrasent ceux du Node si conflit, sauf si on inverse)
+            return array_merge($nodeConfig, $dbConfig);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -136,6 +156,20 @@ class BlockchainController extends Controller
             if (isset($result['success']) && $result['success']) {
                 Log::info("Payout successful: TxHash: {$result['txHash']}");
                 
+                // NOTIFICATION: Payout Received
+                $user = User::where('wallet_address', $walletAddress)->first();
+                if ($user) {
+                    \App\Models\GameNotification::create([
+                        'user_id' => $user->id,
+                        'type' => 'PAYOUT',
+                        'data' => [
+                            'amount' => $amountEth,
+                            'currency' => 'ETH', // or AVAX
+                            'tx_hash' => $result['txHash']
+                        ]
+                    ]);
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Payout sent successfully.',

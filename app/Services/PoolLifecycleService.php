@@ -162,6 +162,19 @@ class PoolLifecycleService
                 'pool_id' => $pool->id,
             ]);
             $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
+
+            // NOTIFICATION: Battle Started
+            foreach ([$availableUsers[$i], $availableUsers[$i+1]] as $combatant) {
+                \App\Models\GameNotification::create([
+                    'user_id' => $combatant->id,
+                    'type' => 'BATTLE_STARTED',
+                    'data' => [
+                        'fight_id' => $fight->id,
+                        'opponent_id' => ($combatant->id == $fight->user1_id) ? $fight->user2_id : $fight->user1_id,
+                        'pool_id' => $pool->id
+                    ]
+                ]);
+            }
         }
     }
 
