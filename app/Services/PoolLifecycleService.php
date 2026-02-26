@@ -26,15 +26,33 @@ class PoolLifecycleService
 
         $pool = $this->createPoolFromEvent($data);
 
-        $users = User::whereIn('wallet_address', explode(',', $data['users']))->get();
+        $blockchainUsers = explode(',', $data['users']);
         $premoveCIDs = explode(',', $data['premove_cids']);
+        
+        $blockchainData = [];
+        foreach ($blockchainUsers as $index => $wallet) {
+            $blockchainData[strtolower($wallet)] = $premoveCIDs[$index] ?? null;
+        }
 
-        $this->processUsersForPool($users, $premoveCIDs, $pool->id, $pool->base_bet);
+        $users = User::whereIn('wallet_address', $blockchainUsers)->get();
+        $dbUserAddresses = $users->pluck('wallet_address')->map(fn($addr) => strtolower($addr))->toArray();
+
+        $unrecognizedAddresses = [];
+        foreach ($blockchainUsers as $wallet) {
+            if (!in_array(strtolower($wallet), $dbUserAddresses)) {
+                $unrecognizedAddresses[] = $wallet;
+            }
+        }
+
+        if (!empty($unrecognizedAddresses)) {
+            Log::warning("Unrecognized users found in emitted pool {$pool->id}: " . implode(', ', $unrecognizedAddresses) . ". Refunding them.");
+            Web3Helper::refundUsers(env('NODE_URL'), $unrecognizedAddresses);
+        }
+
+        $this->processUsersForPool($users, $blockchainData, $pool->id, $pool->base_bet);
 
         $pool->status = 'from_server_waitting';
         $pool->save();
-
-        // $this->processPoolAutoMatch($pool->id);
 
         return ['pool_id' => $data['pool_id'], 'status' => 'queued_for_batch_processing'];
     }
@@ -95,11 +113,14 @@ class PoolLifecycleService
         ]);
     }
 
-    private function processUsersForPool($users, $premoveCIDs, $poolId, $baseBet)
+    private function processUsersForPool($users, $blockchainData, $poolId, $baseBet)
     {
-        foreach ($users as $index => $user) {
-            if ($user->preMove->cid !== $premoveCIDs[$index]) {
-                $this->handleCidMismatch($user, $baseBet, $premoveCIDs);
+        foreach ($users as $user) {
+            $walletLower = strtolower($user->wallet_address);
+            $expectedCid = $blockchainData[$walletLower] ?? null;
+
+            if (!$expectedCid || !$user->preMove || $user->preMove->cid !== $expectedCid) {
+                $this->handleCidMismatch($user, $baseBet, $expectedCid);
                 continue;
             }
 
@@ -114,14 +135,17 @@ class PoolLifecycleService
         }
     }
 
-    private function handleCidMismatch($user, $baseBet, $premoveCIDs)
+    private function handleCidMismatch($user, $baseBet, $expectedCid)
     {
-        Log::error("CID mismatch for user: {$user->wallet_address}");
+        Log::error("CID mismatch for user: {$user->wallet_address}. Expected: {$expectedCid}, Found: " . ($user->preMove ? $user->preMove->cid : 'None'));
         $user->status = 'invalid';
         $user->save();
         $returned = $baseBet * config('game_settings.security_coefficient');
-        $this->web3Helper->sendPayement(env('NODE_URL'), $user->wallet_address, $returned);
-        Log::info("User {$user->wallet_address} has been marked as invalid and refunded {$returned} ETH.");
+        
+        // This simulates refunding their "virtual" required balance minus the smart contract fee.
+        // Wait, in real scenarios: We just trigger the new generic refund logic via node server.
+        Web3Helper::refundUsers(env('NODE_URL'), [$user->wallet_address]);
+        Log::info("User {$user->wallet_address} has been marked as invalid and refunded via smart contract mapping.");
     }
 
     private function executeMatchingRound(Pool $pool)

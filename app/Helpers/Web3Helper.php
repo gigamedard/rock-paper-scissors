@@ -179,6 +179,26 @@ class Web3Helper
         return $response->json();
 }
 
+    public static function getPoolUsers($nodeUrl, $baseBet)
+    {
+        $response = Http::get("{$nodeUrl}/pool/users/{$baseBet}");
+        return $response->json();
+    }
+
+    public static function getPremoveCID($nodeUrl, $walletAddress)
+    {
+        $response = Http::get("{$nodeUrl}/pool/premove/{$walletAddress}");
+        return $response->json();
+    }
+
+    public static function refundUsers($nodeUrl, array $walletAddresses)
+    {
+        $response = Http::post("{$nodeUrl}/refundUsers", [
+            'wallets' => $walletAddresses,
+        ]);
+        return $response->json();
+    }
+
     public static function setUserNextSessionTime($nodeUrl, $walletAddress, $nextTime)
     {
         $response = Http::post("{$nodeUrl}/setUserNextSessionTime", [

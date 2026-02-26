@@ -592,6 +592,55 @@ app.post("/sendBatchPayment", async (req, res) => {
 	}
 });
 
+// --- BLOCKCHAIN READ & REFUND ENDPOINTS ---
+
+app.get("/pool/users/:baseBet", async (req, res) => {
+	try {
+		const baseBet = parseEther(req.params.baseBet.toString());
+		const users = await contract.getPoolUsers(baseBet);
+		res.json({ success: true, users: users });
+	} catch (error) {
+		console.error("❌ Error fetching pool users:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.get("/pool/premove/:wallet", async (req, res) => {
+	try {
+		const wallet = req.params.wallet;
+		const cid = await contract.getPremoveCID(wallet);
+		res.json({ success: true, cid: cid });
+	} catch (error) {
+		console.error("❌ Error fetching premove CID:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.post("/refundUsers", async (req, res) => {
+	try {
+		const { wallets } = req.body;
+
+		if (!Array.isArray(wallets) || wallets.length === 0) {
+			return res.status(400).json({ error: "Invalid input. Ensure wallets is a non-empty array." });
+		}
+
+		console.log(`📡 Refunding invalid users: ${wallets.join(', ')}`);
+
+		const amounts = [];
+		for (const wallet of wallets) {
+			const bal = await contract.getUserBalance(wallet);
+			amounts.push(bal);
+		}
+
+		const tx = await contract.batchPayOut(wallets, amounts);
+		await tx.wait();
+
+		res.json({ success: true, txHash: tx.hash });
+	} catch (error) {
+		console.error("❌ Error refunding users:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
 
 // Start Node.js server and schedule periodic POST request
 const PORT = process.env.PORT || 3000;
