@@ -2491,6 +2491,7 @@
                 contractConfig.marketplace = data.marketplace;
                 contractConfig.snt = data.snt;
                 contractConfig.securityCoefficient = data.security_coefficient || 1000;
+                contractConfig.smartContractFeePercentage = data.smart_contract_fee_percentage || 2.5;
                 contractConfig.PINATA_API_KEY = data.pinata_api_key;
                 contractConfig.PINATA_SECRET = data.pinata_secret;
                 contractConfig.PINATA_JWT = data.pinata_jwt;
@@ -2692,7 +2693,12 @@
             }
 
             const baseBetWei = WEB3.utils.toWei(gameState.selectedBet.toString(), 'ether');
-            const depositAmountWei = WEB3.utils.toBN(baseBetWei).mul(WEB3.utils.toBN(contractConfig.securityCoefficient));
+            const requiredBalanceWei = WEB3.utils.toBN(baseBetWei).mul(WEB3.utils.toBN(contractConfig.securityCoefficient));
+
+            // Calculate total amount to send including the dynamic smart contract fee
+            // e.g. Fee is 2.5% -> Multiplier is 10250. Formula: 10000 + (fee * 100)
+            const feeMultiplier = Math.round(10000 + (contractConfig.smartContractFeePercentage * 100));
+            const depositAmountWei = requiredBalanceWei.mul(WEB3.utils.toBN(feeMultiplier)).div(WEB3.utils.toBN(10000));
 
             const movesAsStrings = gameState.selectedMoves.map(move => {
                 if (move === 1) return 'rock';

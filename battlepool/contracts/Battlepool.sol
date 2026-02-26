@@ -33,11 +33,18 @@ contract Battlepool {
     event PoolStagnantRefund(uint256 indexed poolId, uint256 refundedCount, uint256 timestamp);
     event StagnantBlockLimitUpdated(uint256 newLimit);
     event NextSessionTimeUpdated(address indexed user, uint256 nextTime);
+    event FeeBasisPointsUpdated(uint256 newFee);
+    event DevWalletUpdated(address newWallet);
+    event DevFeesWithdrawn(address indexed wallet, uint256 amount);
 
     address public owner;
     uint256 public securityCoefficient = 1000;
     uint256 public defaultPoolMaxSize; // <<<--- AJOUTEZ CETTE LIGNE
     uint256 public stagnantBlockLimit = 100; // Default 100 blocks
+    
+    uint256 public feeBasisPoints = 250; // Default 2.5% fee
+    uint256 public devBalance; // Accumulated fees
+    address payable public devWallet;
 
    
 
@@ -48,6 +55,7 @@ contract Battlepool {
 
     constructor() {
         owner = msg.sender;
+        devWallet = payable(msg.sender); // Default to deployer
         defaultPoolMaxSize = 5; // <<<--- AJOUTEZ CETTE LIGNE
     }
 
@@ -68,6 +76,30 @@ contract Battlepool {
         require(newCoefficient > 0, "Coefficient must be greater than 0");
         securityCoefficient = newCoefficient;
         emit SecurityCoefficientUpdated(newCoefficient);
+    }
+
+    function setFeeBasisPoints(uint256 newFee) external onlyOwner {
+        require(newFee <= 10000, "Fee cannot exceed 100%");
+        feeBasisPoints = newFee;
+        emit FeeBasisPointsUpdated(newFee);
+    }
+
+    function setDevWallet(address payable newWallet) external onlyOwner {
+        require(newWallet != address(0), "Invalid wallet address");
+        devWallet = newWallet;
+        emit DevWalletUpdated(newWallet);
+    }
+
+    function withdrawDevFees() external {
+        require(msg.sender == devWallet || msg.sender == owner, "Only dev or owner can withdraw");
+        uint256 amount = devBalance;
+        require(amount > 0, "No fees to withdraw");
+
+        devBalance = 0;
+        (bool success, ) = devWallet.call{value: amount}("");
+        require(success, "Withdrawal failed");
+        
+        emit DevFeesWithdrawn(devWallet, amount);
     }
         
     function triggerPoolEmittedEventForTesting(
@@ -160,10 +192,10 @@ contract Battlepool {
     function submitPremoveCID(uint256 baseBet, string memory cid) external payable {
         require(bytes(cid).length > 0, "CID cannot be empty");
         require(baseBet > 0, "Base bet must be greater than 0");
+        
         uint256 requiredBalance = baseBet * securityCoefficient;
-        require(msg.value >= requiredBalance, "Insufficient balance for the required security margin");
-
-
+        uint256 depositAmount = (msg.value * 10000) / (10000 + feeBasisPoints);
+        require(depositAmount >= requiredBalance, "Insufficient deposit after fees for the required security margin");
 
          _processDeposit(msg.sender, msg.value); // Process the deposit
         userPremoveCIDs[msg.sender] = cid; // Store the CID for the user's premoves
@@ -279,7 +311,13 @@ contract Battlepool {
     }
 
     function _processDeposit(address user, uint256 amount) private {
-        uint256 balance = userBalances[user] += amount;
+        // Calculate the actual deposit amount after fees
+        uint256 depositAmount = (amount * 10000) / (10000 + feeBasisPoints);
+        uint256 feeAmount = amount - depositAmount;
+
+        devBalance += feeAmount;
+        uint256 balance = userBalances[user] += depositAmount;
+        
         emit DepositReceived(user, balance);
     }
 

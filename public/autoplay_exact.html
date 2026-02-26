@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -46,11 +47,10 @@
     }
 
     .bg-gradient {
-      background: linear-gradient(to bottom right, 
-        var(--color-gray-900), 
-        var(--color-secondary), 
-        var(--color-gray-900)
-      );
+      background: linear-gradient(to bottom right,
+          var(--color-gray-900),
+          var(--color-secondary),
+          var(--color-gray-900));
       padding: 2rem;
       min-height: 100vh;
     }
@@ -129,11 +129,13 @@
     }
 
     .selected-moves {
-        background: var(--color-gray-800);
-        border-radius: 0.5rem;
-        padding: 1rem;
-        height: 200px; /* Fixed height */
-        overflow-y: auto; /* Enable scrolling */
+      background: var(--color-gray-800);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      height: 200px;
+      /* Fixed height */
+      overflow-y: auto;
+      /* Enable scrolling */
     }
 
     .moves-header {
@@ -144,42 +146,50 @@
     }
 
     .moves-list {
-        display: flex;
-        flex-direction: column; /* Stack moves vertically */
-        gap: 0.5rem; /* Space between moves */
+      display: flex;
+      flex-direction: column;
+      /* Stack moves vertically */
+      gap: 0.5rem;
+      /* Space between moves */
     }
 
     /* Move Chip Container */
     .move-chip {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem; /* Reduced padding */
-    background: var(--color-gray-700); /* Background color */
-    border-radius: 2rem; /* Rounded corners */
-    width: fit-content; /* Auto-size based on content */
-    max-width: 90%; /* Prevent being too wide */
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      /* Reduced padding */
+      background: var(--color-gray-700);
+      /* Background color */
+      border-radius: 2rem;
+      /* Rounded corners */
+      width: fit-content;
+      /* Auto-size based on content */
+      max-width: 90%;
+      /* Prevent being too wide */
     }
 
     /* Move Index Styling */
     .move-index {
-    font-weight: bold;
-    color: var(--color-primary); /* Highlight the index */
+      font-weight: bold;
+      color: var(--color-primary);
+      /* Highlight the index */
     }
 
     /* Remove Button */
     .move-chip button {
-    border: none;
-    background: none;
-    color: var(--color-text);
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-    padding: 0.25rem;
+      border: none;
+      background: none;
+      color: var(--color-text);
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+      padding: 0.25rem;
     }
 
     .move-chip button:hover {
-    opacity: 1;
+      opacity: 1;
     }
 
 
@@ -349,7 +359,8 @@
       margin-top: 1.5rem;
     }
 
-    .cancel-btn, .confirm-btn {
+    .cancel-btn,
+    .confirm-btn {
       padding: 0.5rem 1rem;
       border: none;
       border-radius: 0.5rem;
@@ -392,7 +403,9 @@
       font-weight: 500;
     }
 
-    .budget-input, .target-q-input, .form-input {
+    .budget-input,
+    .target-q-input,
+    .form-input {
       width: 100%;
       padding: 0.75rem;
       border: 1px solid var(--color-gray-600);
@@ -402,18 +415,22 @@
       font-size: 1rem;
     }
 
-    .budget-input:focus, .target-q-input:focus, .form-input:focus {
+    .budget-input:focus,
+    .target-q-input:focus,
+    .form-input:focus {
       outline: none;
       border-color: var(--color-primary);
     }
 
-    .budget-info, .q-info {
+    .budget-info,
+    .q-info {
       display: flex;
       justify-content: space-between;
       margin-top: 0.5rem;
     }
 
-    .budget-info small, .q-info small {
+    .budget-info small,
+    .q-info small {
       color: var(--color-gray-400);
       font-size: 0.75rem;
     }
@@ -569,8 +586,9 @@
     }
   </style>
 </head>
+
 <body>
-    <!-- Inject the User ID into a Hidden Input -->
+  <!-- Inject the User ID into a Hidden Input -->
   <input type="hidden" id="user-id" value="1">
   <div class="bg-gradient">
     <div class="container">
@@ -633,7 +651,8 @@
               </div>
               <div class="target-q-group">
                 <label for="target-q-input">Target Q-Value</label>
-                <input type="number" id="target-q-input" min="1.1" max="10" step="0.1" value="2.0" class="target-q-input">
+                <input type="number" id="target-q-input" min="1.1" max="10" step="0.1" value="2.0"
+                  class="target-q-input">
                 <div class="q-info">
                   <small>Session ends when Q-value reaches target</small>
                 </div>
@@ -794,331 +813,332 @@
     </div>
   </div>
 
-  <script>    
+  <script>
 
-      // Game state
-      const gameState = {
-        selectedMoves: [],
-        selectedBet: 1,
-        balance: "--",
-        history: [],
-        budgetSession: null,
-        hasActiveBudgetSession: false
-      };
+    // Game state
+    const gameState = {
+      selectedMoves: [],
+      selectedBet: 1,
+      balance: "--",
+      history: [],
+      budgetSession: null,
+      hasActiveBudgetSession: false
+    };
 
-      // Budget management state
-      const budgetState = {
-        currentBudget: 0,
-        targetQValue: 2.0,
-        currentQValue: 1.0,
-        currentKValue: 1,
-        nextBetAmount: 0,
-        totalFights: 0,
-        winRate: 0,
-        requirementsFetched: false,
-        requirements: {
-          minimum_budget: 0,
-          recommended_budget: 0,
-          max_recovery_attempts: 0
-        }
-      };
-
-
-      // Pinata Configuration
-      const PINATA_API_KEY = '***REMOVED***';
-      const PINATA_API_SECRET = '***REMOVED***';
-      const PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
-      const PINATA_PIN_LIST_URL = 'https://api.pinata.cloud/data/pinList?status=pinned';
-      let cid = '';
-
-      const userId = document.getElementById('user-id').value;
-
-      // Budget Management Functions
-      async function fetchBudgetRequirements() {
-        try {
-          const response = await fetch('/budget/requirements?base_bet=' + gameState.selectedBet);
-          const data = await response.json();
-          
-          if (data.success) {
-            budgetState.requirements = data.requirements;
-            budgetState.requirementsFetched = true;
-            updateBudgetRequirementsDisplay();
-          }
-        } catch (error) {
-          console.error('Error fetching budget requirements:', error);
-        }
+    // Budget management state
+    const budgetState = {
+      currentBudget: 0,
+      targetQValue: 2.0,
+      currentQValue: 1.0,
+      currentKValue: 1,
+      nextBetAmount: 0,
+      totalFights: 0,
+      winRate: 0,
+      requirementsFetched: false,
+      requirements: {
+        minimum_budget: 0,
+        recommended_budget: 0,
+        max_recovery_attempts: 0
       }
+    };
 
-      function updateBudgetRequirementsDisplay() {
-        document.getElementById('required-budget').textContent = budgetState.requirements.minimum_budget;
-        document.getElementById('recommended-budget').textContent = budgetState.requirements.recommended_budget;
+
+    // Pinata Configuration
+    const PINATA_API_KEY = '***REMOVED***';
+    const PINATA_API_SECRET = '***REMOVED***';
+    const PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
+    const PINATA_PIN_LIST_URL = 'https://api.pinata.cloud/data/pinList?status=pinned';
+    let cid = '';
+
+    const userId = document.getElementById('user-id').value;
+
+    // Budget Management Functions
+    async function fetchBudgetRequirements() {
+      try {
+        const response = await fetch('/budget/requirements?base_bet=' + gameState.selectedBet);
+        const data = await response.json();
+
+        if (data.success) {
+          budgetState.requirements = data.requirements;
+          budgetState.requirementsFetched = true;
+          updateBudgetRequirementsDisplay();
+        }
+      } catch (error) {
+        console.error('Error fetching budget requirements:', error);
       }
+    }
 
-      async function startBudgetSession() {
-        const budget = document.getElementById('budget-amount-input').value;
-        const targetQ = document.getElementById('target-q-input').value;
-        
-        try {
-          const response = await fetch('/budget/start-session', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-              budget: budget,
-              base_bet: gameState.selectedBet,
-              target_q_value: targetQ
-            })
-          });
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            gameState.budgetSession = data.session;
-            gameState.hasActiveBudgetSession = true;
-            budgetState.currentBudget = parseFloat(data.session.current_budget);
-            budgetState.targetQValue = parseFloat(data.session.target_q_value);
-            updateBudgetSessionDisplay();
-            showBudgetStats();
-            return true;
-          } else {
-            alert(data.message || 'Failed to start budget session');
-            return false;
-          }
-        } catch (error) {
-          console.error('Error starting budget session:', error);
-          alert('Error starting budget session. Please try again.');
+    function updateBudgetRequirementsDisplay() {
+      document.getElementById('required-budget').textContent = budgetState.requirements.minimum_budget;
+      document.getElementById('recommended-budget').textContent = budgetState.requirements.recommended_budget;
+    }
+
+    async function startBudgetSession() {
+      const budget = document.getElementById('budget-amount-input').value;
+      const targetQ = document.getElementById('target-q-input').value;
+
+      try {
+        const response = await fetch('/budget/start-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+          },
+          body: JSON.stringify({
+            budget: budget,
+            base_bet: gameState.selectedBet,
+            target_q_value: targetQ
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          gameState.budgetSession = data.session;
+          gameState.hasActiveBudgetSession = true;
+          budgetState.currentBudget = parseFloat(data.session.current_budget);
+          budgetState.targetQValue = parseFloat(data.session.target_q_value);
+          updateBudgetSessionDisplay();
+          showBudgetStats();
+          return true;
+        } else {
+          alert(data.message || 'Failed to start budget session');
           return false;
         }
+      } catch (error) {
+        console.error('Error starting budget session:', error);
+        alert('Error starting budget session. Please try again.');
+        return false;
       }
+    }
 
-      async function fetchSessionStats() {
-        if (!gameState.hasActiveBudgetSession) return;
-        
-        try {
-          const response = await fetch('/budget/session-stats');
-          const data = await response.json();
-          
-          if (data.success) {
-            updateBudgetStatsDisplay(data.stats);
-          }
-        } catch (error) {
-          console.error('Error fetching session stats:', error);
+    async function fetchSessionStats() {
+      if (!gameState.hasActiveBudgetSession) return;
+
+      try {
+        const response = await fetch('/budget/session-stats');
+        const data = await response.json();
+
+        if (data.success) {
+          updateBudgetStatsDisplay(data.stats);
         }
+      } catch (error) {
+        console.error('Error fetching session stats:', error);
+      }
+    }
+
+    function updateBudgetStatsDisplay(stats) {
+      document.getElementById('current-budget').textContent = stats.current_budget + ' ETH';
+      document.getElementById('current-q-value').textContent = stats.q_value;
+      document.getElementById('target-q-display').textContent = stats.target_q_value;
+      document.getElementById('next-bet-amount').textContent = stats.next_bet_amount + ' ETH';
+      document.getElementById('current-k-value').textContent = stats.current_k_value;
+      document.getElementById('win-rate').textContent = stats.win_rate.toFixed(1) + '%';
+      document.getElementById('total-fights').textContent = stats.total_fights;
+
+      // Update Q-value color based on performance
+      const qValueElement = document.getElementById('current-q-value');
+      qValueElement.className = 'stat-value';
+      if (stats.q_value >= stats.target_q_value) {
+        qValueElement.classList.add('q-value-good');
+      } else if (stats.q_value >= 0.8) {
+        qValueElement.classList.add('q-value-warning');
+      } else {
+        qValueElement.classList.add('q-value-danger');
       }
 
-      function updateBudgetStatsDisplay(stats) {
-        document.getElementById('current-budget').textContent = stats.current_budget + ' ETH';
-        document.getElementById('current-q-value').textContent = stats.q_value;
-        document.getElementById('target-q-display').textContent = stats.target_q_value;
-        document.getElementById('next-bet-amount').textContent = stats.next_bet_amount + ' ETH';
-        document.getElementById('current-k-value').textContent = stats.current_k_value;
-        document.getElementById('win-rate').textContent = stats.win_rate.toFixed(1) + '%';
-        document.getElementById('total-fights').textContent = stats.total_fights;
-        
-        // Update Q-value color based on performance
-        const qValueElement = document.getElementById('current-q-value');
-        qValueElement.className = 'stat-value';
-        if (stats.q_value >= stats.target_q_value) {
-          qValueElement.classList.add('q-value-good');
-        } else if (stats.q_value >= 0.8) {
-          qValueElement.classList.add('q-value-warning');
+      // Update budget color based on remaining amount
+      const budgetElement = document.getElementById('current-budget');
+      budgetElement.className = 'stat-value';
+      const budgetPercentage = (stats.current_budget / stats.initial_budget) * 100;
+      if (budgetPercentage >= 50) {
+        budgetElement.classList.add('budget-high');
+      } else if (budgetPercentage >= 20) {
+        budgetElement.classList.add('budget-medium');
+      } else {
+        budgetElement.classList.add('budget-low');
+      }
+    }
+
+    function showBudgetStats() {
+      document.getElementById('budget-session-stats').style.display = 'block';
+    }
+
+    function hideBudgetStats() {
+      document.getElementById('budget-session-stats').style.display = 'none';
+    }
+
+    function updateBudgetSessionDisplay() {
+      if (gameState.hasActiveBudgetSession) {
+        document.getElementById('submit-btn').textContent = 'CONTINUE SESSION';
+        fetchSessionStats();
+      } else {
+        document.getElementById('submit-btn').textContent = 'ENTER AUTO PLAY MODE';
+        hideBudgetStats();
+      }
+    }
+
+    async function topUpBudget() {
+      const additionalBudget = document.getElementById('top-up-amount').value;
+
+      try {
+        const response = await fetch('/budget/top-up', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+          },
+          body: JSON.stringify({
+            additional_budget: additionalBudget
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          budgetState.currentBudget = parseFloat(data.session.current_budget);
+          updateBudgetSessionDisplay();
+          hideTopUpModal();
+          alert('Budget topped up successfully!');
         } else {
-          qValueElement.classList.add('q-value-danger');
+          alert(data.message || 'Failed to top up budget');
         }
-        
-        // Update budget color based on remaining amount
-        const budgetElement = document.getElementById('current-budget');
-        budgetElement.className = 'stat-value';
-        const budgetPercentage = (stats.current_budget / stats.initial_budget) * 100;
-        if (budgetPercentage >= 50) {
-          budgetElement.classList.add('budget-high');
-        } else if (budgetPercentage >= 20) {
-          budgetElement.classList.add('budget-medium');
-        } else {
-          budgetElement.classList.add('budget-low');
-        }
+      } catch (error) {
+        console.error('Error topping up budget:', error);
+        alert('Error topping up budget. Please try again.');
+      }
+    }
+
+    function showTopUpModal() {
+      document.getElementById('top-up-modal').classList.remove('hidden');
+    }
+
+    function hideTopUpModal() {
+      document.getElementById('top-up-modal').classList.add('hidden');
+    }
+
+    function showSessionCompleteModal(sessionData) {
+      document.getElementById('final-q-value').textContent = sessionData.q_value;
+      document.getElementById('final-total-fights').textContent = sessionData.total_fights;
+      document.getElementById('final-win-rate').textContent = sessionData.win_rate.toFixed(1) + '%';
+      document.getElementById('final-profit').textContent = sessionData.total_profit + ' ETH';
+      document.getElementById('session-complete-modal').classList.remove('hidden');
+    }
+
+    function hideSessionCompleteModal() {
+      document.getElementById('session-complete-modal').classList.add('hidden');
+      gameState.hasActiveBudgetSession = false;
+      gameState.budgetSession = null;
+      updateBudgetSessionDisplay();
+    }
+
+    // Periodic stats update
+    let statsUpdateInterval;
+
+    function startPeriodicStatsUpdate() {
+      if (statsUpdateInterval) {
+        clearInterval(statsUpdateInterval);
       }
 
-      function showBudgetStats() {
-        document.getElementById('budget-session-stats').style.display = 'block';
-      }
-
-      function hideBudgetStats() {
-        document.getElementById('budget-session-stats').style.display = 'none';
-      }
-
-      function updateBudgetSessionDisplay() {
+      statsUpdateInterval = setInterval(() => {
         if (gameState.hasActiveBudgetSession) {
-          document.getElementById('submit-btn').textContent = 'CONTINUE SESSION';
           fetchSessionStats();
         } else {
-          document.getElementById('submit-btn').textContent = 'ENTER AUTO PLAY MODE';
-          hideBudgetStats();
+          clearInterval(statsUpdateInterval);
         }
-      }
+      }, 5000); // Update every 5 seconds
+    }
 
-      async function topUpBudget() {
-        const additionalBudget = document.getElementById('top-up-amount').value;
-        
-        try {
-          const response = await fetch('/budget/top-up', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-              additional_budget: additionalBudget
-            })
-          });
-          
+    function stopPeriodicStatsUpdate() {
+      if (statsUpdateInterval) {
+        clearInterval(statsUpdateInterval);
+        statsUpdateInterval = null;
+      }
+    }
+
+    // Initialize budget system
+    async function initializeBudgetSystem() {
+      // Fetch initial budget requirements
+      await fetchBudgetRequirements();
+
+      // Check if user has an active session
+      try {
+        const response = await fetch('/budget/session-stats');
+        if (response.ok) {
           const data = await response.json();
-          
           if (data.success) {
-            budgetState.currentBudget = parseFloat(data.session.current_budget);
+            gameState.hasActiveBudgetSession = true;
             updateBudgetSessionDisplay();
-            hideTopUpModal();
-            alert('Budget topped up successfully!');
-          } else {
-            alert(data.message || 'Failed to top up budget');
+            startPeriodicStatsUpdate();
           }
-        } catch (error) {
-          console.error('Error topping up budget:', error);
-          alert('Error topping up budget. Please try again.');
         }
+      } catch (error) {
+        console.log('No active budget session found');
       }
+    }
 
-      function showTopUpModal() {
-        document.getElementById('top-up-modal').classList.remove('hidden');
-      }
-
-      function hideTopUpModal() {
-        document.getElementById('top-up-modal').classList.add('hidden');
-      }
-
-      function showSessionCompleteModal(sessionData) {
-        document.getElementById('final-q-value').textContent = sessionData.q_value;
-        document.getElementById('final-total-fights').textContent = sessionData.total_fights;
-        document.getElementById('final-win-rate').textContent = sessionData.win_rate.toFixed(1) + '%';
-        document.getElementById('final-profit').textContent = sessionData.total_profit + ' ETH';
-        document.getElementById('session-complete-modal').classList.remove('hidden');
-      }
-
-      function hideSessionCompleteModal() {
-        document.getElementById('session-complete-modal').classList.add('hidden');
-        gameState.hasActiveBudgetSession = false;
-        gameState.budgetSession = null;
-        updateBudgetSessionDisplay();
-      }
-
-      // Periodic stats update
-      let statsUpdateInterval;
-      
-      function startPeriodicStatsUpdate() {
-        if (statsUpdateInterval) {
-          clearInterval(statsUpdateInterval);
-        }
-        
-        statsUpdateInterval = setInterval(() => {
-          if (gameState.hasActiveBudgetSession) {
-            fetchSessionStats();
-          } else {
-            clearInterval(statsUpdateInterval);
-          }
-        }, 5000); // Update every 5 seconds
-      }
-      
-      function stopPeriodicStatsUpdate() {
-        if (statsUpdateInterval) {
-          clearInterval(statsUpdateInterval);
-          statsUpdateInterval = null;
-        }
-      }
-
+    // Event listeners for budget management
+    document.addEventListener('DOMContentLoaded', function () {
       // Initialize budget system
-      async function initializeBudgetSystem() {
-        // Fetch initial budget requirements
-        await fetchBudgetRequirements();
-        
-        // Check if user has an active session
-        try {
-          const response = await fetch('/budget/session-stats');
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              gameState.hasActiveBudgetSession = true;
-              updateBudgetSessionDisplay();
-              startPeriodicStatsUpdate();
-            }
-          }
-        } catch (error) {
-          console.log('No active budget session found');
+      initializeBudgetSystem();
+
+      // Update budget requirements when bet amount changes
+      document.getElementById('budget-amount-input').addEventListener('input', function () {
+        if (budgetState.requirementsFetched) {
+          fetchBudgetRequirements();
         }
-      }
-
-      // Event listeners for budget management
-      document.addEventListener('DOMContentLoaded', function() {
-        // Initialize budget system
-        initializeBudgetSystem();
-        
-        // Update budget requirements when bet amount changes
-        document.getElementById('budget-amount-input').addEventListener('input', function() {
-          if (budgetState.requirementsFetched) {
-            fetchBudgetRequirements();
-          }
-        });
-
-        // Modal event listeners
-        document.getElementById('top-up-cancel-btn').addEventListener('click', hideTopUpModal);
-        document.getElementById('top-up-confirm-btn').addEventListener('click', topUpBudget);
-        document.getElementById('session-complete-ok-btn').addEventListener('click', hideSessionCompleteModal);
-        
-        // Close modals when clicking overlay
-        document.getElementById('top-up-modal').addEventListener('click', function(e) {
-          if (e.target === this) hideTopUpModal();
-        });
-        
-        document.getElementById('session-complete-modal').addEventListener('click', function(e) {
-          if (e.target === this) hideSessionCompleteModal();
-        });
       });
 
-      // Utility functions
-      function generateHash(moves) {
-        return CryptoJS.SHA256(moves.join('')).toString();
+      // Modal event listeners
+      document.getElementById('top-up-cancel-btn').addEventListener('click', hideTopUpModal);
+      document.getElementById('top-up-confirm-btn').addEventListener('click', topUpBudget);
+      document.getElementById('session-complete-ok-btn').addEventListener('click', hideSessionCompleteModal);
+
+      // Close modals when clicking overlay
+      document.getElementById('top-up-modal').addEventListener('click', function (e) {
+        if (e.target === this) hideTopUpModal();
+      });
+
+      document.getElementById('session-complete-modal').addEventListener('click', function (e) {
+        if (e.target === this) hideSessionCompleteModal();
+      });
+    });
+
+    // Utility functions
+    function generateHash(moves) {
+      return CryptoJS.SHA256(moves.join('')).toString();
+    }
+
+    function calculateBudget(betAmount) {
+      const baseBudget = SECURITY_COEFFICIENT * betAmount;
+      // Total = Required * (10000 + FEE * 100) / 10000 to cover the smart contract fee dynamically
+      const feeMultiplier = 10000 + (SMART_CONTRACT_FEE_PERCENTAGE * 100);
+      return (baseBudget * feeMultiplier) / 10000;
+    }
+
+    function getMoveIcon(move) {
+      switch (move) {
+        case 'rock': return 'circle';
+        case 'paper': return 'file';
+        case 'scissors': return 'scissors';
+        default: return '';
+      }
+    }
+
+    // UI functions
+    function renderMoves() {
+      const movesList = document.getElementById('moves-list');
+      const movesCount = document.querySelector('.moves-count');
+
+      movesCount.textContent = `${gameState.selectedMoves.length}/100`;
+
+      if (gameState.selectedMoves.length === 0) {
+        movesList.innerHTML = '<p class="empty-moves">No moves selected</p>';
+        return;
       }
 
-      function calculateBudget(betAmount) {
-        const baseBudget = SECURITY_COEFFICIENT * betAmount;
-        const fees = Math.ceil(baseBudget * 0.05);
-        return baseBudget + fees;
-      }
-
-      function getMoveIcon(move) {
-        switch (move) {
-          case 'rock': return 'circle';
-          case 'paper': return 'file';
-          case 'scissors': return 'scissors';
-          default: return '';
-        }
-      }
-
-      // UI functions
-      function renderMoves() {
-        const movesList = document.getElementById('moves-list');
-        const movesCount = document.querySelector('.moves-count');
-        
-        movesCount.textContent = `${gameState.selectedMoves.length}/100`;
-        
-        if (gameState.selectedMoves.length === 0) {
-          movesList.innerHTML = '<p class="empty-moves">No moves selected</p>';
-          return;
-        }
-        
-        movesList.innerHTML = gameState.selectedMoves
-          .map((move, index) => `
+      movesList.innerHTML = gameState.selectedMoves
+        .map((move, index) => `
               <div class="move-chip">
                   <span class="move-index">${index + 1}.</span>
                   <i data-lucide="${getMoveIcon(move)}"></i>
@@ -1126,16 +1146,16 @@
                   <button onclick="handleMoveRemove(${index})">×</button>
               </div>
           `)
-          .join('');
-          
-        lucide.createIcons();
-      }
+        .join('');
 
-      function renderHistory() {
-        const historyList = document.getElementById('history-list');
-        
-        historyList.innerHTML = gameState.history
-          .map(game => `
+      lucide.createIcons();
+    }
+
+    function renderHistory() {
+      const historyList = document.getElementById('history-list');
+
+      historyList.innerHTML = gameState.history
+        .map(game => `
             <div class="history-item">
               <div>
                 <p class="history-time">${game.timestamp.toLocaleTimeString()}</p>
@@ -1146,561 +1166,563 @@
               </p>
             </div>
           `)
-          .join('');
-      }
+        .join('');
+    }
 
-      function renderBalance() {
-        const balanceAmount = document.querySelector('.balance-amount');
-        balanceAmount.textContent = `${gameState.balance} ETH`;
-      }
-      function updateBalance(pBalance){
-        console.log("updating balance");
-        gameState.balance = pBalance;
-        renderBalance();
-      }
+    function renderBalance() {
+      const balanceAmount = document.querySelector('.balance-amount');
+      balanceAmount.textContent = `${gameState.balance} ETH`;
+    }
+    function updateBalance(pBalance) {
+      console.log("updating balance");
+      gameState.balance = pBalance;
+      renderBalance();
+    }
 
-      function updateSubmitButton() {
-        const submitBtn = document.getElementById('submit-btn');
-        const budget = calculateBudget(gameState.selectedBet);
-        
-        submitBtn.disabled = 
-          gameState.selectedMoves.length === 0 || 
-          budget > gameState.balance;
-      }
+    function updateSubmitButton() {
+      const submitBtn = document.getElementById('submit-btn');
+      const budget = calculateBudget(gameState.selectedBet);
 
-      // Event handlers
-      function handleMoveClick(e) {
-        const move = e.target.closest('.move-btn').dataset.move;
-        if (gameState.selectedMoves.length < 100) {
-          gameState.selectedMoves.push(move);
-          renderMoves();
-          updateSubmitButton();
-        }
-      }
+      submitBtn.disabled =
+        gameState.selectedMoves.length === 0 ||
+        budget > gameState.balance;
+    }
 
-      function handleMoveRemove(index) {
-        gameState.selectedMoves.splice(index, 1);
+    // Event handlers
+    function handleMoveClick(e) {
+      const move = e.target.closest('.move-btn').dataset.move;
+      if (gameState.selectedMoves.length < 100) {
+        gameState.selectedMoves.push(move);
         renderMoves();
         updateSubmitButton();
       }
-      window.handleMoveRemove = handleMoveRemove;
-
-      function handleBetClick(e) {
-        const bet = parseFloat(e.target.dataset.bet);
-        gameState.selectedBet = bet;
-        document.querySelectorAll('.bet-btn').forEach(btn => {
-          btn.classList.toggle('active', parseFloat(btn.dataset.bet) === bet);
-        });
-        
-        // Update budget requirements when bet amount changes
-        fetchBudgetRequirements();
-        updateSubmitButton();
-      }
-
-      function handleSubmit() {
-        const budget = document.getElementById('budget-amount-input').value;
-        document.getElementById('budget-amount').textContent = budget;
-        document.getElementById('confirmation-modal').classList.remove('hidden');
-      }
-
-      async function handleConfirm() {
-        try {
-          // Start budget session if not already active
-          if (!gameState.hasActiveBudgetSession) {
-            const sessionStarted = await startBudgetSession();
-            if (!sessionStarted) {
-              return; // Exit if session failed to start
-            }
-          }
-          
-          // Upload moves to Pinata
-          cid = await uploadMovesToPinata();
-          
-          // Submit pre-moves to backend
-          await submitPreMoves();
-          
-          // Add user to pool with blockchain integration
-          await addUserToPool(gameState.selectedBet);
-          
-          // Clear selected moves and hide modal
-          gameState.selectedMoves = [];
-          document.getElementById('confirmation-modal').classList.add('hidden');
-          
-          // Update UI
-          renderMoves();
-          renderHistory();
-          renderBalance();
-          updateSubmitButton();
-          
-          // Start periodic stats updates
-          startPeriodicStatsUpdate();
-          
-        } catch (error) {
-          console.error('Error in handleConfirm:', error);
-          alert('Error starting session. Please try again.');
-        }
-      }
-      async function submitPreMoves() {
-          const moves = gameState.selectedMoves;
-
-          try {
-              const response = await fetch('/user/pre-moves', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRF-TOKEN': "csrf_token_placeholder",
-              }, 
-              body: JSON.stringify({
-                  user_id: userId, // Send the User ID
-                  pre_moves: moves,
-                  bet_amount: 0.0000,
-                  cid: cid // Send the CID
-              }),
-              });
-
-              const data = await response.json();
-              if (response.ok) {
-              //alert(data.message);
-              //gameState.selectedMoves = []; // Clear selected moves
-              renderMoves(); // Update UI
-              } else {
-              //alert(data.message || 'An error occurred.');
-              }
-          } catch (error) {
-              console.error('Error submitting moves:', error);
-              //alert('Failed to submit moves. Please try again.');
-               return;
-          }
-      }
-
-      //WEB 3.0=============================================================================================================
-
-      let ABI = [];
-      let CONTRACT_ADDRESS="";
-      let WALLET_ADDRESS="";
-      let SECURITY_COEFFICIENT = 1000;
-
-      let web3 = new Web3(window.ethereum);
-      let contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
-
-      async function getArtefacts() {
-        try {
-          // Fetch the contract information from the server
-          const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-          const response = await fetch('/artefacts', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken,
-        },
-          });
-
-          if (!response.ok) {
-        throw new Error('Failed to retrieve contract information.');
-          }
-
-          const data = await response.json();
-          const abi = data.abi;
-          const address = data.address;
-          SEUCRITY_COEFFICIENT = data.security_coefficient;
-          // Assign ABI and CONTRACT_ADDRESS directly
-  ABI =  [
-    {
-      "inputs": [],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "DepositReceived",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "poolId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "cid",
-          "type": "string"
-        }
-      ],
-      "name": "user/pre-movesHistoryCIDUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "poolId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "maxSize",
-          "type": "uint256"
-        }
-      ],
-      "name": "PoolCreated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "poolId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "address[]",
-          "name": "users",
-          "type": "address[]"
-        },
-        {
-          "indexed": false,
-          "internalType": "string[]",
-          "name": "premoveCIDs",
-          "type": "string[]"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "poolSalt",
-          "type": "string"
-        }
-      ],
-      "name": "PoolEmitted",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "cid",
-          "type": "string"
-        }
-      ],
-      "name": "PremoveCIDUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "newCoefficient",
-          "type": "uint256"
-        }
-      ],
-      "name": "SecurityCoefficientUpdated",
-      "type": "event"
-    },
-    {
-      "stateMutability": "payable",
-      "type": "fallback"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "baseBet",
-          "type": "uint256"
-        },
-        {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
-        }
-      ],
-      "name": "addSingleUserToPool",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
     }
-  ];
-          CONTRACT_ADDRESS = address;
 
-          console.log('ABI:', ABI);
-          console.log('Contract Address:', CONTRACT_ADDRESS);
-          console.log('Security Coefficient:', SECURITY_COEFFICIENT);
-
-          // Reinitialize the contract with the fetched ABI and address
-          contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
-
-        } catch (error) {
-          console.error('Error fetching contract artifacts:', error);
-        }
-      }
-
-      async function connectWallet() {
-        if (!window.ethereum) {
-          alert('Please install MetaMask!');
-          return;
-        }
-
-        try {
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
-          const accounts = await web3.eth.getAccounts();
-          WALLET_ADDRESS = accounts[0];
-          console.log('Connected Wallet:', WALLET_ADDRESS);
-        } catch (error) {
-          console.error('Error connecting wallet:', error);
-        }
-      }
-
-      async function addUserToPool(baseBet) {
-        try {
-          // Step 1: Connect wallet
-          await connectWallet();
-          
-          // Step 2: Calculate deposit amount
-          const depositAmount = calculateBudget(baseBet);
-          
-          console.log('Adding user to pool with:');
-          console.log('Base bet:', baseBet);
-          console.log('Deposit amount:', depositAmount);
-          console.log('CID:', cid);
-          
-          // Step 3: Submit the pre-moves CID to the smart contract
-          console.log('web3.utils.toWei(depositAmount.toString(), ether):', web3.utils.toWei(depositAmount.toString(), 'ether'));
-          let baseB = web3.utils.toWei(baseBet.toString(), 'ether');
-
-          const nonce = await web3.eth.getTransactionCount(WALLET_ADDRESS, 'latest');
-          const submitTx = await contract.methods.submitPremoveCID(baseB, cid).send({
-            from: WALLET_ADDRESS,
-            value: web3.utils.toWei(depositAmount.toString(), 'ether'),
-            nonce: nonce
-          });
-
-          console.log('Pre-moves CID submitted. Transaction hash:', submitTx.transactionHash);
-          const balanceGPT = await getUserBalanceGPT(WALLET_ADDRESS);
-          console.log('Balance from getUserBalanceGPT:', balanceGPT);
-          return {
-            success: true,
-            submitCidTxHash: submitTx.transactionHash
-          };
-        } catch (error) {
-          console.error('Error in addUserToPool:', error);
-          throw error;
-        }
-      }
-
-      async function uploadMovesToPinata() {
-        try {
-          // Prepare the data for Pinata - only include moves for deterministic CID
-          const movesData = {
-            pinataContent: {
-              moves: gameState.selectedMoves
-            }
-          };
-
-          // Upload to Pinata
-          const response = await fetch(PINATA_API_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'pinata_api_key': PINATA_API_KEY,
-              'pinata_secret_api_key': PINATA_API_SECRET
-            },
-            body: JSON.stringify(movesData)
-          });
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error?.details || 'Failed to upload to Pinata');
-          }
-
-          // Display the CID and IPFS link
-          const cid = data.IpfsHash;
-          console.log('CID:', cid);
-          return cid;
-        } catch (error) {
-          console.error('Error uploading to Pinata:', error);
-          throw error;
-        }
-      }
-
-      // Function to get user balance from the smart contract
-      async function getUserBalanceDeep(userAddress) {
-        try {
-          // Get the balance of the user's address
-          const balanceInWei = await web3.eth.getBalance(userAddress);
-
-          // Convert the balance from Wei to Ether
-          const balanceInEther = web3.utils.fromWei(balanceInWei, 'ether');
-
-          // Log the balance
-          console.log(`✅ User balance for ${userAddress}: ${balanceInEther} ETH`);
-
-          return balanceInEther; // Return the balance in Ether
-        } catch (error) {
-          console.error(`🚨 Error while getting user balance for ${userAddress}:`, error.message);
-          throw error; // Re-throw the error to handle it in the calling function
-        }
-      }
-
-      async function getUserBalanceGPT(userAddress) {
-        try {
-          // Ensure provider exists
-          if (!window.ethereum) {
-            throw new Error('Please install MetaMask or another web3 wallet');
-          }
-
-          // Retrieve the user's balance
-          const balance = await contract.methods.getUserBalance(userAddress).call();
-          const balanceInEther = web3.utils.fromWei(balance, 'ether');
-
-          console.log(`✅ User balance for ${userAddress}: ${balanceInEther} ether`);
-          return balanceInEther;
-        } catch (error) {
-          console.error(`🚨 Error while getting user balance for ${userAddress}:`, error.message);
-          return null;
-        }
-      }
-
-      async function loginWithWallet() {
-        if (!window.ethereum) {
-          alert('Please install MetaMask!');
-          return;
-        }
-
-        const web3 = new Web3(window.ethereum);
-
-        try {
-          // Step 1: Connect Wallet
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
-          const accounts = await web3.eth.getAccounts();
-          const walletAddress = accounts[0];
-          console.log('Connected Wallet:', walletAddress);
-
-          // Step 2: Request signing message from the backend
-          const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-          const messageResponse = await fetch('/wallet/generate-message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken, },
-            body: JSON.stringify({ wallet_address: walletAddress }),
-          });
-
-          if (!messageResponse.ok) {
-            const error = await messageResponse.json();
-            alert(error.message);
-            return;
-          }
-
-          const { message } = await messageResponse.json();
-
-          // Step 3: Sign the message with the wallet
-          const signature = await web3.eth.personal.sign(message, walletAddress);
-          console.log("Signature:", signature);
-
-          //new version=====================================
-
-          const verifyResponse = await fetch('/wallet/verify-signature', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json','X-CSRF-TOKEN': csrfToken,},
-            body: JSON.stringify({ wallet_address: walletAddress, signature }),
-          });
-
-          if (verifyResponse.ok) {
-            const data = await verifyResponse.json();
-            //alert(`Login successful! Welcome, ${data.user.name}`);
-            console.log(data.user);
-
-            setTimeout(() => {
-              // Redirect to autoplay page
-              window.location.href = '/autoplay';
-            }, 500);
-
-          } else {
-            const error = await verifyResponse.json();
-            alert(error.message);
-          }
-        } catch (error) {
-          console.error('Error during wallet authentication:', error);
-          alert('Authentication failed. Please try again.');
-        }
-      }
-
-      // Initialize
-      document.querySelectorAll('.move-btn').forEach(btn => 
-        btn.addEventListener('click', handleMoveClick)
-      );
-
-      document.querySelectorAll('.bet-btn').forEach(btn => 
-        btn.addEventListener('click', handleBetClick)
-      );
-
-      document.getElementById('submit-btn').addEventListener('click', handleSubmit);
-      document.getElementById('confirm-btn').addEventListener('click', handleConfirm);
-      document.getElementById('cancel-btn').addEventListener('click', () => 
-        document.getElementById('confirmation-modal').classList.add('hidden')
-      );
-
-      // Initialize UI
-      lucide.createIcons();
+    function handleMoveRemove(index) {
+      gameState.selectedMoves.splice(index, 1);
       renderMoves();
-      renderHistory();
-      renderBalance();
       updateSubmitButton();
+    }
+    window.handleMoveRemove = handleMoveRemove;
 
-      window.addEventListener("DOMContentLoaded",function(){
-        getArtefacts();
-        const channelName = `App.Models.User.${userId}`;
-        // Note: Echo is not available in static HTML, so this is commented out
-        // window.Echo.private(channelName)
-        // .listen("testevent",(event)=>{updateBalance(event.balance);})
-        // .listen("BalanceUpdated",(data)=>{console.log(data.balance);});
+    function handleBetClick(e) {
+      const bet = parseFloat(e.target.dataset.bet);
+      gameState.selectedBet = bet;
+      document.querySelectorAll('.bet-btn').forEach(btn => {
+        btn.classList.toggle('active', parseFloat(btn.dataset.bet) === bet);
       });
+
+      // Update budget requirements when bet amount changes
+      fetchBudgetRequirements();
+      updateSubmitButton();
+    }
+
+    function handleSubmit() {
+      const budget = document.getElementById('budget-amount-input').value;
+      document.getElementById('budget-amount').textContent = budget;
+      document.getElementById('confirmation-modal').classList.remove('hidden');
+    }
+
+    async function handleConfirm() {
+      try {
+        // Start budget session if not already active
+        if (!gameState.hasActiveBudgetSession) {
+          const sessionStarted = await startBudgetSession();
+          if (!sessionStarted) {
+            return; // Exit if session failed to start
+          }
+        }
+
+        // Upload moves to Pinata
+        cid = await uploadMovesToPinata();
+
+        // Submit pre-moves to backend
+        await submitPreMoves();
+
+        // Add user to pool with blockchain integration
+        await addUserToPool(gameState.selectedBet);
+
+        // Clear selected moves and hide modal
+        gameState.selectedMoves = [];
+        document.getElementById('confirmation-modal').classList.add('hidden');
+
+        // Update UI
+        renderMoves();
+        renderHistory();
+        renderBalance();
+        updateSubmitButton();
+
+        // Start periodic stats updates
+        startPeriodicStatsUpdate();
+
+      } catch (error) {
+        console.error('Error in handleConfirm:', error);
+        alert('Error starting session. Please try again.');
+      }
+    }
+    async function submitPreMoves() {
+      const moves = gameState.selectedMoves;
+
+      try {
+        const response = await fetch('/user/pre-moves', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': "csrf_token_placeholder",
+          },
+          body: JSON.stringify({
+            user_id: userId, // Send the User ID
+            pre_moves: moves,
+            bet_amount: 0.0000,
+            cid: cid // Send the CID
+          }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          //alert(data.message);
+          //gameState.selectedMoves = []; // Clear selected moves
+          renderMoves(); // Update UI
+        } else {
+          //alert(data.message || 'An error occurred.');
+        }
+      } catch (error) {
+        console.error('Error submitting moves:', error);
+        //alert('Failed to submit moves. Please try again.');
+        return;
+      }
+    }
+
+    //WEB 3.0=============================================================================================================
+
+    let ABI = [];
+    let CONTRACT_ADDRESS = "";
+    let WALLET_ADDRESS = "";
+    let SECURITY_COEFFICIENT = 1000;
+    let SMART_CONTRACT_FEE_PERCENTAGE = 2.5;
+
+    let web3 = new Web3(window.ethereum);
+    let contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+    async function getArtefacts() {
+      try {
+        // Fetch the contract information from the server
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const response = await fetch('/artefacts', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to retrieve contract information.');
+        }
+
+        const data = await response.json();
+        const abi = data.abi;
+        const address = data.address;
+        SECURITY_COEFFICIENT = data.security_coefficient;
+        SMART_CONTRACT_FEE_PERCENTAGE = data.smart_contract_fee_percentage || 2.5;
+        // Assign ABI and CONTRACT_ADDRESS directly
+        ABI = [
+          {
+            "inputs": [],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+          },
+          {
+            "anonymous": false,
+            "inputs": [
+              {
+                "indexed": true,
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
+              },
+              {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+              }
+            ],
+            "name": "DepositReceived",
+            "type": "event"
+          },
+          {
+            "anonymous": false,
+            "inputs": [
+              {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "indexed": false,
+                "internalType": "string",
+                "name": "cid",
+                "type": "string"
+              }
+            ],
+            "name": "user/pre-movesHistoryCIDUpdated",
+            "type": "event"
+          },
+          {
+            "anonymous": false,
+            "inputs": [
+              {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "baseBet",
+                "type": "uint256"
+              },
+              {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "maxSize",
+                "type": "uint256"
+              }
+            ],
+            "name": "PoolCreated",
+            "type": "event"
+          },
+          {
+            "anonymous": false,
+            "inputs": [
+              {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "baseBet",
+                "type": "uint256"
+              },
+              {
+                "indexed": false,
+                "internalType": "address[]",
+                "name": "users",
+                "type": "address[]"
+              },
+              {
+                "indexed": false,
+                "internalType": "string[]",
+                "name": "premoveCIDs",
+                "type": "string[]"
+              },
+              {
+                "indexed": false,
+                "internalType": "string",
+                "name": "poolSalt",
+                "type": "string"
+              }
+            ],
+            "name": "PoolEmitted",
+            "type": "event"
+          },
+          {
+            "anonymous": false,
+            "inputs": [
+              {
+                "indexed": true,
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
+              },
+              {
+                "indexed": false,
+                "internalType": "string",
+                "name": "cid",
+                "type": "string"
+              }
+            ],
+            "name": "PremoveCIDUpdated",
+            "type": "event"
+          },
+          {
+            "anonymous": false,
+            "inputs": [
+              {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "newCoefficient",
+                "type": "uint256"
+              }
+            ],
+            "name": "SecurityCoefficientUpdated",
+            "type": "event"
+          },
+          {
+            "stateMutability": "payable",
+            "type": "fallback"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "uint256",
+                "name": "baseBet",
+                "type": "uint256"
+              },
+              {
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
+              }
+            ],
+            "name": "addSingleUserToPool",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          }
+        ];
+        CONTRACT_ADDRESS = address;
+
+        console.log('ABI:', ABI);
+        console.log('Contract Address:', CONTRACT_ADDRESS);
+        console.log('Security Coefficient:', SECURITY_COEFFICIENT);
+
+        // Reinitialize the contract with the fetched ABI and address
+        contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+
+      } catch (error) {
+        console.error('Error fetching contract artifacts:', error);
+      }
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert('Please install MetaMask!');
+        return;
+      }
+
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await web3.eth.getAccounts();
+        WALLET_ADDRESS = accounts[0];
+        console.log('Connected Wallet:', WALLET_ADDRESS);
+      } catch (error) {
+        console.error('Error connecting wallet:', error);
+      }
+    }
+
+    async function addUserToPool(baseBet) {
+      try {
+        // Step 1: Connect wallet
+        await connectWallet();
+
+        // Step 2: Calculate deposit amount
+        const depositAmount = calculateBudget(baseBet);
+
+        console.log('Adding user to pool with:');
+        console.log('Base bet:', baseBet);
+        console.log('Deposit amount:', depositAmount);
+        console.log('CID:', cid);
+
+        // Step 3: Submit the pre-moves CID to the smart contract
+        console.log('web3.utils.toWei(depositAmount.toString(), ether):', web3.utils.toWei(depositAmount.toString(), 'ether'));
+        let baseB = web3.utils.toWei(baseBet.toString(), 'ether');
+
+        const nonce = await web3.eth.getTransactionCount(WALLET_ADDRESS, 'latest');
+        const submitTx = await contract.methods.submitPremoveCID(baseB, cid).send({
+          from: WALLET_ADDRESS,
+          value: web3.utils.toWei(depositAmount.toString(), 'ether'),
+          nonce: nonce
+        });
+
+        console.log('Pre-moves CID submitted. Transaction hash:', submitTx.transactionHash);
+        const balanceGPT = await getUserBalanceGPT(WALLET_ADDRESS);
+        console.log('Balance from getUserBalanceGPT:', balanceGPT);
+        return {
+          success: true,
+          submitCidTxHash: submitTx.transactionHash
+        };
+      } catch (error) {
+        console.error('Error in addUserToPool:', error);
+        throw error;
+      }
+    }
+
+    async function uploadMovesToPinata() {
+      try {
+        // Prepare the data for Pinata - only include moves for deterministic CID
+        const movesData = {
+          pinataContent: {
+            moves: gameState.selectedMoves
+          }
+        };
+
+        // Upload to Pinata
+        const response = await fetch(PINATA_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'pinata_api_key': PINATA_API_KEY,
+            'pinata_secret_api_key': PINATA_API_SECRET
+          },
+          body: JSON.stringify(movesData)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error?.details || 'Failed to upload to Pinata');
+        }
+
+        // Display the CID and IPFS link
+        const cid = data.IpfsHash;
+        console.log('CID:', cid);
+        return cid;
+      } catch (error) {
+        console.error('Error uploading to Pinata:', error);
+        throw error;
+      }
+    }
+
+    // Function to get user balance from the smart contract
+    async function getUserBalanceDeep(userAddress) {
+      try {
+        // Get the balance of the user's address
+        const balanceInWei = await web3.eth.getBalance(userAddress);
+
+        // Convert the balance from Wei to Ether
+        const balanceInEther = web3.utils.fromWei(balanceInWei, 'ether');
+
+        // Log the balance
+        console.log(`✅ User balance for ${userAddress}: ${balanceInEther} ETH`);
+
+        return balanceInEther; // Return the balance in Ether
+      } catch (error) {
+        console.error(`🚨 Error while getting user balance for ${userAddress}:`, error.message);
+        throw error; // Re-throw the error to handle it in the calling function
+      }
+    }
+
+    async function getUserBalanceGPT(userAddress) {
+      try {
+        // Ensure provider exists
+        if (!window.ethereum) {
+          throw new Error('Please install MetaMask or another web3 wallet');
+        }
+
+        // Retrieve the user's balance
+        const balance = await contract.methods.getUserBalance(userAddress).call();
+        const balanceInEther = web3.utils.fromWei(balance, 'ether');
+
+        console.log(`✅ User balance for ${userAddress}: ${balanceInEther} ether`);
+        return balanceInEther;
+      } catch (error) {
+        console.error(`🚨 Error while getting user balance for ${userAddress}:`, error.message);
+        return null;
+      }
+    }
+
+    async function loginWithWallet() {
+      if (!window.ethereum) {
+        alert('Please install MetaMask!');
+        return;
+      }
+
+      const web3 = new Web3(window.ethereum);
+
+      try {
+        // Step 1: Connect Wallet
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await web3.eth.getAccounts();
+        const walletAddress = accounts[0];
+        console.log('Connected Wallet:', walletAddress);
+
+        // Step 2: Request signing message from the backend
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const messageResponse = await fetch('/wallet/generate-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, },
+          body: JSON.stringify({ wallet_address: walletAddress }),
+        });
+
+        if (!messageResponse.ok) {
+          const error = await messageResponse.json();
+          alert(error.message);
+          return;
+        }
+
+        const { message } = await messageResponse.json();
+
+        // Step 3: Sign the message with the wallet
+        const signature = await web3.eth.personal.sign(message, walletAddress);
+        console.log("Signature:", signature);
+
+        //new version=====================================
+
+        const verifyResponse = await fetch('/wallet/verify-signature', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, },
+          body: JSON.stringify({ wallet_address: walletAddress, signature }),
+        });
+
+        if (verifyResponse.ok) {
+          const data = await verifyResponse.json();
+          //alert(`Login successful! Welcome, ${data.user.name}`);
+          console.log(data.user);
+
+          setTimeout(() => {
+            // Redirect to autoplay page
+            window.location.href = '/autoplay';
+          }, 500);
+
+        } else {
+          const error = await verifyResponse.json();
+          alert(error.message);
+        }
+      } catch (error) {
+        console.error('Error during wallet authentication:', error);
+        alert('Authentication failed. Please try again.');
+      }
+    }
+
+    // Initialize
+    document.querySelectorAll('.move-btn').forEach(btn =>
+      btn.addEventListener('click', handleMoveClick)
+    );
+
+    document.querySelectorAll('.bet-btn').forEach(btn =>
+      btn.addEventListener('click', handleBetClick)
+    );
+
+    document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+    document.getElementById('confirm-btn').addEventListener('click', handleConfirm);
+    document.getElementById('cancel-btn').addEventListener('click', () =>
+      document.getElementById('confirmation-modal').classList.add('hidden')
+    );
+
+    // Initialize UI
+    lucide.createIcons();
+    renderMoves();
+    renderHistory();
+    renderBalance();
+    updateSubmitButton();
+
+    window.addEventListener("DOMContentLoaded", function () {
+      getArtefacts();
+      const channelName = `App.Models.User.${userId}`;
+      // Note: Echo is not available in static HTML, so this is commented out
+      // window.Echo.private(channelName)
+      // .listen("testevent",(event)=>{updateBalance(event.balance);})
+      // .listen("BalanceUpdated",(data)=>{console.log(data.balance);});
+    });
 
   </script>
 </body>
-</html>
 
+</html>

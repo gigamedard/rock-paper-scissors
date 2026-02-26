@@ -120,6 +120,7 @@ class BlockchainController extends Controller
             $dbConfig = [
                 'security_coefficient' => \App\Models\GameSetting::getValue('security_coefficient', 1000), // Default 1000 if not set
                 'game_fee_percentage' => \App\Models\GameSetting::getValue('game_fee_percentage', 5.0),
+                'smart_contract_fee_percentage' => \App\Models\GameSetting::getValue('smart_contract_fee_percentage', 2.5), // Default 2.5% Smart Contract Fee
                 'min_bet_amount' => \App\Models\GameSetting::getValue('min_bet_amount', 0.1),
             ];
 
