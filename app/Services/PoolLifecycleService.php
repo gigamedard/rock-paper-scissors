@@ -65,6 +65,10 @@ class PoolLifecycleService
 
         $this->finishPool($pool);
 
+        // Update pool status so it isn't picked up by future `from_server_waitting` queries
+        $pool->status = 'from_server_finished';
+        $pool->save();
+
         event(new PoolFinishedEvent($poolId));
     }
 

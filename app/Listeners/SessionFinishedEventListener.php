@@ -56,6 +56,7 @@ class SessionFinishedEventListener
 
     private function processUserBalance(User $user, float $q, float $baseBet, int $poolSize): void
     {
+        Log::info("SessionFinishedEventListener: processUserBalance started for user {$user->id}. Start Status: {$user->status}");
         // If user is already available (waiting for batch) or stopped (insufficient funds), do not process session continuity
         if (in_array($user->status, ['available', 'stopped'])) {
             Log::info("SessionFinishedEventListener: User {$user->id} has status '{$user->status}'. Skipping immediate re-pool.");
@@ -67,6 +68,7 @@ class SessionFinishedEventListener
         $multiplier = config("game_levels.multiplier.{$multiplierLevel}", 2.0);
 
         if ($q >= $multiplier) {
+            Log::info("SessionFinishedEventListener: User {$user->id} reached multiplier ($q >= $multiplier). Processing payout.");
             $this->transferBattleBalance($user, 'stopped');
             $this->archiveSessionHistory($user);
             $this->sendPayment($user);
@@ -82,7 +84,9 @@ class SessionFinishedEventListener
             if ($baseBet > 0 && $poolSize > 0) {
                  // Ensure user is removed from old pool (if not already done by logic) and added to new one
                  // Note: addUserToNewPool handles updating pool_id
+                 Log::info("SessionFinishedEventListener: Calling addUserToNewPool for User {$user->id} (BaseBet: $baseBet, Size: $poolSize)");
                  $this->fightService->addUserToNewPool($user->id, $baseBet, $poolSize);
+                 Log::info("SessionFinishedEventListener: Finished calling addUserToNewPool.");
             } else {
                 Log::warning("SessionFinishedEventListener: Cannot continue session for User ID: {$user->id} - Missing pool details.");
             }

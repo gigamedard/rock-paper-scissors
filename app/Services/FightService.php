@@ -168,8 +168,16 @@ class FightService
             return;
         }
 
+        $user = User::find($userId);
+        $currentPoolId = $user ? $user->pool_id : null;
+
         $pool = Pool::where('base_bet', $baseBet)
             ->where('status', 'from_server_waitting') // Only pick waiting pools
+            ->where(function ($query) use ($currentPoolId) {
+                if ($currentPoolId) {
+                    $query->where('id', '!=', $currentPoolId);
+                }
+            })
             ->has('users', '<', $poolSize)
             ->orderBy('id', 'desc')
             ->first();
@@ -182,6 +190,9 @@ class FightService
             ]);
             $pool->status = 'from_server_waitting';
             $pool->save();
+            \Illuminate\Support\Facades\Log::info("FightService: Created NEW pool {$pool->id} for user {$userId}");
+        } else {
+            \Illuminate\Support\Facades\Log::info("FightService: Found EXISTING waiting pool {$pool->id} for user {$userId}");
         }
 
         $pool->pool_id = $pool->id;
@@ -192,6 +203,8 @@ class FightService
             'pool_id' => $pool->id,
             'status' => 'in_pool'
         ]);
+        
+        \Illuminate\Support\Facades\Log::info("FightService: Assigned user {$userId} to pool {$pool->id}. DB Update executed.");
         
         // Notify Pool Entry
         $user = User::find($userId);
