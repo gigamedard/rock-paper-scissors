@@ -60,6 +60,9 @@ describe("Battlepool", function () {
         owner.address,
       ]);
 
+      // Manually validate to unlock and clear the pool as the backend would do
+      await battlepool.validatePool(baseBet);
+
       // Check pool is emitted and users are cleared
       const poolAfterEmit = await battlepool.getPoolUsers(baseBet);
       expect(poolAfterEmit.length).to.equal(0);
