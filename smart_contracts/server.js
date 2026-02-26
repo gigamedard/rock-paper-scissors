@@ -642,6 +642,40 @@ app.post("/refundUsers", async (req, res) => {
 	}
 });
 
+app.post("/pool/validate", async (req, res) => {
+	try {
+		const { baseBet } = req.body;
+		if (!baseBet) {
+			return res.status(400).json({ error: "Missing baseBet." });
+		}
+		console.log(`📡 Validating pool for baseBet: ${baseBet}`);
+		const parsedBaseBet = parseEther(baseBet.toString());
+		const tx = await contract.validatePool(parsedBaseBet);
+		await tx.wait();
+		res.json({ success: true, txHash: tx.hash });
+	} catch (error) {
+		console.error("❌ Error validating pool:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.post("/pool/invalidate", async (req, res) => {
+	try {
+		const { baseBet, invalidUsers } = req.body;
+		if (!baseBet || !Array.isArray(invalidUsers) || invalidUsers.length === 0) {
+			return res.status(400).json({ error: "Invalid input. Ensure baseBet and non-empty invalidUsers array." });
+		}
+		console.log(`📡 Invalidating users: ${invalidUsers.join(', ')} for baseBet: ${baseBet}`);
+		const parsedBaseBet = parseEther(baseBet.toString());
+		const tx = await contract.invalidatePoolUsers(parsedBaseBet, invalidUsers);
+		await tx.wait();
+		res.json({ success: true, txHash: tx.hash });
+	} catch (error) {
+		console.error("❌ Error invalidating pool users:", error.message);
+		res.status(500).json({ error: error.message });
+	}
+});
+
 // Start Node.js server and schedule periodic POST request
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

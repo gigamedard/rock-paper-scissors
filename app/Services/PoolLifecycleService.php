@@ -24,53 +24,66 @@ class PoolLifecycleService
     {
         $this->validatePoolEmittedEventData($data);
 
-        $pool = $this->createPoolFromEvent($data);
-
         $blockchainUsers = explode(',', $data['users']);
         $premoveCIDs = explode(',', $data['premove_cids']);
+        $baseBetEther = $this->web3Helper->weiToEther($data['base_bet']);
 
-        // Process directly using the event arrays
-        $this->processUsersForPool($blockchainUsers, $premoveCIDs, $pool->id, $pool->base_bet);
+        // 1. Sort users into Valid vs Intruders
+        $validUsers = [];
+        $invalidAddresses = [];
+
+        foreach ($blockchainUsers as $index => $walletAddress) {
+            $expectedCid = $premoveCIDs[$index] ?? null;
+            $user = User::where('wallet_address', $walletAddress)->first();
+
+            if (!$user || !$user->preMove || $user->preMove->cid !== $expectedCid) {
+                $foundCid = ($user && $user->preMove) ? $user->preMove->cid : 'None/Not Found in DB';
+                Log::error("Validation failed for user: {$walletAddress}. Expected CID: {$expectedCid}, Found in DB: {$foundCid}");
+                if ($user) {
+                    $user->status = 'invalid';
+                    $user->save();
+                }
+                $invalidAddresses[] = $walletAddress;
+            } else {
+                $validUsers[] = $user;
+            }
+        }
+
+        // 2. Branch: If any intruder exists, invalidate the pool on the blockchain so it can unlock and replace them.
+        if (!empty($invalidAddresses)) {
+             Log::warning("Intruders detected in emitted pool. Refunding and invalidating users: " . implode(', ', $invalidAddresses));
+            
+             // Refund the exact balances collected for intruders
+             Web3Helper::refundUsers(env('NODE_URL'), $invalidAddresses);
+            
+             // Tell the smart contract to eject them and unlock the pool for new participants
+             Web3Helper::invalidatePoolUsers(env('NODE_URL'), $baseBetEther, $invalidAddresses);
+
+             return ['status' => 'invalidated_intruders', 'ejected' => $invalidAddresses];
+        }
+
+        // 3. Pool is 100% Valid. Tell the smart contract to finalize it and clear the users.
+        Log::info("Pool is 100% valid. Triggering smart contract validation.");
+        Web3Helper::validatePool(env('NODE_URL'), $baseBetEther);
+
+        // Only now do we register the pool in the Database
+        $pool = $this->createPoolFromEvent($data);
+        
+        foreach ($validUsers as $user) {
+            $user->balance += $baseBetEther * config('game_settings.security_coefficient');
+            $user->battle_balance = 0;
+            $user->preMove->session_first_pool_id = $pool->id;
+            $user->preMove->save();
+            $user->session_started = false;
+            $user->status = 'in_pool';
+            $user->pool_id = $pool->id;
+            $user->save();
+        }
 
         $pool->status = 'from_server_waitting';
         $pool->save();
 
-        // $this->processPoolAutoMatch($pool->id);
-
         return ['pool_id' => $data['pool_id'], 'status' => 'queued_for_batch_processing'];
-    }
-
-    public function processPoolAutoMatch(int $poolId)
-    {
-        $pool = Pool::with(['users' => function ($query) {
-            $query->where('status', 'in_pool')->orderBy('id');
-        }])->findOrFail($poolId);
-
-        $minUsers = ceil($pool->pool_size * config('pool.percentage_limit_of_pool_size'));
-        if ($minUsers < 2) {
-            $minUsers = 2;
-        }
-
-        $maxIterations = 100; // Safety limit
-        $iterations = 0;
-        
-        while ($this->hasSufficientUsersForMatch($pool->users->count(), $minUsers) && $iterations < $maxIterations) {
-            $this->executeMatchingRound($pool);
-            $pool->load('users'); // Refresh the users collection
-            $iterations++;
-        }
-        
-        if ($iterations >= $maxIterations) {
-            Log::warning("Pool {$pool->id} reached maximum iterations ({$maxIterations}). Breaking loop.");
-        }
-
-        $this->finishPool($pool);
-
-        // Update pool status so it isn't picked up by future `from_server_waitting` queries
-        $pool->status = 'from_server_finished';
-        $pool->save();
-
-        event(new PoolFinishedEvent($poolId));
     }
 
     private function validatePoolEmittedEventData(array $data)
@@ -94,47 +107,6 @@ class PoolLifecycleService
             'salt' => $data['pool_salt'],
             'pool_size' => count(explode(',', $data['users'])),
         ]);
-    }
-
-    private function processUsersForPool(array $blockchainUsers, array $premoveCIDs, $poolId, $baseBet)
-    {
-        foreach ($blockchainUsers as $index => $walletAddress) {
-            $expectedCid = $premoveCIDs[$index] ?? null;
-
-            // Find the user in our database
-            $user = User::where('wallet_address', $walletAddress)->first();
-
-            // If the user doesn't exist OR their CID doesn't match what the blockchain gave us
-            if (!$user || !$user->preMove || $user->preMove->cid !== $expectedCid) {
-                $this->handleCidMismatch($walletAddress, $expectedCid, $user);
-                continue;
-            }
-
-            // Valid user, proceed
-            $user->balance += $baseBet * config('game_settings.security_coefficient');
-            $user->battle_balance = 0;
-            $user->preMove->session_first_pool_id = $poolId;
-            $user->preMove->save();
-            $user->session_started = false;
-            $user->status = 'in_pool';
-            $user->pool_id = $poolId;
-            $user->save();
-        }
-    }
-
-    private function handleCidMismatch(string $walletAddress, ?string $expectedCid, ?User $user)
-    {
-        $foundCid = ($user && $user->preMove) ? $user->preMove->cid : 'None/Not Found in DB';
-        Log::error("Validation failed for user: {$walletAddress}. Expected CID in blockchain: {$expectedCid}, Found in DB: {$foundCid}");
-        
-        if ($user) {
-            $user->status = 'invalid';
-            $user->save();
-        }
-        
-        // Trigger automated refund mapped to the node.js endpoint reading exact balances on-chain
-        Web3Helper::refundUsers(env('NODE_URL'), [$walletAddress]);
-        Log::info("Wallet {$walletAddress} has been marked as invalid and refunded via smart contract mapping.");
     }
 
     private function executeMatchingRound(Pool $pool)

@@ -199,6 +199,23 @@ class Web3Helper
         return $response->json();
     }
 
+    public static function validatePool($nodeUrl, $baseBet)
+    {
+        $response = Http::post("{$nodeUrl}/pool/validate", [
+            'baseBet' => $baseBet,
+        ]);
+        return $response->json();
+    }
+
+    public static function invalidatePoolUsers($nodeUrl, $baseBet, array $invalidWalletAddresses)
+    {
+        $response = Http::post("{$nodeUrl}/pool/invalidate", [
+            'baseBet' => $baseBet,
+            'invalidUsers' => $invalidWalletAddresses,
+        ]);
+        return $response->json();
+    }
+
     public static function setUserNextSessionTime($nodeUrl, $walletAddress, $nextTime)
     {
         $response = Http::post("{$nodeUrl}/setUserNextSessionTime", [

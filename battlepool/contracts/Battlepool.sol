@@ -10,6 +10,7 @@ contract Battlepool {
         string poolSalt; // Changed to string
         mapping(address => bool) isUserInPool; // Track if a user is already in the pool
         uint256 lastActivityBlock; // Track last activity block
+        bool isLockedForValidation; // Prevents new users before backend validates
     }
 
     uint256 public nextPoolId = 1;
@@ -123,6 +124,7 @@ contract Battlepool {
         newPool.maxSize = maxSize;
         newPool.poolSalt = ""; // Initialize salt to empty string
         newPool.lastActivityBlock = block.number; // Initialize activity
+        newPool.isLockedForValidation = false;
         nextPoolId++;
 
         emit PoolCreated(newPool.poolId, baseBet, maxSize);
@@ -133,6 +135,8 @@ contract Battlepool {
         
 
         Pool storage pool = pools[baseBet];
+        require(!pool.isLockedForValidation, "Pool locked for validation");
+        
         if (pool.poolId == 0) {
             // Create a new pool if it doesn't exist
             createPool(baseBet, defaultPoolMaxSize); // Default maxSize set to 5
@@ -156,7 +160,7 @@ contract Battlepool {
 
             // Check if the pool is full
             if (pool.users.length == pool.maxSize) {
-                _emitAndResetPool(pool); // Emit and reset the pool
+                _emitPoolValidation(pool); // Emit and lock the pool for backend validation
             }
         }
     }
@@ -170,6 +174,8 @@ contract Battlepool {
         
         
         Pool storage pool = pools[baseBet];
+        require(!pool.isLockedForValidation, "Pool locked for validation");
+        
         if (pool.poolId == 0) {
             createPool(baseBet, defaultPoolMaxSize); // Default maxSize set to defaultPoolMaxSize if pool does not exist
         }else if (pool.users.length == 0 ) {
@@ -185,7 +191,7 @@ contract Battlepool {
 
 
         if (pool.users.length == pool.maxSize) {
-            _emitAndResetPool(pool);
+            _emitPoolValidation(pool);
         }
     }
 
@@ -243,7 +249,48 @@ contract Battlepool {
 
 
 
-    function _emitAndResetPool(Pool storage pool) internal {
+    function validatePool(uint256 baseBet) external onlyOwner {
+        Pool storage pool = pools[baseBet];
+        require(pool.isLockedForValidation, "Pool is not locked for validation");
+
+        // Clear out all the tracking mappings for valid users
+        for (uint256 i = 0; i < pool.users.length; i++) {
+            pool.isUserInPool[pool.users[i]] = false;
+            isUserInAnyPool[pool.users[i]]   = false;
+            delete userPremoveCIDs[pool.users[i]];
+        }
+
+        delete pool.users;
+        pool.isLockedForValidation = false;
+    }
+
+    function invalidatePoolUsers(uint256 baseBet, address[] calldata invalidUsers) external onlyOwner {
+        Pool storage pool = pools[baseBet];
+        require(pool.isLockedForValidation, "Pool is not locked for validation");
+
+        for (uint256 i = 0; i < invalidUsers.length; i++) {
+            address invalidUser = invalidUsers[i];
+            
+            // Remove from pool.users array
+            for (uint256 j = 0; j < pool.users.length; j++) {
+                if (pool.users[j] == invalidUser) {
+                    pool.users[j] = pool.users[pool.users.length - 1];
+                    pool.users.pop();
+                    break;
+                }
+            }
+
+            // Clear mappings
+            pool.isUserInPool[invalidUser] = false;
+            isUserInAnyPool[invalidUser] = false;
+            delete userPremoveCIDs[invalidUser];
+        }
+
+        // Unlock so it can fill up again
+        pool.isLockedForValidation = false;
+    }
+
+    function _emitPoolValidation(Pool storage pool) internal {
         // 1) Snapshot users into memory once, so we never accidentally drift
         address[] memory users = pool.users;
 
@@ -259,15 +306,8 @@ contract Battlepool {
         // 4) Emit using the memory arrays – users and premoveCIDs are guaranteed to align
         emit PoolEmitted(pool.poolId, pool.baseBet, users, premoveCIDs, pool.poolSalt);
 
-        // 5) Now clear out all the tracking mappings
-        for (uint256 i = 0; i < users.length; i++) {
-            pool.isUserInPool[users[i]]     = false;
-            isUserInAnyPool[users[i]]       = false;
-            delete userPremoveCIDs[users[i]];
-        }
-
-        // 6) Finally, reset the pool's user list
-        delete pool.users;
+        // 5) Lock the pool, do NOT clear arrays yet. Backend must validate.
+        pool.isLockedForValidation = true;
     }
 
     // Generate a salt from the concatenated addresses of all users
