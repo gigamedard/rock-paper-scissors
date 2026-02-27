@@ -1,7 +1,10 @@
 // app.js (Le nouveau script qui remplace server.js ET listener3.js)
 
 import express from "express";
-import { JsonRpcProvider, Wallet, Contract, formatEther } from "ethers";
+import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits, parseEther } from "ethers";
+import { createHelia } from 'helia';
+import { json } from '@helia/json';
+import { FsBlockstore } from 'blockstore-fs';
 import {
     LARAVEL_API_URL,
     INTERNAL_API_SECRET,
@@ -22,6 +25,37 @@ import {
 
 const app = express();
 app.use(express.json());
+
+// --- HELIA IPFS SETUP ---
+let heliaJson;
+(async () => {
+    try {
+        const blockstore = new FsBlockstore('./ipfs-storage');
+        const helia = await createHelia({ blockstore });
+        heliaJson = json(helia);
+        console.log('✅ Local Helia IPFS node initialized');
+    } catch (e) {
+        console.error('❌ Failed to init Helia:', e);
+    }
+})();
+
+app.post("/ipfs/add-json", async (req, res) => {
+    try {
+        console.log("Receiving IPFS payload:", req.body);
+        if (!heliaJson) return res.status(503).json({ error: "IPFS node not ready" });
+
+        const content = req.body; // Expecting the full JSON object directly
+
+        const cid = await heliaJson.add(content);
+        const cidString = cid.toString();
+
+        console.log(`📦 Pinned to Local IPFS: ${cidString}`);
+        res.json({ Hash: cidString });
+    } catch (e) {
+        console.error("IPFS Add Error:", e);
+        res.status(500).json({ error: e.message });
+    }
+});
 
 // --- Connexion au Jeu (Hardhat) ---
 const gameProvider = new JsonRpcProvider(FUJI_RPC_URL);

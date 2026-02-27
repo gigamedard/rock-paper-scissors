@@ -2599,7 +2599,11 @@
                 if (!messageResponse.ok) throw new Error('Failed to get challenge from server.');
                 const { message } = await messageResponse.json();
 
-                const signature = await WEB3.eth.personal.sign(message, walletAddress);
+                const hexMessage = WEB3.utils.utf8ToHex(message);
+                const signature = await provider.request({
+                    method: 'personal_sign',
+                    params: [hexMessage, walletAddress]
+                });
 
                 const verifyResponse = await fetch(`${API_URL}/wallet/verify-signature`, {
                     method: 'POST',

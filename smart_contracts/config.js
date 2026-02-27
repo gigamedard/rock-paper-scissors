@@ -51,7 +51,7 @@ if (!GAME_WALLET_PK || !MARKETPLACE_WALLET_PK) {
 export const contracts = {
   // --- Contrat du JEU (de listener3.js) ---
   game: {
-    address: "0x21C29794150Eb7801D84860c2B124274F902514B",// oldaddress: "0x95A99C0673a02c458c45B6dD0Cb146a80318805b", // L'adresse que tu avais
+    address: "0x0EEc0746FfBaAF236BB6118CFC6F114F18E83AC0",// oldaddress: "0x95A99C0673a02c458c45B6dD0Cb146a80318805b", // L'adresse que tu avais
     abi: [
       {
         "inputs": [],
