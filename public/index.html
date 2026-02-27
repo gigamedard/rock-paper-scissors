@@ -1433,10 +1433,158 @@
         #marketplace-page .notification.error {
             background-color: #ef4444;
         }
+
+        /* =========================================
+           === SUBMISSION LOADING OVERLAY MODAL ===
+           ========================================= */
+        .submission-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(45, 20, 10, 0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .submission-modal {
+            background: var(--bg-primary);
+            border: 4px solid var(--border-dark);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .submission-modal h2 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .step-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            opacity: 0.5;
+            transition: all 0.3s;
+        }
+
+        .step-item.active {
+            opacity: 1;
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+
+        .step-item.done {
+            opacity: 1;
+            color: var(--accent-primary);
+        }
+
+        .step-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 15px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .step-item.active .step-icon {
+            border-color: var(--accent-secondary);
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        .step-item.done .step-icon {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .step-item.done .step-icon::after {
+            content: "✓";
+        }
+
+        .step-item.error {
+            opacity: 1;
+            color: var(--danger-red);
+        }
+
+        .step-item.error .step-icon {
+            background: var(--danger-red);
+            color: white;
+            border-color: var(--danger-red);
+        }
+
+        .step-item.error .step-icon::after {
+            content: "✕";
+        }
+
+        .submission-close-btn {
+            display: none;
+            background: var(--danger-red);
+            color: white;
+            border: 2px solid #991b1b;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
     </style>
 </head>
 
 <body>
+    <!-- Submission Loading Overlay -->
+    <div id="submission-overlay" class="submission-overlay">
+        <div class="submission-modal">
+            <h2>Processing Game...</h2>
+            <div class="step-container">
+                <div id="step-ipfs" class="step-item">
+                    <div class="step-icon"></div>
+                    Securing moves on IPFS...
+                </div>
+                <div id="step-backend" class="step-item">
+                    <div class="step-icon"></div>
+                    Registering with Server...
+                </div>
+                <div id="step-wallet" class="step-item">
+                    <div class="step-icon"></div>
+                    Waiting for Wallet Approval...
+                </div>
+                <div id="step-confirm" class="step-item">
+                    <div class="step-icon"></div>
+                    Confirming on Blockchain...
+                </div>
+            </div>
+            <p id="submission-error-text"
+                style="color: var(--danger-red); font-size: 0.9rem; display: none; margin-top: 10px; word-break: break-word;">
+            </p>
+            <button id="submission-close-btn" class="submission-close-btn"
+                onclick="closeSubmissionModal()">Close</button>
+        </div>
+    </div>
+
     <nav class="main-nav">
         <div class="nav-brand">GameApp</div>
         <div class="nav-links">
@@ -2682,6 +2830,25 @@
         }
 
         // --- 6. Logique de Soumission de Jeu (index.html) ---
+        function showSubmissionModal() {
+            document.getElementById('submission-overlay').style.display = 'flex';
+            document.getElementById('submission-close-btn').style.display = 'none';
+            document.getElementById('submission-error-text').style.display = 'none';
+            ['step-ipfs', 'step-backend', 'step-wallet', 'step-confirm'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.className = 'step-item';
+            });
+        }
+
+        function setSubmissionStep(stepId, status) {
+            const el = document.getElementById(stepId);
+            if (el) el.className = `step-item ${status}`;
+        }
+
+        function closeSubmissionModal() {
+            document.getElementById('submission-overlay').style.display = 'none';
+        }
+
         async function handleSubmitPremove() {
             const confirmButton = document.getElementById('confirm-submit-btn');
             confirmButton.disabled = true;
@@ -2695,6 +2862,9 @@
                 confirmButton.textContent = "Confirm & Send";
                 return;
             }
+
+            // Show HUD with explicit steps
+            showSubmissionModal();
 
             const baseBetWei = WEB3.utils.toWei(gameState.selectedBet.toString(), 'ether');
             const requiredBalanceWei = WEB3.utils.toBN(baseBetWei).mul(WEB3.utils.toBN(contractConfig.securityCoefficient));
@@ -2712,26 +2882,67 @@
             });
 
             try {
+                // Step 1: IPFS
+                setSubmissionStep('step-ipfs', 'active');
                 const cid = await uploadMovesToPinata(movesAsStrings);
+                setSubmissionStep('step-ipfs', 'done');
                 console.log(`Pinata CID: ${cid}`);
 
+                // Step 2: Backend
+                setSubmissionStep('step-backend', 'active');
                 await submitPreMovesToBackend(movesAsStrings, cid);
+                setSubmissionStep('step-backend', 'done');
                 console.log("Pre-moves submitted to backend successfully.");
 
-                await submitToBlockchain(baseBetWei, cid, depositAmountWei);
+                // Step 3 & 4: Blockchain Wallet & Confirmation
+                setSubmissionStep('step-wallet', 'active');
+
+                // Track directly via Web3 promises to update UI step cleanly
+                await new Promise((resolve, reject) => {
+                    gameContract.methods.submitPremoveCID(baseBetWei, cid)
+                        .send({
+                            from: userState.walletAddress,
+                            value: depositAmountWei.toString()
+                        })
+                        .on('transactionHash', (hash) => {
+                            console.log("Tx Hash:", hash);
+                            setSubmissionStep('step-wallet', 'done');
+                            setSubmissionStep('step-confirm', 'active');
+                        })
+                        .on('receipt', (receipt) => {
+                            setSubmissionStep('step-confirm', 'done');
+                            resolve(receipt);
+                        })
+                        .on('error', (error) => {
+                            reject(error);
+                        });
+                });
+
                 console.log("Transaction sent to blockchain successfully.");
 
-                alert("Game submitted! Check MetaMask for transaction status.");
-
-                resetMoves();
-                showPage('autoplay-page');
-
-                // Start polling the backend to update the Battle HUD
-                startBattlePolling();
+                // Success fade out
+                setTimeout(() => {
+                    closeSubmissionModal();
+                    resetMoves();
+                    showPage('autoplay-page');
+                    // Start polling the backend to update the Battle HUD
+                    startBattlePolling();
+                }, 1500);
 
             } catch (error) {
-                console.error("Full submission failed:", error);
-                alert(`Submission failed: ${error.message}`);
+                if (document.getElementById('step-ipfs').classList.contains('active')) setSubmissionStep('step-ipfs', 'error');
+                if (document.getElementById('step-backend').classList.contains('active')) setSubmissionStep('step-backend', 'error');
+                if (document.getElementById('step-wallet').classList.contains('active')) setSubmissionStep('step-wallet', 'error');
+                if (document.getElementById('step-confirm').classList.contains('active')) setSubmissionStep('step-confirm', 'error');
+
+                const errText = document.getElementById('submission-error-text');
+                errText.style.display = 'block';
+                errText.innerText = error.message || "An unknown error occurred.";
+                document.getElementById('submission-close-btn').style.display = 'block';
+
+                const detailedError = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+                console.error("Full submission failed payload:", detailedError);
+                console.error("Raw error:", error);
 
             } finally {
                 confirmButton.disabled = false;
@@ -4094,9 +4305,6 @@
             }, 5000);
         }
 
-        // Poll every 3 seconds for toasts
-        setInterval(pollNotifications, 3000);
-
         // --- BATTLE HUD POLLING ---
         let battlePollInterval = null;
 
@@ -4127,14 +4335,17 @@
             const progressBar = document.getElementById('hud-progress-bar');
             const targetText = document.getElementById('hud-target-text');
 
-            if (data.status === 'in_pool' || data.session_started) {
+            if (data.autoplay_active || data.status === 'in_pool' || data.session_started) {
                 hud.classList.add('active');
 
                 if (data.session_started) {
                     statusText.innerText = "⚔️ Battling...";
                     statusText.style.color = 'var(--text-primary)';
                 } else if (data.status === 'in_pool') {
-                    statusText.innerText = "⏳ Waiting for match...";
+                    statusText.innerText = "⏳ Pool locked. Validating...";
+                    statusText.style.color = 'var(--accent-secondary)';
+                } else if (data.autoplay_active && data.status === 'available') {
+                    statusText.innerText = "⏳ Waiting for opponents...";
                     statusText.style.color = 'var(--accent-secondary)';
                 }
 

@@ -34,7 +34,7 @@ class IpfsService
             $payload = is_string($data) ? json_decode($data, true) : $data;
             if (is_null($payload) && is_string($data)) $payload = ['content' => $data]; // Fallback wrapper
 
-            $response = Http::timeout(5)->post("{$nodeWorkerUrl}/ipfs/add-json", $payload);
+            $response = Http::timeout(15)->post("{$nodeWorkerUrl}/ipfs/add-json", $payload);
 
             if ($response->successful()) {
                 $result = $response->json();

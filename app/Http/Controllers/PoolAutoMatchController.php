@@ -90,6 +90,7 @@ class PoolAutoMatchController extends Controller
 
         return response()->json([
             'status' => $user->status,
+            'autoplay_active' => $user->autoplay_active,
             'session_started' => $user->session_started,
             'balance' => $user->balance,
             'session_start_balance' => $user->session_start_balance,
