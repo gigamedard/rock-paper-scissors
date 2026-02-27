@@ -23,6 +23,7 @@ Route::middleware('token.auth')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::get('/user/polling-status', [PoolAutoMatchController::class, 'getPollingStatus']);
     Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
     Route::get('/referral/status', [ReferralController::class, 'getStatus']);
     Route::get('/referral/reward-history', [ReferralController::class, 'getRewardHistory']);

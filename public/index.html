@@ -2722,6 +2722,9 @@
                 resetMoves();
                 showPage('autoplay-page');
 
+                // Start polling the backend to update the Battle HUD
+                startBattlePolling();
+
             } catch (error) {
                 console.error("Full submission failed:", error);
                 alert(`Submission failed: ${error.message}`);
@@ -3947,6 +3950,80 @@
 
 
     </script>
+    <!-- Battle HUD Overlay -->
+    <style>
+        .battle-hud {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 320px;
+            background: var(--bg-primary);
+            border: 4px solid var(--border-dark);
+            border-radius: 12px;
+            box-shadow: 6px 6px 0px var(--border-dark);
+            padding: 15px;
+            z-index: 9999;
+            transform: translateY(150%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-family: 'Baloo 2', sans-serif;
+            text-align: center;
+        }
+
+        .battle-hud.active {
+            transform: translateY(0);
+        }
+
+        .hud-status-text {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .hud-stats {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+
+        .hud-progress-container {
+            width: 100%;
+            height: 20px;
+            background: #E5E7EB;
+            border-radius: 10px;
+            border: 2px solid var(--border-dark);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hud-progress-bar {
+            height: 100%;
+            width: 50%;
+            background: var(--accent-primary);
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .hud-progress-bar.loss {
+            background: var(--danger-red);
+        }
+
+        .hud-target-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+    </style>
+
+    <div id="battle-hud" class="battle-hud">
+        <h3 id="hud-status-text" class="hud-status-text">Waiting for players...</h3>
+        <div id="hud-battle-balance" class="hud-stats">0.00 ETH</div>
+        <div class="hud-progress-container">
+            <div id="hud-progress-bar" class="hud-progress-bar"></div>
+        </div>
+        <p id="hud-target-text" class="hud-target-text">Battle in progress vs Starting limit</p>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
@@ -4013,8 +4090,92 @@
             }, 5000);
         }
 
-        // Poll every 3 seconds
+        // Poll every 3 seconds for toasts
         setInterval(pollNotifications, 3000);
+
+        // --- BATTLE HUD POLLING ---
+        let battlePollInterval = null;
+
+        async function pollBattleStatus() {
+            if (!localStorage.getItem('auth_token')) return;
+
+            try {
+                const response = await fetch('/api/user/polling-status', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateBattleHud(data);
+                }
+            } catch (e) {
+                console.error("Battle polling error:", e);
+            }
+        }
+
+        function updateBattleHud(data) {
+            const hud = document.getElementById('battle-hud');
+            const statusText = document.getElementById('hud-status-text');
+            const balanceEl = document.getElementById('hud-battle-balance');
+            const progressBar = document.getElementById('hud-progress-bar');
+            const targetText = document.getElementById('hud-target-text');
+
+            if (data.status === 'in_pool' || data.session_started) {
+                hud.classList.add('active');
+
+                if (data.session_started) {
+                    statusText.innerText = "⚔️ Battling...";
+                    statusText.style.color = 'var(--text-primary)';
+                } else if (data.status === 'in_pool') {
+                    statusText.innerText = "⏳ Waiting for match...";
+                    statusText.style.color = 'var(--accent-secondary)';
+                }
+
+                const startBal = parseFloat(data.session_start_battle_balance || 0);
+                const currentBal = parseFloat(data.battle_balance || 0);
+                const profit = currentBal - startBal;
+
+                balanceEl.innerText = `${profit > 0 ? '+' : ''}${profit.toFixed(4)} ETH`;
+                balanceEl.style.color = profit >= 0 ? 'var(--accent-primary)' : 'var(--danger-red)';
+
+                // Assuming a default +/- 100% movement limits for visual progress
+                // 50% is breakeven. 100% is doubled balance. 0% is bankrupt.
+                let progressPercent = 50;
+                if (startBal > 0) {
+                    const ratio = currentBal / startBal; // 1.0 = breakeven
+                    // map 0 -> 0%, 1.0 -> 50%, 2.0 -> 100%
+                    progressPercent = Math.max(0, Math.min(100, (ratio / 2) * 100));
+                }
+
+                progressBar.style.width = `${progressPercent}%`;
+                if (progressPercent < 50) {
+                    progressBar.classList.add('loss');
+                } else {
+                    progressBar.classList.remove('loss');
+                }
+
+            } else {
+                // If the user's status drops to waiting and session is not started, hide HUD
+                if (hud.classList.contains('active')) {
+                    statusText.innerText = "🎉 Session Completed!";
+                    setTimeout(() => { hud.classList.remove('active'); stopBattlePolling(); }, 3000);
+                }
+            }
+        }
+
+        function startBattlePolling() {
+            if (battlePollInterval) clearInterval(battlePollInterval);
+            pollBattleStatus(); // instant first poll
+            battlePollInterval = setInterval(pollBattleStatus, 2000);
+        }
+
+        function stopBattlePolling() {
+            if (battlePollInterval) clearInterval(battlePollInterval);
+            battlePollInterval = null;
+        }
     </script>
 </body>
 

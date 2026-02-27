@@ -81,6 +81,23 @@ class PoolAutoMatchController extends Controller
         return response()->json($response);
     }
 
+    public function getPollingStatus(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        return response()->json([
+            'status' => $user->status,
+            'session_started' => $user->session_started,
+            'balance' => $user->balance,
+            'session_start_balance' => $user->session_start_balance,
+            'battle_balance' => $user->battle_balance,
+            'session_start_battle_balance' => $user->session_start_battle_balance,
+        ]);
+    }
+
     public function poolEmitedRequest(Request $request): JsonResponse
     {
         // Authentication is handled by auth.internal middleware
