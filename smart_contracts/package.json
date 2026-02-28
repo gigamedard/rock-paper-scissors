@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "@helia/json": "^5.0.4",
+    "axios": "^1.13.5",
     "blockstore-fs": "^3.0.2",
     "helia": "^6.0.16"
   }

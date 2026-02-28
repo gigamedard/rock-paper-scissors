@@ -2571,6 +2571,8 @@
             }
 
             gameState.selectedBet = betAmount;
+            localStorage.setItem('lastSelectedBet', betAmount.toString());
+
             const depositAmount = betAmount * contractConfig.securityCoefficient;
 
             document.getElementById('confirm-moves').textContent = `${gameState.selectedMoves.length} moves selected`;
@@ -2648,6 +2650,14 @@
 
                 gameContract = new WEB3.eth.Contract(contractConfig.abi, contractConfig.address);
                 console.log("Game contract initialized successfully.");
+
+                // Restore previous bet amount to keep HUD alive if page reloads
+                const lastBet = localStorage.getItem('lastSelectedBet');
+                if (lastBet) {
+                    gameState.selectedBet = parseFloat(lastBet);
+                    const betInput = document.getElementById('bet-amount-input');
+                    if (betInput) betInput.value = lastBet;
+                }
 
             } catch (error) {
                 console.error("Error during game page initialization:", error);
@@ -4328,7 +4338,7 @@
             }
         }
 
-        function updateBattleHud(data) {
+        async function updateBattleHud(data) {
             const hud = document.getElementById('battle-hud');
             const statusText = document.getElementById('hud-status-text');
             const balanceEl = document.getElementById('hud-battle-balance');
@@ -4338,6 +4348,38 @@
             if (data.autoplay_active || data.status === 'in_pool' || data.session_started) {
                 hud.classList.add('active');
 
+                // Read live blockchain state if waiting for game to start
+                if (!data.session_started && gameContract && gameState && gameState.selectedBet) {
+                    try {
+                        const baseBetWei = WEB3.utils.toWei(gameState.selectedBet.toString(), 'ether');
+                        const poolInfo = await gameContract.methods.pools(baseBetWei).call();
+                        const poolUsers = await gameContract.methods.getPoolUsers(baseBetWei).call();
+
+                        const currentUsers = poolUsers.length;
+                        const maxUsers = poolInfo.maxSize || 5;
+
+                        // Visual progress towards full pool
+                        let progressPercent = Math.max(0, Math.min(100, (currentUsers / maxUsers) * 100));
+                        progressBar.style.width = `${progressPercent}%`;
+                        progressBar.classList.remove('loss');
+
+                        if (data.status === 'in_pool') {
+                            statusText.innerText = `⏳ Pool locked. Validating... (${currentUsers}/${maxUsers} Players)`;
+                            statusText.style.color = 'var(--accent-secondary)';
+                        } else {
+                            statusText.innerText = `⏳ Waiting for opponents... (${currentUsers}/${maxUsers} Players)`;
+                            statusText.style.color = 'var(--accent-secondary)';
+                        }
+
+                        balanceEl.innerText = `${gameState.selectedBet} AVAX Pool`;
+                        balanceEl.style.color = 'var(--text-primary)';
+                        return; // Done updating visual
+                    } catch (err) {
+                        console.error("Failed to read blockchain pool state for HUD", err);
+                    }
+                }
+
+                // Standard visual for battling or if blockchain query failed
                 if (data.session_started) {
                     statusText.innerText = "⚔️ Battling...";
                     statusText.style.color = 'var(--text-primary)';
@@ -4353,7 +4395,8 @@
                 const currentBal = parseFloat(data.battle_balance || 0);
                 const profit = currentBal - startBal;
 
-                balanceEl.innerText = `${profit > 0 ? '+' : ''}${profit.toFixed(4)} ETH`;
+                // For testnet, display as AVAX instead of ETH if needed, or stick to ETH
+                balanceEl.innerText = `${profit > 0 ? '+' : ''}${profit.toFixed(4)} AVAX`;
                 balanceEl.style.color = profit >= 0 ? 'var(--accent-primary)' : 'var(--danger-red)';
 
                 // Assuming a default +/- 100% movement limits for visual progress

@@ -6,7 +6,7 @@ async function main() {
     const wallet = new Wallet(GAME_WALLET_PK, provider);
     const contract = new Contract(contracts.game.address, contracts.game.abi, wallet);
 
-    const userAddress = "0x13681eba8a5efdbb53e5689c16c86014ea2dbe16";
+    const userAddress = process.argv[2] && process.argv[2].startsWith("0x") ? process.argv[2] : "0x13681eba8a5efdbb53e5689c16c86014ea2dbe16";
 
     console.log("Checking if contract has balance...");
     const contractBalance = await provider.getBalance(contracts.game.address);

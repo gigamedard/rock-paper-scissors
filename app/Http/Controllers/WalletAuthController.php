@@ -67,7 +67,9 @@ class WalletAuthController extends Controller
         }
 
         try {
+            Log::info("test_point_1: recovering address");
             $recovered = $this->recoverAddressFromSignature($message, $validated['signature']);
+            Log::info("test_point_2: address recovered as " . $recovered);
             
             // Use hash_equals for timing-safe comparison
             // Ensure both are lowercase strings
@@ -76,6 +78,7 @@ class WalletAuthController extends Controller
                 usleep(random_int(100000, 300000)); // 100-300ms
                 return response()->json(['message' => 'Invalid signature'], 401);
             }
+            Log::info("test_point_3: signature valid");
 
             // Find or create user
             $user = User::firstOrCreate(
