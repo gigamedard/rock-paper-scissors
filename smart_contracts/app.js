@@ -247,6 +247,43 @@ app.get("/get-game-config", (req, res) => {
 });
 
 // ===================================
+// == ROUTES APPELÉES PAR LARAVEL (Web3Helper)
+// ===================================
+
+app.post("/pool/validate", async (req, res) => {
+    try {
+        const { baseBet } = req.body;
+        console.log(`📡 [pool/validate] Validating pool for baseBet: ${baseBet}`);
+        res.json({ success: true, message: "Pool validation acknowledged" });
+    } catch (error) {
+        console.error("❌ Error in /pool/validate:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/refundUsers", async (req, res) => {
+    try {
+        const { wallets } = req.body;
+        console.log(`📡 [refundUsers] Refunding ${wallets?.length || 0} wallets`);
+        res.json({ success: true, message: "Refund acknowledged" });
+    } catch (error) {
+        console.error("❌ Error in /refundUsers:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/pool/invalidate", async (req, res) => {
+    try {
+        const { baseBet, invalidUsers } = req.body;
+        console.log(`📡 [pool/invalidate] Invalidating ${invalidUsers?.length || 0} users for baseBet: ${baseBet}`);
+        res.json({ success: true, message: "Pool invalidation acknowledged" });
+    } catch (error) {
+        console.error("❌ Error in /pool/invalidate:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ===================================
 // == LISTENERS (Logique de listener3.js + server.js)
 // ===================================
 

@@ -80,16 +80,11 @@ class SessionFinishedEventListener
             Log::info("SessionFinishedEventListener: User ID: {$user->id} triggered UseAssurenceEvent.");
         } else {
             // Threshold not reached, continue session
-            Log::info("SessionFinishedEventListener: User ID: {$user->id} continuing session. Q: {$q}");
-            if ($baseBet > 0 && $poolSize > 0) {
-                 // Ensure user is removed from old pool (if not already done by logic) and added to new one
-                 // Note: addUserToNewPool handles updating pool_id
-                 Log::info("SessionFinishedEventListener: Calling addUserToNewPool for User {$user->id} (BaseBet: $baseBet, Size: $poolSize)");
-                 $this->fightService->addUserToNewPool($user->id, $baseBet, $poolSize);
-                 Log::info("SessionFinishedEventListener: Finished calling addUserToNewPool.");
-            } else {
-                Log::warning("SessionFinishedEventListener: Cannot continue session for User ID: {$user->id} - Missing pool details.");
-            }
+            // Set survivor to 'available' so run_batch_processor.js handles re-pooling
+            Log::info("SessionFinishedEventListener: User ID: {$user->id} continuing session. Q: {$q}. Setting to available for batch re-pooling.");
+            $user->status = 'available';
+            $user->pool_id = null;
+            $user->save();
         }
     }
 

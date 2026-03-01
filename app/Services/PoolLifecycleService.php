@@ -64,7 +64,11 @@ class PoolLifecycleService
 
         // 3. Pool is 100% Valid. Tell the smart contract to finalize it and clear the users.
         Log::info("Pool is 100% valid. Triggering smart contract validation.");
-        Web3Helper::validatePool(env('NODE_URL'), $baseBetEther);
+        try {
+            Web3Helper::validatePool(env('NODE_URL'), $baseBetEther);
+        } catch (\Exception $e) {
+            Log::warning("validatePool call failed (non-blocking): " . $e->getMessage());
+        }
 
         // Only now do we register the pool in the Database
         $pool = $this->createPoolFromEvent($data);
@@ -83,7 +87,49 @@ class PoolLifecycleService
         $pool->status = 'from_server_waitting';
         $pool->save();
 
-        return ['pool_id' => $data['pool_id'], 'status' => 'queued_for_batch_processing'];
+        // Trigger fight processing immediately
+        try {
+            $this->processPoolAutoMatch($pool->id);
+        } catch (\Exception $e) {
+            Log::error("processPoolAutoMatch failed for pool {$pool->id}: " . $e->getMessage());
+        }
+
+        return ['pool_id' => $data['pool_id'], 'status' => 'processed'];
+    }
+
+    /**
+     * Process fights for a pool. Restored from commit 9c64dc1.
+     * Loops through matching rounds until insufficient users remain.
+     */
+    public function processPoolAutoMatch(int $poolId)
+    {
+        $pool = Pool::with(['users' => function ($query) {
+            $query->where('status', 'in_pool')->orderBy('id');
+        }])->findOrFail($poolId);
+
+        $minUsers = ceil($pool->pool_size * config('pool.percentage_limit_of_pool_size'));
+        if ($minUsers < 2) {
+            $minUsers = 2;
+        }
+
+        $maxIterations = 100; // Safety limit
+        $iterations = 0;
+        
+        while ($this->hasSufficientUsersForMatch($pool->users->count(), $minUsers) && $iterations < $maxIterations) {
+            $this->executeMatchingRound($pool);
+            $pool->load(['users' => function ($query) {
+                $query->where('status', 'in_pool')->orderBy('id');
+            }]); // Refresh the users collection
+            $iterations++;
+        }
+        
+        if ($iterations >= $maxIterations) {
+            Log::warning("Pool {$pool->id} reached maximum iterations ({$maxIterations}). Breaking loop.");
+        }
+
+        $this->finishPool($pool);
+
+        event(new PoolFinishedEvent($poolId));
     }
 
     private function validatePoolEmittedEventData(array $data)

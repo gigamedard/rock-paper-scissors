@@ -22,6 +22,10 @@ class PreMove extends Model
         'cid'
     ];
 
+    protected $casts = [
+        'moves' => 'array',
+    ];
+
     // A pre-move belongs to a user
     public function user()
     {
