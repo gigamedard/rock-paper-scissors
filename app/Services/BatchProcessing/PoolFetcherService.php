@@ -30,7 +30,7 @@ class PoolFetcherService
             ->where('id', '>', $lastBatchedPoolId) // <-- Check for pools after the last batch
             ->exists();
 
-        Log::debug("Check processable pools exist for pool size ($poolSize) base_bet ($baseBet) after ID ($lastBatchedPoolId): " . ($exists ? 'Yes' : 'No'));
+        Log::channel('batch_polling')->debug("Check processable pools exist for pool size ($poolSize) base_bet ($baseBet) after ID ($lastBatchedPoolId): " . ($exists ? 'Yes' : 'No'));
 
         return $exists;
     }
@@ -52,7 +52,7 @@ class PoolFetcherService
                                   ->where('base_bet', $baseBet)
                                   ->max('last_pool_id') ?? 0;
 
-        Log::debug("Fetching initial ($limit) pools for pool_size ($poolSize) base_bet ($baseBet), starting after Pool ID ($lastBatchedPoolId)");
+        Log::channel('batch_polling')->debug("Fetching initial ($limit) pools for pool_size ($poolSize) base_bet ($baseBet), starting after Pool ID ($lastBatchedPoolId)");
 
         // 2. Modify the query to fetch pools with an ID greater than the last one.
         return Pool::where('pool_size', $poolSize)
@@ -75,7 +75,7 @@ class PoolFetcherService
      */
     public function fetchPoolsToLoad(Batch $batch, int $needed): Collection
     {
-        Log::debug("Fetching ($needed) pools to load into batch ($batch->id) (pool_size ($batch->pool_size)), after pool ID {$batch->last_pool_id}");
+        Log::channel('batch_polling')->debug("Fetching ($needed) pools to load into batch ($batch->id) (pool_size ($batch->pool_size)), after pool ID {$batch->last_pool_id}");
 
         return Pool::where('pool_size', $batch->pool_size)
             ->where('base_bet', $batch->base_bet)
@@ -94,7 +94,7 @@ class PoolFetcherService
      */
     public function fetchPoolsForProcessing(Batch $batch): Collection
     {
-        Log::debug("Fetching pools for processing batch ($batch->id) (pool_size ($batch->pool_size)), range: ($batch->first_pool_id)-($batch->last_pool_id)");
+        Log::channel('batch_polling')->debug("Fetching pools for processing batch ($batch->id) (pool_size ($batch->pool_size)), range: ($batch->first_pool_id)-($batch->last_pool_id)");
 
         // Assumes first_pool_id and last_pool_id accurately define the batch scope
         return Pool::whereBetween('id', [$batch->first_pool_id, $batch->last_pool_id])

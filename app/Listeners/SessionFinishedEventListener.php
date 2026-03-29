@@ -39,11 +39,12 @@ class SessionFinishedEventListener
             $poolSize = $pool ? $pool->pool_size : 0;
 
             $q = $this->calculateQValue($user);
-            Log::info("Calculated q: $q for User: {$user->id}");
+            Log::info("Calculated q: $q for User: {$user->id} (Wallet: {$user->wallet_address})");
 
             $this->processUserBalance($user, $q, $baseBet, $poolSize);
         } catch (\Exception $e) {
-            Log::error("SessionFinishedEventListener: Exception occurred for user ID: {$event->userId} - " . $e->getMessage());
+            $walletStr = isset($user) && $user ? " (Wallet: {$user->wallet_address})" : "";
+            Log::error("SessionFinishedEventListener: Exception occurred for user ID: {$event->userId}{$walletStr} - " . $e->getMessage());
         }
     }
 
@@ -56,10 +57,10 @@ class SessionFinishedEventListener
 
     private function processUserBalance(User $user, float $q, float $baseBet, int $poolSize): void
     {
-        Log::info("SessionFinishedEventListener: processUserBalance started for user {$user->id}. Start Status: {$user->status}");
+        Log::info("SessionFinishedEventListener: processUserBalance started for user {$user->id} (Wallet: {$user->wallet_address}). Start Status: {$user->status}");
         // If user is already available (waiting for batch) or stopped (insufficient funds), do not process session continuity
         if (in_array($user->status, ['available', 'stopped'])) {
-            Log::info("SessionFinishedEventListener: User {$user->id} has status '{$user->status}'. Skipping immediate re-pool.");
+            Log::info("SessionFinishedEventListener: User {$user->id} (Wallet: {$user->wallet_address}) has status '{$user->status}'. Skipping immediate re-pool.");
             return;
         }
 
@@ -68,7 +69,7 @@ class SessionFinishedEventListener
         $multiplier = config("game_levels.multiplier.{$multiplierLevel}", 2.0);
 
         if ($q >= $multiplier) {
-            Log::info("SessionFinishedEventListener: User {$user->id} reached multiplier ($q >= $multiplier). Processing payout.");
+            Log::info("[SESSION_PAYOUT] 🏆 User {$user->id} (Wallet: {$user->wallet_address}) reached multiplier ($q >= $multiplier). Total Gained: {$user->balance} ETH. Processing withdrawal to Smart Contract!");
             $this->transferBattleBalance($user, 'stopped');
             $this->archiveSessionHistory($user);
             $this->sendPayment($user);
@@ -77,11 +78,11 @@ class SessionFinishedEventListener
             $this->setNextSessionTime($user);
         } elseif ($q < 1 && $user->balance < $user->bet_amount) {
             // TODO: event(new UseAssurenceEvent($user->id));
-            Log::info("SessionFinishedEventListener: User ID: {$user->id} triggered UseAssurenceEvent.");
+            Log::info("SessionFinishedEventListener: User ID: {$user->id} (Wallet: {$user->wallet_address}) triggered UseAssurenceEvent.");
         } else {
             // Threshold not reached, continue session
             // Set survivor to 'available' so run_batch_processor.js handles re-pooling
-            Log::info("SessionFinishedEventListener: User ID: {$user->id} continuing session. Q: {$q}. Setting to available for batch re-pooling.");
+            Log::info("[SESSION_CONTINUE] 🔄 User {$user->id} (Wallet: {$user->wallet_address}) did not reach multiplier ($q < $multiplier). Current Balance: {$user->balance}. Returning to pool waiting list.");
             $user->status = 'available';
             $user->pool_id = null;
             $user->save();
@@ -109,14 +110,7 @@ class SessionFinishedEventListener
             return;
         }
 
-        $cid = $this->pinataService->pinJsonData(json_encode($data));
-        
-        if (!$cid) {
-            Log::warning("SessionFinishedEventListener: Failed to send session FHists to Pinata for User ID: {$user->id}. Bypassing Pinata (Quota Exceeded?). Using dummy CID.");
-            $cid = "QmDummyCidForTestingBypassPinataQuotaExceeded123"; 
-        }
-
-        $this->web3Helper->sendSessionCIDToSmartContract(env('NODE_URL'), $cid, $user->wallet_address);
+        \App\Jobs\UploadSessionHistoryJob::dispatch($user->wallet_address, $user->id, $data);
     }
 
     private function getSessionFHists($userId, $fstPoolId)
@@ -150,9 +144,9 @@ class SessionFinishedEventListener
 
         try {
             $this->web3Helper->setUserNextSessionTime(env('NODE_URL'), $user->wallet_address, $nextTime);
-            Log::info("Set cooldown for User {$user->id} until " . date('Y-m-d H:i:s', $nextTime));
+            Log::info("Set cooldown for User {$user->id} (Wallet: {$user->wallet_address}) until " . date('Y-m-d H:i:s', $nextTime));
         } catch (\Exception $e) {
-            Log::error("Failed to set cooldown for User {$user->id}: " . $e->getMessage());
+            Log::error("Failed to set cooldown for User {$user->id} (Wallet: {$user->wallet_address}): " . $e->getMessage());
         }
     }
 }

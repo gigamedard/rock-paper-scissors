@@ -32,12 +32,15 @@ class PoolFinishedEventListener
             $this->historicalFightService->archivePoolFights($event->poolId);
 
             foreach ($pool->users as $user) {
-                event(new SessionFinishedEvent($user->id));
+                event(new SessionFinishedEvent($user->id, $pool));
             }
 
-            Log::info("PoolFinishedEventListener: Pool ID {$event->poolId} has been processed successfully.");
+            $wallets = $pool->users->pluck('wallet_address')->toArray();
+            Log::info("PoolFinishedEventListener: Pool ID {$event->poolId} has been processed successfully. Users: " . implode(', ', $wallets));
         } catch (\Exception $e) {
-            Log::error("Error processing PoolFinishedEvent for pool ID {$event->poolId}: " . $e->getMessage());
+            $wallets = isset($pool) ? $pool->users->pluck('wallet_address')->toArray() : [];
+            $walletStr = !empty($wallets) ? " Users: " . implode(', ', $wallets) : "";
+            Log::error("Error processing PoolFinishedEvent for pool ID {$event->poolId}: " . $e->getMessage() . $walletStr);
         }
     }
 }

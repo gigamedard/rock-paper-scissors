@@ -33,7 +33,7 @@ class BatchCriteriaService
         $nextIndex = ($currentIndex + 1) % count($targetPoolSizes);
         Cache::put(self::POOL_SIZE_INDEX_CACHE_KEY, $nextIndex);
 
-        Log::info("Selected Target Pool Size for this run: {$targetPoolSize} (Index: {$currentIndex} from config('pool.size'), Next Index: {$nextIndex})");
+        Log::channel('batch_polling')->info("Selected Target Pool Size for this run: {$targetPoolSize} (Index: {$currentIndex} from config('pool.size'), Next Index: {$nextIndex})");
 
         return ['targetPoolSize' => $targetPoolSize, 'error' => null];
     }

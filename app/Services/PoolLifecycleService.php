@@ -63,7 +63,8 @@ class PoolLifecycleService
         }
 
         // 3. Pool is 100% Valid. Tell the smart contract to finalize it and clear the users.
-        Log::info("Pool is 100% valid. Triggering smart contract validation.");
+        $validWallets = array_map(function($u) { return $u->wallet_address; }, $validUsers);
+        Log::info("Pool is 100% valid. Triggering smart contract validation for users: " . implode(', ', $validWallets));
         try {
             Web3Helper::validatePool(env('NODE_URL'), $baseBetEther);
         } catch (\Exception $e) {
@@ -89,6 +90,8 @@ class PoolLifecycleService
 
         // Trigger fight processing immediately
         try {
+            $validWallets = array_map(function($u) { return $u->wallet_address; }, $validUsers);
+            Log::info("Starting processPoolAutoMatch for pool {$pool->id} with users: " . implode(', ', $validWallets));
             $this->processPoolAutoMatch($pool->id);
         } catch (\Exception $e) {
             Log::error("processPoolAutoMatch failed for pool {$pool->id}: " . $e->getMessage());
@@ -124,7 +127,8 @@ class PoolLifecycleService
         }
         
         if ($iterations >= $maxIterations) {
-            Log::warning("Pool {$pool->id} reached maximum iterations ({$maxIterations}). Breaking loop.");
+            $wallets = $pool->users->pluck('wallet_address')->toArray();
+            Log::warning("Pool {$pool->id} reached maximum iterations ({$maxIterations}). Breaking loop for users: " . implode(', ', $wallets));
         }
 
         $this->finishPool($pool);
@@ -231,9 +235,14 @@ class PoolLifecycleService
         $users = User::whereIn('id', $userIds)->get();
 
         foreach ($users as $user) {
+            $gained = $user->battle_balance;
             $user->balance += $user->battle_balance;
+            $totalNewBalance = $user->balance;
             $user->battle_balance = 0;
             $user->save();
+            
+            Log::info("[POOL_FINISH] 💰 Session ended for Player {$user->wallet_address}. Gained from battles: {$gained}. Total Internal Balance is now: {$totalNewBalance}. Triggering SessionFinishedEvent.");
+            
             event(new SessionFinishedEvent($user->id, $pool));
         }
     }

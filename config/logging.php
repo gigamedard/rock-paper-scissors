@@ -63,6 +63,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+            'tap' => [App\Logging\AddressFilter::class],
         ],
 
         'daily' => [
@@ -71,6 +72,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
+            'tap' => [App\Logging\AddressFilter::class],
         ],
 
         'slack' => [
@@ -125,6 +127,23 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        // Dedicated channel for auth middleware debug logs (avoids polluting laravel.log)
+        // Uses 'daily' driver with 1 day retention to keep the file small.
+        'auth_debug' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/auth_debug.log'),
+            'level' => 'debug',
+            'days' => 1,
+        ],
+
+        // Dedicated channel for background batch polling logs
+        'batch_polling' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/batch_polling.log'),
+            'level' => 'debug',
+            'replace_placeholders' => true,
         ],
 
     ],

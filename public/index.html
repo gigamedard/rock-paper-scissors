@@ -4379,40 +4379,43 @@
                     }
                 }
 
-                // Standard visual for battling or if blockchain query failed
+                // Standard visual for battling or if blockchain query failed/was skipped
                 if (data.session_started) {
                     statusText.innerText = "⚔️ Battling...";
                     statusText.style.color = 'var(--text-primary)';
-                } else if (data.status === 'in_pool') {
-                    statusText.innerText = "⏳ Pool locked. Validating...";
-                    statusText.style.color = 'var(--accent-secondary)';
-                } else if (data.autoplay_active && data.status === 'available') {
-                    statusText.innerText = "⏳ Waiting for opponents...";
-                    statusText.style.color = 'var(--accent-secondary)';
-                }
+                    
+                    const startBal = parseFloat(data.session_start_battle_balance || 0);
+                    const currentBal = parseFloat(data.battle_balance || 0);
+                    const profit = currentBal - startBal;
 
-                const startBal = parseFloat(data.session_start_battle_balance || 0);
-                const currentBal = parseFloat(data.battle_balance || 0);
-                const profit = currentBal - startBal;
-
-                // For testnet, display as AVAX instead of ETH if needed, or stick to ETH
-                balanceEl.innerText = `${profit > 0 ? '+' : ''}${profit.toFixed(4)} AVAX`;
-                balanceEl.style.color = profit >= 0 ? 'var(--accent-primary)' : 'var(--danger-red)';
-
-                // Assuming a default +/- 100% movement limits for visual progress
-                // 50% is breakeven. 100% is doubled balance. 0% is bankrupt.
-                let progressPercent = 50;
-                if (startBal > 0) {
-                    const ratio = currentBal / startBal; // 1.0 = breakeven
+                    balanceEl.innerText = `${profit > 0 ? '+' : ''}${profit.toFixed(4)} AVAX`;
+                    balanceEl.style.color = profit >= 0 ? 'var(--accent-primary)' : 'var(--danger-red)';
+                    
                     // map 0 -> 0%, 1.0 -> 50%, 2.0 -> 100%
-                    progressPercent = Math.max(0, Math.min(100, (ratio / 2) * 100));
-                }
-
-                progressBar.style.width = `${progressPercent}%`;
-                if (progressPercent < 50) {
-                    progressBar.classList.add('loss');
+                    let progressPercent = 50;
+                    if (startBal > 0) {
+                        const ratio = currentBal / startBal;
+                        progressPercent = Math.max(0, Math.min(100, (ratio / 2) * 100));
+                    }
+                    progressBar.style.width = `${progressPercent}%`;
+                    if (progressPercent < 50) {
+                        progressBar.classList.add('loss');
+                    } else {
+                        progressBar.classList.remove('loss');
+                    }
                 } else {
-                    progressBar.classList.remove('loss');
+                    if (data.status === 'in_pool') {
+                        statusText.innerText = "⏳ Pool locked. Validating...";
+                        statusText.style.color = 'var(--accent-secondary)';
+                    } else if (data.autoplay_active && data.status === 'available') {
+                        statusText.innerText = "⏳ Waiting for opponents...";
+                        statusText.style.color = 'var(--accent-secondary)';
+                    }
+                    
+                    // Fallback to purely show the selected pool bet if waiting
+                    balanceEl.innerText = `${(gameState && gameState.selectedBet) ? gameState.selectedBet : 0} AVAX Pool`;
+                    balanceEl.style.color = 'var(--text-primary)';
+                    progressBar.style.width = '0%';
                 }
 
             } else {

@@ -62,6 +62,11 @@ class FightService
             // Transfer the base bet amount from loser to winner in battle_balance
             $this->transferBattleBalance($winnerId, $loserId, $baseBet);
             
+            // LOGGING ENHANCEMENT: Explicit Transfer Log
+            $winnerWallet = User::find($winnerId)->wallet_address ?? 'UNKNOWN';
+            $loserWallet = User::find($loserId)->wallet_address ?? 'UNKNOWN';
+            Log::info("[FIGHT_TRANSFER] ⚔️ Player {$winnerWallet} won against {$loserWallet}. Transferred {$baseBet} from Loser to Winner.");
+
             // Notify winner (User gains baseBet)
             $winnerUser = User::find($winnerId);
             if ($winnerUser) {
@@ -84,7 +89,10 @@ class FightService
                 
                 if ($totalFunds < $newBetAmount) {
                     $loserUser->status = 'stopped';
+                     Log::info("[FIGHT_ELIMINATION] 🛑 Player {$loserWallet} eliminated and stopped! Total Funds ({$totalFunds}) < Required Bet ({$newBetAmount}). Triggering Refund/Payout of remaining funds.");
                     $this->notificationService->notifyInsufficientBalance($loserUser);
+                } else {
+                     Log::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool, but has enough funds ({$totalFunds}) to continue at doubled bet ({$newBetAmount}).");
                 }
                 
                 $loserUser->save();
@@ -190,9 +198,11 @@ class FightService
             ]);
             $pool->status = 'from_server_waitting';
             $pool->save();
-            \Illuminate\Support\Facades\Log::info("FightService: Created NEW pool {$pool->id} for user {$userId}");
+            $walletAddress = $user ? $user->wallet_address : 'UNKNOWN';
+            \Illuminate\Support\Facades\Log::info("FightService: Created NEW pool {$pool->id} for user {$walletAddress}");
         } else {
-            \Illuminate\Support\Facades\Log::info("FightService: Found EXISTING waiting pool {$pool->id} for user {$userId}");
+            $walletAddress = $user ? $user->wallet_address : 'UNKNOWN';
+            \Illuminate\Support\Facades\Log::info("FightService: Found EXISTING waiting pool {$pool->id} for user {$walletAddress}");
         }
 
         $pool->pool_id = $pool->id;
@@ -204,7 +214,8 @@ class FightService
             'status' => 'in_pool'
         ]);
         
-        \Illuminate\Support\Facades\Log::info("FightService: Assigned user {$userId} to pool {$pool->id}. DB Update executed.");
+        $walletAddress = $user ? $user->wallet_address : 'UNKNOWN';
+        \Illuminate\Support\Facades\Log::info("FightService: Assigned user {$walletAddress} to pool {$pool->id}. DB Update executed.");
         
         // Notify Pool Entry
         $user = User::find($userId);

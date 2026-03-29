@@ -32,9 +32,10 @@ class HistoricalFightService
     {
         $historicalFights = FHist::where('pool_id', $poolId)->get();
         $data = $this->transformer->transformCollection($historicalFights);
-        $cid = $this->pinataService->pinJsonData(json_encode($data));
-        $nodeUrl = env('NODE_URL');
-        return $this->web3Helper->sendPoolCIDToSmartContract($nodeUrl, $cid, $poolId);
+        
+        \App\Jobs\UploadPoolHistoryJob::dispatch($poolId, $data);
+        
+        return true;
     }
 
     public function archiveFight($fightId, FHist $fHist = null)

@@ -51,7 +51,7 @@ if (!GAME_WALLET_PK || !MARKETPLACE_WALLET_PK) {
 export const contracts = {
   // --- Contrat du JEU (de listener3.js) ---
   game: {
-    address: "0x0EEc0746FfBaAF236BB6118CFC6F114F18E83AC0",// oldaddress: "0x95A99C0673a02c458c45B6dD0Cb146a80318805b", // L'adresse que tu avais
+    address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     abi: [
       {
         "inputs": [],
@@ -869,9 +869,9 @@ export const contracts = {
       }
     ]
   },
-  // --- Contrat du MARKETPLACE (de server.js) ---
+  // --- Contrat MARKETPLACE (de app.js/server.js) ---
   marketplace: {
-    address: "0xb0Fe23c18bCc490CDFe4E244e9F1c4e54A10cE6c", // L'adresse que tu avais
+    address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0", // L'adresse que tu avais
     abi: [
       {
         "inputs": [
@@ -1236,9 +1236,9 @@ export const contracts = {
       }
     ]
   },
-  // --- Contrat SNT Token (ERC20) ---
+  // --- Contrat du JETON (SNT / USDT) ---
   snt: {
-    address: "0x05A26c7f06127710463692263E12c1BF51A34184",
+    address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
     abi: [
       { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
       { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },

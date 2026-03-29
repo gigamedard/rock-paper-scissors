@@ -11,7 +11,10 @@ class ApiAuth
     public function handle($request, Closure $next)
     {
         $header = $request->header('Authorization');
-        Log::info("=============Middleware ApiAuth: Authorization Header: ".$header);
+
+        // Log auth attempts to a dedicated channel to avoid spamming the main laravel.log
+        Log::channel('auth_debug')->debug("ApiAuth: " . substr((string)$header, 0, 30) . "...");
+
         if (!$header || !str_starts_with($header, 'Bearer ')) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
