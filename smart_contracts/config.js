@@ -410,6 +410,40 @@ export const contracts = {
             "type": "uint256"
           }
         ],
+        "name": "getPoolInfo",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "poolId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSize",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "userCount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "isLocked",
+            "type": "bool"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "baseBet",
+            "type": "uint256"
+          }
+        ],
         "name": "getPoolUsers",
         "outputs": [
           {
@@ -501,7 +535,7 @@ export const contracts = {
         "inputs": [
           {
             "internalType": "uint256",
-            "name": "poolId",
+            "name": "baseBet",
             "type": "uint256"
           },
           {
@@ -510,7 +544,7 @@ export const contracts = {
             "type": "address"
           }
         ],
-        "name": "isUserInPool",
+        "name": "isUserInPoolByBaseBet",
         "outputs": [
           {
             "internalType": "bool",
@@ -578,40 +612,6 @@ export const contracts = {
           {
             "internalType": "string",
             "name": "",
-            "type": "string"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "name": "pools",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "maxSize",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "poolSalt",
             "type": "string"
           }
         ],

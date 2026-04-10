@@ -39,11 +39,11 @@ async function runWorker() {
     console.log(`Target: ${INTERNAL_URL}`);
 
     setInterval(async () => {
-        // 1. Group users into pools
+        // 1. Group users into pools (all bet tiers)
         await triggerEndpoint('internal-pools', { base_bet: BASE_BET });
 
-        // 2. Process batches (matches)
-        await triggerEndpoint('batch-processing', { base_bet: BASE_BET });
+        // 2. Process batches - round-robin across ALL bet tiers (including martingale-doubled)
+        await triggerEndpoint('batch-processing-all', {});
 
     }, INTERVAL);
 }

@@ -1,20 +1,25 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Services\BatchProcessingService;
+use App\Services\HistoricalFightService;
 use App\Services\PoolService;
 use App\Services\PreMoveService;
-use App\Services\HistoricalFightService;
-use App\Services\BatchProcessingService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PoolAutoMatchController extends Controller
 {
     protected $poolService;
+
     protected $preMoveService;
+
     protected $historicalFightService;
+
     protected $batchProcessingService;
+
     protected $internalPoolService;
 
     public function __construct(
@@ -34,28 +39,31 @@ class PoolAutoMatchController extends Controller
     public function processAutoMatch($betAmount, $instanceNumber, $limit = 10): JsonResponse
     {
         $this->poolService->processAutoMatch($betAmount, $instanceNumber, $limit);
+
         return response()->json(['message' => 'Auto-match processed']);
     }
 
     public function selectSliceInstence($betAmount): JsonResponse
     {
         $this->poolService->selectSliceInstence($betAmount);
+
         return response()->json(['message' => 'Slice instance selected']);
     }
 
     public function selectSliceInstenceForAllBetAmount(): JsonResponse
     {
         $this->poolService->selectSliceInstenceForAllBetAmount();
+
         return response()->json(['message' => 'All slice instances processed']);
     }
 
     public function storePreMoves(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'pre_moves'  => 'required|array|min:1',
-            'user_id'    => 'required|integer|exists:users,id',
+            'pre_moves' => 'required|array|min:1',
+            'user_id' => 'required|integer|exists:users,id',
             'bet_amount' => 'required|numeric|min:0.000001',
-            'cid'        => 'required|string',
+            'cid' => 'required|string',
         ]);
 
         $response = $this->preMoveService->storePreMoves($data);
@@ -67,8 +75,8 @@ class PoolAutoMatchController extends Controller
                 'type' => 'POOL_JOINED',
                 'data' => [
                     'bet_amount' => $data['bet_amount'],
-                    'timestamp' => now()->toIso8601String()
-                ]
+                    'timestamp' => now()->toIso8601String(),
+                ],
             ]);
         }
 
@@ -78,13 +86,14 @@ class PoolAutoMatchController extends Controller
     public function unregisterFromAutoplay(Request $request): JsonResponse
     {
         $response = $this->preMoveService->unregisterFromAutoplay($request->user());
+
         return response()->json($response);
     }
 
     public function getPollingStatus(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
@@ -102,13 +111,13 @@ class PoolAutoMatchController extends Controller
     public function poolEmitedRequest(Request $request): JsonResponse
     {
         // Authentication is handled by auth.internal middleware
-        
+
         $validated = $request->validate([
-            'pool_id'      => 'required|string',
-            'base_bet'     => 'required|string',
-            'users'        => 'required|array',
+            'pool_id' => 'required|string',
+            'base_bet' => 'required|string',
+            'users' => 'required|array',
             'premove_cids' => 'required|array',
-            'pool_salt'    => 'required|string',
+            'pool_salt' => 'required|string',
         ]);
 
         try {
@@ -128,6 +137,7 @@ class PoolAutoMatchController extends Controller
     {
         $poolId = $request->input('pool_id');
         $result = $this->historicalFightService->archivePoolFights($poolId);
+
         return response()->json(['message' => 'Historical fights archived', 'result' => $result]);
     }
 
@@ -135,12 +145,21 @@ class PoolAutoMatchController extends Controller
     {
         $validated = $request->validate(['base_bet' => 'required|numeric']);
         $result = $this->batchProcessingService->processBatch($validated['base_bet']);
+
+        return response()->json($result, $result['http_code'] ?? 200);
+    }
+
+    public function processAllBetTiers(Request $request): JsonResponse
+    {
+        $result = $this->batchProcessingService->processAllBetTiers();
+
         return response()->json($result, $result['http_code'] ?? 200);
     }
 
     public function processInternalPools(Request $request): JsonResponse
     {
         $validated = $request->validate(['base_bet' => 'required|numeric']);
+
         return response()->json($this->internalPoolService->processInternalPools($validated['base_bet']));
     }
 
@@ -152,8 +171,8 @@ class PoolAutoMatchController extends Controller
             'timestamp' => 'required|integer',
         ]);
 
-        Log::info("Stagnant Pool Refund Processed", $validated);
-        
+        Log::info('Stagnant Pool Refund Processed', $validated);
+
         return response()->json(['message' => 'Stagnant pool refund logged']);
     }
 }

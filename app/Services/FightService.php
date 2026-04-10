@@ -2,17 +2,21 @@
 
 namespace App\Services;
 
-use App\Models\Fight;
-use App\Models\User;
-use App\Models\Pool;
-use Illuminate\Support\Facades\DB;
+use App\Events\UserStoppedEvent;
 use App\Helpers\Web3Helper;
+use App\Models\Fight;
+use App\Models\Pool;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 
 class FightService
 {
     protected $historicalFightService;
+
     protected $web3Helper;
+
     protected $notificationService;
 
     public function __construct(HistoricalFightService $historicalFightService, Web3Helper $web3Helper, NotificationService $notificationService)
@@ -41,6 +45,10 @@ class FightService
 
     public function handlePoolAutoplayFight(Fight $fight, $baseBet, $poolSize)
     {
+        // Real-time Event: Fight Started via NotificationService
+        $this->notificationService->notifyFightStarted(User::find($fight->user1_id), User::find($fight->user2_id), $fight);
+        $this->notificationService->notifyFightStarted(User::find($fight->user2_id), User::find($fight->user1_id), $fight);
+
         $user1Move = $this->getPreMove($fight->user1_id);
         $user2Move = $this->getPreMove($fight->user2_id);
 
@@ -61,11 +69,11 @@ class FightService
 
             // Transfer the base bet amount from loser to winner in battle_balance
             $this->transferBattleBalance($winnerId, $loserId, $baseBet);
-            
+
             // LOGGING ENHANCEMENT: Explicit Transfer Log
             $winnerWallet = User::find($winnerId)->wallet_address ?? 'UNKNOWN';
             $loserWallet = User::find($loserId)->wallet_address ?? 'UNKNOWN';
-            Log::info("[FIGHT_TRANSFER] ⚔️ Player {$winnerWallet} won against {$loserWallet}. Transferred {$baseBet} from Loser to Winner.");
+            UserTracker::info("[FIGHT_TRANSFER] ⚔️ Player {$winnerWallet} won against {$loserWallet}. Transferred {$baseBet} from Loser to Winner.", ['winner' => $winnerWallet, 'loser' => $loserWallet, 'amount' => $baseBet]);
 
             // Notify winner (User gains baseBet)
             $winnerUser = User::find($winnerId);
@@ -78,32 +86,34 @@ class FightService
             if ($loserUser->battle_balance < $baseBet) {
                 // Eliminate from pool
                 $this->removeUserFromPool($loserId, $fight->pool);
-                
-                // Double the base bet for next pool 
-                $loserUser = $loserUser->fresh(); // Refresh to get updated status/pool_id
+
+                // Double the base bet for next pool
+                $loserUser = $loserUser->fresh();
                 $newBetAmount = $loserUser->bet_amount * 2;
                 $loserUser->bet_amount = $newBetAmount;
-                
+
                 // Check if user has enough funds (balance + battle_balance) for the NEXT doubled bet
                 $totalFunds = $loserUser->balance + $loserUser->battle_balance;
-                
-                if ($totalFunds < $newBetAmount) {
+
+                if ($totalFunds < $baseBet * 1) {
                     $loserUser->status = 'stopped';
-                     Log::info("[FIGHT_ELIMINATION] 🛑 Player {$loserWallet} eliminated and stopped! Total Funds ({$totalFunds}) < Required Bet ({$newBetAmount}). Triggering Refund/Payout of remaining funds.");
+                    $loserUser->save();
+                    UserTracker::info("[FIGHT_ELIMINATION] 🛑 Player {$loserWallet} eliminated and stopped! Total Funds ({$totalFunds}) < Base Bet ({$baseBet}).", ['wallet' => $loserWallet, 'funds' => $totalFunds, 'base_bet' => $baseBet]);
                     $this->notificationService->notifyInsufficientBalance($loserUser);
+                    event(new UserStoppedEvent($loserUser, 'insufficient_funds'));
                 } else {
-                     Log::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool, but has enough funds ({$totalFunds}) to continue at doubled bet ({$newBetAmount}).");
+                    UserTracker::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool, has funds ({$totalFunds}) for re-pooling. Status set to 'available' for Round Robin.", ['wallet' => $loserWallet, 'funds' => $totalFunds]);
+                    $loserUser->status = 'available';
+                    $loserUser->pool_id = null;
+                    $loserUser->save();
                 }
-                
-                $loserUser->save();
             } else {
-                // Keep in pool
+                // Loser still has enough battle_balance to continue in THIS pool
+                // Keep in pool for next matching round
                 $loserUser->status = 'in_pool';
                 $loserUser->save();
             }
         }
-
-
 
         $fight->status = 'completed';
         $fight->save();
@@ -114,7 +124,7 @@ class FightService
     public function getPreMove($userId)
     {
         $preMove = DB::table('pre_moves')->where('user_id', $userId)->first();
-        if (!$preMove) {
+        if (! $preMove) {
             throw new \Exception("No pre-moves found for user ID $userId");
         }
         $moves = json_decode($preMove->moves, true);
@@ -124,15 +134,23 @@ class FightService
         }
         $nextMove = $moves[$currentIndex];
         DB::table('pre_moves')->where('user_id', $userId)->update(['current_index' => $currentIndex + 1]);
+
         return $nextMove;
     }
 
     public function determineResult($user1Move, $user2Move)
     {
         $winningCombinations = ['rock' => 'scissors', 'scissors' => 'paper', 'paper' => 'rock'];
-        if (!$user1Move) return 'user2_win';
-        if (!$user2Move) return 'user1_win';
-        if ($user1Move === $user2Move) return 'draw';
+        if (! $user1Move) {
+            return 'user2_win';
+        }
+        if (! $user2Move) {
+            return 'user1_win';
+        }
+        if ($user1Move === $user2Move) {
+            return 'draw';
+        }
+
         return $winningCombinations[$user1Move] === $user2Move ? 'user1_win' : 'user2_win';
     }
 
@@ -156,7 +174,7 @@ class FightService
         if ($loserUser && $winnerUser) {
             $loserUser->battle_balance -= $amount;
             $winnerUser->battle_balance += $amount;
-            
+
             $loserUser->save();
             $winnerUser->save();
         }
@@ -166,13 +184,13 @@ class FightService
     {
         User::where('id', $userId)->update([
             'pool_id' => null,
-            'status' => 'available'
+            'status' => 'available',
         ]);
     }
 
     public function addUserToNewPool(int $userId, float $baseBet, int $poolSize): void
     {
-        if (!$this->web3Helper->premoveExists($userId)) {
+        if (! $this->web3Helper->premoveExists($userId)) {
             return;
         }
 
@@ -190,9 +208,9 @@ class FightService
             ->orderBy('id', 'desc')
             ->first();
 
-        if (!$pool) {
+        if (! $pool) {
             $pool = Pool::create([
-                'base_bet' => $baseBet, 
+                'base_bet' => $baseBet,
                 'pool_size' => $poolSize,
                 'salt' => \Illuminate\Support\Str::random(10),
             ]);
@@ -211,12 +229,12 @@ class FightService
 
         User::where('id', $userId)->update([
             'pool_id' => $pool->id,
-            'status' => 'in_pool'
+            'status' => 'in_pool',
         ]);
-        
+
         $walletAddress = $user ? $user->wallet_address : 'UNKNOWN';
         \Illuminate\Support\Facades\Log::info("FightService: Assigned user {$walletAddress} to pool {$pool->id}. DB Update executed.");
-        
+
         // Notify Pool Entry
         $user = User::find($userId);
         if ($user) {
@@ -224,6 +242,4 @@ class FightService
             $this->notificationService->notifyPoolEntry($user, $pool, 'pool_winner');
         }
     }
-
-
 }

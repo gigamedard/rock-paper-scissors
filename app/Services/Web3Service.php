@@ -74,6 +74,10 @@ class Web3Service
             $combinedHex = $userNoPrefix . $salt;
 
             // Convert the combined hex string to binary.
+            if (strlen($combinedHex) % 2 !== 0) {
+                Log::error("Odd-length hex string for address {$user} and salt {$salt}");
+                throw new \InvalidArgumentException("Hex string must have an even length.");
+            }
             $binaryCombined = hex2bin($combinedHex);
             if ($binaryCombined === false) {
                 Log::error("Invalid hex combination for address {$user} and salt {$salt}");

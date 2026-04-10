@@ -3,16 +3,18 @@
 namespace App\Listeners;
 
 use App\Events\SessionFinishedEvent;
-use App\Models\User;
-use App\Models\FHist;
-use Illuminate\Support\Facades\Log;
 use App\Helpers\Web3Helper;
+use App\Models\FHist;
+use App\Models\User;
 use App\Services\PinataService;
+use Illuminate\Support\Facades\Log;
 
 class SessionFinishedEventListener
 {
     protected $web3Helper;
+
     protected $pinataService;
+
     protected $fightService;
 
     public function __construct(Web3Helper $web3Helper, PinataService $pinataService, \App\Services\FightService $fightService)
@@ -29,7 +31,7 @@ class SessionFinishedEventListener
     {
         try {
             $user = User::find($event->userId);
-            if (!$user || !$user->preMove) {
+            if (! $user || ! $user->preMove) {
                 return;
             }
 
@@ -43,8 +45,8 @@ class SessionFinishedEventListener
 
             $this->processUserBalance($user, $q, $baseBet, $poolSize);
         } catch (\Exception $e) {
-            $walletStr = isset($user) && $user ? " (Wallet: {$user->wallet_address})" : "";
-            Log::error("SessionFinishedEventListener: Exception occurred for user ID: {$event->userId}{$walletStr} - " . $e->getMessage());
+            $walletStr = isset($user) && $user ? " (Wallet: {$user->wallet_address})" : '';
+            Log::error("SessionFinishedEventListener: Exception occurred for user ID: {$event->userId}{$walletStr} - ".$e->getMessage());
         }
     }
 
@@ -52,15 +54,17 @@ class SessionFinishedEventListener
     {
         $initialTotal = $user->session_start_balance + $user->session_start_battle_balance;
         $finalTotal = $user->balance + $user->battle_balance;
+
         return $finalTotal / ($initialTotal ?: 1);
     }
 
     private function processUserBalance(User $user, float $q, float $baseBet, int $poolSize): void
     {
-        Log::info("SessionFinishedEventListener: processUserBalance started for user {$user->id} (Wallet: {$user->wallet_address}). Start Status: {$user->status}");
+        UserTracker::info("SessionFinishedEventListener: processUserBalance started for user {$user->id} (Wallet: {$user->wallet_address}). Start Status: {$user->status}", ['wallet' => $user->wallet_address, 'status' => $user->status]);
         // If user is already available (waiting for batch) or stopped (insufficient funds), do not process session continuity
         if (in_array($user->status, ['available', 'stopped'])) {
-            Log::info("SessionFinishedEventListener: User {$user->id} (Wallet: {$user->wallet_address}) has status '{$user->status}'. Skipping immediate re-pool.");
+            UserTracker::info("SessionFinishedEventListener: User {$user->id} (Wallet: {$user->wallet_address}) has status '{$user->status}'. Skipping immediate re-pool.", ['wallet' => $user->wallet_address]);
+
             return;
         }
 
@@ -73,16 +77,18 @@ class SessionFinishedEventListener
             $this->transferBattleBalance($user, 'stopped');
             $this->archiveSessionHistory($user);
             $this->sendPayment($user);
-            
+
             // Set Cooldown
             $this->setNextSessionTime($user);
         } elseif ($q < 1 && $user->balance < $user->bet_amount) {
-            // TODO: event(new UseAssurenceEvent($user->id));
-            Log::info("SessionFinishedEventListener: User ID: {$user->id} (Wallet: {$user->wallet_address}) triggered UseAssurenceEvent.");
+            UserTracker::info("[SESSION_CONTINUE] ⚠️ User {$user->id} (Wallet: {$user->wallet_address}) lost value (q=$q < 1) and balance ({$user->balance}) < bet_amount ({$user->bet_amount}). Returning to 'available' for Round Robin re-pooling at current bet tier.", ['wallet' => $user->wallet_address, 'q' => $q]);
+            $user->status = 'available';
+            $user->pool_id = null;
+            $user->save();
         } else {
             // Threshold not reached, continue session
             // Set survivor to 'available' so run_batch_processor.js handles re-pooling
-            Log::info("[SESSION_CONTINUE] 🔄 User {$user->id} (Wallet: {$user->wallet_address}) did not reach multiplier ($q < $multiplier). Current Balance: {$user->balance}. Returning to pool waiting list.");
+            UserTracker::info("[SESSION_CONTINUE] 🔄 User {$user->id} (Wallet: {$user->wallet_address}) did not reach multiplier ($q < $multiplier). Current Balance: {$user->balance}. Returning to pool waiting list.", ['wallet' => $user->wallet_address, 'q' => $q]);
             $user->status = 'available';
             $user->pool_id = null;
             $user->save();
@@ -122,7 +128,7 @@ class SessionFinishedEventListener
             ->orderBy('pool_id', 'asc')
             ->first();
 
-        if (!$fHistInitial) {
+        if (! $fHistInitial) {
             return [];
         }
 
@@ -144,9 +150,9 @@ class SessionFinishedEventListener
 
         try {
             $this->web3Helper->setUserNextSessionTime(env('NODE_URL'), $user->wallet_address, $nextTime);
-            Log::info("Set cooldown for User {$user->id} (Wallet: {$user->wallet_address}) until " . date('Y-m-d H:i:s', $nextTime));
+            Log::info("Set cooldown for User {$user->id} (Wallet: {$user->wallet_address}) until ".date('Y-m-d H:i:s', $nextTime));
         } catch (\Exception $e) {
-            Log::error("Failed to set cooldown for User {$user->id} (Wallet: {$user->wallet_address}): " . $e->getMessage());
+            Log::error("Failed to set cooldown for User {$user->id} (Wallet: {$user->wallet_address}): ".$e->getMessage());
         }
     }
 }

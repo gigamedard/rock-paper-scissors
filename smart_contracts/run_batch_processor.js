@@ -50,18 +50,17 @@ async function runHybridCycle(source) {
         console.error(`   ❌ Step 1 Error: ${error.message}`);
     }
 
-    // Step 2: Process Batches (Matchmaking)
-    // This takes 'from_server_waitting' pools and matches them
+    // Step 2: Process Batches (Matchmaking) - Round-robin across ALL bet tiers
     try {
-        console.log(`   Step 2: Processing Batches (batch-processing)...`);
-        const batchResponse = await fetch(`${LARAVEL_API_URL}/internal/batch-processing`, {
+        console.log(`   Step 2: Processing ALL bet tiers (batch-processing-all)...`);
+        const batchResponse = await fetch(`${LARAVEL_API_URL}/internal/batch-processing-all`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'X-Internal-Secret': INTERNAL_API_SECRET
             },
-            body: JSON.stringify({ base_bet: BASE_BET })
+            body: JSON.stringify({})
         });
 
         const batchText = await batchResponse.text();
@@ -69,6 +68,8 @@ async function runHybridCycle(source) {
         try {
             const json = JSON.parse(batchText);
             if (json.message) batchLog += ` | ${json.message}`;
+            if (json.tiers_processed) batchLog += ` | Tiers: ${json.tiers_processed}`;
+            if (json.pools_processed) batchLog += ` | Pools: ${json.pools_processed}`;
         } catch (e) { batchLog += ` | ${batchText.substring(0, 50)}...`; }
         console.log(batchLog);
 

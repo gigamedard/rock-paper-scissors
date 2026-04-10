@@ -146,6 +146,23 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Dedicated channel for users #1-#6 (Hardhat test accounts)
+        'tracked_users' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/tracked_users.log'),
+            'level' => 'debug',
+            'replace_placeholders' => true,
+        ],
+
+        // Rotating channel for other users (max 50 lines)
+        'other_users' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/other_users.log'),
+            'level' => 'debug',
+            'days' => 1,
+            'tap' => [App\Logging\OtherUserFilter::class],
+        ],
+
     ],
 
 ];

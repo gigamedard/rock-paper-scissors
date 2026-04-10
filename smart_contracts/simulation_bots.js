@@ -82,17 +82,8 @@ async function simulateBot(botIndex) {
     const userId = tokenData.user.id;
     console.log(`   [Bot ${botIndex + 1}] Authentication Successful. User ID: ${userId}`);
 
-    // 3. Define Pre-Moves deterministically for testing scenarios
-    let moves = [];
-    if (botIndex === 0) {
-        moves = Array(10).fill('rock'); // Bot 1: Wins against Bot 2
-    } else if (botIndex === 1) {
-        moves = Array(10).fill('scissors'); // Bot 2: Loses to Bot 1 (Target for Ejection Test)
-    } else if (botIndex === 2) {
-        moves = Array(10).fill('paper'); // Bot 3: Draws with Human (if Human plays paper)
-    } else {
-        moves = Array(10).fill('rock'); // Bot 4: Waiting
-    }
+    // 3. Define Random Pre-Moves to avoid draw loops
+    const moves = generateRandomPreMoves(10);
 
     console.log(`   [Bot ${botIndex + 1}] Submitting Pre-Moves: [${moves.slice(0, 3).join(', ')}...]`);
     

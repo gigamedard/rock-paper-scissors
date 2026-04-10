@@ -14,7 +14,7 @@ contract Battlepool {
     }
 
     uint256 public nextPoolId = 1;
-    mapping(uint256 => Pool) public pools; // Maps baseBet to Pool
+    mapping(uint256 => Pool) internal pools; // Internal: accessed via helper functions only
     mapping(address => uint256) public userBalances;
     mapping(uint256 => string) public poolHistoryCIDs; // Maps poolId to IPFS CID
     mapping(address => string[]) public sessionHistoryCIDs; // Allows multiple CIDs per user
@@ -210,6 +210,11 @@ contract Battlepool {
         addSingleUserToPool(baseBet, msg.sender);
     }
 
+    function getPoolInfo(uint256 baseBet) external view returns (uint256 poolId, uint256 maxSize, uint256 userCount, bool isLocked) {
+        Pool storage pool = pools[baseBet];
+        return (pool.poolId, pool.maxSize, pool.users.length, pool.isLockedForValidation);
+    }
+
     function getPoolUsers(uint256 baseBet) external view returns (address[] memory) {
         Pool storage pool = pools[baseBet];
         return pool.users;
@@ -370,8 +375,8 @@ contract Battlepool {
     }
 
 
-    function isUserInPool(uint256 poolId, address user) public view returns (bool) {
-        return pools[poolId].isUserInPool[user];
+    function isUserInPoolByBaseBet(uint256 baseBet, address user) public view returns (bool) {
+        return pools[baseBet].isUserInPool[user];
     }
 
     //payOut function

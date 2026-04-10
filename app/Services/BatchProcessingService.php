@@ -2,22 +2,24 @@
 
 namespace App\Services;
 
-use App\Models\ArrayIndex;
 use App\Services\BatchProcessing\BatchCriteriaService;
 use App\Services\BatchProcessing\BatchFinderService;
 use App\Services\BatchProcessing\BatchManagerService;
 use App\Services\BatchProcessing\PoolFetcherService;
 use App\Services\BatchProcessing\PoolProcessorService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BatchProcessingService
 {
     protected $batchCriteriaService;
+
     protected $batchFinderService;
+
     protected $poolFetcherService;
+
     protected $batchManagerService;
+
     protected $poolProcessorService;
 
     public function __construct(
@@ -54,8 +56,8 @@ class BatchProcessingService
             ) {
                 $batch = $this->batchFinderService->findActiveBatchWithLock($targetPoolSize, $baseBet);
 
-                if (!$batch) {
-                    if (!$this->poolFetcherService->processablePoolsExist($targetPoolSize, $baseBet)) {
+                if (! $batch) {
+                    if (! $this->poolFetcherService->processablePoolsExist($targetPoolSize, $baseBet)) {
                         return ['status' => 'no_work', 'message' => "No active batch or available pools for pool_size {$targetPoolSize} base_bet {$baseBet}."];
                     }
                     $initialPools = $this->poolFetcherService->fetchInitialPools($targetPoolSize, $baseBet, config('pool.batch_initial_limit', 50));
@@ -63,6 +65,7 @@ class BatchProcessingService
                         return ['status' => 'no_work', 'message' => "No pools available to form an initial batch for pool_size {$targetPoolSize} base_bet {$baseBet}."];
                     }
                     $createdBatch = $this->batchManagerService->createBatch($targetPoolSize, $baseBet, $initialPools);
+
                     return ['status' => 'created', 'message' => "New batch {$createdBatch->id} for pool_size {$targetPoolSize} base_bet {$baseBet} created and is {$createdBatch->status}."];
                 }
 
@@ -73,9 +76,11 @@ class BatchProcessingService
                         $msg = ($batch->number_of_pools > 0)
                             ? "Batch {$batch->id} remains waiting with {$batch->number_of_pools} pools, no new pools found."
                             : "Batch {$batch->id} remains waiting and empty, no new pools found.";
+
                         return ['status' => 'no_change', 'message' => $msg];
                     }
                     $this->batchManagerService->loadWaitingBatch($batch, $newPools);
+
                     return ['status' => 'updated', 'message' => "Batch {$batch->id} (pool_size {$batch->pool_size}) updated with {$newPools->count()} pools. Status: {$batch->status}"];
                 }
 
@@ -88,10 +93,12 @@ class BatchProcessingService
                     if ($retrievedPools->isEmpty()) {
                         $batch->status = 'waiting';
                         $batch->save();
+
                         return ['status' => 'error', 'message' => "Batch {$batch->id} found no pools in its defined range. Status reverted to waiting."];
                     }
                     $poolsToProcess = $retrievedPools;
                     $batchForProcessing = $batch;
+
                     return ['status' => 'processing_deferred'];
                 }
 
@@ -99,11 +106,11 @@ class BatchProcessingService
             });
 
             if (isset($resultData['status']) && $resultData['status'] === 'processing_deferred') {
-                if (!$batchForProcessing || $poolsToProcess->isEmpty()) {
+                if (! $batchForProcessing || $poolsToProcess->isEmpty()) {
                     return ['status' => 'error', 'message' => 'Internal error during deferred processing setup.', 'http_code' => 500];
                 }
                 $processingResult = $this->poolProcessorService->processPools($poolsToProcess, $batchForProcessing);
-                $updatedBatch = $this->batchManagerService->updateBatchStatusAfterProcessing($batchForProcessing->id, !is_null($processingResult['error']), $processingResult['processedCount']);
+                $updatedBatch = $this->batchManagerService->updateBatchStatusAfterProcessing($batchForProcessing->id, ! is_null($processingResult['error']), $processingResult['processedCount']);
 
                 if ($processingResult['error']) {
                     return [
@@ -113,7 +120,7 @@ class BatchProcessingService
                         'total_in_batch' => $poolsToProcess->count(),
                         'iteration' => $updatedBatch->iteration_count,
                         'error' => $processingResult['error']->getMessage(),
-                        'http_code' => 207
+                        'http_code' => 207,
                     ];
                 } else {
                     return [
@@ -121,7 +128,7 @@ class BatchProcessingService
                         'message' => "Batch {$updatedBatch->id} (pool_size {$updatedBatch->pool_size}) processed successfully. Final Status: {$updatedBatch->status}",
                         'processed_count' => $processingResult['processedCount'],
                         'iteration' => $updatedBatch->iteration_count,
-                        'http_code' => 200
+                        'http_code' => 200,
                     ];
                 }
             } elseif (isset($resultData['status'])) {
@@ -131,13 +138,62 @@ class BatchProcessingService
                     'error', 'no_action' => 400,
                     default => 200,
                 };
+
                 return ['status' => $resultData['status'], 'message' => $resultData['message'], 'target_pool_size' => $targetPoolSize, 'http_code' => $httpStatusCode];
             } else {
                 return ['status' => 'error', 'message' => 'An unexpected server error occurred (unknown state).', 'http_code' => 500];
             }
         } catch (\Exception $e) {
-            Log::error('Error in BatchProcessingService: ' . $e->getMessage());
-            return ['status' => 'error', 'message' => 'An error occurred during batch processing: ' . $e->getMessage(), 'http_code' => 500];
+            Log::error('Error in BatchProcessingService: '.$e->getMessage());
+
+            return ['status' => 'error', 'message' => 'An error occurred during batch processing: '.$e->getMessage(), 'http_code' => 500];
         }
+    }
+
+    /**
+     * Round-robin: process ONE bet tier per call, cycling through active tiers.
+     * Discovers active base_bet values from the pools table and rotates.
+     */
+    public function processAllBetTiers(): array
+    {
+        $criteriaResult = $this->batchCriteriaService->getTargetPoolSize();
+        if ($criteriaResult['error']) {
+            return ['status' => 'error', 'message' => $criteriaResult['error'], 'http_code' => 500];
+        }
+        $targetPoolSize = $criteriaResult['targetPoolSize'];
+
+        $activeBetTiers = \App\Models\Pool::where('status', 'from_server_waitting')
+            ->distinct()
+            ->pluck('base_bet')
+            ->toArray();
+
+        if (empty($activeBetTiers)) {
+            return ['status' => 'no_work', 'message' => 'No waiting pools found for any base_bet tier.', 'http_code' => 200];
+        }
+
+        sort($activeBetTiers, SORT_NUMERIC);
+
+        $cacheKey = 'bet_tier_round_robin_index';
+        $currentIndex = (int) \Illuminate\Support\Facades\Cache::get($cacheKey, 0) % count($activeBetTiers);
+
+        $tierBet = $activeBetTiers[$currentIndex];
+
+        $nextIndex = ($currentIndex + 1) % count($activeBetTiers);
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $nextIndex, now()->addMinutes(5));
+
+        $result = $this->processBatch((float) $tierBet);
+
+        UserTracker::info("BatchProcessingService [Round-Robin {$currentIndex}/".(count($activeBetTiers) - 1)."]: Processing tier {$tierBet} → {$result['status']}", ['tier' => $tierBet, 'status' => $result['status']]);
+
+        return [
+            'status' => $result['status'],
+            'message' => $result['message'],
+            'current_tier' => $tierBet,
+            'tier_index' => $currentIndex,
+            'next_tier_index' => $nextIndex,
+            'active_tiers' => $activeBetTiers,
+            'processed_count' => $result['processed_count'] ?? 0,
+            'http_code' => $result['http_code'] ?? 200,
+        ];
     }
 }

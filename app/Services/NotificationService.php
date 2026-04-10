@@ -18,8 +18,18 @@ class NotificationService
      */
     public function notifyFightWin(User $user, float $amount, $fightId)
     {
-        // Placeholder for real notification logic (e.g. database, websocket, email)
         Log::info("Notification: User {$user->id} won {$amount} in fight {$fightId}.");
+        
+        // Real-time Event
+        event(new \App\Events\UserBalanceUpdated($user));
+    }
+
+    public function notifyFightStarted(User $user, User $opponent, $fight)
+    {
+        Log::info("Notification: User {$user->id} starting fight against {$opponent->id}.");
+        
+        // Real-time Event
+        event(new \App\Events\FightStartedEvent($user, $opponent, $fight));
     }
 
     /**
@@ -47,7 +57,9 @@ class NotificationService
                 $message = "User {$user->id} joined pool {$pool->id}. Reason: {$reason}";
         }
 
-        // Placeholder for real notification logic
+        // Real-time Event
+        event(new \App\Events\PoolJoinedEvent($user, $pool));
+
         Log::info("Notification: {$message}");
     }
 
@@ -60,5 +72,8 @@ class NotificationService
     public function notifyInsufficientBalance(User $user)
     {
         Log::info("Notification: User {$user->id} has insufficient balance to continue and has been stopped.");
+        
+        // Real-time Event
+        event(new \App\Events\UserStoppedEvent($user, 'insufficient_funds'));
     }
 }

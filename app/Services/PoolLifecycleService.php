@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Events\PoolFinishedEvent;
-use App\Events\UserBalanceUpdated;
 use App\Events\SessionFinishedEvent;
+use App\Events\UserBalanceUpdated;
 use App\Helpers\Web3Helper;
 use App\Models\Fight;
 use App\Models\Pool;
@@ -36,7 +36,7 @@ class PoolLifecycleService
             $expectedCid = $premoveCIDs[$index] ?? null;
             $user = User::where('wallet_address', $walletAddress)->first();
 
-            if (!$user || !$user->preMove || $user->preMove->cid !== $expectedCid) {
+            if (! $user || ! $user->preMove || $user->preMove->cid !== $expectedCid) {
                 $foundCid = ($user && $user->preMove) ? $user->preMove->cid : 'None/Not Found in DB';
                 Log::error("Validation failed for user: {$walletAddress}. Expected CID: {$expectedCid}, Found in DB: {$foundCid}");
                 if ($user) {
@@ -50,30 +50,32 @@ class PoolLifecycleService
         }
 
         // 2. Branch: If any intruder exists, invalidate the pool on the blockchain so it can unlock and replace them.
-        if (!empty($invalidAddresses)) {
-             Log::warning("Intruders detected in emitted pool. Refunding and invalidating users: " . implode(', ', $invalidAddresses));
-            
-             // Refund the exact balances collected for intruders
-             Web3Helper::refundUsers(env('NODE_URL'), $invalidAddresses);
-            
-             // Tell the smart contract to eject them and unlock the pool for new participants
-             Web3Helper::invalidatePoolUsers(env('NODE_URL'), $baseBetEther, $invalidAddresses);
+        if (! empty($invalidAddresses)) {
+            Log::warning('Intruders detected in emitted pool. Refunding and invalidating users: '.implode(', ', $invalidAddresses));
 
-             return ['status' => 'invalidated_intruders', 'ejected' => $invalidAddresses];
+            // Refund the exact balances collected for intruders
+            Web3Helper::refundUsers(env('NODE_URL'), $invalidAddresses);
+
+            // Tell the smart contract to eject them and unlock the pool for new participants
+            Web3Helper::invalidatePoolUsers(env('NODE_URL'), $baseBetEther, $invalidAddresses);
+
+            return ['status' => 'invalidated_intruders', 'ejected' => $invalidAddresses];
         }
 
         // 3. Pool is 100% Valid. Tell the smart contract to finalize it and clear the users.
-        $validWallets = array_map(function($u) { return $u->wallet_address; }, $validUsers);
-        Log::info("Pool is 100% valid. Triggering smart contract validation for users: " . implode(', ', $validWallets));
+        $validWallets = array_map(function ($u) {
+            return $u->wallet_address;
+        }, $validUsers);
+        Log::info('Pool is 100% valid. Triggering smart contract validation for users: '.implode(', ', $validWallets));
         try {
             Web3Helper::validatePool(env('NODE_URL'), $baseBetEther);
         } catch (\Exception $e) {
-            Log::warning("validatePool call failed (non-blocking): " . $e->getMessage());
+            Log::warning('validatePool call failed (non-blocking): '.$e->getMessage());
         }
 
         // Only now do we register the pool in the Database
         $pool = $this->createPoolFromEvent($data);
-        
+
         foreach ($validUsers as $user) {
             $user->balance += $baseBetEther * config('game_settings.security_coefficient');
             $user->battle_balance = 0;
@@ -90,11 +92,13 @@ class PoolLifecycleService
 
         // Trigger fight processing immediately
         try {
-            $validWallets = array_map(function($u) { return $u->wallet_address; }, $validUsers);
-            Log::info("Starting processPoolAutoMatch for pool {$pool->id} with users: " . implode(', ', $validWallets));
+            $validWallets = array_map(function ($u) {
+                return $u->wallet_address;
+            }, $validUsers);
+            Log::info("Starting processPoolAutoMatch for pool {$pool->id} with users: ".implode(', ', $validWallets));
             $this->processPoolAutoMatch($pool->id);
         } catch (\Exception $e) {
-            Log::error("processPoolAutoMatch failed for pool {$pool->id}: " . $e->getMessage());
+            Log::error("processPoolAutoMatch failed for pool {$pool->id}: ".$e->getMessage());
         }
 
         return ['pool_id' => $data['pool_id'], 'status' => 'processed'];
@@ -117,7 +121,7 @@ class PoolLifecycleService
 
         $maxIterations = 100; // Safety limit
         $iterations = 0;
-        
+
         while ($this->hasSufficientUsersForMatch($pool->users->count(), $minUsers) && $iterations < $maxIterations) {
             $this->executeMatchingRound($pool);
             $pool->load(['users' => function ($query) {
@@ -125,13 +129,14 @@ class PoolLifecycleService
             }]); // Refresh the users collection
             $iterations++;
         }
-        
+
         if ($iterations >= $maxIterations) {
             $wallets = $pool->users->pluck('wallet_address')->toArray();
-            Log::warning("Pool {$pool->id} reached maximum iterations ({$maxIterations}). Breaking loop for users: " . implode(', ', $wallets));
+            Log::warning("Pool {$pool->id} reached maximum iterations ({$maxIterations}). Breaking loop for users: ".implode(', ', $wallets));
         }
 
         $this->finishPool($pool);
+        $pool->update(['status' => 'from_server_finished']);
 
         event(new PoolFinishedEvent($poolId));
     }
@@ -165,7 +170,7 @@ class PoolLifecycleService
 
         foreach ($availableUsers as $user) {
             if ($user->balance >= $pool->base_bet) {
-                if (!$user->session_started) {
+                if (! $user->session_started) {
                     $user->session_start_balance = $user->balance;
                     $user->session_start_battle_balance = $user->battle_balance;
                     $user->session_started = true;
@@ -203,15 +208,15 @@ class PoolLifecycleService
             $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
 
             // NOTIFICATION: Battle Started
-            foreach ([$availableUsers[$i], $availableUsers[$i+1]] as $combatant) {
+            foreach ([$availableUsers[$i], $availableUsers[$i + 1]] as $combatant) {
                 \App\Models\GameNotification::create([
                     'user_id' => $combatant->id,
                     'type' => 'BATTLE_STARTED',
                     'data' => [
                         'fight_id' => $fight->id,
                         'opponent_id' => ($combatant->id == $fight->user1_id) ? $fight->user2_id : $fight->user1_id,
-                        'pool_id' => $pool->id
-                    ]
+                        'pool_id' => $pool->id,
+                    ],
                 ]);
             }
         }
@@ -240,9 +245,9 @@ class PoolLifecycleService
             $totalNewBalance = $user->balance;
             $user->battle_balance = 0;
             $user->save();
-            
-            Log::info("[POOL_FINISH] 💰 Session ended for Player {$user->wallet_address}. Gained from battles: {$gained}. Total Internal Balance is now: {$totalNewBalance}. Triggering SessionFinishedEvent.");
-            
+
+            UserTracker::info("[POOL_FINISH] 💰 Session ended for Player {$user->wallet_address}. Gained from battles: {$gained}. Total Internal Balance is now: {$totalNewBalance}. Triggering SessionFinishedEvent.", ['wallet' => $user->wallet_address, 'gained' => $gained, 'new_balance' => $totalNewBalance]);
+
             event(new SessionFinishedEvent($user->id, $pool));
         }
     }
