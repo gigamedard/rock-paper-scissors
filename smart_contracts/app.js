@@ -31,7 +31,10 @@ let heliaJson;
 (async () => {
     try {
         const blockstore = new FsBlockstore('./ipfs-storage');
-        const helia = await createHelia({ blockstore });
+        const helia = await createHelia({ 
+            blockstore,
+            start: false // Crucial: prevents hanging on P2P network discovery in local dev
+        });
         heliaJson = json(helia);
         console.log('✅ Local Helia IPFS node initialized');
     } catch (e) {
@@ -58,7 +61,7 @@ app.post("/ipfs/add-json", async (req, res) => {
 });
 
 // --- Connexion au Jeu (Hardhat) ---
-const gameProvider = new JsonRpcProvider(FUJI_RPC_URL);
+const gameProvider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
 const gameWallet = new Wallet(GAME_WALLET_PK, gameProvider);
 const gameContract = new Contract(contracts.game.address, contracts.game.abi, gameWallet);
 
@@ -323,8 +326,8 @@ async function startBlockchainListeners() {
     console.log("🔄 Starting Polling Listeners (Robust Mode)...");
 
     try {
-        lastBlock = await gameProvider.getBlockNumber();
-        console.log(`   Current Block: ${lastBlock}`);
+        lastBlock = 0; // Start from 0 for local hardhat catch-up
+        console.log(`   Starting from Block: ${lastBlock}`);
     } catch (e) {
         console.error("Failed to get initial block:", e);
     }
@@ -336,9 +339,12 @@ async function startBlockchainListeners() {
         isPolling = true;
 
         try {
-            const currentBlock = await gameProvider.getBlockNumber();
+            const chainBlock = await gameProvider.getBlockNumber();
+            // Chunking: process max 100 blocks at a time
+            const currentBlock = Math.min(chainBlock, lastBlock + 100);
+
             if (currentBlock > lastBlock) {
-                // console.log(`   Checking blocks ${lastBlock + 1} to ${currentBlock}...`);
+                console.log(`📡 Catching up: blocks ${lastBlock + 1} to ${currentBlock}...`);
 
                 // 1. PoolEmitted
                 const poolEvents = await gameContract.queryFilter("PoolEmitted", lastBlock + 1, currentBlock);
@@ -401,7 +407,6 @@ async function startBlockchainListeners() {
                             // Frontend `loadTrades` does `parseFloat(trade.snt_amount).toLocaleString()`. 
                             // If we store Wei, parseFloat might be huge. 
                             // Let's use formatEther to store as "tokens" not "wei".
-                            sntAmount: formatEther(args[2]),
                             avaxAmount: formatEther(args[3]),
                             expiresAt: expiresAt.toString()
                         });

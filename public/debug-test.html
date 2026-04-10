@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test - RPS Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #FDF8E8;
+            --border-dark: #4d2b1a;
+            --accent-primary: #22c55e;
+            --accent-secondary: #3b82f6;
+            --danger-red: #ef4444;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b7280;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 { font-family: 'Baloo 2', sans-serif; font-size: 2rem; margin-bottom: 10px; }
+        h2 { font-family: 'Baloo 2', sans-serif; font-size: 1.4rem; margin: 20px 0 10px; color: var(--border-dark); }
+        .card {
+            background: white;
+            border: 3px solid var(--border-dark);
+            border-radius: 12px;
+            box-shadow: 6px 6px 0px var(--border-dark);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+        label { font-weight: 600; min-width: 140px; }
+        select, input, button {
+            font-family: 'Inter', sans-serif;
+            padding: 8px 12px;
+            border: 2px solid var(--border-dark);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        button {
+            background: var(--accent-primary);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            border: 2px solid var(--border-dark);
+            box-shadow: 3px 3px 0px var(--border-dark);
+            transition: all 0.1s;
+        }
+        button:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0px var(--border-dark); }
+        button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--border-dark); }
+        button.secondary { background: var(--accent-secondary); }
+        button.danger { background: var(--danger-red); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        #log {
+            background: #1a1a1a;
+            color: #22c55e;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .step { color: #3b82f6; }
+        .ok { color: #22c55e; }
+        .err { color: #ef4444; }
+        .info { color: #fbbf24; }
+        #hud-preview {
+            background: var(--bg-primary);
+            border: 4px solid var(--border-dark);
+            border-radius: 12px;
+            box-shadow: 6px 6px 0px var(--border-dark);
+            padding: 15px;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 80px;
+        }
+        #hud-preview .status { font-family: 'Baloo 2', sans-serif; font-size: 1.2rem; font-weight: 700; }
+        #hud-preview .balance { font-size: 1.4rem; font-weight: 700; color: var(--accent-primary); }
+    </style>
+</head>
+<body>
+    <h1>🎮 Debug Test - RPS Game</h1>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">Mode test sans MetaMask — utilise directement les comptes Hardhat via JSON-RPC.</p>
+
+    <div class="card">
+        <h2>⚙️ Configuration</h2>
+        <div class="row">
+            <label>Hardhat Account #</label>
+            <select id="accountIndex">
+                <option value="0">#0 (deployer)</option>
+                <option value="1" selected>#1 (0xf39F...)</option>
+                <option value="2">#2 (0x7099...)</option>
+                <option value="3">#3 (0x3C44...)</option>
+                <option value="4">#4 (0x90F7...)</option>
+                <option value="5">#5 (0x15d3...)</option>
+                <option value="6">#6 (0x9965...)</option>
+            </select>
+        </div>
+        <div class="row">
+            <label>Base Bet (ETH)</label>
+            <select id="baseBet">
+                <option value="0.01" selected>0.01 ETH</option>
+                <option value="0.02">0.02 ETH</option>
+                <option value="0.05">0.05 ETH</option>
+            </select>
+        </div>
+        <div class="row">
+            <label>Pre-Moves</label>
+            <select id="preMoves">
+                <option value="rock,rock,rock,rock,rock">rock, rock, rock, rock, rock</option>
+                <option value="paper,paper,paper,paper,paper">paper, paper, paper, paper, paper</option>
+                <option value="scissors,scissors,scissors,scissors,scissors">scissors x5</option>
+                <option value="rock,paper,scissors,rock,paper" selected>rock, paper, scissors, rock, paper</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🚀 Actions</h2>
+        <div class="row">
+            <button id="btnConnect" onclick="testConnect()">1. Connect & Auth</button>
+            <button id="btnDeposit" onclick="testDeposit()" disabled>2. Deposit & Submit Pre-Moves</button>
+            <button id="btnStatus" onclick="testStatus()" class="secondary">3. Check Status</button>
+            <button id="btnReset" onclick="resetTest()" class="danger">Reset</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📊 HUD Preview</h2>
+        <div id="hud-preview">
+            <div class="status" id="hudStatus">Waiting...</div>
+            <div class="balance" id="hudBalance">0.0000 ETH</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📋 Log</h2>
+        <div id="log"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script>
+        const HARDHAT_URL = 'http://127.0.0.1:8545';
+        const LARAVEL_URL = 'http://127.0.0.1:8000/api';
+
+        const HARDHAT_ACCOUNTS = [
+            '***REMOVED***',
+            '***REMOVED***',
+            '***REMOVED***',
+            '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6',
+            '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a',
+            '0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba',
+            '0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e',
+        ];
+
+        const HARDHAT_ADDRESSES = [
+            '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+            '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+            '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+            '0x90F79bf6EB2c4f870365E785982E1f101E93b906',
+            '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65',
+            '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc',
+        ];
+
+        let web3, account, contract, contractAbi, contractAddress;
+        let apiToken = null;
+        let userId = null;
+
+        function log(msg, cls = '') {
+            const el = document.getElementById('log');
+            const line = document.createElement('div');
+            if (cls) line.className = cls;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            el.appendChild(line);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function updateHud(status, balance) {
+            document.getElementById('hudStatus').textContent = status;
+            if (balance !== undefined) {
+                document.getElementById('hudBalance').textContent = `${parseFloat(balance).toFixed(4)} ETH`;
+            }
+        }
+
+        async function loadContractAbi() {
+            const res = await fetch(`${LARAVEL_URL}/artefacts`);
+            const data = await res.json();
+            contractAbi = data.abi;
+            contractAddress = data.address;
+            log(`Contract loaded: ${contractAddress}`, 'info');
+        }
+
+        async function testConnect() {
+            try {
+                document.getElementById('btnConnect').disabled = true;
+                const idx = parseInt(document.getElementById('accountIndex').value);
+                const pk = HARDHAT_ACCOUNTS[idx];
+                const address = HARDHAT_ADDRESSES[idx];
+
+                log(`Step 1: Connecting as account #${idx} (${address})...`, 'step');
+
+                web3 = new Web3(new Web3.providers.HttpProvider(HARDHAT_URL));
+                account = web3.eth.accounts.privateKeyToAccount(pk);
+                web3.eth.accounts.wallet.add(account);
+                web3.eth.defaultAccount = account.address;
+
+                log(`Web3 account ready: ${account.address}`, 'ok');
+
+                await loadContractAbi();
+                contract = new web3.eth.Contract(contractAbi, contractAddress);
+
+                log(`Step 1b: Authenticating with Laravel...`, 'step');
+
+                // Request challenge
+                const challengeRes = await fetch(`${LARAVEL_URL}/auth/challenge`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ wallet_address: address })
+                });
+                const challengeData = await challengeRes.json();
+
+                if (challengeData.error) {
+                    log(`Challenge error: ${challengeData.error}`, 'err');
+                    return;
+                }
+
+                log(`Challenge received: "${challengeData.message.substring(0, 50)}..."`, 'info');
+
+                // Sign with private key
+                const signature = web3.eth.accounts.sign(challengeData.message, pk).signature;
+                log(`Signature: ${signature.substring(0, 30)}...`, 'info');
+
+                // Verify
+                const verifyRes = await fetch(`${LARAVEL_URL}/auth/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet_address: address,
+                        signature: signature
+                    })
+                });
+                const verifyData = await verifyRes.json();
+
+                if (verifyData.token) {
+                    apiToken = verifyData.token;
+                    userId = verifyData.user?.id;
+                    log(`✅ Authenticated! User ID: ${userId}, Token: ${apiToken.substring(0, 20)}...`, 'ok');
+                    document.getElementById('btnDeposit').disabled = false;
+                    updateHud('Authenticated', verifyData.user?.balance || 0);
+                } else {
+                    log(`❌ Auth failed: ${JSON.stringify(verifyData)}`, 'err');
+                }
+            } catch (e) {
+                log(`❌ Error: ${e.message}`, 'err');
+                document.getElementById('btnConnect').disabled = false;
+            }
+        }
+
+        async function testDeposit() {
+            try {
+                document.getElementById('btnDeposit').disabled = true;
+                const baseBet = document.getElementById('baseBet').value;
+                const moves = document.getElementById('preMoves').value.split(',');
+                const baseBetWei = web3.utils.toWei(baseBet, 'ether');
+                const securityCoeff = 1000;
+                const requiredBalance = BigInt(baseBetWei) * BigInt(securityCoeff);
+                const feeMultiplier = 10250;
+                const depositAmount = (requiredBalance * BigInt(feeMultiplier)) / BigInt(10000);
+
+                log(`Step 2: Depositing ${web3.utils.fromWei(depositAmount.toString(), 'ether')} ETH...`, 'step');
+
+                // Submit pre-moves to backend
+                log(`Submitting pre-moves to backend...`, 'info');
+                const movesRes = await fetch(`${LARAVEL_URL}/pre-moves`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiToken}`
+                    },
+                    body: JSON.stringify({ moves: moves })
+                });
+                const movesData = await movesRes.json();
+                log(`Backend stored pre-moves. CID: ${movesData.cid || 'N/A'}`, 'ok');
+
+                // Submit to smart contract
+                log(`Calling submitPremoveCID on contract...`, 'info');
+                const tx = await contract.methods.submitPremoveCID(baseBetWei, movesData.cid || 'test-cid')
+                    .send({
+                        from: account.address,
+                        value: depositAmount.toString()
+                    });
+
+                log(`✅ TX confirmed! Hash: ${tx.transactionHash}`, 'ok');
+
+                // Check balance on contract
+                const bal = await contract.methods.getUserBalance(account.address).call();
+                log(`Contract balance: ${web3.utils.fromWei(bal, 'ether')} ETH`, 'info');
+
+                updateHud('Waiting for pool...', web3.utils.fromWei(bal, 'ether'));
+                document.getElementById('btnStatus').disabled = false;
+
+                // Start polling status
+                pollStatus();
+            } catch (e) {
+                log(`❌ Error: ${e.message}`, 'err');
+                document.getElementById('btnDeposit').disabled = false;
+            }
+        }
+
+        async function testStatus() {
+            try {
+                log(`Step 3: Checking user status...`, 'step');
+                const res = await fetch(`${LARAVEL_URL}/user/status`, {
+                    headers: { 'Authorization': `Bearer ${apiToken}` }
+                });
+                const data = await res.json();
+                log(`Status: ${JSON.stringify(data, null, 2)}`, 'info');
+                updateHud(data.status || 'unknown', data.balance);
+            } catch (e) {
+                log(`❌ Error: ${e.message}`, 'err');
+            }
+        }
+
+        let pollInterval;
+        function pollStatus() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${LARAVEL_URL}/user/status`, {
+                        headers: { 'Authorization': `Bearer ${apiToken}` }
+                    });
+                    const data = await res.json();
+                    updateHud(`Status: ${data.status} | Pool: ${data.pool_id || 'none'}`, data.balance);
+                    if (data.status === 'stopped') {
+                        updateHud('Session completed!', data.balance);
+                        clearInterval(pollInterval);
+                    }
+                } catch (e) {}
+            }, 2000);
+        }
+
+        function resetTest() {
+            if (pollInterval) clearInterval(pollInterval);
+            apiToken = null;
+            userId = null;
+            account = null;
+            contract = null;
+            document.getElementById('btnConnect').disabled = false;
+            document.getElementById('btnDeposit').disabled = true;
+            document.getElementById('btnStatus').disabled = true;
+            updateHud('Waiting...', '0.0000');
+            document.getElementById('log').innerHTML = '';
+            log('Reset done. Ready for new test.', 'info');
+        }
+
+        // Expose functions to global window for browser-subagent and console access
+        window.testConnect = testConnect;
+        window.testDeposit = testDeposit;
+        window.testStatus = testStatus;
+        window.resetTest = resetTest;
+
+        log('Debug test page ready. Select account and click "Connect & Auth".', 'info');
+    </script>
+</body>
+</html>
