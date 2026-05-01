@@ -26,13 +26,17 @@ class BlockchainController extends Controller
         // Convert from wei to ETH for database storage
         $balanceEth = Web3Helper::weiToEther($balanceWei);
 
+        Log::info("updateUserBalance called", ['wallet' => $walletAddress, 'wei' => $balanceWei]);
         try {
             $user = User::where('wallet_address', $walletAddress)->first();
+            Log::info("User search result", ['found' => $user ? true : false, 'id' => $user->id ?? null]);
 
             if ($user) {
                 // Check if balance dropped to 0 (Bankruptcy risk)
                 $oldBalance = $user->balance;
-                $user->update(['balance' => $balanceEth]); // From the trait
+                Log::info("Updating existing user balance", ['old' => $oldBalance, 'new' => $balanceEth]);
+                $updated = $user->update(['balance' => $balanceEth]);
+                Log::info("Update result", ['success' => $updated]);
                 
                 if ($oldBalance > 0 && $balanceEth <= 0.0001) { // Near zero
                      \App\Models\GameNotification::create([
@@ -42,7 +46,9 @@ class BlockchainController extends Controller
                     ]);
                 }
             } else {
+                Log::info("Creating new user", ['wallet' => $walletAddress, 'balance' => $balanceEth]);
                 $user = $this->createNewUser($walletAddress, $balanceEth); // From the trait
+                Log::info("New user created", ['id' => $user->id]);
             }
 
             Log::info("User balance updated: Address: {$walletAddress}, Balance: {$balanceEth} ETH (from {$balanceWei} wei)");
@@ -200,4 +206,40 @@ class BlockchainController extends Controller
     }
 
 
+    public function updateSetting(Request $request)
+    {
+        $validated = $request->validate([
+            'key' => 'required|string',
+            'value' => 'required',
+            'type' => 'nullable|string',
+            'group' => 'nullable|string',
+            'description' => 'nullable|string',
+        ]);
+
+        $key = $validated['key'];
+        $value = $validated['value'];
+        $type = $validated['type'] ?? 'string';
+        $group = $validated['group'] ?? 'blockchain';
+        $description = $validated['description'] ?? "Auto-updated from Smart Contract event";
+
+        try {
+            \App\Models\GameSetting::setValue($key, $value, $type, $group, $description);
+            
+            Log::info("Game setting updated via internal API: {$key} = {$value}");
+
+            return response()->json([
+                'success' => true,
+                'message' => "Setting {$key} updated successfully.",
+            ], 200);
+
+        } catch (\Throwable $e) {
+            Log::error("Error updating game setting: {$e->getMessage()}");
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating setting.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

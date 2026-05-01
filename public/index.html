@@ -2746,6 +2746,45 @@
             try {
                 // Request accounts from the selected provider
                 await provider.request({ method: 'eth_requestAccounts' });
+
+                // --- AUTO SWITCH TO HARDHAT LOCAL NETWORK (chainId 31337) ---
+                const HARDHAT_CHAIN_ID = '0x7A69'; // 31337 in hex
+                try {
+                    const currentChainId = await provider.request({ method: 'eth_chainId' });
+                    if (currentChainId !== HARDHAT_CHAIN_ID) {
+                        console.log(`Wrong network detected (${currentChainId}). Switching to Hardhat (${HARDHAT_CHAIN_ID})...`);
+                        try {
+                            await provider.request({
+                                method: 'wallet_switchEthereumChain',
+                                params: [{ chainId: HARDHAT_CHAIN_ID }],
+                            });
+                            console.log('✅ Switched to Hardhat network.');
+                        } catch (switchError) {
+                            // Error 4902: chain not added yet → add it
+                            if (switchError.code === 4902) {
+                                console.log('Hardhat network not found in wallet. Adding it...');
+                                await provider.request({
+                                    method: 'wallet_addEthereumChain',
+                                    params: [{
+                                        chainId: HARDHAT_CHAIN_ID,
+                                        chainName: 'Hardhat Local',
+                                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                                        rpcUrls: ['http://127.0.0.1:8545'],
+                                    }],
+                                });
+                                console.log('✅ Hardhat network added and switched.');
+                            } else {
+                                throw switchError;
+                            }
+                        }
+                    } else {
+                        console.log('✅ Already on Hardhat network.');
+                    }
+                } catch (chainError) {
+                    console.warn('Chain switch warning (non-blocking):', chainError.message);
+                }
+                // --- END CHAIN SWITCH ---
+
                 const accounts = await WEB3.eth.getAccounts();
                 const walletAddress = accounts[0];
 

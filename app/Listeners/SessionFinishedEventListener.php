@@ -6,6 +6,7 @@ use App\Events\SessionFinishedEvent;
 use App\Helpers\Web3Helper;
 use App\Models\FHist;
 use App\Models\User;
+use App\Helpers\UserTracker;
 use App\Services\PinataService;
 use Illuminate\Support\Facades\Log;
 
@@ -61,13 +62,10 @@ class SessionFinishedEventListener
     private function processUserBalance(User $user, float $q, float $baseBet, int $poolSize): void
     {
         UserTracker::info("SessionFinishedEventListener: processUserBalance started for user {$user->id} (Wallet: {$user->wallet_address}). Start Status: {$user->status}", ['wallet' => $user->wallet_address, 'status' => $user->status]);
-        // If user is already available (waiting for batch) or stopped (insufficient funds), do not process session continuity
-        if (in_array($user->status, ['available', 'stopped'])) {
-            UserTracker::info("SessionFinishedEventListener: User {$user->id} (Wallet: {$user->wallet_address}) has status '{$user->status}'. Skipping immediate re-pool.", ['wallet' => $user->wallet_address]);
-
-            return;
-        }
-
+        
+        // We process balance even if status is 'available' (pool finished) 
+        // to ensure q calculation and payout logic is executed.
+        
         // Retrieve multiplier based on user level
         $multiplierLevel = $user->multiplier_level ?? 1;
         $multiplier = config("game_levels.multiplier.{$multiplierLevel}", 2.0);

@@ -9,7 +9,7 @@ timeout /t 3 /nobreak > nul
 
 rem 2.1 Laravel Backend
 set PHP_CLI_SERVER_WORKERS=4
-start "Serveur API Laravel" cmd /k "php artisan serve"
+start "Serveur API Laravel" cmd /k "php artisan serve --port=8001"
 
 rem 2.2. Data Base clean
 start "Data Base clean" cmd /k "php artisan migrate:fresh"

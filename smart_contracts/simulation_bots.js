@@ -8,7 +8,7 @@ import {
 
 // --- Configuration ---
 const BASE_BET = "0.01"; // ETH
-const BOT_INTERVAL_MS = 2000; // 2 seconds delay between bots
+const BOT_INTERVAL_MS = 1000; // 1 second delay between bots
 const MAX_RETRIES = 3;
 
 // Game contract setup

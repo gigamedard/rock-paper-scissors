@@ -15,7 +15,7 @@ class PinataService
         try {
             $response = Http::withHeaders([
                 'pinata_api_key' => env('PINATA_API_KEY'),
-                'pinata_secret_api_key' => env('PINATA_SECRET_KEY'),
+                'pinata_secret_api_key' => env('PINATA_SECRET_API_KEY'),
             ])->post('https://api.pinata.cloud/pinning/pinJSONToIPFS', [
                 'pinataContent' => json_decode($jsonData, true),
             ]);

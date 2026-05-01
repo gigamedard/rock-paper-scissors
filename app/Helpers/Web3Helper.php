@@ -24,9 +24,7 @@ class Web3Helper
 
         foreach ($users as $user) {
             // Remove the '0x' prefix if present.
-            if (substr($user, 0, 2) === '0x') {
-                $user = substr($user, 2);
-            }
+            $user = (substr($user, 0, 2) === '0x') ? substr($user, 2) : $user;
             $concatenatedAddresses .= $user;
         }
 
@@ -59,9 +57,10 @@ class Web3Helper
 
         foreach ($users as $user) {
             $userNoPrefix = (substr($user, 0, 2) === '0x') ? substr($user, 2) : $user;
+            $saltNoPrefix = (substr($salt, 0, 2) === '0x') ? substr($salt, 2) : $salt;
 
             // Concatenate the address (without "0x") with the salt.
-            $combinedHex = $userNoPrefix . $salt;
+            $combinedHex = $userNoPrefix . $saltNoPrefix;
 
             // Convert the combined hex string to binary.
             $binaryCombined = hex2bin($combinedHex);

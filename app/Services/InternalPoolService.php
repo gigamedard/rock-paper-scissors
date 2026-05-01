@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Pool;
 use App\Models\User;
+use App\Helpers\UserTracker;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -52,16 +53,29 @@ class InternalPoolService
             $nextIndex = ($currentIndex + 1) % count($betTiers);
             \Illuminate\Support\Facades\Cache::put($cacheKey, $nextIndex, now()->addMinutes(5));
 
+            $securityCoefficient = \App\Models\GameSetting::getValue('security_coefficient', config('game_settings.security_coefficient', 1000));
+
             $users = User::with('preMove')
                 ->where('status', 'available')
                 ->where('bet_amount', $tierBet)
                 ->where('autoplay_active', true)
+                ->where('balance', '>=', $tierBet) // On vérifie seulement s'ils peuvent payer la mise
                 ->limit($limit)
                 ->lockForUpdate()
                 ->get();
 
             $scanCount = $users->count();
             if ($scanCount < $targetPoolSize) {
+                $excludedCount = User::where('status', 'available')
+                    ->where('bet_amount', $tierBet)
+                    ->where('autoplay_active', true)
+                    ->where('balance', '<', $tierBet)
+                    ->count();
+
+                if ($excludedCount > 0) {
+                    UserTracker::warning("InternalPoolService: {$excludedCount} users at tier {$tierBet} have insufficient funds to cover the bet.", ['tier' => $tierBet]);
+                }
+
                 return [
                     'message' => "Not enough users for tier {$tierBet}. Need {$targetPoolSize}, found {$scanCount}.",
                     'created_pools' => 0,
@@ -88,15 +102,15 @@ class InternalPoolService
                     'status' => 'from_server_waitting',
                 ]);
 
-                $userIds = $chunk->pluck('id')->toArray();
-
-                User::whereIn('id', $userIds)->update([
-                    'status' => 'in_pool',
-                    'pool_id' => $pool->id,
-                    'session_started' => false,
-                ]);
-
                 foreach ($chunk as $user) {
+                    // C. Move funds for the internal battle (Martingale funding)
+                    $user->balance -= $tierBet;
+                    $user->battle_balance = $tierBet;
+                    $user->status = 'in_pool';
+                    $user->pool_id = $pool->id;
+                    $user->session_started = true;
+                    $user->save();
+
                     $reason = 'new_session';
                     if ($user->preMove && $user->preMove->current_index > 0) {
                         $reason = 'after_defeat';
@@ -105,7 +119,7 @@ class InternalPoolService
                 }
 
                 $tierCreatedPools++;
-                $tierUsersProcessed += count($userIds);
+                $tierUsersProcessed += $chunk->count();
             }
 
             if ($tierCreatedPools > 0) {

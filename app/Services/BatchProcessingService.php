@@ -7,6 +7,7 @@ use App\Services\BatchProcessing\BatchFinderService;
 use App\Services\BatchProcessing\BatchManagerService;
 use App\Services\BatchProcessing\PoolFetcherService;
 use App\Services\BatchProcessing\PoolProcessorService;
+use App\Helpers\UserTracker;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 

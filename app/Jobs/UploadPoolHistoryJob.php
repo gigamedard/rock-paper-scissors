@@ -27,10 +27,10 @@ class UploadPoolHistoryJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(\App\Services\PinataService $pinataService, \App\Helpers\Web3Helper $web3Helper): void
+    public function handle(\App\Services\IpfsService $ipfsService, \App\Helpers\Web3Helper $web3Helper): void
     {
         try {
-            $cid = $pinataService->pinJsonData(json_encode($this->data));
+            $cid = $ipfsService->uploadJson($this->data);
             if (!$cid) {
                 \Illuminate\Support\Facades\Log::warning("UploadPoolHistoryJob: Failed to send pool {$this->poolId} to IPFS.");
                 return;

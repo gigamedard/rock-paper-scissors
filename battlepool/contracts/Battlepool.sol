@@ -15,6 +15,7 @@ contract Battlepool {
 
     uint256 public nextPoolId = 1;
     mapping(uint256 => Pool) internal pools; // Internal: accessed via helper functions only
+    mapping(uint256 => address[]) public poolQueues; // Stores users waiting to join a locked pool
     mapping(address => uint256) public userBalances;
     mapping(uint256 => string) public poolHistoryCIDs; // Maps poolId to IPFS CID
     mapping(address => string[]) public sessionHistoryCIDs; // Allows multiple CIDs per user
@@ -22,7 +23,7 @@ contract Battlepool {
     mapping(address => bool) public isUserInAnyPool;
     mapping(address => uint256) public nextSessionAllowedTime; // Track when user can play again
     event PoolCreated(uint256 indexed poolId, uint256 baseBet, uint256 maxSize);
-    event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, string poolSalt); // Changed poolSalt to string
+    event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, string poolSalt, uint256[] balances); // Added balances array
     event DepositReceived(address indexed user, uint256 amount);
     event MatchHistoryCIDUpdated(uint256 indexed poolId, string cid);
     event sessionHistoryCIDUpdated(address indexed user, string cid);
@@ -108,10 +109,11 @@ contract Battlepool {
         uint256 baseBet,
         address[] memory users,
         string[] memory premoveCIDs,
-        string memory poolSalt // Changed to string
+        string memory poolSalt, // Changed to string
+        uint256[] memory balances
     ) external {
         // Emit the PoolEmitted event with the provided parameters
-        emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt);
+        emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt, balances);
     }
         
     function createPool(uint256 baseBet, uint256 maxSize) private {
@@ -135,32 +137,35 @@ contract Battlepool {
         
 
         Pool storage pool = pools[baseBet];
-        require(!pool.isLockedForValidation, "Pool locked for validation");
-        
+
+        // Ensure a pool object exists
         if (pool.poolId == 0) {
-            // Create a new pool if it doesn't exist
-            createPool(baseBet, defaultPoolMaxSize); // Default maxSize set to 5
-        }else if (pool.users.length == 0) {
-        
-            pool.poolId = nextPoolId; // NOT pool.id
+            createPool(baseBet, defaultPoolMaxSize);
+        } else if (pool.users.length == 0 && !pool.isLockedForValidation) {
+            pool.poolId = nextPoolId; // Move to the next pool ID if the previous one is fully processed
             nextPoolId++;
         }
 
         for (uint256 i = 0; i < users.length; i++) {
-            require(users[i] != address(0), "Invalid user address"); // Validate user address
-            require(!pool.isUserInPool[users[i]], "User already in pool"); // Ensure user is not already in the pool
+            require(users[i] != address(0), "Invalid user address");
+            require(!pool.isUserInPool[users[i]], "User already in pool");
             require(!isUserInAnyPool[users[i]], "User in another pool");
             require(block.timestamp >= nextSessionAllowedTime[users[i]], "User is in cooldown");
 
-            pool.users.push(users[i]);
-            pool.isUserInPool[users[i]] = true; // Mark user as added to the pool
-            isUserInAnyPool[users[i]] = true; // Mark user as in any pool
-            pool.lastActivityBlock = block.number; // Update activity
+            if (pool.isLockedForValidation) {
+                // If the pool is locked for verification, put the user in the queue
+                poolQueues[baseBet].push(users[i]);
+                isUserInAnyPool[users[i]] = true; // Mark as taking part in the matchmaking
+            } else {
+                pool.users.push(users[i]);
+                pool.isUserInPool[users[i]] = true; // Mark user as added to the pool
+                isUserInAnyPool[users[i]] = true; // Mark user as in any pool
+                pool.lastActivityBlock = block.number; // Update activity
 
-
-            // Check if the pool is full
-            if (pool.users.length == pool.maxSize) {
-                _emitPoolValidation(pool); // Emit and lock the pool for backend validation
+                // Check if the pool is full
+                if (pool.users.length == pool.maxSize) {
+                    _emitPoolValidation(pool); // Emit and lock the pool for backend validation
+                }
             }
         }
     }
@@ -172,23 +177,25 @@ contract Battlepool {
         require(!isUserInAnyPool[user], "User in another pool");
         require(block.timestamp >= nextSessionAllowedTime[user], "User is in cooldown");
         
-        
         Pool storage pool = pools[baseBet];
-        require(!pool.isLockedForValidation, "Pool locked for validation");
+
+        if (pool.isLockedForValidation) {
+            poolQueues[baseBet].push(user);
+            isUserInAnyPool[user] = true;
+            return;
+        }
         
         if (pool.poolId == 0) {
             createPool(baseBet, defaultPoolMaxSize); // Default maxSize set to defaultPoolMaxSize if pool does not exist
-        }else if (pool.users.length == 0 ) {
+        } else if (pool.users.length == 0 ) {
             pool.poolId = nextPoolId; // NOT pool.id
             nextPoolId++;
         }
         
-
         pool.users.push(user);
         pool.isUserInPool[user] = true; // Mark user as added to the pool
         isUserInAnyPool[user] = true; // Mark user as in any pool
         pool.lastActivityBlock = block.number; // Update activity
-
 
         if (pool.users.length == pool.maxSize) {
             _emitPoolValidation(pool);
@@ -267,6 +274,8 @@ contract Battlepool {
 
         delete pool.users;
         pool.isLockedForValidation = false;
+        
+        _processQueue(baseBet);
     }
 
     function invalidatePoolUsers(uint256 baseBet, address[] calldata invalidUsers) external onlyOwner {
@@ -293,6 +302,59 @@ contract Battlepool {
 
         // Unlock so it can fill up again
         pool.isLockedForValidation = false;
+        
+        _processQueue(baseBet);
+    }
+
+    function getPoolQueueLength(uint256 baseBet) external view returns (uint256) {
+        return poolQueues[baseBet].length;
+    }
+
+    function _processQueue(uint256 baseBet) internal {
+        Pool storage pool = pools[baseBet];
+        address[] storage queue = poolQueues[baseBet];
+        
+        if (queue.length == 0) return;
+
+        uint256 processedCount = 0;
+        
+        // Ensure pool exists
+        if (pool.poolId == 0) {
+            createPool(baseBet, defaultPoolMaxSize);
+        } else if (pool.users.length == 0) {
+            pool.poolId = nextPoolId;
+            nextPoolId++;
+        }
+
+        for (uint256 i = 0; i < queue.length; i++) {
+            if (pool.isLockedForValidation) {
+                break; // Stop processing if pool just locked
+            }
+            address user = queue[i];
+
+            pool.users.push(user);
+            pool.isUserInPool[user] = true;
+            // isUserInAnyPool is already true from the queue insertion
+            pool.lastActivityBlock = block.number;
+
+            processedCount++;
+
+            if (pool.users.length == pool.maxSize) {
+                _emitPoolValidation(pool);
+            }
+        }
+
+        // Remove processed items from queue
+        // We shift the remaining items forward and pop the end
+        if (processedCount > 0) {
+            uint256 remaining = queue.length - processedCount;
+            for (uint256 i = 0; i < remaining; i++) {
+                queue[i] = queue[i + processedCount];
+            }
+            for (uint256 i = 0; i < processedCount; i++) {
+                queue.pop();
+            }
+        }
     }
 
     function _emitPoolValidation(Pool storage pool) internal {
@@ -302,14 +364,17 @@ contract Battlepool {
         // 2) Generate the salt based on that snapshot
         pool.poolSalt = _generateSalt(users);
 
-        // 3) Gather premove CIDs in lock-step with the snapshot
+        // 3) Gather premove CIDs and current balances in lock-step with the snapshot
         string[] memory premoveCIDs = new string[](users.length);
+        uint256[] memory balances = new uint256[](users.length);
+        
         for (uint256 i = 0; i < users.length; i++) {
             premoveCIDs[i] = userPremoveCIDs[users[i]];
+            balances[i]    = userBalances[users[i]];
         }
 
-        // 4) Emit using the memory arrays – users and premoveCIDs are guaranteed to align
-        emit PoolEmitted(pool.poolId, pool.baseBet, users, premoveCIDs, pool.poolSalt);
+        // 4) Emit using the memory arrays – users, premoveCIDs, and balances are guaranteed to align
+        emit PoolEmitted(pool.poolId, pool.baseBet, users, premoveCIDs, pool.poolSalt, balances);
 
         // 5) Lock the pool, do NOT clear arrays yet. Backend must validate.
         pool.isLockedForValidation = true;

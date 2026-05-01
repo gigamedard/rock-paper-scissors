@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\UserStoppedEvent;
 use App\Helpers\Web3Helper;
+use App\Helpers\UserTracker;
 use App\Models\Fight;
 use App\Models\Pool;
 use App\Models\User;
@@ -95,12 +96,12 @@ class FightService
                 // Check if user has enough funds (balance + battle_balance) for the NEXT doubled bet
                 $totalFunds = $loserUser->balance + $loserUser->battle_balance;
 
-                if ($totalFunds < $baseBet * 1) {
+                if ($totalFunds < $newBetAmount) {
                     $loserUser->status = 'stopped';
                     $loserUser->save();
-                    UserTracker::info("[FIGHT_ELIMINATION] 🛑 Player {$loserWallet} eliminated and stopped! Total Funds ({$totalFunds}) < Base Bet ({$baseBet}).", ['wallet' => $loserWallet, 'funds' => $totalFunds, 'base_bet' => $baseBet]);
+                    UserTracker::info("[FIGHT_ELIMINATION] 🛑 Player {$loserWallet} eliminated and stopped! Total Funds ({$totalFunds}) < Next Bet ({$newBetAmount}).", ['wallet' => $loserWallet, 'funds' => $totalFunds, 'next_bet' => $newBetAmount]);
                     $this->notificationService->notifyInsufficientBalance($loserUser);
-                    event(new UserStoppedEvent($loserUser, 'insufficient_funds'));
+                    event(new \App\Events\UserStoppedEvent($loserUser, 'insufficient_funds'));
                 } else {
                     UserTracker::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool, has funds ({$totalFunds}) for re-pooling. Status set to 'available' for Round Robin.", ['wallet' => $loserWallet, 'funds' => $totalFunds]);
                     $loserUser->status = 'available';

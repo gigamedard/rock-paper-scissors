@@ -14,7 +14,7 @@ dotenv.config({ path: join(__dirname, '.env') });
 // ===================================
 // == CONFIGURATION PRINCIPALE
 // ===================================
-export const LARAVEL_API_URL = "http://127.0.0.1:8000/api"; // Local Access
+export const LARAVEL_API_URL = "http://127.0.0.1:8001/api"; // Local Access
 export const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 export const BACKEND_URL = "https://srv1198092.hstgr.cloud"; // Force correct domain
 
@@ -54,824 +54,1077 @@ export const contracts = {
     address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     abi: [
       {
-        "inputs": [],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
+            "inputs": [],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "newSize",
-            "type": "uint256"
-          }
-        ],
-        "name": "DefaultPoolMaxSizeChanged",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "newSize",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "DefaultPoolMaxSizeChanged",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "address",
-            "name": "user",
-            "type": "address"
-          },
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "amount",
-            "type": "uint256"
-          }
-        ],
-        "name": "DepositReceived",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "DepositReceived",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          },
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "refundedCount",
-            "type": "uint256"
-          },
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
-          }
-        ],
-        "name": "PoolStagnantRefund",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "wallet",
+                        "type": "address"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "DevFeesWithdrawn",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "newLimit",
-            "type": "uint256"
-          }
-        ],
-        "name": "StagnantBlockLimitUpdated",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": false,
+                        "internalType": "address",
+                        "name": "newWallet",
+                        "type": "address"
+                  }
+            ],
+            "name": "DevWalletUpdated",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          },
-          {
-            "indexed": false,
-            "internalType": "string",
-            "name": "cid",
-            "type": "string"
-          }
-        ],
-        "name": "MatchHistoryCIDUpdated",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "newFee",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "FeeBasisPointsUpdated",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "address",
-            "name": "wallet",
-            "type": "address"
-          },
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "amount",
-            "type": "uint256"
-          }
-        ],
-        "name": "PayoutProcessed",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "uint256",
+                        "name": "poolId",
+                        "type": "uint256"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "string",
+                        "name": "cid",
+                        "type": "string"
+                  }
+            ],
+            "name": "MatchHistoryCIDUpdated",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          },
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          },
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "maxSize",
-            "type": "uint256"
-          }
-        ],
-        "name": "PoolCreated",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "nextTime",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "NextSessionTimeUpdated",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          },
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          },
-          {
-            "indexed": false,
-            "internalType": "address[]",
-            "name": "users",
-            "type": "address[]"
-          },
-          {
-            "indexed": false,
-            "internalType": "string[]",
-            "name": "premoveCIDs",
-            "type": "string[]"
-          },
-          {
-            "indexed": false,
-            "internalType": "string",
-            "name": "poolSalt",
-            "type": "string"
-          }
-        ],
-        "name": "PoolEmitted",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "wallet",
+                        "type": "address"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "PayoutProcessed",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "address",
-            "name": "user",
-            "type": "address"
-          },
-          {
-            "indexed": false,
-            "internalType": "string",
-            "name": "cid",
-            "type": "string"
-          }
-        ],
-        "name": "PremoveCIDUpdated",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "uint256",
+                        "name": "poolId",
+                        "type": "uint256"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "maxSize",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "PoolCreated",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": false,
-            "internalType": "uint256",
-            "name": "newCoefficient",
-            "type": "uint256"
-          }
-        ],
-        "name": "SecurityCoefficientUpdated",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "uint256",
+                        "name": "poolId",
+                        "type": "uint256"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "address[]",
+                        "name": "users",
+                        "type": "address[]"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "string[]",
+                        "name": "premoveCIDs",
+                        "type": "string[]"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "string",
+                        "name": "poolSalt",
+                        "type": "string"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256[]",
+                        "name": "balances",
+                        "type": "uint256[]"
+                  }
+            ],
+            "name": "PoolEmitted",
+            "type": "event"
       },
       {
-        "anonymous": false,
-        "inputs": [
-          {
-            "indexed": true,
-            "internalType": "address",
-            "name": "user",
-            "type": "address"
-          },
-          {
-            "indexed": false,
-            "internalType": "string",
-            "name": "cid",
-            "type": "string"
-          }
-        ],
-        "name": "sessionHistoryCIDUpdated",
-        "type": "event"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "uint256",
+                        "name": "poolId",
+                        "type": "uint256"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "refundedCount",
+                        "type": "uint256"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "timestamp",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "PoolStagnantRefund",
+            "type": "event"
       },
       {
-        "stateMutability": "payable",
-        "type": "fallback"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "string",
+                        "name": "cid",
+                        "type": "string"
+                  }
+            ],
+            "name": "PremoveCIDUpdated",
+            "type": "event"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "user",
-            "type": "address"
-          }
-        ],
-        "name": "addSingleUserToPool",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "newCoefficient",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "SecurityCoefficientUpdated",
+            "type": "event"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address[]",
-            "name": "users",
-            "type": "address[]"
-          }
-        ],
-        "name": "addUsersToPool",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "newLimit",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "StagnantBlockLimitUpdated",
+            "type": "event"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address[]",
-            "name": "wallets",
-            "type": "address[]"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "amounts",
-            "type": "uint256[]"
-          }
-        ],
-        "name": "batchPayOut",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "anonymous": false,
+            "inputs": [
+                  {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  },
+                  {
+                        "indexed": false,
+                        "internalType": "string",
+                        "name": "cid",
+                        "type": "string"
+                  }
+            ],
+            "name": "sessionHistoryCIDUpdated",
+            "type": "event"
       },
       {
-        "inputs": [],
-        "name": "defaultPoolMaxSize",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "stateMutability": "payable",
+            "type": "fallback"
       },
       {
-        "inputs": [],
-        "name": "deposit",
-        "outputs": [],
-        "stateMutability": "payable",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  }
+            ],
+            "name": "addSingleUserToPool",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
       },
       {
-        "inputs": [],
-        "name": "getContractAddress",
-        "outputs": [
-          {
-            "internalType": "address",
-            "name": "",
-            "type": "address"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "address[]",
+                        "name": "users",
+                        "type": "address[]"
+                  }
+            ],
+            "name": "addUsersToPool",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
       },
       {
-        "inputs": [],
-        "name": "getContractBalance",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "address[]",
+                        "name": "wallets",
+                        "type": "address[]"
+                  },
+                  {
+                        "internalType": "uint256[]",
+                        "name": "amounts",
+                        "type": "uint256[]"
+                  }
+            ],
+            "name": "batchPayOut",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          }
-        ],
-        "name": "getMatchHistoryCID",
-        "outputs": [
-          {
-            "internalType": "string",
-            "name": "",
-            "type": "string"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "checkAndRefundStagnantPool",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          }
-        ],
-        "name": "getPoolInfo",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "maxSize",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "userCount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "isLocked",
-            "type": "bool"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [],
+            "name": "defaultPoolMaxSize",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          }
-        ],
-        "name": "getPoolUsers",
-        "outputs": [
-          {
-            "internalType": "address[]",
-            "name": "",
-            "type": "address[]"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [],
+            "name": "deposit",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "user",
-            "type": "address"
-          }
-        ],
-        "name": "getPremoveCID",
-        "outputs": [
-          {
-            "internalType": "string",
-            "name": "",
-            "type": "string"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [],
+            "name": "devBalance",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "user",
-            "type": "address"
-          }
-        ],
-        "name": "getSessionHistoryCIDs",
-        "outputs": [
-          {
-            "internalType": "string[]",
-            "name": "",
-            "type": "string[]"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [],
+            "name": "devWallet",
+            "outputs": [
+                  {
+                        "internalType": "address payable",
+                        "name": "",
+                        "type": "address"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "user",
-            "type": "address"
-          }
-        ],
-        "name": "getUserBalance",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [],
+            "name": "feeBasisPoints",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "",
-            "type": "address"
-          }
-        ],
-        "name": "isUserInAnyPool",
-        "outputs": [
-          {
-            "internalType": "bool",
-            "name": "",
-            "type": "bool"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [],
+            "name": "getContractAddress",
+            "outputs": [
+                  {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "user",
-            "type": "address"
-          }
-        ],
-        "name": "isUserInPoolByBaseBet",
-        "outputs": [
-          {
-            "internalType": "bool",
-            "name": "",
-            "type": "bool"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [],
+            "name": "getContractBalance",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [],
-        "name": "nextPoolId",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "poolId",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "getMatchHistoryCID",
+            "outputs": [
+                  {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [],
-        "name": "owner",
-        "outputs": [
-          {
-            "internalType": "address",
-            "name": "",
-            "type": "address"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "getPoolInfo",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "poolId",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "uint256",
+                        "name": "maxSize",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "uint256",
+                        "name": "userCount",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "bool",
+                        "name": "isLocked",
+                        "type": "bool"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address payable",
-            "name": "user",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "amount",
-            "type": "uint256"
-          }
-        ],
-        "name": "payOut",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "getPoolQueueLength",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "name": "poolHistoryCIDs",
-        "outputs": [
-          {
-            "internalType": "string",
-            "name": "",
-            "type": "string"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "getPoolUsers",
+            "outputs": [
+                  {
+                        "internalType": "address[]",
+                        "name": "",
+                        "type": "address[]"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [],
-        "name": "securityCoefficient",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  }
+            ],
+            "name": "getPremoveCID",
+            "outputs": [
+                  {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "name": "sessionHistoryCIDs",
-        "outputs": [
-          {
-            "internalType": "string",
-            "name": "",
-            "type": "string"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  }
+            ],
+            "name": "getSessionHistoryCIDs",
+            "outputs": [
+                  {
+                        "internalType": "string[]",
+                        "name": "",
+                        "type": "string[]"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "newSize",
-            "type": "uint256"
-          }
-        ],
-        "name": "setDefaultPoolMaxSize",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  }
+            ],
+            "name": "getUserBalance",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "newMaxSize",
-            "type": "uint256"
-          }
-        ],
-        "name": "setPoolMaxSize",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "address[]",
+                        "name": "invalidUsers",
+                        "type": "address[]"
+                  }
+            ],
+            "name": "invalidatePoolUsers",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "newCoefficient",
-            "type": "uint256"
-          }
-        ],
-        "name": "setSecurityCoefficient",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                  }
+            ],
+            "name": "isUserInAnyPool",
+            "outputs": [
+                  {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "cid",
-            "type": "string"
-          }
-        ],
-        "name": "storeMatchHistoryCID",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  }
+            ],
+            "name": "isUserInPoolByBaseBet",
+            "outputs": [
+                  {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "user",
-            "type": "address"
-          },
-          {
-            "internalType": "string",
-            "name": "cid",
-            "type": "string"
-          }
-        ],
-        "name": "storeSessionCID",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "inputs": [],
+            "name": "nextPoolId",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "cid",
-            "type": "string"
-          }
-        ],
-        "name": "submitPremoveCID",
-        "outputs": [],
-        "stateMutability": "payable",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                  }
+            ],
+            "name": "nextSessionAllowedTime",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "poolId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address[]",
-            "name": "users",
-            "type": "address[]"
-          },
-          {
-            "internalType": "string[]",
-            "name": "premoveCIDs",
-            "type": "string[]"
-          },
-          {
-            "internalType": "string",
-            "name": "poolSalt",
-            "type": "string"
-          }
-        ],
-        "name": "triggerPoolEmittedEventForTesting",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "inputs": [],
+            "name": "owner",
+            "outputs": [
+                  {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "",
-            "type": "address"
-          }
-        ],
-        "name": "userBalances",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "address payable",
+                        "name": "user",
+                        "type": "address"
+                  },
+                  {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "payOut",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "address",
-            "name": "",
-            "type": "address"
-          }
-        ],
-        "name": "userPremoveCIDs",
-        "outputs": [
-          {
-            "internalType": "string",
-            "name": "",
-            "type": "string"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "poolHistoryCIDs",
+            "outputs": [
+                  {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [],
-        "name": "stagnantBlockLimit",
-        "outputs": [
-          {
-            "internalType": "uint256",
-            "name": "",
-            "type": "uint256"
-          }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "poolQueues",
+            "outputs": [
+                  {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "_limit",
-            "type": "uint256"
-          }
-        ],
-        "name": "setStagnantBlockLimit",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "inputs": [],
+            "name": "securityCoefficient",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "baseBet",
-            "type": "uint256"
-          }
-        ],
-        "name": "checkAndRefundStagnantPool",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                  },
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "sessionHistoryCIDs",
+            "outputs": [
+                  {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
       },
       {
-        "stateMutability": "payable",
-        "type": "receive"
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "newSize",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "setDefaultPoolMaxSize",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "address payable",
+                        "name": "newWallet",
+                        "type": "address"
+                  }
+            ],
+            "name": "setDevWallet",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "newFee",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "setFeeBasisPoints",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "uint256",
+                        "name": "newMaxSize",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "setPoolMaxSize",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "newCoefficient",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "setSecurityCoefficient",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "_limit",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "setStagnantBlockLimit",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  },
+                  {
+                        "internalType": "uint256",
+                        "name": "nextTime",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "setUserNextSessionTime",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [],
+            "name": "stagnantBlockLimit",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "poolId",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "string",
+                        "name": "cid",
+                        "type": "string"
+                  }
+            ],
+            "name": "storeMatchHistoryCID",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                  },
+                  {
+                        "internalType": "string",
+                        "name": "cid",
+                        "type": "string"
+                  }
+            ],
+            "name": "storeSessionCID",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "string",
+                        "name": "cid",
+                        "type": "string"
+                  }
+            ],
+            "name": "submitPremoveCID",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "poolId",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  },
+                  {
+                        "internalType": "address[]",
+                        "name": "users",
+                        "type": "address[]"
+                  },
+                  {
+                        "internalType": "string[]",
+                        "name": "premoveCIDs",
+                        "type": "string[]"
+                  },
+                  {
+                        "internalType": "string",
+                        "name": "poolSalt",
+                        "type": "string"
+                  }
+            ],
+            "name": "triggerPoolEmittedEventForTesting",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                  }
+            ],
+            "name": "userBalances",
+            "outputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                  }
+            ],
+            "name": "userPremoveCIDs",
+            "outputs": [
+                  {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                  }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+      },
+      {
+            "inputs": [
+                  {
+                        "internalType": "uint256",
+                        "name": "baseBet",
+                        "type": "uint256"
+                  }
+            ],
+            "name": "validatePool",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "inputs": [],
+            "name": "withdrawDevFees",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+      },
+      {
+            "stateMutability": "payable",
+            "type": "receive"
       }
-    ]
+]
   },
   // --- Contrat MARKETPLACE (de app.js/server.js) ---
   marketplace: {
-    address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0", // L'adresse que tu avais
+    address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9", // MarketplaceEscrow
     abi: [
       {
         "inputs": [
@@ -1238,7 +1491,7 @@ export const contracts = {
   },
   // --- Contrat du JETON (SNT / USDT) ---
   snt: {
-    address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0", // SNTToken
     abi: [
       { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
       { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },

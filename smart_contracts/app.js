@@ -257,7 +257,18 @@ app.post("/pool/validate", async (req, res) => {
     try {
         const { baseBet } = req.body;
         console.log(`📡 [pool/validate] Validating pool for baseBet: ${baseBet}`);
-        res.json({ success: true, message: "Pool validation acknowledged" });
+
+        if (!baseBet) {
+            return res.status(400).json({ error: "baseBet is required" });
+        }
+
+        const baseBetWei = parseUnits(baseBet.toString(), 18);
+        console.log(`   [Action] Calling gameContract.validatePool(${baseBetWei.toString()})...`);
+        const tx = await gameContract.validatePool(baseBetWei);
+        const receipt = await tx.wait();
+
+        console.log(`   ✅ Pool Validated! TX Hash: ${receipt.hash}`);
+        res.json({ success: true, txHash: receipt.hash });
     } catch (error) {
         console.error("❌ Error in /pool/validate:", error);
         res.status(500).json({ error: error.message });
@@ -267,8 +278,8 @@ app.post("/pool/validate", async (req, res) => {
 app.post("/refundUsers", async (req, res) => {
     try {
         const { wallets } = req.body;
-        console.log(`📡 [refundUsers] Refunding ${wallets?.length || 0} wallets`);
-        res.json({ success: true, message: "Refund acknowledged" });
+        console.log(`📡 [refundUsers] Refunding ${wallets?.length || 0} wallets (logged only)`);
+        res.json({ success: true, message: "Refund instruction acknowledged" });
     } catch (error) {
         console.error("❌ Error in /refundUsers:", error);
         res.status(500).json({ error: error.message });
@@ -278,8 +289,19 @@ app.post("/refundUsers", async (req, res) => {
 app.post("/pool/invalidate", async (req, res) => {
     try {
         const { baseBet, invalidUsers } = req.body;
-        console.log(`📡 [pool/invalidate] Invalidating ${invalidUsers?.length || 0} users for baseBet: ${baseBet}`);
-        res.json({ success: true, message: "Pool invalidation acknowledged" });
+        console.log(`📡 [pool/invalidate] Invalidating users for pool ${baseBet}:`, invalidUsers);
+
+        if (!baseBet || !invalidUsers) {
+            return res.status(400).json({ error: "baseBet and invalidUsers are required" });
+        }
+
+        const baseBetWei = parseUnits(baseBet.toString(), 18);
+        console.log(`   [Action] Calling gameContract.invalidatePoolUsers...`);
+        const tx = await gameContract.invalidatePoolUsers(baseBetWei, invalidUsers);
+        const receipt = await tx.wait();
+
+        console.log(`   ✅ Pool Users Invalidated! TX Hash: ${receipt.hash}`);
+        res.json({ success: true, txHash: receipt.hash });
     } catch (error) {
         console.error("❌ Error in /pool/invalidate:", error);
         res.status(500).json({ error: error.message });
@@ -295,6 +317,7 @@ app.post("/pool/invalidate", async (req, res) => {
  */
 async function postToLaravel(endpoint, body) {
     const url = `${LARAVEL_API_URL}${endpoint}`; // ex: /internal/update-balance
+    console.log(`📡 [BRIDGE] Calling Laravel: ${url}`);
     try {
         const response = await fetch(url, {
             method: 'POST',
@@ -356,7 +379,8 @@ async function startBlockchainListeners() {
                         base_bet: args[1].toString(),
                         users: args[2],
                         premove_cids: args[3],
-                        pool_salt: args[4]
+                        pool_salt: args[4],
+                        balances: args[5].map(b => b.toString())
                     });
                 }
 
@@ -368,15 +392,15 @@ async function startBlockchainListeners() {
                     postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: args[1].toString() });
                 }
 
-                // 3. PoolStagnantRefund
-                const stagnantEvents = await gameContract.queryFilter("PoolStagnantRefund", lastBlock + 1, currentBlock);
-                for (const event of stagnantEvents) {
+                // 4. SecurityCoefficientUpdated
+                const coeffEvents = await gameContract.queryFilter("SecurityCoefficientUpdated", lastBlock + 1, currentBlock);
+                for (const event of coeffEvents) {
                     const { args } = event;
-                    console.log(`🔔 [JEU] PoolStagnantRefund: poolId=${args[0]}, refunded=${args[1]}, timestamp=${args[2]}`);
-                    postToLaravel('/internal/handle-stagnant-refund', {
-                        pool_id: args[0].toString(),
-                        refunded_count: args[1].toString(),
-                        timestamp: args[2].toString()
+                    console.log(`🔔 [JEU] SecurityCoefficientUpdated: ${args[0]}`);
+                    postToLaravel('/internal/update-setting', {
+                        key: 'security_coefficient',
+                        value: args[0].toString(),
+                        type: 'integer'
                     });
                 }
 

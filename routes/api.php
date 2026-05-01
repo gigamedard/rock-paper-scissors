@@ -131,6 +131,7 @@ Route::prefix('internal')->middleware('auth.internal')->group(function () {
 
     Route::post('/update-balance', [BlockchainController::class, 'updateUserBalance']);
     Route::post('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+    Route::post('/update-setting', [BlockchainController::class, 'updateSetting']);
     Route::post('/handle-stagnant-refund', [PoolAutoMatchController::class, 'handleStagnantRefund']);
     Route::post('/batch-processing', [PoolAutoMatchController::class, 'processBatch']);
     Route::post('/batch-processing-all', [PoolAutoMatchController::class, 'processAllBetTiers']);
