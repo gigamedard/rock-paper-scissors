@@ -3,8 +3,7 @@
 
 import { JsonRpcProvider, Wallet, Contract } from "ethers";
 import {
-    FUJI_RPC_URL,
-    GAME_WALLET_PK, // Doit être la clé du "owner" du contrat
+    LOCAL_HARDHAT_URL, // Target local node
     contracts
 } from "./config.js";
 
@@ -18,6 +17,9 @@ const NOUVEAU_COEFFICIENT = 1;
 // La nouvelle valeur pour la taille maximale par défaut des pools (ex: 5)
 const NOUVELLE_TAILLE_MAX = 5;
 
+// Account #0 of Hardhat default accounts
+const LOCAL_OWNER_PK = "***REMOVED***";
+
 // ===================================
 
 
@@ -25,8 +27,8 @@ async function main() {
     console.log("🚀 Connexion au réseau Fuji...");
 
     // 1. Connexion au Provider et au Wallet (doit être le 'owner')
-    const provider = new JsonRpcProvider(FUJI_RPC_URL);
-    const ownerWallet = new Wallet(GAME_WALLET_PK, provider);
+    const provider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
+    const ownerWallet = new Wallet(LOCAL_OWNER_PK, provider);
 
     // 2. Connexion au contrat (il doit avoir le NOUVEL ABI)
     const contract = new Contract(contracts.game.address, contracts.game.abi, ownerWallet);

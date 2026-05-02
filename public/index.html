@@ -2654,6 +2654,22 @@
                 gameContract = new WEB3.eth.Contract(contractConfig.abi, contractConfig.address);
                 console.log("Game contract initialized successfully.");
 
+                // --- AJOUTÉ : Vérification de l'état du joueur sur la Blockchain ---
+                // Si l'utilisateur est déjà dans un pool, on saute directement au HUD
+                const inAnyPool = await gameContract.methods.isUserInAnyPool(userState.walletAddress).call();
+                if (inAnyPool) {
+                    console.log("User already in a pool, showing HUD.");
+                    showPage('autoplay-page');
+                    updateBattleHud({
+                        status: 'available',
+                        autoplay_active: true,
+                        session_started: false,
+                        battle_balance: 0,
+                        session_start_battle_balance: 0
+                    });
+                    return; // Stop initialization here
+                }
+
                 // Restore previous bet amount to keep HUD alive if page reloads
                 const lastBet = localStorage.getItem('lastSelectedBet');
                 if (lastBet) {
@@ -2731,10 +2747,67 @@
                 provider = window.ethereum;
             }
 
-            // No wallet found
+            // No wallet found -> TEST BYPASS FOR AGENT 2 (only when no provider detected)
             if (!provider) {
-                console.error("No wallet detected!");
-                alert('Please install a Web3 wallet like Core or MetaMask!');
+                console.warn("No wallet detected! Using TEST MODE with local Hardhat provider.");
+                
+                // Prompt user for wallet address
+                const mockWalletAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+
+                WEB3 = new Web3("http://127.0.0.1:8545");
+                
+                try {
+                    const messageResponse = await fetch(`${API_URL}/wallet/generate-message`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ wallet_address: mockWalletAddress, locale: locale }),
+                    });
+
+                    if (!messageResponse.ok) throw new Error('Failed to get challenge from server.');
+                    const { message } = await messageResponse.json();
+
+                    const signature = "TEST_BYPASS";
+
+                    const verifyResponse = await fetch(`${API_URL}/wallet/verify-signature`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ wallet_address: mockWalletAddress, signature: signature, locale: locale }),
+                    });
+
+                    const data = await verifyResponse.json();
+
+                    if (verifyResponse.ok && data.token) {
+                        localStorage.setItem('auth_token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        localStorage.setItem('locale', data.locale);
+
+                        userState.id = data.user.id;
+                        userState.walletAddress = data.user.wallet_address;
+                        userState.userObject = data.user;
+
+                        updateUserInfo(data.user);
+
+                        const params = new URLSearchParams(window.location.search);
+                        const refCode = params.get('ref');
+
+                        if (refCode) {
+                            await applyReferralCodeFromUrl(refCode, data.token);
+                        }
+
+                        const user = JSON.parse(localStorage.getItem('user'));
+                        if (user && user.has_used_referral_code) {
+                            showPage('autoplay-page');
+                            initializeGamePage();
+                        } else {
+                            showPage('referral-page');
+                        }
+                    } else {
+                        throw new Error(data.message || 'Signature verification failed.');
+                    }
+                } catch (error) {
+                    console.error('Authentication Error:', error);
+                    alert(`Login failed: ${error.message}`);
+                }
                 return;
             }
 

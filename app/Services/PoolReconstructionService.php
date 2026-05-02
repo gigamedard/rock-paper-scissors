@@ -1,0 +1,217 @@
+<?php
+
+namespace App\Services;
+
+use App\Events\UserBalanceUpdated;
+use App\Helpers\Web3Helper;
+use App\Helpers\UserTracker;
+use App\Models\Pool;
+use App\Models\User;
+use Illuminate\Support\Facades\Log;
+
+class PoolReconstructionService
+{
+    protected Web3Helper $web3Helper;
+
+    public function __construct(Web3Helper $web3Helper)
+    {
+        $this->web3Helper = $web3Helper;
+    }
+
+    /**
+     * Handles the PoolEmited event from the blockchain.
+     * Validates users, ejects intruders, and reconstructs the pool in the database.
+     * Pool organization by bet_amount tier is handled upstream by the batch processor
+     * (InternalPoolService / AutoMatchService) — not here.
+     *
+     * @param array $data Raw event data from the Node.js bridge
+     * @return array Status of the reconstruction
+     */
+    public function reconstruct(array $data): array
+    {
+        $this->validatePayload($data);
+
+        $poolSalt = $data['pool_salt'];
+
+        if (Pool::where('salt', $poolSalt)->exists()) {
+            Log::info("Pool with salt {$poolSalt} already processed. Skipping.");
+            return ['status' => 'already_processed'];
+        }
+
+        $blockchainUsers    = is_array($data['users'])        ? $data['users']        : explode(',', $data['users']);
+        $premoveCIDs        = is_array($data['premove_cids']) ? $data['premove_cids'] : explode(',', $data['premove_cids']);
+        $baseBetEther       = $this->web3Helper->weiToEther($data['base_bet']);
+        $blockchainBalances = $data['balances'] ?? [];
+
+        // 1. Separate valid users from intruders
+        $validationResult = $this->validateUsers($blockchainUsers, $premoveCIDs);
+        $validUsers       = $validationResult['valid'];
+        $invalidAddresses = $validationResult['invalid'];
+
+        // 2. Handle intruders (if any)
+        if (!empty($invalidAddresses)) {
+            $this->ejectIntruders($invalidAddresses, $baseBetEther);
+            return ['status' => 'invalidated_intruders', 'ejected' => $invalidAddresses];
+        }
+
+        // 3. Pool is valid — confirm on blockchain
+        $this->validatePoolOnBlockchain($validUsers, $baseBetEther);
+
+        // 4. Register pool in DB
+        $pool = $this->createPool($data['pool_id'], $baseBetEther, $poolSalt, count($blockchainUsers));
+
+        // 5. Initialize users for this pool
+        $this->initializeUsersForPool($validUsers, $pool, $baseBetEther, $blockchainBalances);
+
+        $pool->status = 'from_server_waitting';
+        $pool->save();
+
+        return ['pool_id' => $pool->id, 'status' => 'processed'];
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    private function validatePayload(array $data): void
+    {
+        if (
+            empty($data['pool_id'])      ||
+            empty($data['base_bet'])     ||
+            empty($data['users'])        ||
+            empty($data['premove_cids']) ||
+            empty($data['pool_salt'])
+        ) {
+            throw new \InvalidArgumentException('Missing required parameters for PoolEmited event.');
+        }
+    }
+
+    private function validateUsers(array $blockchainUsers, array $premoveCIDs): array
+    {
+        $validUsers       = [];
+        $invalidAddresses = [];
+
+        foreach ($blockchainUsers as $index => $walletAddress) {
+            $expectedCid = $premoveCIDs[$index] ?? null;
+            $user        = User::where('wallet_address', $walletAddress)->first();
+
+            if (!$user || !$user->preMove || $user->preMove->cid !== $expectedCid) {
+                $foundCid = ($user && $user->preMove) ? $user->preMove->cid : 'None/Not Found';
+                Log::error("Validation failed for user: {$walletAddress}. Expected: {$expectedCid}, Found: {$foundCid}");
+
+                if ($user) {
+                    $user->status = 'invalid';
+                    $user->save();
+                }
+                $invalidAddresses[] = $walletAddress;
+            } else {
+                $validUsers[] = $user;
+            }
+        }
+
+        return ['valid' => $validUsers, 'invalid' => $invalidAddresses];
+    }
+
+    private function ejectIntruders(array $invalidAddresses, float $baseBetEther): void
+    {
+        Log::warning('Intruders detected. Refunding and invalidating: ' . implode(', ', $invalidAddresses));
+        Web3Helper::refundUsers(env('NODE_URL'), $invalidAddresses);
+        Web3Helper::invalidatePoolUsers(env('NODE_URL'), $baseBetEther, $invalidAddresses);
+    }
+
+    private function validatePoolOnBlockchain(array $validUsers, float $baseBetEther): void
+    {
+        $validWallets = array_map(fn($u) => $u->wallet_address, $validUsers);
+        Log::info('Pool 100% valid. Triggering smart contract validation for: ' . implode(', ', $validWallets));
+        try {
+            Web3Helper::validatePool(env('NODE_URL'), $baseBetEther);
+        } catch (\Exception $e) {
+            Log::warning('validatePool call failed (non-blocking): ' . $e->getMessage());
+        }
+    }
+
+    private function createPool(string $poolId, float $baseBetEther, string $salt, int $poolSize): Pool
+    {
+        return Pool::create([
+            'pool_id'   => $poolId,
+            'base_bet'  => $baseBetEther,
+            'salt'      => $salt,
+            'pool_size' => $poolSize,
+        ]);
+    }
+
+    /**
+     * Assign users to their pool and initialize their battle funds.
+     *
+     * Rules (project_context.md §2A) :
+     *  - battle_balance = pool base_bet  (funds dedicated to this pool's fights)
+     *  - bet_amount     = pool base_bet  on session start (Martingale baseline)
+     *                     kept as-is    for continuing sessions (already doubled by SessionManager)
+     *
+     * Blockchain balance sync is performed ONLY for players starting a NEW session.
+     * Players already in an active session keep their off-chain DB balance (Bug #1 fix).
+     * The batch processor (InternalPoolService) guarantees that continuing players arrive
+     * in a pool whose base_bet matches their current bet_amount — no re-grouping needed here.
+     */
+    private function initializeUsersForPool(array $users, Pool $pool, float $baseBetEther, array $blockchainBalances): void
+    {
+        $securityCoefficient = \App\Models\GameSetting::getValue(
+            'security_coefficient',
+            config('game_settings.security_coefficient', 1000)
+        );
+        $requiredCapital = $baseBetEther * $securityCoefficient;
+
+        foreach ($users as $index => $user) {
+            // A. Sync balance from blockchain — only for brand-new sessions.
+            //    A player mid-session retains their off-chain balance (Bug #1 fix).
+            if (!$user->session_started && isset($blockchainBalances[$index])) {
+                $onChainBalance = Web3Helper::weiToEther($blockchainBalances[$index]);
+
+                if ($onChainBalance <= 0 && $user->balance > 0) {
+                    Log::warning("Race condition fallback: on-chain balance is 0, keeping local DB balance ({$user->balance} ETH) for {$user->wallet_address}.");
+                } else {
+                    $user->balance = $onChainBalance;
+                }
+            }
+
+            // B. Safety check (Security Coefficient)
+            if ($user->balance < $requiredCapital) {
+                UserTracker::error("User {$user->wallet_address} rejected from Pool {$pool->id}: Insufficient security margin.", ['wallet' => $user->wallet_address]);
+                $user->status  = 'stopped';
+                $user->pool_id = null;
+                $user->save();
+                continue;
+            }
+
+            // C. Session initialization — first pool of a new session only
+            if (!$user->session_started) {
+                $user->session_start_balance        = $user->balance;
+                $user->session_start_battle_balance = 0;
+                $user->session_started              = true;
+
+                // Initialize bet_amount to the pool's base_bet (Martingale baseline).
+                // For continuing sessions, SessionManager already set the correct doubled value.
+                $user->bet_amount = $baseBetEther;
+
+                $user->preMove->session_first_pool_id = $pool->id;
+                $user->preMove->save();
+            }
+
+            // D. Move funds: balance → battle_balance = pool base_bet
+            //    The batch processor guarantees this pool's base_bet == user's bet_amount.
+            $user->balance       -= $baseBetEther;
+            $user->battle_balance = $baseBetEther;
+
+            $user->status  = 'in_pool';
+            $user->pool_id = $pool->id;
+            $user->save();
+
+            UserTracker::info(
+                "[POOL_INIT] Player {$user->wallet_address} → pool #{$pool->id} | base_bet={$baseBetEther} | bet_amount={$user->bet_amount} | battle_balance={$user->battle_balance}",
+                ['wallet' => $user->wallet_address]
+            );
+
+            event(new UserBalanceUpdated($user));
+        }
+    }
+}

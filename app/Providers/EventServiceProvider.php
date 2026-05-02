@@ -9,11 +9,7 @@ use App\Listeners\BasicEventListener;
 
 class EventServiceProvider extends ServiceProvider
 {
-    protected $listen = [
-        \App\Events\SessionFinishedEvent::class => [
-            \App\Listeners\SessionFinishedEventListener::class,
-        ],
-    ];
+    protected $listen = [];
 
     public function boot(): void
     {

@@ -118,6 +118,7 @@ class PoolAutoMatchController extends Controller
             'users' => 'required|array',
             'premove_cids' => 'required|array',
             'pool_salt' => 'required|string',
+            'balances' => 'required|array',
         ]);
 
         try {

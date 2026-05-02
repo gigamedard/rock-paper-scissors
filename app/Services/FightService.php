@@ -2,14 +2,12 @@
 
 namespace App\Services;
 
-use App\Events\UserStoppedEvent;
 use App\Helpers\Web3Helper;
 use App\Helpers\UserTracker;
 use App\Models\Fight;
 use App\Models\Pool;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 
 class FightService
@@ -85,34 +83,7 @@ class FightService
             // Check loser's remaining battle balance
             $loserUser = User::find($loserId);
             if ($loserUser->battle_balance < $baseBet) {
-                // Eliminate from pool
-                $this->removeUserFromPool($loserId, $fight->pool);
-
-                // Double the base bet for next pool
-                $loserUser = $loserUser->fresh();
-                $newBetAmount = $loserUser->bet_amount * 2;
-                $loserUser->bet_amount = $newBetAmount;
-
-                // Check if user has enough funds (balance + battle_balance) for the NEXT doubled bet
-                $totalFunds = $loserUser->balance + $loserUser->battle_balance;
-
-                if ($totalFunds < $newBetAmount) {
-                    $loserUser->status = 'stopped';
-                    $loserUser->save();
-                    UserTracker::info("[FIGHT_ELIMINATION] 🛑 Player {$loserWallet} eliminated and stopped! Total Funds ({$totalFunds}) < Next Bet ({$newBetAmount}).", ['wallet' => $loserWallet, 'funds' => $totalFunds, 'next_bet' => $newBetAmount]);
-                    $this->notificationService->notifyInsufficientBalance($loserUser);
-                    event(new \App\Events\UserStoppedEvent($loserUser, 'insufficient_funds'));
-                } else {
-                    UserTracker::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool, has funds ({$totalFunds}) for re-pooling. Status set to 'available' for Round Robin.", ['wallet' => $loserWallet, 'funds' => $totalFunds]);
-                    $loserUser->status = 'available';
-                    $loserUser->pool_id = null;
-                    $loserUser->save();
-                }
-            } else {
-                // Loser still has enough battle_balance to continue in THIS pool
-                // Keep in pool for next matching round
-                $loserUser->status = 'in_pool';
-                $loserUser->save();
+                UserTracker::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool matching (battle_balance < baseBet). Will wait for SessionManager to evaluate session.", ['wallet' => $loserWallet, 'battle_balance' => $loserUser->battle_balance]);
             }
         }
 
@@ -178,69 +149,6 @@ class FightService
 
             $loserUser->save();
             $winnerUser->save();
-        }
-    }
-
-    protected function removeUserFromPool(int $userId, Pool $pool): void
-    {
-        User::where('id', $userId)->update([
-            'pool_id' => null,
-            'status' => 'available',
-        ]);
-    }
-
-    public function addUserToNewPool(int $userId, float $baseBet, int $poolSize): void
-    {
-        if (! $this->web3Helper->premoveExists($userId)) {
-            return;
-        }
-
-        $user = User::find($userId);
-        $currentPoolId = $user ? $user->pool_id : null;
-
-        $pool = Pool::where('base_bet', $baseBet)
-            ->where('status', 'from_server_waitting') // Only pick waiting pools
-            ->where(function ($query) use ($currentPoolId) {
-                if ($currentPoolId) {
-                    $query->where('id', '!=', $currentPoolId);
-                }
-            })
-            ->has('users', '<', $poolSize)
-            ->orderBy('id', 'desc')
-            ->first();
-
-        if (! $pool) {
-            $pool = Pool::create([
-                'base_bet' => $baseBet,
-                'pool_size' => $poolSize,
-                'salt' => \Illuminate\Support\Str::random(10),
-            ]);
-            $pool->status = 'from_server_waitting';
-            $pool->save();
-            $walletAddress = $user ? $user->wallet_address : 'UNKNOWN';
-            \Illuminate\Support\Facades\Log::info("FightService: Created NEW pool {$pool->id} for user {$walletAddress}");
-        } else {
-            $walletAddress = $user ? $user->wallet_address : 'UNKNOWN';
-            \Illuminate\Support\Facades\Log::info("FightService: Found EXISTING waiting pool {$pool->id} for user {$walletAddress}");
-        }
-
-        $pool->pool_id = $pool->id;
-        $pool->status = 'from_server_waitting';
-        $pool->save();
-
-        User::where('id', $userId)->update([
-            'pool_id' => $pool->id,
-            'status' => 'in_pool',
-        ]);
-
-        $walletAddress = $user ? $user->wallet_address : 'UNKNOWN';
-        \Illuminate\Support\Facades\Log::info("FightService: Assigned user {$walletAddress} to pool {$pool->id}. DB Update executed.");
-
-        // Notify Pool Entry
-        $user = User::find($userId);
-        if ($user) {
-            // Logic to determine reason could be passed in, but contextually this method is called for continuing users (winners)
-            $this->notificationService->notifyPoolEntry($user, $pool, 'pool_winner');
         }
     }
 }

@@ -14,7 +14,7 @@ dotenv.config({ path: join(__dirname, '.env') });
 // ===================================
 // == CONFIGURATION PRINCIPALE
 // ===================================
-export const LARAVEL_API_URL = "http://127.0.0.1:8001/api"; // Local Access
+export const LARAVEL_API_URL = "http://127.0.0.1:8000/api"; // Local Access
 export const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 export const BACKEND_URL = "https://srv1198092.hstgr.cloud"; // Force correct domain
 
@@ -1124,7 +1124,7 @@ export const contracts = {
   },
   // --- Contrat MARKETPLACE (de app.js/server.js) ---
   marketplace: {
-    address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9", // MarketplaceEscrow
+    address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0", // MarketplaceEscrow
     abi: [
       {
         "inputs": [
@@ -1491,7 +1491,7 @@ export const contracts = {
   },
   // --- Contrat du JETON (SNT / USDT) ---
   snt: {
-    address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0", // SNTToken
+    address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", // SNTToken
     abi: [
       { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
       { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },

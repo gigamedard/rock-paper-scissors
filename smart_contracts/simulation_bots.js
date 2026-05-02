@@ -8,7 +8,7 @@ import {
 
 // --- Configuration ---
 const BASE_BET = "0.01"; // ETH
-const BOT_INTERVAL_MS = 1000; // 1 second delay between bots
+const BOT_INTERVAL_MS = 500; // 0.5 second delay between bots
 const MAX_RETRIES = 3;
 
 // Game contract setup
@@ -168,34 +168,29 @@ async function simulateBot(botIndex) {
  */
 async function main() {
     const args = process.argv.slice(2);
-    let numBots = parseInt(args[0], 10);
-    
-    if (isNaN(numBots)) {
-        console.log(`Usage: node simulation_bots.js <number_of_bots>`);
-        console.log(`Example: node simulation_bots.js 4    # Runs 4 bots, user joins 5th`);
-        console.log(`Example: node simulation_bots.js 49   # Runs 49 bots, user joins 50th`);
-        process.exit(1);
-    }
+    const numBots = parseInt(args[0]) || 4;
+    const startIndex = parseInt(args[1]) || 0;
 
     console.log(`\n===========================================`);
     console.log(`🎮 E2E Functional Test Simulation Started`);
     console.log(`🎯 Target Bots: ${numBots}`);
+    console.log(`📍 Starting from Index: ${startIndex}`);
     console.log(`⏱️ Interval: ${BOT_INTERVAL_MS}ms (2 seconds)`);
     console.log(`===========================================\n`);
 
     const activeBots = [];
 
-    for (let i = 0; i < numBots; i++) {
+    for (let i = startIndex; i < startIndex + numBots; i++) {
         try {
             const botData = await simulateBot(i);
             activeBots.push(botData);
             
-            if (i < numBots - 1) {
+            if (i < startIndex + numBots - 1) {
                 console.log(`⏳ Waiting ${BOT_INTERVAL_MS / 1000} seconds before next bot...`);
                 await new Promise(resolve => setTimeout(resolve, BOT_INTERVAL_MS));
             }
         } catch (error) {
-            console.error(`❌ Error in Bot #${i + 1}:`, error.message);
+            console.error(`❌ Error in Bot Index ${i}:`, error.message);
         }
     }
 

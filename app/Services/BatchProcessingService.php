@@ -70,22 +70,35 @@ class BatchProcessingService
                     return ['status' => 'created', 'message' => "New batch {$createdBatch->id} for pool_size {$targetPoolSize} base_bet {$baseBet} created and is {$createdBatch->status}."];
                 }
 
+                $isStale = $batch->updated_at->diffInSeconds(now()) > config('pool.batch_ttl_seconds', 60);
+
                 if ($batch->status === 'waiting' && $batch->number_of_pools < $batch->max_size) {
                     $needed = $batch->max_size - $batch->number_of_pools;
                     $newPools = $this->poolFetcherService->fetchPoolsToLoad($batch, $needed);
                     if ($newPools->isEmpty()) {
-                        $msg = ($batch->number_of_pools > 0)
-                            ? "Batch {$batch->id} remains waiting with {$batch->number_of_pools} pools, no new pools found."
-                            : "Batch {$batch->id} remains waiting and empty, no new pools found.";
+                        if ($isStale && $batch->number_of_pools > 0) {
+                            Log::info("Batch {$batch->id} is stale (waiting > TTL). Forcing transition to running with {$batch->number_of_pools} pools.");
+                            // Do not return here. Let it fall through to the 'running' block below.
+                        } else {
+                            $msg = ($batch->number_of_pools > 0)
+                                ? "Batch {$batch->id} remains waiting with {$batch->number_of_pools} pools, no new pools found."
+                                : "Batch {$batch->id} remains waiting and empty, no new pools found.";
 
-                        return ['status' => 'no_change', 'message' => $msg];
+                            return ['status' => 'no_change', 'message' => $msg];
+                        }
+                    } else {
+                        $this->batchManagerService->loadWaitingBatch($batch, $newPools);
+                        // Refresh staleness check since batch was just updated
+                        $isStale = false;
+                        
+                        // If the batch is STILL not full after loading, return 'updated'.
+                        if ($batch->number_of_pools < $batch->max_size) {
+                            return ['status' => 'updated', 'message' => "Batch {$batch->id} (pool_size {$batch->pool_size}) updated with {$newPools->count()} pools. Status: {$batch->status}"];
+                        }
                     }
-                    $this->batchManagerService->loadWaitingBatch($batch, $newPools);
-
-                    return ['status' => 'updated', 'message' => "Batch {$batch->id} (pool_size {$batch->pool_size}) updated with {$newPools->count()} pools. Status: {$batch->status}"];
                 }
 
-                if ($batch->status === 'waiting' && $batch->number_of_pools >= $batch->max_size) {
+                if ($batch->status === 'waiting' && ($batch->number_of_pools >= $batch->max_size || ($isStale && $batch->number_of_pools > 0))) {
                     if ($batch->status !== 'running') {
                         $batch->status = 'running';
                         $batch->save();

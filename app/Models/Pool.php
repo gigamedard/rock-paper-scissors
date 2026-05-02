@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Services\PoolMatchingService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -33,6 +32,6 @@ class Pool extends Model
 
     public function match(): void
     {
-        app(\App\Services\PoolLifecycleService::class)->processPoolAutoMatch($this->id);
+        app(\App\Services\MatchmakingEngine::class)->process($this->id);
     }
 }

@@ -31,10 +31,6 @@ class PoolFinishedEventListener
         try {
             $this->historicalFightService->archivePoolFights($event->poolId);
 
-            foreach ($pool->users as $user) {
-                event(new SessionFinishedEvent($user->id, $pool));
-            }
-
             $wallets = $pool->users->pluck('wallet_address')->toArray();
             Log::info("PoolFinishedEventListener: Pool ID {$event->poolId} has been processed successfully. Users: " . implode(', ', $wallets));
         } catch (\Exception $e) {
