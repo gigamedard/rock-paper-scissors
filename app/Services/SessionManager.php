@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Events\SessionFinishedEvent;
 use App\Helpers\UserTracker;
 use App\Helpers\Web3Helper;
 use App\Models\Fight;
@@ -74,6 +73,7 @@ class SessionManager
         if ($user->battle_balance < $pool->base_bet) {
             $user->bet_amount = $user->bet_amount * 2;
             UserTracker::info("[MARTINGALE] 📉 Player {$user->wallet_address} lost. Next bet doubled to: {$user->bet_amount}.", ['wallet' => $user->wallet_address, 'next_bet' => $user->bet_amount]);
+            event(new \App\Events\MartingaleUpdated($user, (string)$user->bet_amount));
         }
 
         // 2. Calculate Q and Evaluate Session State
@@ -123,6 +123,8 @@ class SessionManager
             $this->sendPayment($user);
             $this->setNextSessionCooldown($user);
             
+            event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, true));
+            
         } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount)) {
             // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet)
             $type = ($q < 1) ? "RUIN" : "STRATEGIC_LIMIT";
@@ -130,7 +132,19 @@ class SessionManager
             
             $this->closeSession($user, 'stopped');
             $this->historyService->archiveSessionHistory($user);
-            $this->notificationService->notifyInsufficientBalance($user);
+            
+            // DIVERGENCE: Bots get auto-payout for tests, Humans must manually withdraw
+            $payoutTriggered = false;
+            if ($user->autoplay_active) {
+                UserTracker::info("[BOT_AUTO_WITHDRAW] 🤖 Bot {$user->wallet_address} ruined. Forcing payout to clear balance for next run.", ['wallet' => $user->wallet_address]);
+                $this->sendPayment($user); // Forces sending whatever is left (e.g. 0.45 ETH)
+                $payoutTriggered = true;
+            } else {
+                UserTracker::info("[MANUAL_WITHDRAWAL_REQUIRED] 🛑 Human player {$user->wallet_address} ruined. Funds ({$user->balance} ETH) kept in DB. Manual withdraw required.", ['wallet' => $user->wallet_address]);
+                $this->notificationService->notifyInsufficientBalance($user);
+            }
+            
+            event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered));
             
         } else {
             // CASE 3: Session Continues (RETURN TO POOL QUEUE)
@@ -158,7 +172,7 @@ class SessionManager
     private function sendPayment(User $user): void
     {
         try {
-            $this->web3Helper->sendPayement(env('NODE_URL'), $user->wallet_address, $user->balance);
+            $this->web3Helper->sendPayement(config('app.NODE_WORKER_URL'), $user->wallet_address, $user->balance);
         } catch (\Exception $e) {
             Log::error("Failed to send payment for {$user->wallet_address}: " . $e->getMessage());
         }
@@ -171,7 +185,7 @@ class SessionManager
         $nextTime = now()->addMinutes($minutes)->timestamp;
 
         try {
-            $this->web3Helper->setUserNextSessionTime(env('NODE_URL'), $user->wallet_address, $nextTime);
+            $this->web3Helper->setUserNextSessionTime(config('app.NODE_WORKER_URL'), $user->wallet_address, $nextTime);
         } catch (\Exception $e) {
             Log::error("Failed to set cooldown for {$user->wallet_address}: " . $e->getMessage());
         }

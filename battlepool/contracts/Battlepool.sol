@@ -457,6 +457,9 @@ contract Battlepool {
         // ✅ 2. Use `.call{value: amount}("")` instead of `.transfer()`
         (bool success, ) = user.call{value: amount}("");
         require(success, "Payment failed");
+
+        // 📢 3. Emit an event for tracking
+        emit PayoutProcessed(user, amount);
     }
 
 

@@ -115,8 +115,8 @@ class PoolReconstructionService
     private function ejectIntruders(array $invalidAddresses, float $baseBetEther): void
     {
         Log::warning('Intruders detected. Refunding and invalidating: ' . implode(', ', $invalidAddresses));
-        Web3Helper::refundUsers(env('NODE_URL'), $invalidAddresses);
-        Web3Helper::invalidatePoolUsers(env('NODE_URL'), $baseBetEther, $invalidAddresses);
+        Web3Helper::refundUsers(config('app.NODE_WORKER_URL'), $invalidAddresses);
+        Web3Helper::invalidatePoolUsers(config('app.NODE_WORKER_URL'), $baseBetEther, $invalidAddresses);
     }
 
     private function validatePoolOnBlockchain(array $validUsers, float $baseBetEther): void
@@ -124,7 +124,7 @@ class PoolReconstructionService
         $validWallets = array_map(fn($u) => $u->wallet_address, $validUsers);
         Log::info('Pool 100% valid. Triggering smart contract validation for: ' . implode(', ', $validWallets));
         try {
-            Web3Helper::validatePool(env('NODE_URL'), $baseBetEther);
+            Web3Helper::validatePool(config('app.NODE_WORKER_URL'), $baseBetEther);
         } catch (\Exception $e) {
             Log::warning('validatePool call failed (non-blocking): ' . $e->getMessage());
         }
@@ -195,6 +195,8 @@ class PoolReconstructionService
 
                 $user->preMove->session_first_pool_id = $pool->id;
                 $user->preMove->save();
+
+                event(new \App\Events\SessionStarted($user, $user->wallet_address, (float)$user->balance));
             }
 
             // D. Move funds: balance → battle_balance = pool base_bet

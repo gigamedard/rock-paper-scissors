@@ -404,6 +404,15 @@ async function startBlockchainListeners() {
                     });
                 }
 
+                // 5. PayoutProcessed
+                const payoutEvents = await gameContract.queryFilter("PayoutProcessed", lastBlock + 1, currentBlock);
+                for (const event of payoutEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] PayoutProcessed: ${args[0]}, ${args[1]}`);
+                    // After payout, the contract balance for this user is 0
+                    postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: "0" });
+                }
+
                 // --- LISTENERS MARKETPLACE ---
 
                 // 4. OfferCreated
