@@ -2,29 +2,26 @@
 
 namespace App\Events;
 
-use App\Models\Fight;
 use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class FightStartedEvent implements ShouldBroadcast
+class MatchFound implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $user;
-    public $opponent;
-    public $fight;
+    public $fight_id;
+    public $opponent_wallet;
 
-    public function __construct(User $user, User $opponent, Fight $fight)
+    public function __construct(User $user, int $fight_id, string $opponent_wallet)
     {
         $this->user = $user;
-        $this->opponent = $opponent;
-        $this->fight = $fight;
-        \Illuminate\Support\Facades\Log::info("[BROADCAST] ⚔️ FightStartedEvent for User {$user->id} vs {$opponent->id}");
+        $this->fight_id = $fight_id;
+        $this->opponent_wallet = $opponent_wallet;
     }
 
     public function broadcastOn(): array

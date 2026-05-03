@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Events\PoolFinishedEvent;
 use App\Helpers\Web3Helper;
 use App\Models\Fight;
 use App\Models\Pool;
@@ -55,8 +54,6 @@ class MatchmakingEngine
 
         // Delegate end of pool logic to SessionManager
         $this->sessionManager->evaluatePoolEnd($pool);
-
-        event(new PoolFinishedEvent($poolId));
     }
 
     private function hasSufficientUsersForMatch(int $userCount, int $minUsers): bool
@@ -101,6 +98,9 @@ class MatchmakingEngine
             ]);
 
             $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
+
+            event(new \App\Events\MatchFound($availableUsers[$i], $fight->id, $availableUsers[$i + 1]->wallet_address));
+            event(new \App\Events\MatchFound($availableUsers[$i + 1], $fight->id, $availableUsers[$i]->wallet_address));
 
             $this->notifyBattleStarted($availableUsers[$i], $availableUsers[$i + 1], $fight, $pool->id);
         }

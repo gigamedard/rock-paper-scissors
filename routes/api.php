@@ -53,7 +53,7 @@ Route::post('/debug-session-finish', function (Request $request) {
     // Mock a pool for the event (optional, listener handles null pool gracefully-ish, but better to have one)
     $pool = \App\Models\Pool::first();
 
-    event(new \App\Events\SessionFinishedEvent($userId, $pool));
+    event(new \App\Events\SessionFinished($user, 'SUCCESS', '2.0', true));
 
     return response()->json(['message' => 'SessionFinishedEvent fired']);
 });

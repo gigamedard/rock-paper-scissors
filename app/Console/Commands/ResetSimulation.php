@@ -30,8 +30,7 @@ class ResetSimulation extends Command
     {
         $this->info('Starting simulation reset...');
 
-        DB::transaction(function () {
-            // 1. Reset Users
+        // 1. Reset Users
             $updated = User::query()->update([
                 'status' => 'available',
                 'pool_id' => null,
@@ -79,7 +78,6 @@ class ResetSimulation extends Command
             }
 
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-        });
 
         $this->info('Simulation reset completed successfully!');
     }

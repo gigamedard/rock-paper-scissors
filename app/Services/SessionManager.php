@@ -11,15 +11,15 @@ use Illuminate\Support\Facades\Log;
 
 class SessionManager
 {
-    protected Web3Helper $web3Helper;
-    protected SessionHistoryService $historyService;
     protected NotificationService $notificationService;
+    protected SignatureService $signatureService;
 
-    public function __construct(Web3Helper $web3Helper, SessionHistoryService $historyService, NotificationService $notificationService)
+    public function __construct(Web3Helper $web3Helper, SessionHistoryService $historyService, NotificationService $notificationService, SignatureService $signatureService)
     {
         $this->web3Helper = $web3Helper;
         $this->historyService = $historyService;
         $this->notificationService = $notificationService;
+        $this->signatureService = $signatureService;
     }
 
     /**
@@ -120,10 +120,21 @@ class SessionManager
             
             $this->closeSession($user, 'stopped');
             $this->historyService->archiveSessionHistory($user);
-            $this->sendPayment($user);
             $this->setNextSessionCooldown($user);
+
+            $signature = null;
+            $payoutTriggered = false;
+
+            if ($user->autoplay_active) {
+                // Bots: Automatic Payout
+                $this->sendPayment($user);
+                $payoutTriggered = true;
+            } else {
+                // Humans: Generate Signature for manual claim
+                $signature = $this->generateHumanSignature($user);
+            }
             
-            event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, true));
+            event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature));
             
         } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount)) {
             // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet)
@@ -135,6 +146,8 @@ class SessionManager
             
             // DIVERGENCE: Bots get auto-payout for tests, Humans must manually withdraw
             $payoutTriggered = false;
+            $signature = null;
+
             if ($user->autoplay_active) {
                 UserTracker::info("[BOT_AUTO_WITHDRAW] 🤖 Bot {$user->wallet_address} ruined. Forcing payout to clear balance for next run.", ['wallet' => $user->wallet_address]);
                 $this->sendPayment($user); // Forces sending whatever is left (e.g. 0.45 ETH)
@@ -142,9 +155,11 @@ class SessionManager
             } else {
                 UserTracker::info("[MANUAL_WITHDRAWAL_REQUIRED] 🛑 Human player {$user->wallet_address} ruined. Funds ({$user->balance} ETH) kept in DB. Manual withdraw required.", ['wallet' => $user->wallet_address]);
                 $this->notificationService->notifyInsufficientBalance($user);
+                // Even on ruin, we provide the signature for the remaining funds
+                $signature = $this->generateHumanSignature($user);
             }
             
-            event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered));
+            event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature));
             
         } else {
             // CASE 3: Session Continues (RETURN TO POOL QUEUE)
@@ -188,6 +203,26 @@ class SessionManager
             $this->web3Helper->setUserNextSessionTime(config('app.NODE_WORKER_URL'), $user->wallet_address, $nextTime);
         } catch (\Exception $e) {
             Log::error("Failed to set cooldown for {$user->wallet_address}: " . $e->getMessage());
+        }
+    }
+
+    private function generateHumanSignature(User $user): ?string
+    {
+        try {
+            $nodeUrl = config('app.NODE_WORKER_URL');
+            $contractAddress = env('BATTLEPOOL_ADDRESS');
+            $nonce = $this->web3Helper->getUserNonce($nodeUrl, $user->wallet_address);
+            $amountWei = $this->web3Helper->etherToWei($user->balance);
+
+            return $this->signatureService->generateClaimSignature(
+                $user->wallet_address,
+                $amountWei,
+                $nonce,
+                $contractAddress
+            );
+        } catch (\Exception $e) {
+            Log::error("Failed to generate signature for {$user->wallet_address}: " . $e->getMessage());
+            return null;
         }
     }
 }

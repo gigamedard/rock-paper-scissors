@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract Battlepool {
+    using ECDSA for bytes32;
     struct Pool {
         uint256 poolId;
         uint256 baseBet;
@@ -22,6 +25,7 @@ contract Battlepool {
     mapping(address => string) public userPremoveCIDs; // Maps user address to IPFS CID for premoves
     mapping(address => bool) public isUserInAnyPool;
     mapping(address => uint256) public nextSessionAllowedTime; // Track when user can play again
+    mapping(address => uint256) public nonces; // Replay protection for signatures
     event PoolCreated(uint256 indexed poolId, uint256 baseBet, uint256 maxSize);
     event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, string poolSalt, uint256[] balances); // Added balances array
     event DepositReceived(address indexed user, uint256 amount);
@@ -38,6 +42,7 @@ contract Battlepool {
     event FeeBasisPointsUpdated(uint256 newFee);
     event DevWalletUpdated(address newWallet);
     event DevFeesWithdrawn(address indexed wallet, uint256 amount);
+    event PlayerClaimed(address indexed wallet, uint256 amount, uint256 nonce);
 
     address public owner;
     uint256 public securityCoefficient = 1000;
@@ -453,6 +458,7 @@ contract Battlepool {
         // 🛑 1. Update state **before** sending ETH (prevents reentrancy)
         userBalances[user] = 0;
         isUserInAnyPool[user] = false;
+        delete userPremoveCIDs[user]; // Cleanup residual CID
 
         // ✅ 2. Use `.call{value: amount}("")` instead of `.transfer()`
         (bool success, ) = user.call{value: amount}("");
@@ -460,6 +466,36 @@ contract Battlepool {
 
         // 📢 3. Emit an event for tracking
         emit PayoutProcessed(user, amount);
+        emit PlayerClaimed(user, amount, 0); // Nonce 0 for admin-triggered payout
+    }
+
+    /**
+     * @dev Allows a user to claim their funds using a signature from the admin.
+     * Prevents the server from paying gas for human withdrawals.
+     */
+    function claimAndExit(uint256 amount, bytes memory signature) external {
+        require(amount > 0, "Amount must be greater than 0");
+        require(userBalances[msg.sender] >= amount, "Insufficient contract balance");
+
+        // Verify signature: hash(address, amount, nonce, contractAddress)
+        bytes32 messageHash = keccak256(abi.encodePacked(msg.sender, amount, nonces[msg.sender], address(this)));
+        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
+        
+        address signer = ethSignedMessageHash.recover(signature);
+        require(signer == owner, "Invalid admin signature");
+
+        // Update state
+        uint256 nonceUsed = nonces[msg.sender];
+        nonces[msg.sender]++;
+        userBalances[msg.sender] = 0;
+        isUserInAnyPool[msg.sender] = false;
+        delete userPremoveCIDs[msg.sender];
+
+        // Transfer funds
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Claim payment failed");
+
+        emit PlayerClaimed(msg.sender, amount, nonceUsed);
     }
 
 

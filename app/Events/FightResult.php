@@ -2,27 +2,28 @@
 
 namespace App\Events;
 
-use App\Models\Pool;
 use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class PoolJoinedEvent implements ShouldBroadcast
+class FightResult implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $user;
-    public $pool;
+    public $result; // "win" or "loss"
+    public $delta;
+    public $current_balance;
 
-    public function __construct(User $user, Pool $pool)
+    public function __construct(User $user, string $result, string $delta, string $current_balance)
     {
         $this->user = $user;
-        $this->pool = $pool;
-        \Illuminate\Support\Facades\Log::info("[BROADCAST] 🌍 PoolJoinedEvent for User {$user->id} in Pool {$pool->id}");
+        $this->result = $result;
+        $this->delta = $delta;
+        $this->current_balance = $current_balance;
     }
 
     public function broadcastOn(): array

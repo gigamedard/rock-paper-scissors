@@ -4412,9 +4412,9 @@
                     updateUserInfo(e.user);
                     if(e.user.battle_balance) updateBattleHud({ battle_balance: e.user.battle_balance, session_started: true });
                 })
-                .listen('UserStoppedEvent', (e) => {
-                    console.log("Real-time: User Stopped", e);
-                    showEliminationModal(e.reason);
+                .listen('SessionFinished', (e) => {
+                    console.log("Real-time: Session Finished", e);
+                    showEliminationModal(e.reason, e.signature, e.user.balance);
                 });
         }
 
@@ -4446,26 +4446,83 @@
             }, 5000);
         }
 
-        function showEliminationModal(reason) {
+        function showEliminationModal(reason, signature = null, balance = 0) {
             const overlay = document.getElementById('submission-overlay');
             const modal = overlay.querySelector('.submission-modal');
             overlay.style.display = 'flex';
-            modal.querySelector('h2').innerText = 'Simulation Terminée';
-            modal.querySelector('h2').style.color = 'var(--danger-red)';
+            
+            const isSuccess = reason === "SUCCESS";
+            modal.querySelector('h2').innerText = isSuccess ? 'Session Terminée avec Succès !' : 'Simulation Terminée';
+            modal.querySelector('h2').style.color = isSuccess ? 'var(--accent-primary)' : 'var(--danger-red)';
             
             const container = modal.querySelector('.step-container');
-            container.innerHTML = `
-                <div class="step-item error">
-                    <div class="step-icon"></div>
-                    Capital insuffisant pour continuer la simulation 🛑
-                </div>
-                <p style="margin-top: 10px; color: var(--text-secondary);">
-                    Votre capital est tombé en dessous de la mise minimale requise (${userState.userObject.bet_amount} ETH).
-                </p>
-            `;
+            
+            let html = '';
+            if (isSuccess) {
+                html = `
+                    <div class="step-item success">
+                        <div class="step-icon"></div>
+                        Objectif de session atteint ! 🏆
+                    </div>
+                    <p style="margin-top: 10px; color: var(--text-secondary);">
+                        Félicitations ! Vous avez multiplié votre capital initial.
+                    </p>
+                `;
+            } else {
+                html = `
+                    <div class="step-item error">
+                        <div class="step-icon"></div>
+                        Capital insuffisant pour continuer la simulation 🛑
+                    </div>
+                    <p style="margin-top: 10px; color: var(--text-secondary);">
+                        Votre capital est tombé en dessous de la mise minimale requise.
+                    </p>
+                `;
+            }
+
+            if (signature) {
+                html += `
+                    <div style="margin-top: 20px; padding: 15px; background: #FFF9E6; border: 2px solid var(--border-dark); border-radius: 12px;">
+                        <p style="font-weight: 700; color: var(--text-primary);">💰 Solde à retirer : ${balance} AVAX</p>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary);">Une signature d'administrateur a été générée pour vous permettre de retirer vos fonds directement sur la blockchain.</p>
+                        <button id="claim-and-exit-btn" onclick="claimAndExit('${balance}', '${signature}')" style="width: 100%; background: #F59E0B; margin-top: 10px;">
+                            Claim & Exit 🏦
+                        </button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
             const closeBtn = document.getElementById('submission-close-btn');
             closeBtn.style.display = 'block';
             closeBtn.innerText = 'Fermer';
+        }
+
+        async function claimAndExit(amount, signature) {
+            const btn = document.getElementById('claim-and-exit-btn');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "Processing... ⏳";
+
+            try {
+                if (!gameContract) throw new Error("Contract not initialized");
+                
+                const amountWei = WEB3.utils.toWei(amount, 'ether');
+                console.log(`Claiming ${amount} AVAX (${amountWei} Wei) with signature ${signature}`);
+
+                // Call contract
+                const tx = await gameContract.methods.claimAndExit(amountWei, signature)
+                    .send({ from: userState.walletAddress });
+
+                console.log("Claim successful!", tx);
+                alert("🎉 Retrait réussi ! Vos fonds ont été transférés sur votre wallet.");
+                location.reload();
+            } catch (error) {
+                console.error("Claim failed:", error);
+                alert("❌ Échec du retrait : " + (error.message || "Unknown error"));
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
         }
 
         // Replace older pollNotification calls with initializeEcho

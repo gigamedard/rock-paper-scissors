@@ -62,6 +62,11 @@ class FightService
         if ($result === 'draw') {
             User::where('id', $fight->user1_id)->update(['status' => 'in_pool']);
             User::where('id', $fight->user2_id)->update(['status' => 'in_pool']);
+
+            $user1 = User::find($fight->user1_id);
+            $user2 = User::find($fight->user2_id);
+            if ($user1) event(new \App\Events\FightResult($user1, 'draw', '0', (string)$user1->balance));
+            if ($user2) event(new \App\Events\FightResult($user2, 'draw', '0', (string)$user2->balance));
         } else {
             $winnerId = ($result === 'user1_win') ? $fight->user1_id : $fight->user2_id;
             $loserId = ($result === 'user1_win') ? $fight->user2_id : $fight->user1_id;
@@ -70,18 +75,21 @@ class FightService
             $this->transferBattleBalance($winnerId, $loserId, $baseBet);
 
             // LOGGING ENHANCEMENT: Explicit Transfer Log
-            $winnerWallet = User::find($winnerId)->wallet_address ?? 'UNKNOWN';
-            $loserWallet = User::find($loserId)->wallet_address ?? 'UNKNOWN';
+            $winnerUser = User::find($winnerId);
+            $loserUser = User::find($loserId);
+            $winnerWallet = $winnerUser->wallet_address ?? 'UNKNOWN';
+            $loserWallet = $loserUser->wallet_address ?? 'UNKNOWN';
             UserTracker::info("[FIGHT_TRANSFER] ⚔️ Player {$winnerWallet} won against {$loserWallet}. Transferred {$baseBet} from Loser to Winner.", ['winner' => $winnerWallet, 'loser' => $loserWallet, 'amount' => $baseBet]);
 
+            if ($winnerUser) event(new \App\Events\FightResult($winnerUser, 'win', "+{$baseBet}", (string)$winnerUser->balance));
+            if ($loserUser) event(new \App\Events\FightResult($loserUser, 'loss', "-{$baseBet}", (string)$loserUser->balance));
+
             // Notify winner (User gains baseBet)
-            $winnerUser = User::find($winnerId);
             if ($winnerUser) {
                 $this->notificationService->notifyFightWin($winnerUser, $baseBet, $fight->id);
             }
 
             // Check loser's remaining battle balance
-            $loserUser = User::find($loserId);
             if ($loserUser->battle_balance < $baseBet) {
                 UserTracker::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool matching (battle_balance < baseBet). Will wait for SessionManager to evaluate session.", ['wallet' => $loserWallet, 'battle_balance' => $loserUser->battle_balance]);
             }
@@ -99,7 +107,14 @@ class FightService
         if (! $preMove) {
             throw new \Exception("No pre-moves found for user ID $userId");
         }
-        $moves = json_decode($preMove->moves, true);
+        // PreMove model casts 'moves' to array, so it is already an array if retrieved via Eloquent.
+        // But since we use DB::table(), it returns a JSON string, which json_decode makes an array.
+        // Wait, if it is stored as JSON in DB and cast is array, maybe sometimes it's double-encoded?
+        // Let's decode it safely.
+        $moves = is_string($preMove->moves) ? json_decode($preMove->moves, true) : $preMove->moves;
+        if (is_string($moves)) {
+            $moves = json_decode($moves, true);
+        }
         $currentIndex = $preMove->current_index;
         if ($currentIndex >= count($moves)) {
             $currentIndex = 0;

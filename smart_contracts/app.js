@@ -185,6 +185,17 @@ app.post("/sendBatchPayment", async (req, res) => {
     }
 });
 
+app.get('/getUserNonce/:wallet', async (req, res) => {
+    try {
+        const { wallet } = req.params;
+        const nonce = await gameContract.nonces(wallet);
+        res.json({ nonce: nonce.toString() });
+    } catch (error) {
+        console.error("Error fetching nonce:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post("/create-offer", async (req, res) => {
     try {
         const { sellerAddress, sntAmount, avaxAmount, durationHours } = req.body;
@@ -409,7 +420,14 @@ async function startBlockchainListeners() {
                 for (const event of payoutEvents) {
                     const { args } = event;
                     console.log(`🔔 [JEU] PayoutProcessed: ${args[0]}, ${args[1]}`);
-                    // After payout, the contract balance for this user is 0
+                    postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: "0" });
+                }
+
+                // 6. PlayerClaimed
+                const claimEvents = await gameContract.queryFilter("PlayerClaimed", lastBlock + 1, currentBlock);
+                for (const event of claimEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] PlayerClaimed: ${args[0]}, Amount=${args[1]}, Nonce=${args[2]}`);
                     postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: "0" });
                 }
 
