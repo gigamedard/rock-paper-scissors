@@ -66,14 +66,26 @@ class InternalPoolService
 
             $scanCount = $users->count();
             if ($scanCount < $targetPoolSize) {
-                $excludedCount = User::where('status', 'available')
+                $excludedQuery = User::where('status', 'available')
                     ->where('bet_amount', $tierBet)
                     ->where('autoplay_active', true)
-                    ->where('balance', '<', $tierBet)
-                    ->count();
+                    ->where('balance', '<', $tierBet);
+
+                $excludedIds = $excludedQuery->pluck('id')->toArray();
+                $excludedCount = count($excludedIds);
 
                 if ($excludedCount > 0) {
-                    UserTracker::warning("InternalPoolService: {$excludedCount} users at tier {$tierBet} have insufficient funds to cover the bet.", ['tier' => $tierBet]);
+                    // QA Fix: Auto-stop users with insufficient funds to prevent stagnation
+                    User::whereIn('id', $excludedIds)->update([
+                        'status' => 'stopped',
+                        'session_started' => false
+                    ]);
+                    UserTracker::info("InternalPoolService: Auto-stopped {$excludedCount} users at tier {$tierBet} due to insufficient funds.", [
+                        'tier' => $tierBet,
+                        'excluded_ids' => $excludedIds
+                    ]);
+
+                    UserTracker::warning("InternalPoolService: {$excludedCount} users at tier {$tierBet} have insufficient funds for base bet. They have been moved to 'stopped'.", ['tier' => $tierBet, 'count' => $excludedCount]);
                 }
 
                 return [

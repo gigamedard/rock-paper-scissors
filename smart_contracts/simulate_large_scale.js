@@ -6,13 +6,14 @@ import {
     LARAVEL_API_URL,
     FUJI_RPC_URL,
     pinata,
+    SECURITY_COEFFICIENT,
     contracts
 } from "./config.js";
 
 // Configuration
-const BATCH_SIZE = 1; // Process 1 user at a time for local stability
+const BATCH_SIZE = 1; // Process 1 user at a time
 const DELAY_BETWEEN_BATCHES = 2000; // 2 seconds
-const BASE_BET_ETH = "0.001";
+const BASE_BET_ETH = "0.01";
 const MOVES_OPTIONS = ["rock", "paper", "scissors"];
 
 async function main() {
@@ -104,7 +105,7 @@ async function processUser(account, provider, gameContract) {
 
         const cid = "QmDummyCidForSimulationBypassPinataRateLimit" + Date.now(); // Mock CID
 
-        // D. Submit to Backend
+        // E. Submit to Backend
         response = await fetch(`${LARAVEL_API_URL}/user/pre-moves`, {
             method: 'POST',
             headers: {
@@ -119,20 +120,20 @@ async function processUser(account, provider, gameContract) {
             })
         });
         if (!response.ok) throw new Error(`Backend submission failed: ${response.status}`);
+        console.log(`   [${shortAddr}] Backend submission complete.`);
 
-        // E. Submit to Blockchain
+        // F. Submit to Blockchain
         const baseBetWei = parseEther(BASE_BET_ETH);
         const contractWithSigner = gameContract.connect(wallet);
+        console.log(`   [${shortAddr}] Sending contract transaction...`);
 
-        // Check if already in a pool? (Optional, but good for robustness)
-        // For now, assume fresh start or multiple joins allowed (if logic permits)
+        const depositValue = (baseBetWei * BigInt(SECURITY_COEFFICIENT) * BigInt(105)) / BigInt(100);
+        const tx = await contractWithSigner.submitPremoveCID(baseBetWei, cid, { value: depositValue });
 
-        const tx = await contractWithSigner.submitPremoveCID(baseBetWei, cid, { value: baseBetWei }); // Assuming 1x deposit for simplicity
+        console.log(`   [${shortAddr}] Tx sent: ${tx.hash.substring(0, 10)}...`);
 
-        console.log(`   ✅ [${shortAddr}] Joined! Tx: ${tx.hash.substring(0, 10)}...`);
-
-        // We don't wait for tx confirmation here to speed up the simulation loop
-        // await tx.wait(); 
+        await tx.wait();
+        console.log(`   ✅ [${shortAddr}] Joined and Confirmed!`);
 
     } catch (error) {
         console.error(`   ❌ [${shortAddr}] Error: ${error.message}`);

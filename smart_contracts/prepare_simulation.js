@@ -6,7 +6,7 @@ import { FUJI_RPC_URL } from "./config.js";
 const MAIN_WALLET_PK = "***REMOVED***";
 const BASE_SEED = "rock paper scissors simulation deterministic seed ";
 const ACCOUNT_COUNT = 30; // Number of accounts to generate
-const AMOUNT_PER_ACCOUNT = "0.02"; // AVAX to send (Gas + Bets)
+const AMOUNT_PER_ACCOUNT = "2.0"; // AVAX to send (Gas + Bets + Security Margin)
 
 async function main() {
     console.log("🚀 Preparing Large Scale Simulation...");

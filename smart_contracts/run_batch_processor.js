@@ -4,7 +4,7 @@ import { LARAVEL_API_URL, INTERNAL_API_SECRET } from "./config.js";
 
 const app = express();
 const PORT = process.env.PROCESS_PORT || 3001; // Port for this worker
-const INTERVAL = 3000; // Run every 3 seconds
+const INTERVAL = 10000; // Run every 10 seconds
 const BASE_BET = "0.01"; // Default base bet, can be made dynamic
 
 app.use(express.json());
