@@ -31,6 +31,7 @@ echo "🌐 Starting Bridge and Batch Processor..."
 Start-Process cmd -ArgumentList "/k cd smart_contracts && node app.js" -WindowStyle Minimized
 Start-Process cmd -ArgumentList "/k cd smart_contracts && node run_batch_processor.js" -WindowStyle Minimized
 Start-Process cmd -ArgumentList "/k php artisan serve --port=8000" -WindowStyle Minimized
+Start-Process cmd -ArgumentList "/k php artisan reverb:start" -WindowStyle Minimized
 
 Start-Sleep -Seconds 5
 

@@ -1,0 +1,100 @@
+﻿[2026-05-03 12:39:43] local.INFO: Updated status to 'batched' for 2 pools for new batch ID: (3).  
+[2026-05-03 12:39:43] local.INFO: Created new batch ID: (3). Status: waiting. Pool Size: (5)  
+[2026-05-03 12:39:46] local.INFO: ...................................service pool.......processPools......Starting processing loop for batch ID: 2 ....................................................................  
+[2026-05-03 12:39:46] local.INFO: Starting processing loop for batch 2 (Pool Size: 5). Processing 6 pools.  
+[2026-05-03 12:39:46] local.DEBUG: Processing Pool ID: 4 (Size: 5, Status: from_server_finished)  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......before match() for pool ID: 4 ....................................................................  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......after match() for pool ID: 4 ....................................................................  
+[2026-05-03 12:39:46] local.DEBUG: Finished Processing Pool ID: 4  
+[2026-05-03 12:39:46] local.DEBUG: Processing Pool ID: 5 (Size: 5, Status: from_server_finished)  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......before match() for pool ID: 5 ....................................................................  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......after match() for pool ID: 5 ....................................................................  
+[2026-05-03 12:39:46] local.DEBUG: Finished Processing Pool ID: 5  
+[2026-05-03 12:39:46] local.DEBUG: Processing Pool ID: 6 (Size: 5, Status: from_server_finished)  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......before match() for pool ID: 6 ....................................................................  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......after match() for pool ID: 6 ....................................................................  
+[2026-05-03 12:39:46] local.DEBUG: Finished Processing Pool ID: 6  
+[2026-05-03 12:39:46] local.DEBUG: Processing Pool ID: 7 (Size: 5, Status: from_server_finished)  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......before match() for pool ID: 7 ....................................................................  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......after match() for pool ID: 7 ....................................................................  
+[2026-05-03 12:39:46] local.DEBUG: Finished Processing Pool ID: 7  
+[2026-05-03 12:39:46] local.DEBUG: Processing Pool ID: 8 (Size: 5, Status: from_server_finished)  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......before match() for pool ID: 8 ....................................................................  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......after match() for pool ID: 8 ....................................................................  
+[2026-05-03 12:39:46] local.DEBUG: Finished Processing Pool ID: 8  
+[2026-05-03 12:39:46] local.DEBUG: Processing Pool ID: 9 (Size: 5, Status: from_server_finished)  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......before match() for pool ID: 9 ....................................................................  
+[2026-05-03 12:39:46] local.INFO: ...................................model pool.......processPools......after match() for pool ID: 9 ....................................................................  
+[2026-05-03 12:39:46] local.DEBUG: Finished Processing Pool ID: 9  
+[2026-05-03 12:39:46] local.INFO: Finished processing loop for batch 2. Attempted: 6. Succeeded/Continued: 6. First Error: None  
+[2026-05-03 12:39:46] local.INFO: ...................................service pool.......processPools......Finished processing loop for batch ID: 2. Processed Count: 6, First Error: None ....................................................................  
+[2026-05-03 12:39:46] local.INFO: Incremented iteration count for batch 2 to 5.  
+[2026-05-03 12:39:46] local.INFO: Batch 2 processing completed. Processed Pools: 6. Current Iteration: 5. Max Iterations: 5. Processing Error: No. Setting status to: settled  
+[2026-05-03 12:39:46] local.INFO: Batch 2 final status after processing: settled  
+[2026-05-03 12:39:48] local.INFO: Creating new batch for pool size (5) base bet (0.02). First Pool ID: (10), Last Pool ID: (10), Count: (1)  
+[2026-05-03 12:39:48] local.INFO: Updated status to 'batched' for 1 pools for new batch ID: (4).  
+[2026-05-03 12:39:48] local.INFO: Created new batch ID: (4). Status: waiting. Pool Size: (5)  
+[2026-05-03 12:39:49] local.INFO: Notification: User 6 joined pool 13 after a defeat.  
+[2026-05-03 12:39:49] local.INFO: Notification: User 9 joined pool 13 after a defeat.  
+[2026-05-03 12:39:49] local.INFO: Notification: User 12 joined pool 13 after a defeat.  
+[2026-05-03 12:39:49] local.INFO: Notification: User 13 joined pool 13 after a defeat.  
+[2026-05-03 12:39:49] local.INFO: Notification: User 14 joined pool 13 after a defeat.  
+[2026-05-03 12:39:49] local.INFO: Notification: User 15 joined pool 14 after a defeat.  
+[2026-05-03 12:39:49] local.INFO: Notification: User 17 joined pool 14 after a defeat.  
+[2026-05-03 12:39:49] local.INFO: Notification: User 18 joined pool 14 after a defeat.  
+[2026-05-03 12:39:49] local.INFO: Notification: User 19 joined pool 14 after a defeat.  
+[2026-05-03 12:39:49] local.INFO: Notification: User 20 joined pool 14 after a defeat.  
+[2026-05-03 12:39:50] local.INFO: Creating new batch for pool size (5) base bet (0.16). First Pool ID: (13), Last Pool ID: (14), Count: (2)  
+[2026-05-03 12:39:50] local.INFO: Updated status to 'batched' for 2 pools for new batch ID: (5).  
+[2026-05-03 12:39:50] local.INFO: Created new batch ID: (5). Status: waiting. Pool Size: (5)  
+[2026-05-03 12:40:07] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 17  
+[2026-05-03 12:40:07] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 18  
+[2026-05-03 12:40:07] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 19  
+[2026-05-03 12:40:07] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 20  
+[2026-05-03 12:40:07] local.INFO: PreMove updated {"id":20,"url":"http://127.0.0.1:8000/api/internal/handle-pool-emited","ip":"127.0.0.1","method":"POST","input":{"pool_id":"4","base_bet":"10000000000000000","users":["0xcd3B766CCDd6AE721141F452C550Ca635964ce71","0x2546BcD3c84621e976D8185a91A922aE77ECEc30","0xbDA5747bFD65F08deb54cb465eB87D40e51B197E","0xdD2FD4581271e230360230F9337D5c0430Bf44C0","0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"],"premove_cids":["bagaaiera5fembxg4d3lscct7omjoi4gwrw4fbgviexkibugcoik5sepekueq","bagaaierauwo3dpoofww6xhiwblkig5zwkgt2niboebrpsepbrrblb42zsama","bagaaierayuhtial2soxj2i24o4pzgcqehwzjq3fqay4inop66cxk6vagp47q","bagaaierau4kokhcg2cliqih3mfhbfoic7jpycnrnmi4pu5h4rdmjvnenqawq","bagaaieragvix4lu7z4sfbfefycz5y4vzan6wtr6oq4trpcuvukf3udhoqdca"],"pool_salt":"aa48c33aba4fa7513661250e201b95200d4691dda9ad256489e38ce77a97d51d","balances":["10731707317073170731","10731707317073170731","10731707317073170731","10731707317073170731","10731707317073170731"]},"trace":{"Illuminate\\Support\\Collection":["updated","Illuminate\\Events\\{closure}","invokeListeners","dispatch","fireModelEvent","performUpdate","save","initializeUsersForPool","reconstruct","handlePoolEmitedEvent"]}} 
+[2026-05-03 12:40:07] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 21  
+[2026-05-03 12:40:07] local.INFO: Notification: User 17 starting fight against 20.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 20 starting fight against 17.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 21 starting fight against 19.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 19 starting fight against 21.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 19 won 0.01 in fight 79.  
+[2026-05-03 12:40:07] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 19  
+[2026-05-03 12:40:07] local.INFO: Notification: User 18 starting fight against 17.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 17 starting fight against 18.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 17 won 0.01 in fight 80.  
+[2026-05-03 12:40:07] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 17  
+[2026-05-03 12:40:07] local.INFO: Notification: User 19 starting fight against 20.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 20 starting fight against 19.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 19 starting fight against 20.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 20 starting fight against 19.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 19 starting fight against 20.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 20 starting fight against 19.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 20 starting fight against 17.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 17 starting fight against 20.  
+[2026-05-03 12:40:07] local.INFO: Notification: User 17 won 0.01 in fight 84.  
+[2026-05-03 12:40:07] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 17  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 starting fight against 19.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 won 0.01 in fight 85.  
+[2026-05-03 12:40:08] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 19  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 starting fight against 19.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 starting fight against 19.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 won 0.01 in fight 87.  
+[2026-05-03 12:40:08] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 17  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 starting fight against 19.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 starting fight against 19.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 starting fight against 19.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 starting fight against 19.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 starting fight against 19.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 won 0.01 in fight 92.  
+[2026-05-03 12:40:08] local.INFO: [BROADCAST] ðŸš€ UserBalanceUpdated for User 17  
+[2026-05-03 12:40:08] local.INFO: Notification: User 17 starting fight against 19.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  
+[2026-05-03 12:40:08] local.INFO: Notification: User 19 starting fight against 17.  

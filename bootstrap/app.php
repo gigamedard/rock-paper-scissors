@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'token.auth' => \App\Http\Middleware\ApiAuth::class,
             'auth.internal' => \App\Http\Middleware\InternalApiAuth::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            '*', 
+        ]);
     })
 
     ->withExceptions(function (Exceptions $exceptions) {

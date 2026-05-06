@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class SessionFinished implements ShouldBroadcast
+class SessionFinished implements \Illuminate\Contracts\Broadcasting\ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -31,7 +31,7 @@ class SessionFinished implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('App.Models.User.' . $this->user->id),
+            new PrivateChannel('user.' . $this->user->id),
         ];
     }
 }

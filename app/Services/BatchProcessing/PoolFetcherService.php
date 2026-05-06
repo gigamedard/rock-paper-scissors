@@ -96,9 +96,11 @@ class PoolFetcherService
     {
         Log::channel('batch_polling')->debug("Fetching pools for processing batch ($batch->id) (pool_size ($batch->pool_size)), range: ($batch->first_pool_id)-($batch->last_pool_id)");
 
-        // Assumes first_pool_id and last_pool_id accurately define the batch scope
+        // FIX: Only fetch pools that match the batch tier AND are not yet finished.
+        // This prevents re-processing finished pools or broad-range overlap with other tiers.
         return Pool::whereBetween('id', [$batch->first_pool_id, $batch->last_pool_id])
-            // Optional safety filter: ->where('pool_size', $batch->pool_size)
+            ->where('base_bet', $batch->base_bet)
+            ->whereIn('status', [self::POOL_STATUS_WAITING, 'batched'])
             ->orderBy('id')
             ->get();
     }

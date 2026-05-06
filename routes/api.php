@@ -12,6 +12,7 @@ use App\Http\Controllers\WalletAuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Broadcast;
 
 // Wallet authentication
 Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateMessage']);
@@ -35,6 +36,11 @@ Route::middleware('token.auth')->group(function () {
     Route::post('/pre-moves', [PoolAutoMatchController::class, 'storePremoves']);       // Alias for debug-test.html
     Route::get('/user/status', [PoolAutoMatchController::class, 'getPollingStatus']);  // Alias for debug-test.html
     Route::post('/ipfs/upload', [\App\Http\Controllers\IpfsController::class, 'upload']);
+    
+    // Broadcasting Auth using our custom token authentication (Allow GET and POST to avoid 405)
+    Route::match(['get', 'post'], '/broadcasting/auth', function (Request $request) {
+        return Broadcast::auth($request);
+    });
 
 });
 

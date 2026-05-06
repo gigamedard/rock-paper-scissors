@@ -1,4 +1,5 @@
 import "@nomicfoundation/hardhat-toolbox-viem";
+import "@nomicfoundation/hardhat-ignition";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 export default {

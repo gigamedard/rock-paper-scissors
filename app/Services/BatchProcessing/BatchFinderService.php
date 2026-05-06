@@ -22,7 +22,7 @@ class BatchFinderService
                     ->where('base_bet', $baseBet)
                     ->whereIn('status', ['running', 'waiting'])
                     ->orderBy('updated_at')
-                    // ->lockForUpdate() // Apply lock where the transaction begins
+                    ->lockForUpdate()
                     ->first();
     }
 }

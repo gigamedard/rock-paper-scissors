@@ -28,6 +28,12 @@ class MatchmakingEngine
             $query->where('status', 'in_pool')->orderBy('id');
         }])->findOrFail($poolId);
 
+        // FIX: Prevent re-processing if the pool is already finished or being finished.
+        if ($pool->status === 'from_server_finished') {
+            Log::info("Pool {$poolId} already finished. Skipping matchmaking and session evaluation.");
+            return;
+        }
+
         $minUsers = ceil($pool->pool_size * config('pool.percentage_limit_of_pool_size'));
         $minUsers = max($minUsers, 2);
 
