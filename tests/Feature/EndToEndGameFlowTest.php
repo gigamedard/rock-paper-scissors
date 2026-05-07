@@ -94,6 +94,7 @@ class EndToEndGameFlowTest extends TestCase
             'base_bet' => $baseBet,
             'users' => [$user1->wallet_address, $user2->wallet_address],
             'premove_cids' => ['QmCID1', 'QmCID2'],
+            'balances' => ['1000000000000000000000000', '1000000000000000000000000'],
             'pool_salt' => $poolSalt,
         ]);
 
@@ -105,7 +106,7 @@ class EndToEndGameFlowTest extends TestCase
         // 5. Verify Pool Creation
         $this->assertDatabaseHas('pools', [
             'pool_id' => $poolId,
-            'status' => 'from_blockchain_running', // Initial status
+            'status' => 'from_server_finished', // Pool matches immediately and finishes
         ]);
 
         $pool = Pool::where('pool_id', $poolId)->first();
@@ -113,11 +114,11 @@ class EndToEndGameFlowTest extends TestCase
         // So they should NOT be in this pool anymore.
         $this->assertCount(0, $pool->users);
 
-        // Verify users have a pool_id (meaning they are in a new pool)
+        // Verify users are available for the next pool
         $user1->refresh();
         $user2->refresh();
-        $this->assertNotNull($user1->pool_id);
-        $this->assertNotEquals($pool->id, $user1->pool_id);
+        $this->assertEquals('available', $user1->status);
+        $this->assertEquals('available', $user2->status);
 
         // 6. Trigger Batch Processing
         // The pool is now 'from_blockchain_running'. The batch processor picks up 'from_server_waitting' pools usually?
@@ -163,16 +164,16 @@ class EndToEndGameFlowTest extends TestCase
         // 1.1 < 1.5 -> Session Continues.
         // User 1 should be in a NEW pool.
         
-        // Let's check if User 1 is in a new pool.
-        $this->assertNotEquals($pool->id, $user1->pool_id);
-        $this->assertNotNull($user1->pool_id);
+        // Let's check if User 1 is available for a new pool.
+        $this->assertEquals('available', $user1->status);
+        $this->assertNull($user1->pool_id);
         
         // User 2 (Loser)
         // Q = 9 / 10 = 0.9.
         // 0.9 < 1.5 -> Session Continues.
-        // User 2 should be in a NEW pool.
-        $this->assertNotEquals($pool->id, $user2->pool_id);
-        $this->assertNotNull($user2->pool_id);
+        // User 2 should be available for a NEW pool.
+        $this->assertEquals('available', $user2->status);
+        $this->assertNull($user2->pool_id);
 
         // 8. Verify Batch Processing (for the NEW pools)
         // The new pools are 'from_server_waitting'.

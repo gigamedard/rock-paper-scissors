@@ -37,7 +37,7 @@ class MatchmakingEngine
         $minUsers = ceil($pool->pool_size * config('pool.percentage_limit_of_pool_size'));
         $minUsers = max($minUsers, 2);
 
-        $maxIterations = 20;
+        $maxIterations = $pool->pool_size;
         $iterations = 0;
 
         while ($this->hasSufficientUsersForMatch($pool->users->count(), $minUsers) && $iterations < $maxIterations) {
@@ -45,15 +45,15 @@ class MatchmakingEngine
             
             // Refresh users collection for the next round
             $pool->load(['users' => function ($query) {
-                $query->where('status', 'in_pool')->orderBy('id');
+                $query->where('status', 'in_pool')->where('battle_balance', '>', 0)->orderBy('id');
             }]);
             
             $iterations++;
         }
 
-        if ($iterations >= $maxIterations) {
+        if ($iterations >= $maxIterations && $pool->users->count() >= 2) {
             $wallets = $pool->users->pluck('wallet_address')->toArray();
-            Log::warning("Pool {$pool->id} reached maximum iterations ({$maxIterations}). Breaking loop for users: " . implode(', ', $wallets));
+            Log::info("Pool {$pool->id} completed its allocated rounds ({$maxIterations}). Remaining users: " . implode(', ', $wallets));
         }
 
         $pool->update(['status' => 'from_server_finished']);

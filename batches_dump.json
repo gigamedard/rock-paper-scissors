@@ -1,0 +1,42 @@
+[
+    {
+        "id": 1,
+        "status": "settled",
+        "iteration_count": 1,
+        "max_iterations": 5,
+        "base_bet": "0.01000000",
+        "pool_size": 5
+    },
+    {
+        "id": 2,
+        "status": "settled",
+        "iteration_count": 1,
+        "max_iterations": 5,
+        "base_bet": "0.02000000",
+        "pool_size": 5
+    },
+    {
+        "id": 3,
+        "status": "waiting",
+        "iteration_count": 0,
+        "max_iterations": 5,
+        "base_bet": "0.04000000",
+        "pool_size": 5
+    },
+    {
+        "id": 4,
+        "status": "waiting",
+        "iteration_count": 0,
+        "max_iterations": 5,
+        "base_bet": "0.02000000",
+        "pool_size": 5
+    },
+    {
+        "id": 5,
+        "status": "waiting",
+        "iteration_count": 0,
+        "max_iterations": 5,
+        "base_bet": "0.01000000",
+        "pool_size": 5
+    }
+]

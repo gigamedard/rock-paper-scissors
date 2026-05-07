@@ -125,6 +125,7 @@ class InternalPoolService
 
                     // C. Move funds for the internal battle (Martingale funding)
                     $user->balance -= $tierBet;
+                    // Reset battle_balance for the new pool round to ensure integrity
                     $user->battle_balance = $tierBet;
                     $user->status = 'in_pool';
                     $user->pool_id = $pool->id;

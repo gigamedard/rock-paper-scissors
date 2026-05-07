@@ -11,7 +11,6 @@ use App\Models\Pool;
 use App\Models\Fight;
 use App\Models\PreMove;
 use App\Events\FightCreatedEvent;
-use App\Listeners\FightCreatedEventListener;
 use App\Services\FightService;
 use Illuminate\Support\Facades\Artisan;
 
@@ -77,6 +76,7 @@ class PoolEmittedFlowTest extends TestCase
             'base_bet' => $baseBetWei,
             'users' => [$user1->wallet_address, $user2->wallet_address],
             'premove_cids' => [$user1PreMove->cid, $user2PreMove->cid],
+            'balances' => ['100000000000000000000', '100000000000000000000'],
             'pool_salt' => 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2',
         ];
 

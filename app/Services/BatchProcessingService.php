@@ -105,10 +105,10 @@ class BatchProcessingService
                     }
                     $retrievedPools = $this->poolFetcherService->fetchPoolsForProcessing($batch);
                     if ($retrievedPools->isEmpty()) {
-                        $batch->status = 'waiting';
+                        $batch->status = 'settled';
                         $batch->save();
 
-                        return ['status' => 'error', 'message' => "Batch {$batch->id} found no pools in its defined range. Status reverted to waiting."];
+                        return ['status' => 'no_work', 'message' => "Batch {$batch->id} found no processable pools in its range. Transitioned to settled to avoid blocking tier."];
                     }
                     $poolsToProcess = $retrievedPools;
                     $batchForProcessing = $batch;
@@ -176,7 +176,7 @@ class BatchProcessingService
         }
         $targetPoolSize = $criteriaResult['targetPoolSize'];
 
-        $activeBetTiers = \App\Models\Pool::where('status', 'from_server_waitting')
+        $activeBetTiers = \App\Models\Pool::whereIn('status', ['from_server_waitting', 'batched'])
             ->distinct()
             ->pluck('base_bet')
             ->toArray();

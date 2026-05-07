@@ -45,22 +45,23 @@ class ProcessBatchCommand extends Command
         $this->info('Starting batch processing...');
 
         try {
-            /** @var JsonResponse $response */
-            $response = $this->batchProcessingService->processBatch();
-            
-            $status = $response->getStatusCode();
-            $content = $response->getData(true); // Get content as array
+            $result = $this->batchProcessingService->processAllBetTiers();
 
-            if ($status >= 200 && $status < 300) {
-                $this->info("Batch processing completed successfully. Status: {$status}");
-                $this->info("Message: " . ($content['message'] ?? 'No message'));
-                if (isset($content['processed_count'])) {
-                    $this->info("Processed Count: " . $content['processed_count']);
+            $httpCode = $result['http_code'] ?? 200;
+
+            if ($httpCode >= 200 && $httpCode < 300) {
+                $this->info("Batch processing completed. Status: {$result['status']}");
+                $this->info("Message: " . ($result['message'] ?? 'No message'));
+                if (isset($result['processed_count'])) {
+                    $this->info("Processed Count: " . $result['processed_count']);
+                }
+                if (isset($result['current_tier'])) {
+                    $this->info("Tier processed: " . $result['current_tier']);
                 }
                 return 0;
             } else {
-                $this->error("Batch processing failed. Status: {$status}");
-                $this->error("Message: " . ($content['message'] ?? 'Unknown error'));
+                $this->error("Batch processing failed. Status: {$result['status']}");
+                $this->error("Message: " . ($result['message'] ?? 'Unknown error'));
                 return 1;
             }
 
