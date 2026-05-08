@@ -75,13 +75,16 @@ class InternalPoolService
                 $excludedCount = count($excludedIds);
 
                 if ($excludedCount > 0) {
+                    $baseBet = (float) collect(config('pool.base_bet', [0.01]))->min();
                     // QA Fix: Auto-stop users with insufficient funds to prevent stagnation
+                    // Also reset bet_amount to base bet so they can re-enter on next session
                     User::whereIn('id', $excludedIds)->update([
-                        'status' => 'stopped',
-                        'session_started' => false
+                        'status'          => 'stopped',
+                        'session_started' => false,
+                        'bet_amount'      => $baseBet,
                     ]);
-                    UserTracker::info("InternalPoolService: Auto-stopped {$excludedCount} users at tier {$tierBet} due to insufficient funds.", [
-                        'tier' => $tierBet,
+                    UserTracker::info("InternalPoolService: Auto-stopped {$excludedCount} users at tier {$tierBet} due to insufficient funds. bet_amount reset to {$baseBet}.", [
+                        'tier'         => $tierBet,
                         'excluded_ids' => $excludedIds
                     ]);
 

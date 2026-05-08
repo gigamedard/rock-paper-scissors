@@ -173,7 +173,10 @@ class SessionManager
     private function closeSession(User $user, string $newStatus): void
     {
         $user->status = $newStatus;
-        $user->bet_amount = 0;
+        // Reset bet_amount to the base bet (0.01) so the bot can re-enter the arena
+        // on its next session after a payout, ruin, or strategic limit.
+        $baseBet = (float) collect(config('pool.base_bet', [0.01]))->min();
+        $user->bet_amount = $baseBet;
         if ($user->preMove) {
             $user->preMove->current_index = 0;
             $user->preMove->save();
