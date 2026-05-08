@@ -69,11 +69,18 @@ class SessionManager
 
     private function processFoughtUser(User $user, Pool $pool): void
     {
-        // 1. Martingale Logic: Double the bet if the user lost their battle_balance in this pool
+        $baseBet = (float) collect(config('pool.base_bet', [0.01]))->min();
+
+        // 1. Martingale Logic: Double the bet if the user lost, reset to base if they won
         if ($user->battle_balance < $pool->base_bet) {
+            // LOSS: Double the next bet (Martingale)
             $user->bet_amount = $user->bet_amount * 2;
             UserTracker::info("[MARTINGALE] 📉 Player {$user->wallet_address} lost. Next bet doubled to: {$user->bet_amount}.", ['wallet' => $user->wallet_address, 'next_bet' => $user->bet_amount]);
             event(new \App\Events\MartingaleUpdated($user, (string)$user->bet_amount));
+        } else {
+            // WIN or DRAW: Reset bet_amount to base bet (0.01) for next session entry
+            $user->bet_amount = $baseBet;
+            UserTracker::info("[BET_RESET] ✅ Player {$user->wallet_address} won/drew pool. bet_amount reset to base: {$baseBet}.", ['wallet' => $user->wallet_address, 'next_bet' => $baseBet]);
         }
 
         // 2. Calculate Q and Evaluate Session State
@@ -89,6 +96,7 @@ class SessionManager
 
         $this->evaluateUserSession($user, $q);
     }
+
 
     private function calculateQValue(User $user): float
     {
