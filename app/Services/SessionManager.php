@@ -71,21 +71,29 @@ class SessionManager
     {
         $baseBet = (float) collect(config('pool.base_bet', [0.01]))->min();
 
-        // 1. Martingale Logic: Double the bet if the user lost, reset to base if they won
+        // 1. Martingale Logic — 3 cases based on the pool outcome:
+        //    - LOSS  : battle_balance < base_bet  → double the bet (Martingale escalation)
+        //    - WIN   : battle_balance > base_bet  → reset bet_amount to base (0.01) per business rule
+        //    - NULL  : battle_balance == base_bet → keep current tier (no change, user stays at same level)
         if ($user->battle_balance < $pool->base_bet) {
-            // LOSS: Double the next bet (Martingale)
+            // POOL LOSS: Martingale — double the next bet
             $user->bet_amount = $user->bet_amount * 2;
-            UserTracker::info("[MARTINGALE] 📉 Player {$user->wallet_address} lost. Next bet doubled to: {$user->bet_amount}.", ['wallet' => $user->wallet_address, 'next_bet' => $user->bet_amount]);
+            UserTracker::info("[MARTINGALE] 📉 Player {$user->wallet_address} lost pool. Next bet doubled to: {$user->bet_amount}.", ['wallet' => $user->wallet_address, 'next_bet' => $user->bet_amount]);
             event(new \App\Events\MartingaleUpdated($user, (string)$user->bet_amount));
-        } else {
-            // WIN or DRAW: Reset bet_amount to base bet (0.01) for next session entry
+
+        } elseif ($user->battle_balance > $pool->base_bet) {
+            // POOL WIN: Reset bet_amount to base bet (0.01) — business rule
             $user->bet_amount = $baseBet;
-            UserTracker::info("[BET_RESET] ✅ Player {$user->wallet_address} won/drew pool. bet_amount reset to base: {$baseBet}.", ['wallet' => $user->wallet_address, 'next_bet' => $baseBet]);
+            UserTracker::info("[BET_RESET] ✅ Player {$user->wallet_address} won pool. bet_amount reset to base: {$baseBet}.", ['wallet' => $user->wallet_address, 'next_bet' => $baseBet]);
+
+        } else {
+            // POOL NULL (battle_balance == base_bet): Stay at current tier — no change
+            UserTracker::info("[POOL_NULL] ↔️ Player {$user->wallet_address} drew pool (null). bet_amount unchanged: {$user->bet_amount}.", ['wallet' => $user->wallet_address, 'current_bet' => $user->bet_amount]);
         }
 
         // 2. Calculate Q and Evaluate Session State
         $q = $this->calculateQValue($user);
-        
+
         // 3. Consolidate funds from battle back to main balance
         $gained = $user->battle_balance;
         $user->balance += $user->battle_balance;
