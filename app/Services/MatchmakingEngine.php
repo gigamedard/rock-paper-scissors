@@ -37,6 +37,16 @@ class MatchmakingEngine
         $minUsers = ceil($pool->pool_size * config('pool.percentage_limit_of_pool_size'));
         $minUsers = max($minUsers, 2);
 
+        // Guard: if the pool arrives with fewer than 2 eligible fighters,
+        // skip the fight loop entirely and close it via SessionManager directly.
+        $eligibleAtStart = $pool->users->filter(fn($u) => $u->battle_balance >= $pool->base_bet)->count();
+        if ($eligibleAtStart < 2) {
+            Log::info("Pool {$poolId} has only {$eligibleAtStart} eligible fighter(s) at start (need ≥ 2). Closing pool immediately via SessionManager.");
+            $pool->update(['status' => 'from_server_finished']);
+            $this->sessionManager->evaluatePoolEnd($pool);
+            return;
+        }
+
         $maxIterations = $pool->pool_size;
         $iterations = 0;
 
@@ -61,6 +71,7 @@ class MatchmakingEngine
         // Delegate end of pool logic to SessionManager
         $this->sessionManager->evaluatePoolEnd($pool);
     }
+
 
     private function hasSufficientUsersForMatch(int $userCount, int $minUsers): bool
     {
