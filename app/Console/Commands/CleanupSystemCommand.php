@@ -42,19 +42,45 @@ class CleanupSystemCommand extends Command
             }
         }
 
-        // 3. Orphaned Battle Balances (stopped or available users still having funds in battle_balance)
+        // 3. Under-populated pools (waiting but have fewer active users than pool_size)
+        //    These are orphaned pools that will NEVER fill up — must be closed immediately.
+        $targetPoolSize = config('pool.size')[0] ?? 5;
+        $baseBet = (float) collect(config('pool.base_bet', [0.01]))->min();
 
-        // 3. Stalled Pools (waitting for more than 1 hour)
-        $stalledPools = Pool::where('status', 'from_server_waitting')
-            ->where('created_at', '<', now()->subHour())
-            ->get();
-        if ($stalledPools->count() > 0) {
-            $this->warn("Found {$stalledPools->count()} stalled pools. Marking as error.");
-            foreach ($stalledPools as $pool) {
-                $pool->update(['status' => 'error']);
-                UserTracker::error("Cleanup: Marked pool {$pool->id} as stalled/error.");
+        $waitingPools = Pool::where('status', 'from_server_waitting')->get();
+        foreach ($waitingPools as $pool) {
+            $activeUsers = User::where('pool_id', $pool->id)
+                ->where('status', 'in_pool')
+                ->get();
+
+            $isUnderPopulated = $activeUsers->count() > 0 && $activeUsers->count() < $targetPoolSize;
+            $isOldAndEmpty    = $activeUsers->count() === 0 && $pool->created_at->lt(now()->subMinutes(5));
+            $isStalled        = $pool->created_at->lt(now()->subHour());
+
+            if ($isUnderPopulated || $isOldAndEmpty || $isStalled) {
+                $reason = $isUnderPopulated ? "under-populated ({$activeUsers->count()}/{$targetPoolSize})"
+                        : ($isOldAndEmpty ? 'empty+stale' : 'stalled >1h');
+
+                $this->warn("Pool {$pool->id} ({$reason}). Refunding {$activeUsers->count()} players and closing.");
+
+                DB::transaction(function () use ($pool, $activeUsers, $baseBet) {
+                    foreach ($activeUsers as $user) {
+                        // Refund battle_balance back to main balance
+                        $user->balance        += $user->battle_balance;
+                        $user->battle_balance  = 0;
+                        $user->status          = 'available';
+                        $user->pool_id         = null;
+                        $user->bet_amount      = $baseBet; // reset to 0.01
+                        $user->save();
+                        UserTracker::info("Cleanup: Refunded & released User {$user->id} ({$user->wallet_address}) from orphan pool {$pool->id}. bet_amount reset to {$baseBet}.", ['pool_id' => $pool->id]);
+                    }
+                    $pool->update(['status' => 'from_server_finished']);
+                });
+
+                UserTracker::warning("Cleanup: Closed orphan pool {$pool->id} ({$reason}).");
             }
         }
+
 
         // 4. Stalled Batches (processing for more than 30 minutes, all pools finished, or invalid range)
         $stalledBatches = Batch::where('status', '!=', 'finished')->get();
