@@ -31,16 +31,18 @@ class ResetSimulation extends Command
         $this->info('Starting simulation reset...');
 
         // 1. Reset Users
-            $updated = User::query()->update([
-                'status' => 'available',
-                'pool_id' => null,
-                'bet_amount' => 0.00,
-                'session_started' => false,
-                'session_start_balance' => 0.00,
-                'session_start_battle_balance' => 0.00,
-                'battle_balance' => 0.00
-            ]);
-            $this->info("Reset session fields for {$updated} users.");
+        $updated = User::query()->update([
+            'status' => 'available',
+            'pool_id' => null,
+            'bet_amount' => 0.01, // Default Martingale base
+            'balance' => 10.00,   // Restore initial capital
+            'session_started' => false,
+            'session_start_balance' => 0.00,
+            'session_start_battle_balance' => 0.00,
+            'battle_balance' => 0.00
+        ]);
+        $this->info("Reset session fields and restored 10 ETH balance for {$updated} users.");
+
 
             // 2. Truncate Tables
             // Disable foreign key checks temporarily if needed, though truncating might work directly if ordered correctly
@@ -73,9 +75,10 @@ class ResetSimulation extends Command
 
             // Reset pre-moves session trackers to prevent cross-session pollution
             if (Schema::hasTable('pre_moves')) {
-                DB::table('pre_moves')->update(['session_first_pool_id' => null]);
-                $this->info('Reset pre_moves session trackers.');
+                DB::table('pre_moves')->truncate();
+                $this->info('Truncated pre_moves table.');
             }
+
 
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 

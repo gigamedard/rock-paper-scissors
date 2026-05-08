@@ -11,7 +11,7 @@ import {
 } from "./config.js";
 
 // Configuration
-const BATCH_SIZE = 1; // Process 1 user at a time
+const BATCH_SIZE = 5; // Process 5 users at a time
 const DELAY_BETWEEN_BATCHES = 2000; // 2 seconds
 const BASE_BET_ETH = "0.01";
 const MOVES_OPTIONS = ["rock", "paper", "scissors"];

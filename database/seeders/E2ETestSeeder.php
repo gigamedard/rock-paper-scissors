@@ -41,6 +41,18 @@ class E2ETestSeeder extends Seeder
                 'moves'   => ['rock', 'rock', 'rock', 'rock', 'rock'],
                 'cid'     => 'cid_diana_e2e_test',
             ],
+            [
+                'address' => '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65',
+                'name'    => 'Eve',
+                'moves'   => ['paper', 'paper', 'paper', 'paper', 'paper'],
+                'cid'     => 'cid_eve_e2e_test',
+            ],
+            [
+                'address' => '0x9965507D1a55bcC2695C58ba16FB37d819B0A4df',
+                'name'    => 'Frank',
+                'moves'   => ['scissors', 'scissors', 'scissors', 'scissors', 'scissors'],
+                'cid'     => 'cid_frank_e2e_test',
+            ],
         ];
 
         foreach ($accounts as $account) {
@@ -52,7 +64,7 @@ class E2ETestSeeder extends Seeder
                     'password'        => Hash::make('password'),
                     'balance'         => 100.0,
                     'battle_balance'  => 0,
-                    'bet_amount'      => 0.001,
+                    'bet_amount'      => 0.01,
                     'status'          => 'available',
                     'autoplay_active' => true,
                     'session_started' => false,
