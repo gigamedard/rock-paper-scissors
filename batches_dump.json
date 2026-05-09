@@ -2,9 +2,9 @@
     {
         "id": 1,
         "status": "settled",
-        "iteration_count": 2,
+        "iteration_count": 1,
         "max_iterations": 5,
-        "base_bet": "0.01000000",
+        "base_bet": "0.02000000",
         "pool_size": 5
     },
     {
@@ -12,15 +12,15 @@
         "status": "settled",
         "iteration_count": 1,
         "max_iterations": 5,
-        "base_bet": "0.02000000",
+        "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
         "id": 3,
         "status": "settled",
-        "iteration_count": 1,
+        "iteration_count": 2,
         "max_iterations": 5,
-        "base_bet": "0.01000000",
+        "base_bet": "0.04000000",
         "pool_size": 5
     },
     {
@@ -36,255 +36,47 @@
         "status": "settled",
         "iteration_count": 1,
         "max_iterations": 5,
-        "base_bet": "0.04000000",
+        "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
         "id": 6,
-        "status": "settled",
-        "iteration_count": 1,
+        "status": "waiting",
+        "iteration_count": 2,
         "max_iterations": 5,
         "base_bet": "0.02000000",
         "pool_size": 5
     },
     {
         "id": 7,
-        "status": "settled",
-        "iteration_count": 2,
+        "status": "waiting",
+        "iteration_count": 1,
         "max_iterations": 5,
-        "base_bet": "0.08000000",
+        "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
         "id": 8,
-        "status": "settled",
+        "status": "waiting",
         "iteration_count": 2,
         "max_iterations": 5,
-        "base_bet": "0.01000000",
+        "base_bet": "0.08000000",
         "pool_size": 5
     },
     {
         "id": 9,
-        "status": "settled",
-        "iteration_count": 2,
+        "status": "waiting",
+        "iteration_count": 1,
         "max_iterations": 5,
-        "base_bet": "0.02000000",
+        "base_bet": "0.16000000",
         "pool_size": 5
     },
     {
         "id": 10,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 11,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 12,
-        "status": "settled",
-        "iteration_count": 3,
-        "max_iterations": 5,
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 13,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 14,
         "status": "waiting",
         "iteration_count": 1,
         "max_iterations": 5,
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 15,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
         "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 16,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 17,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 18,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 19,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 20,
-        "status": "settled",
-        "iteration_count": 2,
-        "max_iterations": 5,
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 21,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 22,
-        "status": "settled",
-        "iteration_count": 2,
-        "max_iterations": 5,
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 23,
-        "status": "waiting",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 24,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 25,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 26,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 27,
-        "status": "settled",
-        "iteration_count": 2,
-        "max_iterations": 5,
-        "base_bet": "0.64000000",
-        "pool_size": 5
-    },
-    {
-        "id": 28,
-        "status": "settled",
-        "iteration_count": 2,
-        "max_iterations": 5,
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 29,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 30,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 31,
-        "status": "settled",
-        "iteration_count": 2,
-        "max_iterations": 5,
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 32,
-        "status": "settled",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 33,
-        "status": "waiting",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "1.28000000",
-        "pool_size": 5
-    },
-    {
-        "id": 34,
-        "status": "waiting",
-        "iteration_count": 1,
-        "max_iterations": 5,
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 35,
-        "status": "waiting",
-        "iteration_count": 0,
-        "max_iterations": 5,
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 36,
-        "status": "waiting",
-        "iteration_count": 0,
-        "max_iterations": 5,
-        "base_bet": "0.16000000",
         "pool_size": 5
     }
 ]

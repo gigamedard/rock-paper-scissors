@@ -34,14 +34,16 @@ class ResetSimulation extends Command
         $updated = User::query()->update([
             'status' => 'available',
             'pool_id' => null,
-            'bet_amount' => 0.01, // Default Martingale base
-            'balance' => 10.00,   // Restore initial capital
+            'bet_amount' => 0.01, 
+            // We NO LONGER force balance = 10.00 here. 
+            // Bots will deposit via simulation_bots.js or prepare_simulation.js
             'session_started' => false,
             'session_start_balance' => 0.00,
             'session_start_battle_balance' => 0.00,
             'battle_balance' => 0.00
         ]);
-        $this->info("Reset session fields and restored 10 ETH balance for {$updated} users.");
+        $this->info("Reset session fields for {$updated} users (Balances left untouched for realistic simulation).");
+
 
 
             // 2. Truncate Tables

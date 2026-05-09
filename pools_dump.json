@@ -8,814 +8,212 @@
     },
     {
         "id": 2,
-        "pool_id": "e6ce6d4f-0e03-4f9d-b047-9f7db0cdb6af",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 3,
         "pool_id": "2",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 4,
-        "pool_id": "66826cb5-583f-4249-a86e-c75d1c87163e",
+        "id": 3,
+        "pool_id": "911bb1ef-8997-4dff-83ae-cb8ae9b27b7a",
         "status": "from_server_finished",
         "base_bet": "0.02000000",
         "pool_size": 5
     },
     {
-        "id": 5,
+        "id": 4,
         "pool_id": "3",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 6,
-        "pool_id": "da698a90-9fbc-4a47-8b38-e3a26d70f56f",
+        "id": 5,
+        "pool_id": "4117e72e-7cbb-457a-a0de-7876e79585d3",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 7,
-        "pool_id": "4bb71c4d-36cc-4629-b1ee-0e86d9d37cbc",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 8,
+        "id": 6,
         "pool_id": "4",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 9,
-        "pool_id": "bae2d5f4-a7e6-4873-ba54-a3d08fcd1866",
+        "id": 7,
+        "pool_id": "4cec3869-74de-49c9-bd5f-b66f4dbd0eb6",
         "status": "from_server_finished",
-        "base_bet": "0.01000000",
+        "base_bet": "0.02000000",
         "pool_size": 5
     },
     {
-        "id": 10,
+        "id": 8,
         "pool_id": "5",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 11,
-        "pool_id": "d0cd5886-7319-4d90-8511-65d9acf70c86",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 12,
-        "pool_id": "f1b034a3-5b49-450c-924a-09179797f98d",
+        "id": 9,
+        "pool_id": "0a0e6b9c-117c-471e-9c35-2790249520cb",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 13,
-        "pool_id": "ee6ffa3f-0020-4c68-8b60-0b6250db8044",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 14,
-        "pool_id": "2395e08a-77a9-43cf-b088-5918a91fffc5",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 15,
-        "pool_id": "42b61ca1-7a8a-4e80-b081-d3342b3ec55f",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 16,
-        "pool_id": "b9e71072-d764-4956-bf92-293806c91eeb",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 17,
+        "id": 10,
         "pool_id": "6",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 18,
-        "pool_id": "09413c48-2ba9-4ea2-a89f-bf086db0d669",
+        "id": 11,
+        "pool_id": "870311fa-be95-4002-a74b-868bc860f23a",
+        "status": "from_server_finished",
+        "base_bet": "0.02000000",
+        "pool_size": 5
+    },
+    {
+        "id": 12,
+        "pool_id": "53b16935-b3f3-4bda-9e17-35810da5ff9e",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 19,
+        "id": 13,
+        "pool_id": "09b138b6-f517-4ed5-92ab-52e12da2921c",
+        "status": "from_server_finished",
+        "base_bet": "0.02000000",
+        "pool_size": 5
+    },
+    {
+        "id": 14,
+        "pool_id": "ecc6d1c7-85f9-4df8-89f4-b7461a7680dd",
+        "status": "from_server_finished",
+        "base_bet": "0.04000000",
+        "pool_size": 5
+    },
+    {
+        "id": 15,
+        "pool_id": "908cd123-741a-48fb-9ea2-19e256afb758",
+        "status": "from_server_finished",
+        "base_bet": "0.01000000",
+        "pool_size": 5
+    },
+    {
+        "id": 16,
         "pool_id": "7",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 20,
-        "pool_id": "b6c6a3da-b1ff-4c74-b8dc-1646b3843048",
+        "id": 17,
+        "pool_id": "201fa80d-80e9-4099-a3b4-62876288c33f",
         "status": "from_server_finished",
         "base_bet": "0.02000000",
         "pool_size": 5
     },
     {
-        "id": 21,
-        "pool_id": "dafe7bb6-17ab-42f4-87a1-1bce7738b580",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 22,
-        "pool_id": "7fc2a04f-2005-4628-9bad-a59945e69a2b",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 23,
-        "pool_id": "7115d6be-0ba2-4db1-ad68-f798540b261f",
+        "id": 18,
+        "pool_id": "76f33b87-7410-4cd4-aa7a-419840497246",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 24,
+        "id": 19,
         "pool_id": "8",
         "status": "from_server_finished",
         "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
-        "id": 25,
-        "pool_id": "21a96f98-8d57-4564-8470-464350d48207",
+        "id": 20,
+        "pool_id": "b009b2a9-663f-403c-8c66-666ad26d4988",
+        "status": "from_server_finished",
+        "base_bet": "0.01000000",
+        "pool_size": 5
+    },
+    {
+        "id": 21,
+        "pool_id": "5f33002d-d7f0-4e0d-92ab-2f6c2757facd",
         "status": "from_server_finished",
         "base_bet": "0.02000000",
+        "pool_size": 5
+    },
+    {
+        "id": 22,
+        "pool_id": "ab275703-4e9e-4b06-b83f-781cf5f2a08c",
+        "status": "from_server_finished",
+        "base_bet": "0.02000000",
+        "pool_size": 5
+    },
+    {
+        "id": 23,
+        "pool_id": "7fae09c4-497f-4db1-8146-5d0e39814de0",
+        "status": "from_server_finished",
+        "base_bet": "0.04000000",
+        "pool_size": 5
+    },
+    {
+        "id": 24,
+        "pool_id": "b1c836f3-59d5-4b1b-81cc-fa307ec8476b",
+        "status": "from_server_finished",
+        "base_bet": "0.04000000",
+        "pool_size": 5
+    },
+    {
+        "id": 25,
+        "pool_id": "ceb7d5ad-da43-4a2a-af4f-a8e387a4bcdd",
+        "status": "from_server_finished",
+        "base_bet": "0.01000000",
         "pool_size": 5
     },
     {
         "id": 26,
-        "pool_id": "2ca30956-f0b0-43cf-ae9a-84830f592612",
+        "pool_id": "80ab351c-98fb-4b96-9b7b-a89ff0f62985",
         "status": "from_server_finished",
-        "base_bet": "0.02000000",
+        "base_bet": "0.08000000",
         "pool_size": 5
     },
     {
         "id": 27,
-        "pool_id": "23b322e2-8d93-497f-baa6-72d4ddddd4a0",
+        "pool_id": "b7f7c98e-433e-4f0e-ac01-d0a9492a0e1b",
         "status": "from_server_finished",
-        "base_bet": "0.04000000",
+        "base_bet": "0.08000000",
         "pool_size": 5
     },
     {
         "id": 28,
-        "pool_id": "64ef793f-a986-4b18-9f5d-4973081c1001",
+        "pool_id": "1f04e394-b86a-4ec3-a1e6-cff298c017aa",
         "status": "from_server_finished",
-        "base_bet": "0.04000000",
+        "base_bet": "0.02000000",
         "pool_size": 5
     },
     {
         "id": 29,
-        "pool_id": "4ce2e4f2-be7c-4ef8-97aa-1e9af0955728",
+        "pool_id": "3f656bb6-cd3a-404b-8774-afa68a9708da",
         "status": "from_server_finished",
-        "base_bet": "0.08000000",
+        "base_bet": "0.16000000",
         "pool_size": 5
     },
     {
         "id": 30,
-        "pool_id": "63f4ff8f-4567-4ee0-8a23-7117b93ec30d",
+        "pool_id": "e28b0178-23a2-40a7-b04c-de40e2b9a692",
         "status": "from_server_finished",
-        "base_bet": "0.01000000",
+        "base_bet": "0.04000000",
         "pool_size": 5
     },
     {
         "id": 31,
-        "pool_id": "f68c65e6-23a4-4094-b706-2b4bdfdd5f6a",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 32,
-        "pool_id": "6b968f9b-d064-4e47-ab3e-84a42d1a7fbb",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 33,
-        "pool_id": "9",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 34,
-        "pool_id": "847c671c-1179-450c-a274-0af0d6d1aed7",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 35,
-        "pool_id": "10",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 36,
-        "pool_id": "dd62a024-3c9a-4727-80bc-c0a6bf78d3a9",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 37,
-        "pool_id": "ec63f0bf-4d4c-4900-8dc6-23712ebddd4e",
+        "pool_id": "1539af33-a098-449b-bc24-61a4f5d3c81e",
         "status": "from_server_finished",
         "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 38,
-        "pool_id": "8c8e6429-43b1-4b20-885a-d09db9f80d75",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 39,
-        "pool_id": "11",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 40,
-        "pool_id": "565026a6-8e99-45de-982a-10d7dc6e5d36",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 41,
-        "pool_id": "28761075-cda7-4404-bda4-351507b38502",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 42,
-        "pool_id": "932036f3-4733-4f5a-9280-6a1a22580dae",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 43,
-        "pool_id": "d48d8b85-5efe-4667-862f-300b0d473545",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 44,
-        "pool_id": "69cb2387-19df-4c04-bfa8-d0ee046c27d9",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 45,
-        "pool_id": "0007c4f1-9ada-4e69-a635-288d9693b2dc",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 46,
-        "pool_id": "f6fa6213-cf8b-441e-a7f1-a53c6e7554a7",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 47,
-        "pool_id": "4bb4f376-aa8e-4a22-a3f9-06ba00611466",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 48,
-        "pool_id": "12",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 49,
-        "pool_id": "6f6c8c68-3e8b-4809-850a-d6bcdd6d6315",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 50,
-        "pool_id": "f288c81d-9751-460e-8802-96c35aedc703",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 51,
-        "pool_id": "41cc25ad-765f-4c2b-9564-e85bf97c8108",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 52,
-        "pool_id": "e5a045ac-e2b0-47c5-abe5-545875852aa1",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 53,
-        "pool_id": "13",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 54,
-        "pool_id": "a0a92ff7-4822-4dba-9772-fdf424d3191f",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 55,
-        "pool_id": "50453156-2c3b-45d7-940d-a6e7a5f0077e",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 56,
-        "pool_id": "fc4b66ec-558c-451c-a49f-3df724e0e6ad",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 57,
-        "pool_id": "a45d8df0-7be0-43b5-8049-7b79be183f1a",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 58,
-        "pool_id": "39b38317-44e2-41af-8c2c-0eeb9ff30c51",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 59,
-        "pool_id": "14",
-        "status": "from_server_finished",
-        "base_bet": "0.01000000",
-        "pool_size": 5
-    },
-    {
-        "id": 60,
-        "pool_id": "203e0932-c879-4091-9a06-44c7d2286ac5",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 61,
-        "pool_id": "ae76401e-9ab2-489c-b5a2-17486f7c04fb",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 62,
-        "pool_id": "74706b10-42bc-4592-a75d-3a43bdaaf96a",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 63,
-        "pool_id": "85bd0f5e-41a6-4d17-b74c-cdfd835acea7",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 64,
-        "pool_id": "e3f6dcf8-c3e0-4ab7-b980-71423bcf0990",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 65,
-        "pool_id": "2eb05682-8f49-49f7-ac4d-4ab047268c73",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 66,
-        "pool_id": "88289381-29e4-441a-a0e7-6026e8303a4f",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 67,
-        "pool_id": "2e0680b6-b41c-4727-b63f-287bb3edd583",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 68,
-        "pool_id": "076a0574-ad82-424a-9dd7-135ee52a64b9",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 69,
-        "pool_id": "f7f57983-6454-4a94-bb33-6898655fb489",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 70,
-        "pool_id": "d4a9496b-0b22-493c-a4ac-c91a2fc064f7",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 71,
-        "pool_id": "4c8b31ea-2d09-4a83-9bc6-a9b9456af9d0",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 72,
-        "pool_id": "50936f9e-388c-4324-aa12-c83a1f0f3ab0",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 73,
-        "pool_id": "8fd364fa-38b5-4ff3-844b-0b84e1f1900e",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 74,
-        "pool_id": "2793225e-2534-430f-953c-b0c4ae55fe31",
-        "status": "from_server_finished",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 75,
-        "pool_id": "73811a70-af29-4bc9-b5d7-42e57f5e0780",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 76,
-        "pool_id": "98408145-af2a-467d-b878-6b1358765184",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 77,
-        "pool_id": "5f6d799a-e9f3-4323-a17f-63a6ddabbfb4",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 78,
-        "pool_id": "ad96a321-27e6-4a06-a7ae-2d4e2f993d4c",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 79,
-        "pool_id": "c430aa81-b951-4f5b-aa8f-ae8b89151572",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 80,
-        "pool_id": "43beca5e-ce79-4324-88c1-695cfc01abc9",
-        "status": "from_server_finished",
-        "base_bet": "0.02000000",
-        "pool_size": 5
-    },
-    {
-        "id": 81,
-        "pool_id": "793eda0d-f466-4b34-be95-95949fb088dc",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 82,
-        "pool_id": "c5754534-cc79-40e2-9b83-fa3eb89faf43",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 83,
-        "pool_id": "8ee213ab-3cac-4db2-bce6-0547cdd7129d",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 84,
-        "pool_id": "822753ae-f682-465c-b2f8-faa8eaa0d119",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 85,
-        "pool_id": "0b92f0ad-3465-462e-b056-27e8198792cd",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 86,
-        "pool_id": "0b709bbf-38ef-42bb-a495-fab373896ff9",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 87,
-        "pool_id": "c7175ab1-526d-48a3-b72b-3177bd534c37",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 88,
-        "pool_id": "537691e8-eba7-4503-8758-6872b8acc47a",
-        "status": "from_server_finished",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 89,
-        "pool_id": "e15c454f-9d72-47d4-97a5-1e60c62349ac",
-        "status": "from_server_finished",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 90,
-        "pool_id": "79f53aa9-2fa0-485e-a90a-70318e1642bf",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 91,
-        "pool_id": "8e8bde9a-3140-4a13-a7dc-592b800471bf",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 92,
-        "pool_id": "d37d36c1-9217-499c-938b-af7339c1429c",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 93,
-        "pool_id": "a476e7a9-86ff-4950-bc2e-c49ee169de26",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 94,
-        "pool_id": "736a13a3-6a03-44fc-81b4-6f2dd25a5fbd",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 95,
-        "pool_id": "30986844-6cea-4ca7-9f24-58194d51e6a0",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 96,
-        "pool_id": "e5651ee1-7f0f-43f8-96e5-6cc35263b276",
-        "status": "from_server_finished",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 97,
-        "pool_id": "9b205811-ded0-4a4e-9d73-c89839420c3f",
-        "status": "from_server_finished",
-        "base_bet": "0.64000000",
-        "pool_size": 5
-    },
-    {
-        "id": 98,
-        "pool_id": "68a204d1-b6b9-4939-a206-371310d31433",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 99,
-        "pool_id": "6a74c69e-57c3-419b-90b8-49b19792c0e3",
-        "status": "from_server_finished",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 100,
-        "pool_id": "a622e1f8-d758-43f9-b57c-546eeb068320",
-        "status": "from_server_finished",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 101,
-        "pool_id": "1760421b-42db-4456-a731-f308c965e896",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 102,
-        "pool_id": "524a2621-dc15-482a-93bd-7f139bccc54b",
-        "status": "from_server_finished",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 103,
-        "pool_id": "9d0cd252-f69f-4fee-ba13-4cb8f2bf23f8",
-        "status": "from_server_finished",
-        "base_bet": "0.64000000",
-        "pool_size": 5
-    },
-    {
-        "id": 104,
-        "pool_id": "93d563d0-fcac-452c-a3aa-061d4999ad41",
-        "status": "from_server_finished",
-        "base_bet": "0.64000000",
-        "pool_size": 5
-    },
-    {
-        "id": 105,
-        "pool_id": "b3e4cd86-06b5-4310-a7ef-5f926ca03dab",
-        "status": "from_server_finished",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 106,
-        "pool_id": "66c33db7-4de9-4996-8a50-f17f9a2ee4b0",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 107,
-        "pool_id": "b3f869f8-ee77-4a33-a203-cf5ceac7ba87",
-        "status": "from_server_finished",
-        "base_bet": "0.08000000",
-        "pool_size": 5
-    },
-    {
-        "id": 108,
-        "pool_id": "2f3d81f5-40e2-4820-bc1a-8fed85783ef5",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 109,
-        "pool_id": "8918edf0-bdaf-4326-a761-974fc04c6e80",
-        "status": "from_server_finished",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 110,
-        "pool_id": "eaca5b95-d87c-4078-a55d-89ebdae1d6e7",
-        "status": "from_server_finished",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 111,
-        "pool_id": "b843d843-35d4-4045-bb24-949d76a3707d",
-        "status": "from_server_finished",
-        "base_bet": "1.28000000",
-        "pool_size": 5
-    },
-    {
-        "id": 112,
-        "pool_id": "bf1f9336-77fd-40da-b8cf-3e5aaa0051fd",
-        "status": "batched",
-        "base_bet": "0.04000000",
-        "pool_size": 5
-    },
-    {
-        "id": 113,
-        "pool_id": "6653e193-4e99-4ebb-b476-1f5513fbbc1b",
-        "status": "batched",
-        "base_bet": "0.16000000",
-        "pool_size": 5
-    },
-    {
-        "id": 114,
-        "pool_id": "f313e2db-c51c-4fc8-bdcd-67818faefdd4",
-        "status": "from_server_finished",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 115,
-        "pool_id": "a2fd76c0-8513-46df-a3a5-3f2fd95a27cf",
-        "status": "from_server_waitting",
-        "base_bet": "0.64000000",
-        "pool_size": 5
-    },
-    {
-        "id": 116,
-        "pool_id": "dfc6ac0a-6d52-4d4c-80b1-1caea6bd35bf",
-        "status": "from_server_waitting",
-        "base_bet": "0.32000000",
-        "pool_size": 5
-    },
-    {
-        "id": 117,
-        "pool_id": "1bcd004d-000f-4afd-af17-cd148bf14b70",
-        "status": "from_server_waitting",
-        "base_bet": "0.64000000",
         "pool_size": 5
     }
 ]
