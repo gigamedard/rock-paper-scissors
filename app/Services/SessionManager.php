@@ -77,13 +77,14 @@ class SessionManager
         //    - NULL  : battle_balance == base_bet → keep current tier (no change, user stays at same level)
         if ($user->battle_balance < $pool->base_bet) {
             // POOL LOSS: Martingale — double the next bet
-            $nextBet = $user->bet_amount * 2;
-            $maxMartingale = (float) ($user->userSetting->max_martingale_amount ?? 0);
+            $nextBet = (float) ($user->bet_amount * 2);
+            $maxLevel = (int) config('pool.max_martingale_level', 4);
+            $maxMartingaleAmount = (float) ($baseBet * pow(2, $maxLevel));
 
-            if ($maxMartingale > 0 && $nextBet > $maxMartingale) {
-                // Limit reached: Reset to base bet
+            if ($nextBet > $maxMartingaleAmount) {
+                // Global Limit reached: Reset to base bet
                 $user->bet_amount = $baseBet;
-                UserTracker::info("[MARTINGALE_LIMIT] 🛡️ Player {$user->wallet_address} reached max martingale limit ({$nextBet} > {$maxMartingale}). Resetting to base bet: {$baseBet}.", ['wallet' => $user->wallet_address]);
+                UserTracker::info("[MARTINGALE_LIMIT] 🛡️ Player {$user->wallet_address} reached global martingale limit level {$maxLevel} ({$nextBet} > {$maxMartingaleAmount}). Resetting to base bet: {$baseBet}.", ['wallet' => $user->wallet_address]);
             } else {
                 // Escalation: Double the bet
                 $user->bet_amount = $nextBet;

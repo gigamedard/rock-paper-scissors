@@ -10,5 +10,5 @@ return [
     'batch_max_size' => 3, // Maximum number of pools a batch can hold
     'batch_initial_limit' => 50, // How many pools to grab when creating a new batch
     'batch_max_iterations' => 5,  // Max processing iterations before settling
-
+    'max_martingale_level' => 4,  // Maximum doublings allowed (e.g. 0.01 -> 0.02 -> 0.04 -> 0.08 -> 0.16 -> RESET)
 ];
