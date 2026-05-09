@@ -10,7 +10,7 @@ class UserSetting extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'base_bet_amount', 'max_bet_amount', 'same_bet_match'
+        'user_id', 'base_bet_amount', 'max_bet_amount', 'same_bet_match', 'max_martingale_amount'
     ];
 
     public function user()
