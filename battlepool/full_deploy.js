@@ -53,7 +53,7 @@ async function main() {
         const marketplaceAddr = await marketplaceEscrow.getAddress();
 
         // Update keys in .env
-        envContent = envContent.replace(/BATTLEPOOL_CONTRACT_ADDRESS=0x[a-fA-F0-9]*/g, `BATTLEPOOL_CONTRACT_ADDRESS=${gameAddr}`);
+        envContent = envContent.replace(/BATTLEPOOL_ADDRESS=0x[a-fA-F0-9]*/g, `BATTLEPOOL_ADDRESS=${gameAddr}`);
         envContent = envContent.replace(/SNT_TOKEN_ADDRESS=0x[a-fA-F0-9]*/g, `SNT_TOKEN_ADDRESS=${sntAddr}`);
         envContent = envContent.replace(/MARKETPLACE_ESCROW_ADDRESS=0x[a-fA-F0-9]*/g, `MARKETPLACE_ESCROW_ADDRESS=${marketplaceAddr}`);
 

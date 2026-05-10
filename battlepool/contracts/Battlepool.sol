@@ -475,7 +475,6 @@ contract Battlepool {
      */
     function claimAndExit(uint256 amount, bytes memory signature) external {
         require(amount > 0, "Amount must be greater than 0");
-        require(userBalances[msg.sender] >= amount, "Insufficient contract balance");
 
         // Verify signature: hash(address, amount, nonce, contractAddress)
         bytes32 messageHash = keccak256(abi.encodePacked(msg.sender, amount, nonces[msg.sender], address(this)));

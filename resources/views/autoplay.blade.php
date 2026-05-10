@@ -706,6 +706,20 @@
             </button>
           </div>
 
+          <!-- Claim Section (Hidden by default) -->
+          <div id="claim-section" class="balance" style="display: none; background: linear-gradient(to right, var(--color-accent), var(--color-primary)); border: 2px solid #fff; box-shadow: 0 0 15px var(--color-accent); margin-bottom: 1.5rem; padding: 1.5rem; border-radius: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
+              <i data-lucide="award" style="width: 32px; height: 32px;"></i>
+              <div style="flex: 1;">
+                <p class="balance-label" style="font-weight: bold; color: #fff; margin-bottom: 0.25rem;">🏆 SESSION COMPLETE - CLAIM NOW</p>
+                <p class="balance-amount"><span id="claim-amount-display">0.0000</span> ETH</p>
+              </div>
+              <button id="claim-btn" class="submit-btn" style="width: auto; padding: 0.75rem 1.5rem; background: #fff; color: var(--color-accent); font-weight: bold; border-radius: 0.5rem;" onclick="app.claim()">
+                CLAIM & EXIT
+              </button>
+            </div>
+          </div>
+
           <div class="history">
             <div class="history-header">
               <i data-lucide="history"></i>

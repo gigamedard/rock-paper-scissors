@@ -99,9 +99,10 @@
                     <button class="btn-primary" id="join-btn" onclick="app.showSetup()" style="width: 100%; letter-spacing: 2px;">STRATEGY SETUP</button>
                 </div>
 
-                <div id="claim-section" class="claim-section" style="display: none;">
-                    <p style="margin-bottom: 1rem; color: var(--success); font-weight: 600;">SESSION FINALIZED - FUNDS SECURED</p>
-                    <button class="btn-claim" id="claim-btn" onclick="app.claim()">CLAIM & EXIT ARENA</button>
+                <div id="claim-section" style="display: none; margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(99, 102, 241, 0.2)); border: 2px solid var(--primary); border-radius: 1rem; text-align: center; box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);">
+                    <div style="font-size: 1.2rem; font-weight: 800; color: var(--success); margin-bottom: 0.5rem;">💰 SESSION COMPLETE - WINNINGS READY</div>
+                    <div style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;"><span id="claim-amount-display">0.0000</span> <span style="font-size: 1rem; color: var(--text-dim);">ETH</span></div>
+                    <button class="btn-primary" id="claim-btn" onclick="app.claim()" style="background: var(--success); width: 100%; box-shadow: 0 0 15px var(--success);">CLAIM & WITHDRAW TO WALLET</button>
                 </div>
             </section>
 

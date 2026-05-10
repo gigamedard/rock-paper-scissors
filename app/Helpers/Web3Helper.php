@@ -236,9 +236,10 @@ class Web3Helper
 
 
 
-
-
-
-
-
+    public static function getUserNonce($nodeUrl, $walletAddress)
+    {
+        $response = Http::get("{$nodeUrl}/getUserNonce/{$walletAddress}");
+        $data = $response->json();
+        return isset($data['nonce']) ? $data['nonce'] : 0;
+    }
 }

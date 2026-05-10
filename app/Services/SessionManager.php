@@ -152,12 +152,12 @@ class SessionManager
             $signature = null;
             $payoutTriggered = false;
 
-            if ($user->autoplay_active) {
-                // Bots: Automatic Payout
+            if ($user->autoplay_active && $user->id >= 100) { 
+                // ONLY REAL BOTS (ID >= 100) get Automatic Payout
                 $this->sendPayment($user);
                 $payoutTriggered = true;
             } else {
-                // Humans: Generate Signature for manual claim
+                // HUMANS (ID < 100) or Manual Players: Always generate Signature for MetaMask
                 $signature = $this->generateHumanSignature($user);
             }
             

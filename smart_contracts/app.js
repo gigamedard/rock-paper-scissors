@@ -46,13 +46,15 @@ async function initIPFS() {
 
 app.post("/ipfs/add-json", async (req, res) => {
     try {
-        console.log("Receiving IPFS payload (MOCK MODE):", req.body);
-        // We bypass Helia for now to ensure simulation stability
-        const mockCid = "QmFakeCID" + Math.random().toString(36).substring(7);
-        console.log(`📦 Mock IPFS CID generated: ${mockCid}`);
-        res.json({ Hash: mockCid });
+        console.log("Receiving IPFS payload:", req.body);
+        if (!heliaJson) {
+            throw new Error("IPFS Node not initialized");
+        }
+        const cid = await heliaJson.add(req.body);
+        console.log(`📦 Real IPFS CID generated: ${cid}`);
+        res.json({ Hash: cid.toString() });
     } catch (e) {
-        console.error("IPFS Mock Error:", e);
+        console.error("IPFS Error:", e);
         res.status(500).json({ error: e.message });
     }
 });

@@ -140,16 +140,21 @@ const app = {
                 
                 if (e.signature) {
                     this.pendingClaim = {
-                        amount: e.user.balance, // Or final amount from event
+                        amount: e.user.balance,
                         signature: e.signature
                     };
-                    document.getElementById('claim-section').style.display = 'block';
+                    const claimSection = document.getElementById('claim-section');
+                    if (claimSection) {
+                        claimSection.style.display = 'block';
+                        document.getElementById('claim-amount-display').innerText = parseFloat(e.user.balance).toFixed(4);
+                    }
                 }
 
                 if (e.reason === 'SUCCESS') {
-                    this.addToFeed(`🏆 VICTORY! Payout: ${e.final_q} ETH`, "var(--success)");
+                    const profit = (parseFloat(e.user.balance) - parseFloat(this.user.session_start_balance)).toFixed(4);
+                    this.addToFeed(`🏆 VICTORY! Final Balance: ${parseFloat(e.user.balance).toFixed(4)} ETH (Profit: ${profit})`, "var(--success)");
                 } else {
-                    this.addToFeed(`💀 RUIN: Capital exhausted.`, "var(--accent)");
+                    this.addToFeed(`💀 SESSION ENDED: ${e.reason}`, "var(--accent)");
                 }
                 this.updateUI();
             })
@@ -239,6 +244,7 @@ const app = {
 
             if (joinRes.ok) {
                 this.user.status = 'dashboard';
+                this.user.session_start_balance = parseFloat(this.user.balance) || 0; // Force float to avoid NaN
                 this.updateUI();
                 this.addToFeed("🚀 Session Initialized. Waiting for pool...", "var(--primary)");
             } else {
@@ -299,8 +305,11 @@ const app = {
         Object.values(views).forEach(v => v.style.display = 'none');
         
         // Show active
-        if (views[this.user.status]) {
-            views[this.user.status].style.display = (this.user.status === 'dashboard') ? 'grid' : 'block';
+        let activeView = views[this.user.status];
+        if (this.user.status === 'stopped') activeView = views['dashboard']; // Keep dashboard visible for results/claim
+
+        if (activeView) {
+            activeView.style.display = (activeView === views['dashboard']) ? 'grid' : 'block';
         }
 
         const connectBtn = document.getElementById('connect-btn');
