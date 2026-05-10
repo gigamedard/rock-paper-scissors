@@ -65,8 +65,8 @@ class FightService
 
             $user1 = User::find($fight->user1_id);
             $user2 = User::find($fight->user2_id);
-            if ($user1) event(new \App\Events\FightResult($user1, 'draw', '0', (string)$user1->balance));
-            if ($user2) event(new \App\Events\FightResult($user2, 'draw', '0', (string)$user2->balance));
+            if ($user1) event(new \App\Events\FightResult($user1, 'draw', '0', (string)$user1->balance, $user1Move, $user2Move));
+            if ($user2) event(new \App\Events\FightResult($user2, 'draw', '0', (string)$user2->balance, $user2Move, $user1Move));
         } else {
             $winnerId = ($result === 'user1_win') ? $fight->user1_id : $fight->user2_id;
             $loserId = ($result === 'user1_win') ? $fight->user2_id : $fight->user1_id;
@@ -81,8 +81,8 @@ class FightService
             $loserWallet = $loserUser->wallet_address ?? 'UNKNOWN';
             UserTracker::info("[FIGHT_TRANSFER] ⚔️ Player {$winnerWallet} won against {$loserWallet}. Transferred {$baseBet} from Loser to Winner.", ['winner' => $winnerWallet, 'loser' => $loserWallet, 'amount' => $baseBet]);
 
-            if ($winnerUser) event(new \App\Events\FightResult($winnerUser, 'win', "+{$baseBet}", (string)$winnerUser->balance));
-            if ($loserUser) event(new \App\Events\FightResult($loserUser, 'loss', "-{$baseBet}", (string)$loserUser->balance));
+            if ($winnerUser) event(new \App\Events\FightResult($winnerUser, 'win', "+{$baseBet}", (string)$winnerUser->balance, ($result === 'user1_win' ? $user1Move : $user2Move), ($result === 'user1_win' ? $user2Move : $user1Move)));
+            if ($loserUser) event(new \App\Events\FightResult($loserUser, 'loss', "-{$baseBet}", (string)$loserUser->balance, ($result === 'user1_win' ? $user2Move : $user1Move), ($result === 'user1_win' ? $user1Move : $user2Move)));
 
             // Notify winner (User gains baseBet)
             if ($winnerUser) {

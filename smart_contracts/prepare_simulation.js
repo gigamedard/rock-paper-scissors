@@ -28,7 +28,7 @@ async function main() {
 
         accounts.push({
             index: i,
-            address: wallet.address,
+            address: wallet.address.toLowerCase(),
             privateKey: privateKey
         });
     }

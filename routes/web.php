@@ -289,8 +289,10 @@ Route::get('/csrf-token', function () {
 
 
 
-// Dashboard route
-Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+// Dashboard route (Redirect to SPA)
+Route::get('/dashboard', function () {
+    return file_get_contents(public_path('index.html'));
+})->name('dashboard');
 
 // New module routes
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {

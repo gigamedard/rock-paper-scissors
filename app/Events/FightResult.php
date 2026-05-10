@@ -14,16 +14,20 @@ class FightResult implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $user;
-    public $result; // "win" or "loss"
+    public $result; // "win", "loss", "draw"
     public $delta;
     public $current_balance;
+    public $my_move;
+    public $opponent_move;
 
-    public function __construct(User $user, string $result, string $delta, string $current_balance)
+    public function __construct(User $user, string $result, string $delta, string $current_balance, string $my_move = 'rock', string $opponent_move = 'rock')
     {
         $this->user = $user;
         $this->result = $result;
         $this->delta = $delta;
         $this->current_balance = $current_balance;
+        $this->my_move = $my_move;
+        $this->opponent_move = $opponent_move;
     }
 
     public function broadcastOn(): array
@@ -31,5 +35,10 @@ class FightResult implements ShouldBroadcast
         return [
             new PrivateChannel('App.Models.User.' . $this->user->id),
         ];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'FightResult';
     }
 }

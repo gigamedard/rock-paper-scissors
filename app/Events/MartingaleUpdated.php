@@ -28,4 +28,9 @@ class MartingaleUpdated implements ShouldBroadcast
             new PrivateChannel('App.Models.User.' . $this->user->id),
         ];
     }
+
+    public function broadcastAs(): string
+    {
+        return 'MartingaleUpdated';
+    }
 }

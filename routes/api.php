@@ -19,6 +19,7 @@ Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateM
 Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySignature']);
 Route::post('/auth/challenge', [WalletAuthController::class, 'generateMessage']); // Alias for debug-test.html
 Route::post('/auth/verify', [WalletAuthController::class, 'verifySignature']);    // Alias for debug-test.html
+Route::post('/login', [WalletAuthController::class, 'login']);                    // Direct login for UI/Bots
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);           // Publié pour permettre l'init Web3
 
 // Protected routes (using our custom ApiAuth middleware)
@@ -49,19 +50,47 @@ Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard'
 
 Route::post('/debug-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
 
-Route::post('/debug-session-finish', function (Request $request) {
-    $userId = $request->input('user_id');
-    $user = \App\Models\User::find($userId);
-    if (! $user) {
-        return response()->json(['error' => 'User not found'], 404);
+Route::post('/debug/trigger-event', function (Request $request) {
+    $type = $request->input('type');
+    $wallet = $request->input('wallet', '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266');
+    $user = \App\Models\User::where('wallet_address', strtolower($wallet))->first();
+    
+    if (!$user) return response()->json(['error' => 'User not found for address ' . $wallet], 404);
+
+    switch($type) {
+        case 'balance':
+            $newBalance = $request->input('value', 9.99);
+            $user->update(['balance' => $newBalance]);
+            event(new \App\Events\BalanceUpdated($user->id, $newBalance));
+            break;
+        case 'match':
+            // Emit a global arena event that the UI listens to as 'BasicEvent'
+            event(new \App\Events\GlobalArenaEvent("Global Match Found for user " . $user->id, 'match'));
+            break;
+        case 'fight':
+            $outcome = $request->input('value', 'win');
+            $delta = ($outcome === 'win') ? '+0.01' : ($outcome === 'draw' ? '0' : '-0.01');
+            $myMove = $request->input('my_move', 'rock');
+            $oppMove = $request->input('opp_move', ($outcome === 'win' ? 'scissors' : ($outcome === 'draw' ? 'rock' : 'paper')));
+            $newBalance = $user->balance + (float)$delta;
+            $user->update(['balance' => $newBalance]);
+            event(new \App\Events\FightResult($user, $outcome, $delta, (string)$newBalance, $myMove, $oppMove));
+            break;
+        case 'discovery':
+            // Simulates a PoolEmitted event
+            event(new \App\Events\PoolEmitted("pool_".uniqid(), [$user->wallet_address], 0.01));
+            break;
+        case 'victory':
+            event(new \App\Events\SessionFinished($user, 'SUCCESS', '1.25', true));
+            break;
+        case 'ruin':
+            event(new \App\Events\SessionFinished($user, 'RUIN', '0.00', false));
+            break;
+        default:
+            return response()->json(['error' => 'Invalid event type'], 400);
     }
 
-    // Mock a pool for the event (optional, listener handles null pool gracefully-ish, but better to have one)
-    $pool = \App\Models\Pool::first();
-
-    event(new \App\Events\SessionFinished($user, 'SUCCESS', '2.0', true));
-
-    return response()->json(['message' => 'SessionFinishedEvent fired']);
+    return response()->json(['message' => "Event $type triggered successfully"]);
 });
 
 // Public routes

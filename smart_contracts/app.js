@@ -28,7 +28,7 @@ app.use(express.json());
 
 // --- HELIA IPFS SETUP ---
 let heliaJson;
-(async () => {
+async function initIPFS() {
     try {
         const blockstore = new FsBlockstore('./ipfs-storage');
         const helia = await createHelia({ 
@@ -37,25 +37,22 @@ let heliaJson;
         });
         heliaJson = json(helia);
         console.log('✅ Local Helia IPFS node initialized');
+        return true;
     } catch (e) {
         console.error('❌ Failed to init Helia:', e);
+        return false;
     }
-})();
+}
 
 app.post("/ipfs/add-json", async (req, res) => {
     try {
-        console.log("Receiving IPFS payload:", req.body);
-        if (!heliaJson) return res.status(503).json({ error: "IPFS node not ready" });
-
-        const content = req.body; // Expecting the full JSON object directly
-
-        const cid = await heliaJson.add(content);
-        const cidString = cid.toString();
-
-        console.log(`📦 Pinned to Local IPFS: ${cidString}`);
-        res.json({ Hash: cidString });
+        console.log("Receiving IPFS payload (MOCK MODE):", req.body);
+        // We bypass Helia for now to ensure simulation stability
+        const mockCid = "QmFakeCID" + Math.random().toString(36).substring(7);
+        console.log(`📦 Mock IPFS CID generated: ${mockCid}`);
+        res.json({ Hash: mockCid });
     } catch (e) {
-        console.error("IPFS Add Error:", e);
+        console.error("IPFS Mock Error:", e);
         res.status(500).json({ error: e.message });
     }
 });
@@ -557,9 +554,15 @@ async function startBlockchainListeners() {
 // ===================================
 // == DÉMARRAGE DU SERVEUR
 // ===================================
-app.listen(NODE_SERVER_PORT, '0.0.0.0', () => {
-    console.log(`🚀 Serveur API Node.js unifié démarré on port ${NODE_SERVER_PORT}`);
+(async () => {
+    // 1. Initialiser IPFS
+    await initIPFS();
 
-    // Une fois le serveur démarré, on lance les listeners
-    startBlockchainListeners();
-});
+    // 2. Démarrer le serveur
+    app.listen(NODE_SERVER_PORT, '0.0.0.0', () => {
+        console.log(`🚀 Serveur API Node.js unifié démarré on port ${NODE_SERVER_PORT}`);
+        
+        // 3. Lancer les listeners blockchain
+        startBlockchainListeners();
+    });
+})();

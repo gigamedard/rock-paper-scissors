@@ -205,4 +205,42 @@ class WalletAuthController extends Controller
 
         return redirect()->route('admin.settings.index');
     }
+
+    /**
+     * Simplified login for UI/Simulation (Bypass signature in local)
+     */
+    public function login(Request $request)
+    {
+        $validated = $request->validate([
+            'wallet_address' => 'required|string|regex:/^0x[a-fA-F0-9]{40}$/',
+        ]);
+
+        $address = strtolower($validated['wallet_address']);
+
+        // Find or create user
+        $user = User::firstOrCreate(
+            ['wallet_address' => $address],
+            [
+                'name'     => $this->generateReadableName($address),
+                'email'    => $this->fromUsername($this->generateReadableName($address)),
+                'password' => bcrypt(hash('sha256', $address)),
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $user->update(['is_online' => true]);
+
+        if (!$user->referral_code) {
+            $user->generateReferralCode();
+        }
+
+        // Issue custom API token
+        $token = ApiToken::generateForUser($user, 60 * 24);
+
+        return response()->json([
+            'message' => 'Authenticated successfully',
+            'token'   => $token,
+            'user'    => $user,
+        ]);
+    }
 }

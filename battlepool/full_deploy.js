@@ -34,13 +34,31 @@ async function main() {
         const sntAddr = await sntToken.getAddress();
         const marketplaceAddr = await marketplaceEscrow.getAddress();
 
-        // Regex to replace addresses
-        configContent = configContent.replace(/game: \{\s+address: "0x[a-fA-F0-0-9]+"/, `game: {\n    address: "${gameAddr}"`);
-        configContent = configContent.replace(/snt: \{\s+address: "0x[a-fA-F0-0-9]+"/, `snt: {\n    address: "${sntAddr}"`);
-        configContent = configContent.replace(/marketplace: \{\s+address: "0x[a-fA-F0-0-9]+"/, `marketplace: {\n    address: "${marketplaceAddr}"`);
+        // Regex to replace addresses (more robust)
+        configContent = configContent.replace(/game:\s*\{\s*address:\s*"0x[a-fA-F0-9]+"/g, `game: {\n    address: "${gameAddr}"`);
+        configContent = configContent.replace(/snt:\s*\{\s*address:\s*"0x[a-fA-F0-9]+"/g, `snt: {\n    address: "${sntAddr}"`);
+        configContent = configContent.replace(/marketplace:\s*\{\s*address:\s*"0x[a-fA-F0-9]+"/g, `marketplace: {\n    address: "${marketplaceAddr}"`);
         
         fs.writeFileSync(configPath, configContent);
         console.log("✅ Updated smart_contracts/config.js with new addresses.");
+    }
+
+    // --- AUTOMATION: Update Laravel .env ---
+    const envPath = path.join(__dirname, "..", ".env");
+    if (fs.existsSync(envPath)) {
+        let envContent = fs.readFileSync(envPath, "utf8");
+        
+        const gameAddr = await battlepool.getAddress();
+        const sntAddr = await sntToken.getAddress();
+        const marketplaceAddr = await marketplaceEscrow.getAddress();
+
+        // Update keys in .env
+        envContent = envContent.replace(/BATTLEPOOL_CONTRACT_ADDRESS=0x[a-fA-F0-9]*/g, `BATTLEPOOL_CONTRACT_ADDRESS=${gameAddr}`);
+        envContent = envContent.replace(/SNT_TOKEN_ADDRESS=0x[a-fA-F0-9]*/g, `SNT_TOKEN_ADDRESS=${sntAddr}`);
+        envContent = envContent.replace(/MARKETPLACE_ESCROW_ADDRESS=0x[a-fA-F0-9]*/g, `MARKETPLACE_ESCROW_ADDRESS=${marketplaceAddr}`);
+
+        fs.writeFileSync(envPath, envContent);
+        console.log("✅ Updated Laravel .env with new addresses.");
     }
 }
 

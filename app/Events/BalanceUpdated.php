@@ -13,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 use App\Models\User;
 use Auth;
 
-class BalanceUpdated
+class BalanceUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -30,15 +30,15 @@ class BalanceUpdated
 
     public function broadcastOn(): array
     {   
-        
-         $channel = 'App.Models.User.'.$this->userId;
-
-         
-        
+        $channel = 'App.Models.User.'.$this->userId;
         return [
             new PrivateChannel($channel),
         ];
+    }
 
+    public function broadcastAs(): string
+    {
+        return 'BalanceUpdated';
     }
 
     public function broadcastWith(): array

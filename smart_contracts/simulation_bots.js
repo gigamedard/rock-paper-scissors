@@ -47,7 +47,7 @@ async function simulateBot(botIndex) {
         `m/44'/60'/0'/0/${botIndex}`
     );
     const wallet = new Wallet(hdNode.privateKey, provider);
-    const address = wallet.address;
+    const address = wallet.address.toLowerCase();
     console.log(`   [Bot ${botIndex + 1}] Wallet Address: ${address}`);
 
     // 2. Auth Flow (Sign verification message)
