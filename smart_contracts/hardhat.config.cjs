@@ -1,8 +1,7 @@
-import "@nomicfoundation/hardhat-toolbox-viem";
-import "@nomicfoundation/hardhat-ignition";
+require("@nomicfoundation/hardhat-ethers");
 
 /** @type import('hardhat/config').HardhatUserConfig */
-export default {
+module.exports = {
   solidity: "0.8.24",
   networks: {
     localhost: {

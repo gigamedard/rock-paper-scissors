@@ -259,6 +259,17 @@ app.get("/get-game-config", (req, res) => {
     }
 });
 
+app.get("/admin/contract-stats", async (req, res) => {
+    try {
+        const devBalance = await gameContract.devBalance();
+        res.json({
+            houseBalance: formatEther(devBalance)
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ===================================
 // == ROUTES APPELÉES PAR LARAVEL (Web3Helper)
 // ===================================
@@ -411,6 +422,19 @@ async function startBlockchainListeners() {
                         key: 'security_coefficient',
                         value: args[0].toString(),
                         type: 'integer'
+                    });
+                }
+
+                // 4b. FeeBasisPointsUpdated
+                const feeEvents = await gameContract.queryFilter("FeeBasisPointsUpdated", lastBlock + 1, currentBlock);
+                for (const event of feeEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] FeeBasisPointsUpdated: ${args[0]}`);
+                    const percentage = parseFloat(args[0]) / 100; // 250 -> 2.5
+                    postToLaravel('/internal/update-setting', {
+                        key: 'smart_contract_fee_percentage',
+                        value: percentage.toString(),
+                        type: 'float'
                     });
                 }
 

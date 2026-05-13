@@ -190,7 +190,7 @@ class AutoMatchController extends Controller
         $user->update([
             'autoplay_active' => true,
             'bet_amount' => $bet_amount,
-            'status' => 'available', // Ensure the user is marked as available
+            'status' => 'awaiting_onchain', // Ensure the user is marked as awaiting blockchain confirmation
         ]);
 
         return response()->json(['message' => 'User registered for autoplay successfully!']);

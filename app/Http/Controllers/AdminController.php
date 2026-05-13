@@ -15,8 +15,55 @@ class AdminController extends Controller
     private function checkAdmin($user)
     {
         if (!$user || !$user->is_admin) {
-            abort(403, 'Unauthorized action.');
+            return false;
         }
+        return true;
+    }
+
+    public function getStats(Request $request)
+    {
+        if (!$this->checkAdmin($request->user())) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $totalUsers = \App\Models\User::count();
+        $activeBots = \App\Models\User::where('autoplay_active', true)->where('is_online', true)->count();
+        $totalFights = \App\Models\Fight::count();
+        $totalVolume = \App\Models\Fight::sum('base_bet_amount');
+        
+        $nodeUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+        $totalFees = \App\Helpers\Web3Helper::getContractHouseBalance($nodeUrl);
+
+        $activePools = \App\Models\Pool::where('status', 'active')->count();
+        
+        $recentFights = \App\Models\Fight::with(['user1', 'user2'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'kpis' => [
+                'total_users' => $totalUsers,
+                'active_bots' => $activeBots,
+                'total_fights' => $totalFights,
+                'total_volume' => round($totalVolume, 4),
+                'total_fees' => round($totalFees, 4),
+                'active_pools' => $activePools,
+            ],
+            'recent_fights' => $recentFights
+        ]);
+    }
+
+    public function getUsers(Request $request)
+    {
+        if (!$this->checkAdmin($request->user())) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $users = \App\Models\User::orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return response()->json($users);
     }
 
     public function getApplications(Request $request)

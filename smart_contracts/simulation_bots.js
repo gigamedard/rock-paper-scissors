@@ -8,7 +8,7 @@ import {
 
 // --- Configuration ---
 const BASE_BET = "0.01"; // ETH
-const BOT_INTERVAL_MS = 500; // 0.5 second delay between bots
+const BOT_INTERVAL_MS = 1000; // 0.5 second delay between bots
 const MAX_RETRIES = 3;
 
 // Game contract setup
@@ -27,7 +27,7 @@ function generateRandomPreMoves(count = 10) {
         if (rand < 0.33) choice = 'rock';
         else if (rand < 0.66) choice = 'paper';
         else choice = 'scissors';
-        
+
         moves.push(choice);
     }
     return moves;
@@ -52,7 +52,7 @@ async function simulateBot(botIndex) {
 
     // 2. Auth Flow (Sign verification message)
     console.log(`   [Bot ${botIndex + 1}] Authenticating with Laravel...`);
-    
+
     // Step A: Request signature message
     const msgRes = await fetch(`${LARAVEL_API_URL}/wallet/generate-message`, {
         method: "POST",
@@ -86,7 +86,7 @@ async function simulateBot(botIndex) {
     const moves = generateRandomPreMoves(10);
 
     console.log(`   [Bot ${botIndex + 1}] Submitting Pre-Moves: [${moves.slice(0, 3).join(', ')}...]`);
-    
+
     // Step D: Upload to IPFS via Laravel API proxy
     console.log(`   [Bot ${botIndex + 1}] Uploading pre-moves to IPFS...`);
     const pinataData = {
@@ -95,7 +95,7 @@ async function simulateBot(botIndex) {
         moves: moves,
         timestamp: new Date().toISOString()
     };
-    
+
     const ipfsRes = await fetch(`${LARAVEL_API_URL}/ipfs/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": `Bearer ${authToken}` },
@@ -103,7 +103,7 @@ async function simulateBot(botIndex) {
     });
     const ipfsData = await ipfsRes.json();
     if (!ipfsData.IpfsHash) throw new Error(`Failed to upload IPFS for bot ${botIndex + 1}: ` + JSON.stringify(ipfsData));
-    
+
     const preMoveCid = ipfsData.IpfsHash;
     console.log(`   [Bot ${botIndex + 1}] Pre-Moves IPFS CID received: ${preMoveCid}`);
 
@@ -116,44 +116,49 @@ async function simulateBot(botIndex) {
             "Accept": "application/json",
             "Authorization": `Bearer ${authToken}`
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
             user_id: userId,
             pre_moves: moves,
             cid: preMoveCid,
-            bet_amount: BASE_BET 
+            bet_amount: BASE_BET
         })
     });
-    
+
     if (!movesRes.ok) {
-       const errData = await movesRes.json();
-       console.error(`   [Bot ${botIndex + 1}] Backend validation error:`, errData);
-       throw new Error(`Failed to store pre-moves for bot ${botIndex + 1}`);
+        const errData = await movesRes.json();
+        console.error(`   [Bot ${botIndex + 1}] Backend validation error:`, errData);
+        throw new Error(`Failed to store pre-moves for bot ${botIndex + 1}`);
     }
     console.log(`   [Bot ${botIndex + 1}] Backend stored pre-moves correctly!`);
 
     // 4. Smart Contract Blockchain Interaction (submitPremoveCID)
     console.log(`   [Bot ${botIndex + 1}] Calling Smart Contract submitPremoveCID...`);
+
+    // Fetch dynamic config from Laravel
+    const configRes = await fetch(`${LARAVEL_API_URL}/artefacts`);
+    const config = await configRes.json();
     
-    // The bots now use Hardhat deterministic accounts which already have 10,000 ETH!
-    // We no longer need to gas them up.
+    const securityCoefficient = config.security_coefficient;
+    const feePercentage = config.smart_contract_fee_percentage;
 
     const gameContract = new Contract(contracts.game.address, contracts.game.abi, wallet);
-    
-    // The contract expects msg.value for deposit. 
-    // Since securityCoefficient = 1000 and baseBet = 0.01 ETH, requiredBalance is 10.0 ETH.
-    // Adding 2.5% fee brings the absolute minimum to 10.25 ETH. We send 11.0 ETH to be safe.
-    const amountToSendWei = parseEther("11.0"); // Much more than needed
+
+    // ALIGNMENT WITH HUMAN UI: (Base Bet * Security Coefficient) + 2.5% Fee
+    const stakeWei = parseEther((parseFloat(BASE_BET) * securityCoefficient).toFixed(18));
+    const feeWei = (stakeWei * BigInt(Math.round(feePercentage * 100))) / 10000n; // Use feePercentage from config
+    const amountToSendWei = stakeWei + feeWei;
+
     const baseBetWei = parseEther(BASE_BET);
 
     const tx = await gameContract.submitPremoveCID(baseBetWei, preMoveCid, {
         value: amountToSendWei,
-        gasLimit: 500000 // Ensure we have enough gas for array manipulations
+        gasLimit: 500000
     });
 
     console.log(`   [Bot ${botIndex + 1}] TX Sent: ${tx.hash}`);
     await tx.wait();
     console.log(`   [Bot ${botIndex + 1}] TX Confirmed! Deposited ${ethers.formatEther(amountToSendWei)} ETH.`);
-    
+
     return {
         address: address,
         cid: preMoveCid
@@ -184,7 +189,7 @@ async function main() {
         try {
             const botData = await simulateBot(i);
             activeBots.push(botData);
-            
+
             if (i < startIndex + numBots - 1) {
                 console.log(`⏳ Waiting ${BOT_INTERVAL_MS / 1000} seconds before next bot...`);
                 await new Promise(resolve => setTimeout(resolve, BOT_INTERVAL_MS));

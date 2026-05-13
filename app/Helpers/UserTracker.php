@@ -28,7 +28,7 @@ class UserTracker
     {
         $channel = 'tracked_users';
 
-        $address = $context['address'] ?? $context['wallet_address'] ?? null;
+        $address = $context['address'] ?? $context['wallet_address'] ?? $context['wallet'] ?? null;
         if ($address && ! self::isTracked($address)) {
             $channel = 'other_users';
         }

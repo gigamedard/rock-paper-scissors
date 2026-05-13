@@ -24,7 +24,7 @@ if (!INTERNAL_API_SECRET) {
   // We don't throw here to allow build/test without .env if mocked, but it's critical for runtime
 }
 
-export const SECURITY_COEFFICIENT = 100/*1000*/;
+export const SECURITY_COEFFICIENT = 1000;
 
 // --- URLs des Réseaux ---
 export const LOCAL_HARDHAT_URL = "http://127.0.0.1:8545";

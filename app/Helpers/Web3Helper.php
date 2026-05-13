@@ -242,4 +242,15 @@ class Web3Helper
         $data = $response->json();
         return isset($data['nonce']) ? $data['nonce'] : 0;
     }
+
+    public static function getContractHouseBalance($nodeUrl)
+    {
+        try {
+            $response = Http::get("{$nodeUrl}/admin/contract-stats");
+            $data = $response->json();
+            return isset($data['houseBalance']) ? (float)$data['houseBalance'] : 0.0;
+        } catch (\Exception $e) {
+            return 0.0;
+        }
+    }
 }

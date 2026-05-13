@@ -160,6 +160,9 @@ class PoolReconstructionService
             config('game_settings.security_coefficient', 1000)
         );
         $requiredCapital = $baseBetEther * $securityCoefficient;
+        
+        // [TRACE] Audit Zéro Mock - Dashboard Settings Verification
+        \App\Helpers\UserTracker::info("Audit Zéro Mock: Pool #{$pool->id} Initialization. Security Coefficient from DB: {$securityCoefficient} | Required Capital: {$requiredCapital} ETH");
 
         foreach ($users as $index => $user) {
             // A. Sync balance from blockchain — only for brand-new sessions.
@@ -201,6 +204,28 @@ class PoolReconstructionService
 
             // D. Move funds: balance → battle_balance = pool base_bet
             //    The batch processor guarantees this pool's base_bet == user's bet_amount.
+            
+            // [TRACE] Audit Zéro Mock - Upfront Fees (Handled On-Chain, recorded here for tracking)
+            $feePercent = (float) \App\Models\GameSetting::getValue('smart_contract_fee_percentage');
+            $requiredStake = $baseBetEther * $securityCoefficient;
+            $feeAmount = $requiredStake * ($feePercent / 100);
+
+            // Note: We DO NOT deduct feeAmount from $user->balance here anymore, 
+            // because it is already deducted on-chain during submitPremoveCID.
+            // The Laravel balance is synced from the on-chain balance which is already net of fees.
+
+            // Track the fee in the DB (for dashboard stats)
+            \App\Models\InfluencerFee::create([
+                'user_id' => $user->id,
+                'fee_amount_avax' => $feeAmount,
+                'language_code' => 'system'
+            ]);
+
+            UserTracker::info(
+                "Audit Zéro Mock: Upfront Fee applied: {$feeAmount} ETH ({$feePercent}%) for Player {$user->wallet_address} joining Pool #{$pool->id}",
+                ['wallet' => $user->wallet_address]
+            );
+
             $user->balance       -= $baseBetEther;
             $user->battle_balance = $baseBetEther;
 

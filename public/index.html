@@ -32,6 +32,7 @@
         <div id="wallet-section">
             <div id="connected-user" style="display: none; align-items: center; gap: 10px;">
                 <span id="user-wallet" style="font-family: monospace; color: var(--primary);">0x...</span>
+                <a href="admin.html" id="admin-link" target="_blank" style="display: none; text-decoration: none; font-size: 0.8rem; background: rgba(236, 72, 153, 0.2); color: #ec4899; padding: 4px 8px; border-radius: 8px; border: 1px solid #ec4899; font-weight: 800; margin-left: 10px;">🛡️ ADMIN CONSOLE</a>
                 <div class="live-indicator"></div>
             </div>
             <button class="wallet-btn" id="connect-btn" onclick="app.connect()">Connect Wallet</button>
@@ -68,6 +69,21 @@
                     <div class="bet-input-container">
                         <span style="font-size: 1.5rem; color: var(--primary);">Ξ</span>
                         <input type="number" id="base-bet-input" class="bet-input" value="0.01" step="0.01" min="0.001">
+                    </div>
+                    <div id="fee-breakdown" style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-dim); background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Required Stake (x<span id="display-coeff">---</span>):</span>
+                            <span id="display-stake" style="color: #fff; font-weight: 600;">0.0000 ETH</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Matchmaking Fee (<span id="display-fee-percent">---</span>%):</span>
+                            <span id="display-fee-amount" style="color: var(--accent); font-weight: 600;">0.0000 ETH</span>
+                        </div>
+                        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 0.5rem 0;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 800; color: var(--primary);">
+                            <span>TOTAL DEPOSIT:</span>
+                            <span id="display-total-deposit">0.0000 ETH</span>
+                        </div>
                     </div>
                 </div>
 

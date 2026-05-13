@@ -15,8 +15,8 @@
     <!-- Mock API for Standalone Version -->
     <script src="js/mock_api.js"></script>
     <script>
-        // Define API_URL for the standalone version (mocked)
-        const API_URL = "http://mock-backend"; 
+        // Use the actual Laravel backend
+        const API_URL = "http://127.0.0.1:8001/api"; 
     </script>
     <title>GameApp - All in One</title>
     <style>
@@ -1645,32 +1645,6 @@
         </div>
     </div>
 
-    <div id="admin-dashboard-page" class="page">
-        <div class="container">
-            <div class="card">
-                <h1 data-i18n="admin_title">🛡️ Admin Dashboard</h1>
-
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="showAdminTab('applications')"
-                        data-i18n="admin_tab_applications">Candidatures</button>
-                    <button class="tab-btn" onclick="showAdminTab('settings')"
-                        data-i18n="admin_tab_settings">Paramètres</button>
-                </div>
-
-                <div id="admin-tab-applications" class="tab-content active">
-                    <h2 data-i18n="admin_pending_title">Candidatures en Attente</h2>
-                    <div id="applications-list" class="list-group">
-                        <div class="loading" data-i18n="ref_dash_loading">Chargement...</div>
-                    </div>
-                </div>
-
-                <div id="admin-tab-settings" class="tab-content" style="display:none;">
-                    <h2 data-i18n="admin_settings_title">Paramètres de l'App</h2>
-                    <p data-i18n="admin_settings_coming">Configuration des pools et des frais (À venir).</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div id="marketplace-page" class="page">
         <div class="container">
@@ -1848,13 +1822,6 @@
                 inf_app_social: "Social Networks",
                 inf_app_add_link: "+ Add a link",
                 inf_app_submit: "Submit Application",
-                // Admin Dashboard
-                admin_title: "🛡️ Admin Dashboard",
-                admin_tab_applications: "Applications",
-                admin_tab_settings: "Settings",
-                admin_pending_title: "Pending Applications",
-                admin_settings_title: "App Settings",
-                admin_settings_coming: "Pool and fee configuration (Coming soon).",
                 // Marketplace
                 market_title: "💱 P2P Marketplace",
                 market_subtitle: "Trade your SNT tokens for AVAX in a decentralized way",
@@ -1949,13 +1916,6 @@
                 inf_app_social: "Réseaux Sociaux",
                 inf_app_add_link: "+ Ajouter un lien",
                 inf_app_submit: "Envoyer ma Candidature",
-                // Admin Dashboard
-                admin_title: "🛡️ Admin Dashboard",
-                admin_tab_applications: "Candidatures",
-                admin_tab_settings: "Paramètres",
-                admin_pending_title: "Candidatures en Attente",
-                admin_settings_title: "Paramètres de l'App",
-                admin_settings_coming: "Configuration des pools et des frais (À venir).",
                 // Marketplace
                 market_title: "💱 Marketplace P2P",
                 market_subtitle: "Échangez vos tokens SNT contre AVAX de manière décentralisée",
@@ -2932,7 +2892,8 @@
                         const link = document.createElement('a');
                         link.id = 'nav-admin-link';
                         link.textContent = '🛡️ Admin';
-                        link.onclick = () => showPage('admin-dashboard-page', loadAdminDashboard, true);
+                        link.href = 'admin.html';
+                        link.target = '_blank'; // Ouvre dans un nouvel onglet
                         navLinks.appendChild(link);
                     }
                 } else if (adminLink) {
@@ -3626,85 +3587,6 @@
         }
 
 
-        // --- Admin Dashboard Logic ---
-        async function loadAdminDashboard() {
-            showAdminTab('applications');
-        }
-
-        function showAdminTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-
-            document.getElementById(`admin-tab-${tabName}`).style.display = 'block';
-            // Find button by text content or add ID to buttons. For now, simple toggle.
-
-            if (tabName === 'applications') {
-                loadApplications();
-            }
-        }
-
-        async function loadApplications() {
-            const list = document.getElementById('applications-list');
-            list.innerHTML = '<div class="loading">Chargement...</div>';
-
-            try {
-                const response = await secureFetch(`${API_URL}/admin/applications`);
-                const apps = await response.json();
-
-                if (apps.length === 0) {
-                    list.innerHTML = '<p style="text-align:center; color: #666;">Aucune candidature en attente.</p>';
-                    return;
-                }
-
-                list.innerHTML = apps.map(app => `
-                    <div class="application-card" style="background: white; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 10px; border-radius: 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <h3>${app.pseudo} <small style="color: #666;">(${app.user.name})</small></h3>
-                                <div class="social-links">
-                                    ${app.social_links.map(l => `<a href="${l.url}" target="_blank" class="badge">${l.platform}</a>`).join(' ')}
-                                </div>
-                                <p style="margin-top: 5px; font-size: 0.9em; color: #888;">Soumis le: ${new Date(app.created_at).toLocaleDateString()}</p>
-                            </div>
-                            <div class="actions">
-                                <button class="btn btn-success" onclick="approveApp(${app.id})" style="padding: 5px 10px; font-size: 0.9em;">✅ Approuver</button>
-                                <button class="btn btn-danger" onclick="rejectApp(${app.id})" style="padding: 5px 10px; font-size: 0.9em;">❌ Rejeter</button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-
-            } catch (error) {
-                console.error("Error loading applications:", error);
-                list.innerHTML = '<div class="error">Erreur de chargement.</div>';
-            }
-        }
-
-        async function approveApp(id) {
-            if (!confirm("Approuver cette candidature ?")) return;
-            try {
-                const response = await secureFetch(`${API_URL}/admin/applications/${id}/approve`, { method: 'POST' });
-                if (response.ok) {
-                    alert("Candidature approuvée !");
-                    loadApplications();
-                } else {
-                    alert("Erreur lors de l'approbation.");
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        async function rejectApp(id) {
-            if (!confirm("Rejeter cette candidature ?")) return;
-            try {
-                const response = await secureFetch(`${API_URL}/admin/applications/${id}/reject`, { method: 'POST' });
-                if (response.ok) {
-                    alert("Candidature rejetée.");
-                    loadApplications();
-                } else {
-                    alert("Erreur lors du rejet.");
-                }
-            } catch (e) { console.error(e); }
-        }
 
         async function fetchUserProfile() {
             try {

@@ -143,9 +143,15 @@ Route::prefix('influencer')->middleware('token.auth')->group(function () {
 // == Routes ADMIN (Protected by checkAdmin)    ==
 // ===============================================
 Route::prefix('admin')->middleware('token.auth')->group(function () {
+    Route::get('/stats', [\App\Http\Controllers\AdminController::class, 'getStats']);
+    Route::get('/users', [\App\Http\Controllers\AdminController::class, 'getUsers']);
     Route::get('/applications', [\App\Http\Controllers\AdminController::class, 'getApplications']);
     Route::post('/applications/{id}/approve', [\App\Http\Controllers\AdminController::class, 'approveApplication']);
     Route::post('/applications/{id}/reject', [\App\Http\Controllers\AdminController::class, 'rejectApplication']);
+    
+    // Settings API
+    Route::get('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'index']);
+    Route::post('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'update']);
 });
 
 // ===============================================

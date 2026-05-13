@@ -54,6 +54,9 @@ class InternalPoolService
             \Illuminate\Support\Facades\Cache::put($cacheKey, $nextIndex, now()->addMinutes(5));
 
             $securityCoefficient = \App\Models\GameSetting::getValue('security_coefficient', config('game_settings.security_coefficient', 1000));
+            
+            // [TRACE] Audit Zéro Mock - Dashboard Settings Verification
+            \App\Helpers\UserTracker::info("Audit Zéro Mock: Charging tier {$tierBet}. Security Coefficient applied from DB: {$securityCoefficient}");
 
             $users = User::with('preMove')
                 ->where('status', 'available')

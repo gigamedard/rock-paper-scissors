@@ -105,6 +105,7 @@ class PoolAutoMatchController extends Controller
             'session_start_balance' => $user->session_start_balance,
             'battle_balance' => $user->battle_balance,
             'session_start_battle_balance' => $user->session_start_battle_balance,
+            'payout_signature' => $user->payout_signature,
         ]);
     }
 

@@ -617,6 +617,12 @@
                 <button class="bet-btn" data-bet="0.05">0.05</button>
                 <button class="bet-btn" data-bet="0.10">0.10</button>
               </div>
+              <div class="bet-info" style="margin-top: 0.8rem; padding: 0.5rem; background: rgba(99, 102, 241, 0.1); border-radius: 0.5rem; border-left: 3px solid var(--color-primary);">
+                <small style="display: flex; justify-content: space-between;">
+                  <span>Entry Fee: <span id="entry-fee-display">2.5</span>%</span>
+                  <span style="font-weight: bold; color: var(--color-primary);"><span id="fee-amount-display">0.00025</span> ETH</span>
+                </small>
+              </div>
             </div>
 
             <!-- Budget Configuration -->
@@ -1225,9 +1231,19 @@
           btn.classList.toggle('active', parseFloat(btn.dataset.bet) === bet);
         });
         
-        // Update budget requirements when bet amount changes
+        // Update budget requirements and fee display when bet amount changes
         fetchBudgetRequirements();
+        updateFeeDisplay();
         updateSubmitButton();
+      }
+
+      function updateFeeDisplay() {
+        const bet = gameState.selectedBet;
+        const feePercent = SMART_CONTRACT_FEE_PERCENTAGE || 2.5;
+        const feeAmount = bet * (feePercent / 100);
+        
+        document.getElementById('entry-fee-display').textContent = feePercent;
+        document.getElementById('fee-amount-display').textContent = feeAmount.toFixed(5);
       }
 
       function handleSubmit() {
@@ -1312,6 +1328,7 @@
       let CONTRACT_ADDRESS="";
       let WALLET_ADDRESS="";
       let SECURITY_COEFFICIENT = 1000;
+      let SMART_CONTRACT_FEE_PERCENTAGE = 2.5;
 
       let web3 = new Web3(window.ethereum);
       let contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
@@ -1335,7 +1352,11 @@
           const data = await response.json();
           const abi = data.abi;
           const address = data.address;
-          SEUCRITY_COEFFICIENT = data.security_coefficient;
+          SECURITY_COEFFICIENT = data.security_coefficient;
+          SMART_CONTRACT_FEE_PERCENTAGE = data.smart_contract_fee_percentage;
+          
+          // Update fee display after loading artefacts
+          updateFeeDisplay();
           // Assign ABI and CONTRACT_ADDRESS directly
     ABI =  [
       {

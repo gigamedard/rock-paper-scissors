@@ -4,19 +4,115 @@ const app = {
         wallet: null,
         balance: 0,
         bet_amount: 0.01,
-        status: 'disconnected'
+        status: 'disconnected',
+        is_admin: false
     },
     token: null,
     preMoves: [],
     pendingClaim: null,
+    config: {},
     
     // Contract details
     contractAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // Default Hardhat addr
 
     init() {
         console.log("Battlepool UI Initialized");
+        
+        // 1. Load session from localStorage
+        const savedUser = localStorage.getItem('user');
+        const savedToken = localStorage.getItem('auth_token');
+        
+        if (savedUser && savedToken) {
+            try {
+                this.user = { ...this.user, ...JSON.parse(savedUser) };
+                this.token = savedToken;
+                this.user.status = 'dashboard';
+                console.log("Session restored for:", this.user.wallet);
+                this.initEcho();
+                this.fetchUserStatus(); // Get latest data from server
+            } catch (e) {
+                console.error("Failed to restore session", e);
+                localStorage.removeItem('user');
+                localStorage.removeItem('auth_token');
+            }
+        }
+
+        this.fetchConfig();
         this.renderSlots();
         this.updateUI();
+        
+        const betInput = document.getElementById('base-bet-input');
+        if (betInput) {
+            betInput.addEventListener('input', () => this.updateFeeDisplay());
+        }
+    },
+
+    async fetchUserStatus() {
+        if (!this.token) return;
+        try {
+            const res = await fetch('http://127.0.0.1:8001/api/user/status', {
+                headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                console.log("Live User Status:", data);
+                this.user.balance = data.balance;
+                this.user.status = data.status;
+                
+                if (data.payout_signature) {
+                    this.pendingClaim = {
+                        amount: data.balance,
+                        signature: data.payout_signature
+                    };
+                    const claimSection = document.getElementById('claim-section');
+                    if (claimSection) {
+                        claimSection.style.display = 'block';
+                        document.getElementById('claim-amount-display').innerText = parseFloat(data.balance).toFixed(4);
+                    }
+                }
+                this.updateUI();
+            }
+        } catch (e) {
+            console.error("Failed to fetch user status", e);
+        }
+    },
+
+    async fetchConfig() {
+        try {
+            const res = await fetch('http://127.0.0.1:8001/api/artefacts');
+            if (res.ok) {
+                const data = await res.json();
+                this.config.security_coefficient = data.security_coefficient;
+                this.config.smart_contract_fee_percentage = data.smart_contract_fee_percentage;
+                this.contractAddress = data.address || this.contractAddress;
+                console.log("Config loaded:", this.config);
+                this.updateFeeDisplay();
+            }
+        } catch (e) {
+            console.error("Failed to fetch config", e);
+        }
+    },
+
+    updateFeeDisplay() {
+        const betInput = document.getElementById('base-bet-input');
+        if (!betInput) return;
+
+        const bet = parseFloat(betInput.value) || 0;
+        const stake = bet * this.config.security_coefficient;
+        const fee = stake * (this.config.smart_contract_fee_percentage / 100);
+        const total = stake + fee;
+
+        const elCoeff = document.getElementById('display-coeff');
+        const elStake = document.getElementById('display-stake');
+        const elFeePct = document.getElementById('display-fee-percent');
+        const elFeeAmt = document.getElementById('display-fee-amount');
+        const elTotal = document.getElementById('display-total-deposit');
+
+        if (elCoeff) elCoeff.innerText = this.config.security_coefficient;
+        if (elStake) elStake.innerText = stake.toFixed(4) + " ETH";
+        if (elFeePct) elFeePct.innerText = this.config.smart_contract_fee_percentage;
+        if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " ETH";
+        if (elTotal) elTotal.innerText = total.toFixed(4) + " ETH";
     },
 
     renderSlots() {
@@ -86,8 +182,13 @@ const app = {
 
             this.user.id = data.user.id;
             this.user.balance = data.user.balance;
+            this.user.is_admin = data.user.is_admin || false;
             this.token = data.token;
             this.user.status = 'dashboard';
+
+            // Persist for Admin Console
+            localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('auth_token', data.token);
             
             this.initEcho();
             this.updateUI();
@@ -208,11 +309,14 @@ const app = {
             const signer = await provider.getSigner();
             
             // ALIGNMENT WITH BOT STANDARD (TB Protocol)
-            // Stake = bet * 1000. Total to send = Stake + 10% margin = bet * 1100
-            const securityCoefficient = 1000; 
-            const totalCoefficient = 1100; // 1000 (stake) + 100 (10% margin)
+            // Stake = bet * SecurityCoefficient. Total = Stake + Fee%
+            const securityCoefficient = this.config.security_coefficient; 
+            const feePercentage = this.config.smart_contract_fee_percentage;
             
-            const amountToSendWei = ethers.parseUnits((parseFloat(bet) * totalCoefficient).toFixed(18), 18);
+            const stakeWei = ethers.parseUnits((parseFloat(bet) * securityCoefficient).toFixed(18), 18);
+            const feeWei = (stakeWei * BigInt(Math.round(feePercentage * 100))) / BigInt(10000);
+            const amountToSendWei = stakeWei + feeWei;
+
             const baseBetWei = ethers.parseUnits(parseFloat(bet).toFixed(18), 18);
             
             const abi = ["function submitPremoveCID(uint256 baseBet, string cid) external payable"];
@@ -305,8 +409,12 @@ const app = {
         Object.values(views).forEach(v => v.style.display = 'none');
         
         // Show active
-        let activeView = views[this.user.status];
-        if (this.user.status === 'stopped') activeView = views['dashboard']; // Keep dashboard visible for results/claim
+        let activeView = null;
+        if (['dashboard', 'in_fight', 'waiting', 'stopped'].includes(this.user.status)) {
+            activeView = views['dashboard'];
+        } else {
+            activeView = views[this.user.status];
+        }
 
         if (activeView) {
             activeView.style.display = (activeView === views['dashboard']) ? 'grid' : 'block';
@@ -328,6 +436,14 @@ const app = {
             
             document.getElementById('balance-val').innerHTML = balance.toFixed(4) + ' <span class="unit">ETH</span>';
             document.getElementById('bet-val').innerHTML = bet.toFixed(4) + ' <span class="unit">ETH</span>';
+
+            // Show admin link if applicable
+            const adminLink = document.getElementById('admin-link');
+            if (adminLink) {
+                // Convert to boolean strictly
+                const isAdmin = this.user.is_admin === true || this.user.is_admin === 1 || this.user.is_admin === "1";
+                adminLink.style.display = isAdmin ? 'inline-block' : 'none';
+            }
         }
     },
 

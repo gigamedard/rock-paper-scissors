@@ -107,11 +107,12 @@ class SessionManager
 
         // 3. Consolidate funds from battle back to main balance
         $gained = $user->battle_balance;
+        
+        \App\Helpers\UserTracker::info("[POOL_FINISH] 💰 Battle phase ended for Player {$user->wallet_address}. Gained: {$gained}. Total Internal Balance: " . ($user->balance + $user->battle_balance), ['wallet' => $user->wallet_address]);
+
         $user->balance += $user->battle_balance;
         $user->battle_balance = 0;
         $user->pool_id = null;
-
-        UserTracker::info("[POOL_FINISH] 💰 Battle phase ended for Player {$user->wallet_address}. Gained: {$gained}. Total Internal Balance: {$user->balance}.", ['wallet' => $user->wallet_address]);
 
         $this->evaluateUserSession($user, $q);
     }
@@ -152,13 +153,15 @@ class SessionManager
             $signature = null;
             $payoutTriggered = false;
 
-            if ($user->autoplay_active && $user->id >= 100) { 
-                // ONLY REAL BOTS (ID >= 100) get Automatic Payout
+            if ($user->autoplay_active) { 
+                // ALL BOTS (Autoplay) get Automatic Payout
                 $this->sendPayment($user);
                 $payoutTriggered = true;
             } else {
                 // HUMANS (ID < 100) or Manual Players: Always generate Signature for MetaMask
                 $signature = $this->generateHumanSignature($user);
+                $user->payout_signature = $signature;
+                $user->save();
             }
             
             event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature));
@@ -184,6 +187,8 @@ class SessionManager
                 $this->notificationService->notifyInsufficientBalance($user);
                 // Even on ruin, we provide the signature for the remaining funds
                 $signature = $this->generateHumanSignature($user);
+                $user->payout_signature = $signature;
+                $user->save();
             }
             
             event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature));

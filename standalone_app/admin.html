@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Admin Console | Cyber RPS</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #050b18;
+            --card-bg: rgba(16, 24, 48, 0.8);
+            --accent-color: #4f46e5;
+            --accent-glow: rgba(79, 70, 229, 0.4);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --sidebar-width: 260px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(10, 15, 30, 0.95);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            margin-bottom: 3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-left: 0.5rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active i {
+            color: var(--accent-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        /* Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+            opacity: 0.5;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .stat-icon {
+            position: absolute;
+            right: 1.5rem;
+            top: 1.5rem;
+            color: var(--accent-color);
+            opacity: 0.3;
+        }
+
+        /* Tables */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th {
+            text-align: left;
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 0.9rem;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .badge-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+        /* Tabs content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 0.8rem;
+            color: white;
+            outline: none;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-primary:hover { box-shadow: 0 0 15px var(--accent-glow); }
+
+        /* Loader */
+        .loader {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="brand">
+            <i data-lucide="shield-check"></i>
+            <span>Cyber Console</span>
+        </div>
+        <nav>
+            <div class="nav-item active" onclick="switchTab('dashboard')">
+                <i data-lucide="layout-dashboard"></i>
+                Dashboard
+            </div>
+            <div class="nav-item" onclick="switchTab('users')">
+                <i data-lucide="users"></i>
+                Joueurs
+            </div>
+            <div class="nav-item" onclick="switchTab('applications')">
+                <i data-lucide="award"></i>
+                Candidatures
+            </div>
+            <div class="nav-item" onclick="switchTab('settings')">
+                <i data-lucide="settings"></i>
+                Configuration
+            </div>
+        </nav>
+        <div style="margin-top: auto; padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div id="admin-user-info" style="font-size: 0.8rem; color: var(--text-secondary);">
+                Connecté en tant que Admin
+            </div>
+            <a href="index.html" style="color: var(--danger); text-decoration: none; font-size: 0.8rem; display: block; margin-top: 0.5rem;">
+                Quitter la Console
+            </a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Dashboard Tab -->
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="header">
+                <h1>Statistiques Globales</h1>
+                <div id="last-update" style="font-size: 0.8rem; color: var(--text-secondary);">Mise à jour en direct</div>
+            </div>
+            <div class="stats-grid" id="stats-container">
+                <!-- KPI Cards -->
+            </div>
+            <div class="grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <h3>Activité des Combats</h3>
+                    <canvas id="fightsChart" style="margin-top: 1rem;"></canvas>
+                </div>
+                <div class="card">
+                    <h3>Derniers Combats</h3>
+                    <div id="recent-fights-list" style="margin-top: 1rem;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="tab-users" class="tab-content">
+            <div class="header">
+                <h1>Gestion des Joueurs</h1>
+                <input type="text" placeholder="Rechercher par wallet..." class="form-input" style="width: 300px;">
+            </div>
+            <div class="card">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Joueur</th>
+                                <th>Wallet</th>
+                                <th>Balance ETH</th>
+                                <th>Status</th>
+                                <th>Date Inscription</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Applications Tab -->
+        <div id="tab-applications" class="tab-content">
+            <div class="header">
+                <h1>Candidatures Influenceurs</h1>
+            </div>
+            <div id="applications-list"></div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="tab-settings" class="tab-content">
+            <div class="header">
+                <h1>Configuration Système</h1>
+            </div>
+            <div class="card" style="max-width: 800px;">
+                <form id="settings-form">
+                    <div id="settings-container"></div>
+                    <button type="submit" class="btn btn-primary">Sauvegarder les Changements</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8001/api'; // Point to actual backend
+
+        function getAuthToken() {
+            return localStorage.getItem('auth_token');
+        }
+
+        async function secureFetch(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            return fetch(url, { ...options, headers });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            // Find nav item by icon or text and activate it
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                if (item.textContent.toLowerCase().includes(tabId)) {
+                    item.classList.add('active');
+                }
+            });
+
+            loadTabData(tabId);
+        }
+
+        async function loadTabData(tabId) {
+            switch(tabId) {
+                case 'dashboard': loadStats(); break;
+                case 'users': loadUsers(); break;
+                case 'applications': loadApplications(); break;
+                case 'settings': loadSettings(); break;
+            }
+        }
+
+        async function loadStats() {
+            const container = document.getElementById('stats-container');
+            container.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const response = await secureFetch(`${API_URL}/admin/stats`);
+                const data = await response.json();
+                
+                const kpis = data.kpis;
+                container.innerHTML = `
+                    <div class="card">
+                        <div class="stat-label">Volume Total (ETH)</div>
+                        <div class="stat-value">${kpis.total_volume}</div>
+                        <i data-lucide="trending-up" class="stat-icon"></i>
+                    </div>
+                    <div class="card">
+                        <div class="stat-label">Frais Collectés (ETH)</div>
+                        <div class="stat-value" style="color: var(--success)">${kpis.total_fees}</div>
+                        <i data-lucide="piggy-bank" class="stat-icon"></i>
+                    </div>
+                    <div class="card">
+                        <div class="stat-label">Utilisateurs Totaux</div>
+                        <div class="stat-value">${kpis.total_users}</div>
+                        <i data-lucide="users" class="stat-icon"></i>
+                    </div>
+                    <div class="card">
+                        <div class="stat-label">Bots Actifs</div>
+                        <div class="stat-value">${kpis.active_bots}</div>
+                        <i data-lucide="bot" class="stat-icon"></i>
+                    </div>
+                `;
+                lucide.createIcons();
+
+                // Recent fights
+                const fightsList = document.getElementById('recent-fights-list');
+                fightsList.innerHTML = data.recent_fights.map(f => `
+                    <div style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+                        <span style="color: var(--accent-color)">${f.user1.name}</span> vs <span>${f.user2.name}</span>
+                        <div style="color: var(--text-secondary)">${new Date(f.created_at).toLocaleTimeString()} - ${f.base_bet_amount} ETH</div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error("Stats error:", error);
+            }
+        }
+
+        async function loadUsers() {
+            const body = document.getElementById('users-table-body');
+            body.innerHTML = '<tr><td colspan="6"><div class="loader"></div></td></tr>';
+
+            try {
+                const response = await secureFetch(`${API_URL}/admin/users`);
+                const data = await response.json();
+                
+                body.innerHTML = data.data.map(u => `
+                    <tr>
+                        <td>${u.name}</td>
+                        <td style="font-family: monospace;">${u.wallet_address.substring(0,10)}...</td>
+                        <td>${u.balance}</td>
+                        <td><span class="badge ${u.status === 'active' ? 'badge-success' : 'badge-danger'}">${u.status}</span></td>
+                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-primary" style="padding: 5px 10px; font-size: 0.7rem;">Gérer</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) { console.error(error); }
+        }
+
+        async function loadApplications() {
+            const container = document.getElementById('applications-list');
+            container.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const response = await secureFetch(`${API_URL}/admin/applications`);
+                const apps = await response.json();
+
+                if (apps.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; padding: 3rem;">Aucune candidature en attente.</p>';
+                    return;
+                }
+
+                container.innerHTML = apps.map(app => `
+                    <div class="card" style="margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin-bottom: 0.5rem;">${app.pseudo} <small style="color: var(--text-secondary)">(${app.user.name})</small></h3>
+                                <div style="display: flex; gap: 5px;">
+                                    ${app.social_links.map(l => `<span class="badge" style="background: rgba(255,255,255,0.05);">${l.platform}</span>`).join('')}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn" style="background: var(--success); color: white;" onclick="handleApp(${app.id}, 'approve')">Approuver</button>
+                                <button class="btn" style="background: var(--danger); color: white;" onclick="handleApp(${app.id}, 'reject')">Rejeter</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) { console.error(error); }
+        }
+
+        async function handleApp(id, action) {
+            if (!confirm(`Confirmer l'action : ${action}?`)) return;
+            try {
+                const response = await secureFetch(`${API_URL}/admin/applications/${id}/${action}`, { method: 'POST' });
+                if (response.ok) {
+                    alert("Action réussie !");
+                    loadApplications();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadSettings() {
+            const container = document.getElementById('settings-container');
+            container.innerHTML = '<div class="loader"></div>';
+
+            try {
+                const response = await secureFetch(`${API_URL}/admin/settings`);
+                const groups = await response.json();
+
+                container.innerHTML = Object.entries(groups).map(([group, settings]) => `
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="text-transform: capitalize; margin-bottom: 1rem; border-left: 3px solid var(--accent-color); padding-left: 10px;">${group}</h2>
+                        ${settings.map(s => `
+                            <div class="form-group">
+                                <label class="form-label">${s.description || s.key}</label>
+                                <input type="text" name="${s.key}" value="${s.value}" class="form-input">
+                                <small style="color: var(--text-secondary); font-size: 0.7rem;">Key: ${s.key} | Type: ${s.type}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            } catch (error) { console.error(error); }
+        }
+
+        document.getElementById('settings-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((value, key) => data[key] = value);
+
+            try {
+                const response = await secureFetch(`${API_URL}/admin/settings`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    alert("Paramètres mis à jour !");
+                }
+            } catch (e) { alert("Erreur lors de la sauvegarde."); }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            // Security check
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user || !user.is_admin) {
+                alert("Accès refusé. Administrateur uniquement.");
+                window.location.href = 'index.html';
+                return;
+            }
+
+            switchTab('dashboard');
+            
+            // Auto refresh stats
+            setInterval(loadStats, 60000);
+        });
+    </script>
+</body>
+</html>

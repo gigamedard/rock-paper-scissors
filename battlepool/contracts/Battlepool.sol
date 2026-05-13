@@ -45,7 +45,7 @@ contract Battlepool {
     event PlayerClaimed(address indexed wallet, uint256 amount, uint256 nonce);
 
     address public owner;
-    uint256 public securityCoefficient = 100;
+    uint256 public securityCoefficient = 1000;
     uint256 public defaultPoolMaxSize; // <<<--- AJOUTEZ CETTE LIGNE
     uint256 public stagnantBlockLimit = 100; // Default 100 blocks
     
