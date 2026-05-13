@@ -24,12 +24,21 @@ const app = {
         
         if (savedUser && savedToken) {
             try {
-                this.user = { ...this.user, ...JSON.parse(savedUser) };
+                const userData = JSON.parse(savedUser);
+                this.user = { ...this.user, ...userData };
                 this.token = savedToken;
-                this.user.status = 'dashboard';
-                console.log("Session restored for:", this.user.wallet);
-                this.initEcho();
-                this.fetchUserStatus(); // Get latest data from server
+                
+                // Map wallet_address from Laravel to wallet for JS consistency
+                if (userData.wallet_address && !this.user.wallet) {
+                    this.user.wallet = userData.wallet_address;
+                }
+                
+                if (this.user.wallet) {
+                    this.user.status = 'dashboard';
+                    console.log("Session restored for:", this.user.wallet);
+                    this.initEcho();
+                    this.fetchUserStatus();
+                }
             } catch (e) {
                 console.error("Failed to restore session", e);
                 localStorage.removeItem('user');
@@ -64,10 +73,17 @@ const app = {
                         amount: data.balance,
                         signature: data.payout_signature
                     };
-                    const claimSection = document.getElementById('claim-section');
-                    if (claimSection) {
+                } else {
+                    this.pendingClaim = null;
+                }
+                // Show claim section if signature exists AND status is stopped
+                const claimSection = document.getElementById('claim-section');
+                if (claimSection) {
+                    if (this.pendingClaim && this.user.status === 'stopped') {
                         claimSection.style.display = 'block';
                         document.getElementById('claim-amount-display').innerText = parseFloat(data.balance).toFixed(4);
+                    } else {
+                        claimSection.style.display = 'none';
                     }
                 }
                 this.updateUI();
@@ -410,10 +426,13 @@ const app = {
         
         // Show active
         let activeView = null;
-        if (['dashboard', 'in_fight', 'waiting', 'stopped'].includes(this.user.status)) {
-            activeView = views['dashboard'];
+        if (this.user.status === 'disconnected') {
+            activeView = views['disconnected'];
+        } else if (this.user.status === 'setup') {
+            activeView = views['setup'];
         } else {
-            activeView = views[this.user.status];
+            // ALL other statuses (dashboard, in_fight, waiting, stopped, invalid, etc.)
+            activeView = views['dashboard'];
         }
 
         if (activeView) {
@@ -429,7 +448,15 @@ const app = {
         } else {
             connectBtn.style.display = 'none';
             connectedUser.style.display = 'flex';
-            document.getElementById('user-wallet').innerText = this.user.wallet.substring(0,6) + "..." + this.user.wallet.substring(38);
+            const walletDisplay = document.getElementById('user-wallet');
+            if (walletDisplay) {
+                if (this.user.wallet) {
+                    const w = this.user.wallet;
+                    walletDisplay.innerText = w.substring(0, 6) + "..." + w.substring(w.length - 4);
+                } else {
+                    walletDisplay.innerText = "0x...";
+                }
+            }
             
             const balance = parseFloat(this.user.balance) || 0;
             const bet = parseFloat(this.user.bet_amount) || 0;

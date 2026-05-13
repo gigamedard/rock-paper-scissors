@@ -39,6 +39,10 @@ class PreMoveService
 
         // Register user for autoplay and (stub) store on blockchain.
         $this->userDataService->registerForAutoplay($data['user_id'], $bet_amount);
+        
+        // Clear previous payout signature as a new session is starting
+        User::where('id', $data['user_id'])->update(['payout_signature' => null]);
+
         $this->storeOnBlockchain($hashedMoves);
 
         return [
