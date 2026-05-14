@@ -15,6 +15,8 @@ class SeedAdminUser extends Seeder
             ['wallet_address' => $adminAddress],
             [
                 'name' => 'SuperAdmin',
+                'email' => 'admin@battlepool.io',
+                'password' => bcrypt('password'),
                 'is_admin' => true
             ]
         );

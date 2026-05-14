@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -6,7 +6,7 @@
     <title>BATTLEPOOL | Arena</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <!-- CSS modules (gÃ©nÃ©rÃ©s par Vite en prod, sinon dev HMR) -->
+    <!-- CSS modules (générés par Vite en prod, sinon dev HMR) -->
 </head>
 <body>
 
@@ -15,7 +15,7 @@
         <div class="logo">BATTLEPOOL</div>
         <nav class="spa-nav">
             <a href="#/" class="nav-link" data-i18n="nav.arena">Arena</a>
-            <a href="#/marketplace" class="nav-link" data-i18n="nav.marketplace">MarchÃ©</a>
+            <a href="#/marketplace" class="nav-link" data-i18n="nav.marketplace">Marché</a>
             <a href="#/referral" class="nav-link" data-i18n="nav.referral">Parrainage</a>
             <a href="#/influencer" class="nav-link" data-i18n="nav.influencer" style="color: #f59e0b;">VIP</a>
             
@@ -26,8 +26,7 @@
         </nav>
         <div id="wallet-section">
             <div id="connected-user" style="display: none; align-items: center; gap: 10px;">
-                <span id="user-wallet" style="font-family: monospace; color: var(--primary);">0x...</span>
-                <a href="admin.html" id="admin-link" target="_blank" style="display: none; text-decoration: none; font-size: 0.8rem; background: rgba(236, 72, 153, 0.2); color: #ec4899; padding: 4px 8px; border-radius: 8px; border: 1px solid #ec4899; font-weight: 800; margin-left: 10px;">ðŸ›¡ï¸ ADMIN</a>
+                <span id="user-wallet" class="wallet-badge">0x...</span>
                 <div class="live-indicator"></div>
             </div>
             <button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">Connect Wallet</button>
@@ -41,20 +40,20 @@
             <div class="battle-status-tag status-busy" style="margin-bottom: 2rem;">COMBAT IN PROGRESS</div>
             <h2 id="combat-text" style="color: var(--primary); font-size: 3.5rem; text-shadow: 0 0 30px var(--primary); font-weight: 800;">SCANNING...</h2>
             <div class="combat-icons" style="font-size: 4rem; margin-top: 2rem;">
-                <span class="clash-icon">ðŸ¥Š</span>
-                <span class="clash-icon">âš¡</span>
-                <span class="clash-icon">ðŸ”¥</span>
+                <span class="clash-icon">🥊</span>
+                <span class="clash-icon">⚡</span>
+                <span class="clash-icon">🔥</span>
             </div>
         </div>
     </div>
 
     <main class="shell">
 
-        <!-- ===== PAGE: ARÃˆNE (ancienne page principale) ===== -->
+        <!-- ===== PAGE: ARÈNE (ancienne page principale) ===== -->
         <div id="autoplay-page" class="page active">
             <div id="view-disconnected" class="card" style="text-align: center; margin-top: 5rem;">
                 <h1 style="font-size: 3rem; margin-bottom: 1rem;" data-i18n="connect.title">Ready to Fight?</h1>
-                <p style="color: var(--text-dim); margin-bottom: 2rem;" data-i18n="connect.subtitle">Connect your wallet...</p>
+                <p style="color: var(--text-dim); margin-bottom: 2rem;" data-i18n="connect.subtitle">Connect your wallet to enter the arena and start your session.</p>
                 <button class="btn-primary" id="enter-arena-btn" style="padding: 1.5rem 3rem; font-size: 1.2rem;" data-i18n="connect.enter">ENTER THE ARENA</button>
             </div>
 
@@ -65,16 +64,16 @@
                         <label class="label">PRE-MOVE SEQUENCE (10 ROUNDS)</label>
                         <div id="premove-slots" class="premove-grid"></div>
                         <div class="move-selector">
-                            <button class="move-btn" id="move-rock">âœŠ</button>
-                            <button class="move-btn" id="move-paper">ðŸ–ï¸</button>
-                            <button class="move-btn" id="move-scissors">âœŒï¸</button>
+                            <button class="move-btn" id="move-rock">✊</button>
+                            <button class="move-btn" id="move-paper">🖐️</button>
+                            <button class="move-btn" id="move-scissors">✌️</button>
                             <button class="move-btn" id="move-reset" style="font-size: 1.2rem; color: var(--accent);">RESET</button>
                         </div>
                     </div>
                     <div>
                         <label class="label">BASE BET AMOUNT (ETH)</label>
                         <div class="bet-input-container">
-                            <span style="font-size: 1.5rem; color: var(--primary);">Îž</span>
+                            <span style="font-size: 1.5rem; color: var(--primary);">Ξ</span>
                             <input type="number" id="base-bet-input" class="bet-input" value="0.01" step="0.01" min="0.001">
                         </div>
                         <div id="fee-breakdown" style="margin-top:1rem; font-size:0.85rem; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
@@ -89,33 +88,35 @@
             </div>
 
             <div id="view-dashboard" class="dashboard" style="display: none;">
-                <section class="card">
-                    <div class="status-badge">
-                        <div class="live-indicator"></div>
-                        Arena Status: <span id="status-text" class="battle-status-tag status-online">Available</span>
+                <!-- Main Arena Stats -->
+                <div class="arena-grid">
+                    <div class="card stat-card pulse-primary">
+                        <div class="card-label" data-i18n="dashboard.balance">Main Balance</div>
+                        <div class="card-value" id="balance-val">0.0000 <span class="unit">ETH</span></div>
+                        <div class="card-trend up">↑ Live Sync</div>
                     </div>
-                    <h1 style="margin-top: 1rem;">Welcome, Warrior</h1>
-                    <div class="balance-grid">
-                        <div class="balance-item">
-                            <div class="label" data-i18n="dashboard.balance">Main Balance</div>
-                            <div class="val" id="balance-val">0.0000 <span class="unit">ETH</span></div>
-                        </div>
-                        <div class="balance-item">
-                            <div class="label" data-i18n="dashboard.bet">Current Bet</div>
-                            <div class="val" id="bet-val">0.0100 <span class="unit">ETH</span></div>
-                        </div>
+                    <div class="card stat-card">
+                        <div class="card-label" data-i18n="dashboard.bet">Current Bet</div>
+                        <div class="card-value" id="bet-val">0.0100 <span class="unit">ETH</span></div>
+                        <div id="status-text" class="battle-status-tag status-online">Available</div>
                     </div>
-                    <div class="action-bar" style="margin-top: 2rem;">
-                        <button class="btn-primary" id="join-btn" style="width: 100%; letter-spacing: 2px;" data-i18n="dashboard.strategy">STRATEGY SETUP</button>
+                </div>
+
+                <!-- Battle Controls -->
+                <div class="battle-actions">
+                    <button class="btn-primary" id="join-btn" style="width: 100%; padding: 1.5rem; font-size: 1.2rem; display: none;" data-i18n="dashboard.strategy">STRATEGY SETUP</button>
+                    
+                    <!-- Claim Section (Hidden by default) -->
+                    <div id="claim-section" class="claim-panel fade-in" style="display: none;">
+                        <h3 data-i18n="claim.title">SESSION COMPLETE - REWARDS READY</h3>
+                        <div class="claim-amount"><span id="claim-amount-display">0.0000</span> ETH</div>
+                        <button class="btn-claim" id="claim-btn" data-i18n="claim.btn">CLAIM & WITHDRAW TO WALLET</button>
                     </div>
-                    <div id="claim-section" style="display: none; margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(99,102,241,0.2)); border: 2px solid var(--primary); border-radius: 1rem; text-align: center;">
-                        <div style="font-size: 1.2rem; font-weight: 800; color: var(--success); margin-bottom: 0.5rem;" data-i18n="claim.title">SESSION COMPLETE</div>
-                        <div style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;"><span id="claim-amount-display">0.0000</span> <span style="font-size: 1rem; color: var(--text-dim);">ETH</span></div>
-                        <button class="btn-primary" id="claim-btn" style="background: var(--success); width: 100%;" data-i18n="claim.btn">CLAIM & WITHDRAW</button>
-                    </div>
-                </section>
-                <aside class="card">
-                    <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">Battle Feed <span style="font-size: 0.7rem; color: var(--primary); letter-spacing: 1px;">LIVE DATA</span></h2>
+                </div>
+
+                <!-- Activity Feed & Logs -->
+                <aside class="activity-log">
+                    <h3 style="font-size: 0.8rem; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 1rem;">BATTLE FEED</h3>
                     <div id="feed" class="feed-container">
                         <div class="feed-entry"><span class="feed-time">System Initialized</span> Waiting for signals...</div>
                     </div>
@@ -127,12 +128,12 @@
         <div id="marketplace-page" class="page" style="display:none;">
             <div class="mp-header">
                 <h1 data-i18n="marketplace.title">Marketplace P2P</h1>
-                <p data-i18n="marketplace.subtitle">Ã‰changez vos SNT contre des AVAX.</p>
+                <p data-i18n="marketplace.subtitle">Échangez vos SNT contre des AVAX.</p>
             </div>
 
             <div class="mp-stats-bar">
                 <div class="mp-stat-card">
-                    <div class="mp-stat-label" data-i18n="marketplace.stats_total_trades">Total Ã‰changes</div>
+                    <div class="mp-stat-label" data-i18n="marketplace.stats_total_trades">Total Échanges</div>
                     <div class="mp-stat-value" id="mp-stat-total-trades">--</div>
                 </div>
                 <div class="mp-stat-card">
@@ -146,84 +147,86 @@
             </div>
 
             <div class="mp-create-panel">
-                <h2 data-i18n="marketplace.create_offer">CrÃ©er une Offre</h2>
+                <h2 data-i18n="marketplace.create_offer">Créer une Offre</h2>
                 <div class="mp-form-grid">
-                    <div class="mp-form-group">
-                        <label data-i18n="marketplace.snt_amount">QuantitÃ© SNT</label>
-                        <input type="number" id="mp-snt-amount" placeholder="100" min="1">
+                    <div class="mp-input-group">
+                        <label data-i18n="marketplace.snt_amount">SNT Amount</label>
+                        <input type="number" id="mp-snt-amount" placeholder="0.0">
                     </div>
-                    <div class="mp-form-group">
-                        <label data-i18n="marketplace.avax_amount">Prix AVAX</label>
-                        <input type="number" id="mp-avax-amount" placeholder="0.5" min="0.01" step="0.01">
+                    <div class="mp-input-group">
+                        <label data-i18n="marketplace.avax_amount">AVAX Price</label>
+                        <input type="number" id="mp-avax-price" placeholder="0.0">
                     </div>
-                    <div class="mp-form-group">
-                        <label data-i18n="marketplace.duration">DurÃ©e (heures)</label>
-                        <input type="number" id="mp-duration" value="24" min="1" max="168">
+                    <div class="mp-input-group">
+                        <label data-i18n="marketplace.duration">Duration (h)</label>
+                        <input type="number" id="mp-duration" value="24">
                     </div>
                 </div>
-                <button class="btn-mp-create" id="marketplace-create-btn" data-i18n="marketplace.create_offer">CrÃ©er une Offre</button>
+                <button class="mp-btn-create" id="mp-btn-create" data-i18n="marketplace.create_offer">Créer une Offre</button>
             </div>
 
             <div class="mp-offers-section">
                 <h2 data-i18n="marketplace.active_offers">Offres Actives</h2>
-                <div id="marketplace-offers-list">
-                    <p class="mp-empty-state" data-i18n="marketplace.no_offers">Chargement...</p>
+                <div id="mp-offers-list" class="mp-offers-list">
+                    <!-- Dynamic content -->
                 </div>
             </div>
         </div>
 
-        <!-- ===== PAGE: PARRAINAGE ===== -->
-        <div id="referral-dashboard-page" class="page" style="display:none;">
+        <!-- ===== PAGE: REFERRAL ===== -->
+        <div id="referral-page" class="page" style="display:none;">
             <div class="ref-header">
                 <h1 data-i18n="referral.title">Tableau de Parrainage</h1>
             </div>
 
-            <div class="ref-my-code-panel">
-                <div>
+            <div class="ref-grid">
+                <div class="ref-card-main">
                     <h2 data-i18n="referral.your_code">Votre Code</h2>
-                    <div id="referral-my-code">---</div>
+                    <div class="ref-code-box">
+                        <span id="ref-code-display">---</span>
+                        <button id="btn-copy-ref" data-i18n="referral.copy_link">Copier</button>
+                    </div>
+                    
+                    <div class="ref-stats-mini">
+                        <div class="ref-stat-item">
+                            <span data-i18n="referral.total_referrals">Total</span>
+                            <b id="ref-stat-total">0</b>
+                        </div>
+                        <div class="ref-stat-item">
+                            <span data-i18n="referral.validated">Validés</span>
+                            <b id="ref-stat-validated" style="color: var(--success);">0</b>
+                        </div>
+                        <div class="ref-stat-item">
+                            <span data-i18n="referral.pending">En Attente</span>
+                            <b id="ref-stat-pending" style="color: var(--accent);">0</b>
+                        </div>
+                        <div class="ref-stat-item">
+                            <span data-i18n="referral.rewards">Récompenses</span>
+                            <b id="ref-stat-rewards">0 SNT</b>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn-ref-copy" id="referral-copy-btn" data-i18n="referral.copy_link">Copier le Lien</button>
-            </div>
 
-            <div class="ref-stats-grid">
-                <div class="ref-stat-card">
-                    <div class="ref-stat-label" data-i18n="referral.total_referrals">Total</div>
-                    <div class="ref-stat-value" id="referral-stat-total">0</div>
+                <div class="ref-card-side">
+                    <h3 data-i18n="referral.apply_code">Appliquer un Code</h3>
+                    <div style="display: flex; gap: 10px; margin-top: 1rem;">
+                        <input type="text" id="input-apply-ref" placeholder="CODE..." style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--primary); padding: 10px; color: #fff; border-radius: 5px;">
+                        <button id="btn-apply-ref" class="btn-primary" style="padding: 10px 20px;" data-i18n="referral.apply_btn">Appliquer</button>
+                    </div>
                 </div>
-                <div class="ref-stat-card">
-                    <div class="ref-stat-label" data-i18n="referral.validated">ValidÃ©s</div>
-                    <div class="ref-stat-value" id="referral-stat-validated">0</div>
-                </div>
-                <div class="ref-stat-card">
-                    <div class="ref-stat-label" data-i18n="referral.pending">En Attente</div>
-                    <div class="ref-stat-value" id="referral-stat-pending">0</div>
-                </div>
-                <div class="ref-stat-card">
-                    <div class="ref-stat-label" data-i18n="referral.rewards">RÃ©compenses</div>
-                    <div class="ref-stat-value" id="referral-stat-rewards">0 SNT</div>
-                </div>
-            </div>
-
-            <div class="ref-apply-panel">
-                <div style="flex:1;">
-                    <label data-i18n="referral.apply_code">Appliquer un code</label>
-                    <input type="text" id="referral-apply-input" placeholder="XXXXXX" maxlength="8">
-                </div>
-                <button class="btn-ref-apply" id="referral-apply-btn" data-i18n="referral.apply_btn">Appliquer</button>
             </div>
 
             <div class="ref-leaderboard-section">
-                <h2 data-i18n="referral.leaderboard">Classement</h2>
-                <div id="referral-leaderboard">
-                    <p class="ref-empty">Chargement...</p>
+                <h2 data-i18n="referral.leaderboard">Classement des Parrains</h2>
+                <div id="ref-leaderboard-list" class="ref-lb-list">
+                    <!-- Dynamic content -->
                 </div>
             </div>
         </div>
 
         <!-- ===== PAGE: INFLUENCER (VIP) ===== -->
         <div id="influencer-dashboard-page" class="page" style="display:none;">
-            <div class="inf-header">
+            <div style="text-align: center; padding: 4rem;">
                 <h1 data-i18n="influencer.title">Influencer Dashboard</h1>
                 <p>Loading VIP assets...</p>
             </div>
@@ -238,7 +241,3 @@
     <script type="module" src="/build/assets/app-BkRnWPwb.js"></script>
 </body>
 </html>
-
-
-
-
