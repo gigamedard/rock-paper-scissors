@@ -18,7 +18,9 @@ class GameSetting extends Model
      */
     public static function getValue($key, $default = null)
     {
-        $setting = self::where('key', $key)->first();
+        $setting = \Illuminate\Support\Facades\Cache::remember('game_setting_' . $key, now()->addHours(24), function () use ($key) {
+            return self::where('key', $key)->first();
+        });
         
         if (!$setting) {
             return $default;
@@ -43,7 +45,7 @@ class GameSetting extends Model
      */
     public static function setValue($key, $value, $type = 'string', $group = 'general', $description = null)
     {
-        return self::updateOrCreate(
+        $setting = self::updateOrCreate(
             ['key' => $key],
             [
                 'value' => $value,
@@ -52,5 +54,9 @@ class GameSetting extends Model
                 'description' => $description
             ]
         );
+        
+        \Illuminate\Support\Facades\Cache::forget('game_setting_' . $key);
+        
+        return $setting;
     }
 }

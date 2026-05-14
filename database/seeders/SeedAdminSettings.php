@@ -9,6 +9,7 @@ class SeedAdminSettings extends Seeder
 {
     /**
      * Run the database seeds.
+     * Source of truth for ALL GameSettings parameters.
      */
     public function run(): void
     {
@@ -17,7 +18,7 @@ class SeedAdminSettings extends Seeder
                 'key' => 'security_coefficient',
                 'value' => '1000',
                 'type' => 'integer',
-                'group' => 'general',
+                'group' => 'blockchain',
                 'description' => 'Coefficient multiplicateur pour le dépôt de sécurité (Base Bet x Coef)'
             ],
             [
@@ -25,7 +26,21 @@ class SeedAdminSettings extends Seeder
                 'value' => '2.5',
                 'type' => 'float',
                 'group' => 'economy',
-                'description' => 'Pourcentage de frais prélevés sur les dépôts'
+                'description' => 'Pourcentage de frais affichés (référence dashboard)'
+            ],
+            [
+                'key' => 'smart_contract_fee_percentage',
+                'value' => '2.5',
+                'type' => 'float',
+                'group' => 'blockchain',
+                'description' => 'Frais de transaction Smart Contract (%) — doit correspondre à feeBasisPoints/100'
+            ],
+            [
+                'key' => 'game_fee_percentage',
+                'value' => '5.0',
+                'type' => 'float',
+                'group' => 'economy',
+                'description' => 'Frais de jeu globaux (%) — frais perçus par la house sur les gains'
             ],
             [
                 'key' => 'max_bot_per_pool',
@@ -46,12 +61,20 @@ class SeedAdminSettings extends Seeder
                 'value' => '0.01',
                 'type' => 'float',
                 'group' => 'gameplay',
-                'description' => 'Mise minimale autorisée en ETH'
-            ]
+                'description' => 'Mise minimale autorisée en ETH (base_bet)'
+            ],
+            [
+                'key' => 'max_martingale_level',
+                'value' => '4',
+                'type' => 'integer',
+                'group' => 'gameplay',
+                'description' => 'Nombre maximum de doublements avant réinitialisation de la mise'
+            ],
         ];
 
         foreach ($settings as $setting) {
             GameSetting::updateOrCreate(['key' => $setting['key']], $setting);
+            \Illuminate\Support\Facades\Cache::forget('game_setting_' . $setting['key']);
         }
     }
 }

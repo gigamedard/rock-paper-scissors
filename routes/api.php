@@ -140,11 +140,13 @@ Route::prefix('influencer')->middleware('token.auth')->group(function () {
 });
 
 // ===============================================
-// == Routes ADMIN (Protected by checkAdmin)    ==
+// == Routes ADMIN (Protected by IsAdmin Middleware)
 // ===============================================
-Route::prefix('admin')->middleware('token.auth')->group(function () {
+Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function () {
     Route::get('/stats', [\App\Http\Controllers\AdminController::class, 'getStats']);
     Route::get('/users', [\App\Http\Controllers\AdminController::class, 'getUsers']);
+    Route::post('/users/{id}/status', [\App\Http\Controllers\AdminController::class, 'updateUserStatus']);
+    
     Route::get('/applications', [\App\Http\Controllers\AdminController::class, 'getApplications']);
     Route::post('/applications/{id}/approve', [\App\Http\Controllers\AdminController::class, 'approveApplication']);
     Route::post('/applications/{id}/reject', [\App\Http\Controllers\AdminController::class, 'rejectApplication']);
@@ -185,11 +187,13 @@ Route::prefix('internal')->middleware('auth.internal')->group(function () {
 
 // ===============================================
 
-// Admin routes (should have admin middleware in production)
-Route::post('/admin/influencer/create-pool', [InfluencerController::class, 'createPool']);
-Route::post('/admin/influencer/add-influencer', [InfluencerController::class, 'addInfluencer']);
-Route::put('/admin/influencer/{influencerId}/eligibility', [InfluencerController::class, 'updateEligibility']);
-Route::post('/admin/influencer/update-stats', [InfluencerController::class, 'updateStats']);
+// Admin Influencer Management Routes (PROTECTED)
+Route::prefix('admin/influencer')->middleware(['token.auth', 'is_admin'])->group(function () {
+    Route::post('/create-pool', [InfluencerController::class, 'createPool']);
+    Route::post('/add-influencer', [InfluencerController::class, 'addInfluencer']);
+    Route::put('/{influencerId}/eligibility', [InfluencerController::class, 'updateEligibility']);
+    Route::post('/update-stats', [InfluencerController::class, 'updateStats']);
+});
 
 // Whitelist API
 Route::get('/whitelist', function () {

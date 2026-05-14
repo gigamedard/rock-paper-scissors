@@ -6,6 +6,7 @@
     <title>🛡️ Admin Console | Cyber RPS</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
         :root {
             --bg-color: #050b18;
@@ -529,14 +530,42 @@
             formData.forEach((value, key) => data[key] = value);
 
             try {
+                // Synchronisation on-chain pour les frais
+                const feePercentage = data['smart_contract_fee_percentage'] || data['house_fee_percent'];
+                
+                // Si la valeur existe dans le formulaire, on tente la synchro
+                if (feePercentage !== undefined && window.ethereum) {
+                    const feeBasisPoints = Math.round(parseFloat(feePercentage) * 100);
+                    
+                    alert("Attention : La modification des frais nécessite une validation on-chain. MetaMask va s'ouvrir.");
+                    
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await provider.send("eth_requestAccounts", []);
+                    const signer = provider.getSigner();
+                    
+                    const artefactResp = await fetch(`${API_URL.replace('/api', '')}/api/artefacts`);
+                    const artefacts = await artefactResp.json();
+                    
+                    const contract = new ethers.Contract(artefacts.address, artefacts.abi, signer);
+                    
+                    const tx = await contract.setFeeBasisPoints(feeBasisPoints);
+                    console.log("Transaction Hash:", tx.hash);
+                    alert("Transaction on-chain envoyée. En attente de confirmation...");
+                    await tx.wait();
+                    alert("Transaction on-chain confirmée ! Mise à jour du backend en cours...");
+                }
+
                 const response = await secureFetch(`${API_URL}/admin/settings`, {
                     method: 'POST',
                     body: JSON.stringify(data)
                 });
                 if (response.ok) {
-                    alert("Paramètres mis à jour !");
+                    alert("Paramètres mis à jour avec succès dans le Backend !");
                 }
-            } catch (e) { alert("Erreur lors de la sauvegarde."); }
+            } catch (e) {
+                console.error(e);
+                alert("Erreur lors de la sauvegarde : " + (e.reason || e.message));
+            }
         };
 
         // Initialize

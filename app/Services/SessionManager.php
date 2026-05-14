@@ -69,7 +69,7 @@ class SessionManager
 
     private function processFoughtUser(User $user, Pool $pool): void
     {
-        $baseBet = (float) collect(config('pool.base_bet', [0.01]))->min();
+        $baseBet = (float) \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min());
 
         // 1. Martingale Logic — 3 cases based on the pool outcome:
         //    - LOSS  : battle_balance < base_bet  → double the bet (Martingale escalation)
@@ -78,7 +78,7 @@ class SessionManager
         if ($user->battle_balance < $pool->base_bet) {
             // POOL LOSS: Martingale — double the next bet
             $nextBet = (float) ($user->bet_amount * 2);
-            $maxLevel = (int) config('pool.max_martingale_level', 4);
+            $maxLevel = (int) \App\Models\GameSetting::getValue('max_martingale_level', config('pool.max_martingale_level', 4));
             $maxMartingaleAmount = (float) ($baseBet * pow(2, $maxLevel));
 
             if ($nextBet > $maxMartingaleAmount) {
@@ -213,7 +213,7 @@ class SessionManager
         $user->status = $newStatus;
         // Reset bet_amount to the base bet (0.01) so the bot can re-enter the arena
         // on its next session after a payout, ruin, or strategic limit.
-        $baseBet = (float) collect(config('pool.base_bet', [0.01]))->min();
+        $baseBet = (float) \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min());
         $user->bet_amount = $baseBet;
         if ($user->preMove) {
             $user->preMove->current_index = 0;

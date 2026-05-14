@@ -12,19 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
-    private function checkAdmin($user)
-    {
-        if (!$user || !$user->is_admin) {
-            return false;
-        }
-        return true;
-    }
-
     public function getStats(Request $request)
     {
-        if (!$this->checkAdmin($request->user())) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
 
         $totalUsers = \App\Models\User::count();
         $activeBots = \App\Models\User::where('autoplay_active', true)->where('is_online', true)->count();
@@ -56,9 +45,6 @@ class AdminController extends Controller
 
     public function getUsers(Request $request)
     {
-        if (!$this->checkAdmin($request->user())) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
 
         $users = \App\Models\User::orderBy('created_at', 'desc')
             ->paginate(20);
@@ -68,7 +54,6 @@ class AdminController extends Controller
 
     public function getApplications(Request $request)
     {
-        $this->checkAdmin($request->user());
 
         $applications = InfluencerApplication::with('user')
             ->where('status', 'pending')
@@ -80,7 +65,6 @@ class AdminController extends Controller
 
     public function approveApplication(Request $request, $id)
     {
-        $this->checkAdmin($request->user());
 
         if (!is_numeric($id) || $id <= 0) {
             return response()->json(['error' => 'Invalid application ID'], 400);
@@ -126,7 +110,6 @@ class AdminController extends Controller
 
     public function rejectApplication(Request $request, $id)
     {
-        $this->checkAdmin($request->user());
 
         if (!is_numeric($id) || $id <= 0) {
             return response()->json(['error' => 'Invalid application ID'], 400);
@@ -136,5 +119,22 @@ class AdminController extends Controller
         $application->update(['status' => 'rejected']);
 
         return response()->json(['message' => 'Application rejected']);
+    }
+
+    public function updateUserStatus(Request $request, $id)
+    {
+        $user = \App\Models\User::findOrFail((int)$id);
+        
+        $request->validate([
+            'status' => 'required|string|in:available,stopped,in_pool,in_fight'
+        ]);
+
+        $user->status = $request->input('status');
+        $user->save();
+
+        return response()->json([
+            'message' => 'User status updated successfully',
+            'user' => $user
+        ]);
     }
 }

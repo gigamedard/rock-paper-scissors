@@ -23,6 +23,7 @@ class AdminSettingsController extends Controller
             if ($setting) {
                 $setting->value = $value;
                 $setting->save();
+                \Illuminate\Support\Facades\Cache::forget('game_setting_' . $key);
             }
         }
 

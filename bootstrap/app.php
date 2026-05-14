@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'token.auth' => \App\Http\Middleware\ApiAuth::class,
             'auth.internal' => \App\Http\Middleware\InternalApiAuth::class,
+            'is_admin' => \App\Http\Middleware\IsAdmin::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [
