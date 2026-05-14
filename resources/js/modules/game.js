@@ -29,6 +29,14 @@ export function initGame() {
         claimBtn.addEventListener('click', claim);
     }
 
+    const joinBtn = document.getElementById('join-btn');
+    if (joinBtn) {
+        joinBtn.addEventListener('click', () => {
+            window.userState.status = 'setup';
+            updateUI();
+        });
+    }
+
     // Bind event listeners from Echo
     window.addEventListener('game:balanceUpdated', (e) => {
         const newBalance = parseFloat(e.detail.balance || e.detail.user?.balance) || 0;
