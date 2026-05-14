@@ -4,44 +4,61 @@
  */
 import { clearAllTimers } from './timers.js';
 
+// Map hash -> id de la div dans index.html
 const routes = {
-    '': 'language-page', // Default to language or login if not auth
-    '#/': 'autoplay-page', 
-    '#/marketplace': 'marketplace-page',
-    '#/referral': 'referral-dashboard-page',
-    '#/influencer': 'influencer-dashboard-page',
+    '':               'autoplay-page', // Chargement direct sans hash → Arène
+    '#/':             'autoplay-page',
+    '#/marketplace':  'marketplace-page',
+    '#/referral':     'referral-dashboard-page',
+    '#/influencer':   'influencer-dashboard-page',
+};
+
+// Map page-id -> display CSS approprié
+const pageDisplay = {
+    'autoplay-page':            'block',
+    'marketplace-page':         'block',
+    'referral-dashboard-page':  'block',
+    'influencer-dashboard-page':'block',
 };
 
 export function initRouter() {
     window.addEventListener('hashchange', handleRouteChange);
-    handleRouteChange(); // Trigger initial route
+    handleRouteChange(); // Déclencher la route initiale au chargement
 }
 
 function handleRouteChange() {
     const hash = window.location.hash;
-    const pageId = routes[hash] || 'autoplay-page'; // Fallback
-    
+    const pageId = routes[hash] !== undefined ? routes[hash] : (routes['#/' + hash.slice(2)] || 'autoplay-page');
+
     showPage(pageId);
-    
-    // Dispatch event to notify modules that route changed
+
+    // Notifier les modules du changement de route
     window.dispatchEvent(new CustomEvent('route:changed', { detail: { pageId, hash } }));
 }
 
 export function showPage(pageId) {
-    // Nettoyer les timers en boucle pour éviter les fuites (ex: actualisation stats)
+    // Nettoyer les timers (évite les fuites mémoire lors de la nav)
     clearAllTimers();
 
+    // Masquer toutes les pages
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
-        page.style.display = 'none'; // Ensure it's hidden
+        page.style.display = 'none';
     });
-    
+
+    // Afficher la page cible
     const targetPage = document.getElementById(pageId);
     if (targetPage) {
         targetPage.classList.add('active');
-        targetPage.style.display = 'flex'; // Layout handled by CSS mostly, but flex is standard here
+        targetPage.style.display = pageDisplay[pageId] || 'block';
     } else {
-        console.warn(`[Router] Page introuvable : ${pageId}`);
+        // Fallback : afficher l'arène si la page n'est pas trouvée
+        console.warn(`[Router] Page introuvable : ${pageId}, fallback sur autoplay-page`);
+        const fallback = document.getElementById('autoplay-page');
+        if (fallback) {
+            fallback.classList.add('active');
+            fallback.style.display = 'block';
+        }
     }
 }
 
