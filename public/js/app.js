@@ -513,11 +513,18 @@ const app = {
                 const joinBtn = document.getElementById('join-btn');
                 const statusText = document.getElementById('status-text');
 
-                if (this.user.status === 'dashboard' || this.user.status === 'available' || this.user.status === 'stopped') {
+                if (this.user.status === 'dashboard' || this.user.status === 'available') {
                     if (joinBtn) joinBtn.style.display = 'block';
                     if (statusText) {
                         statusText.innerText = "Available";
                         statusText.className = "battle-status-tag status-online";
+                    }
+                    this.hideCombatOverlay();
+                } else if (this.user.status === 'stopped') {
+                    if (joinBtn) joinBtn.style.display = 'block';
+                    if (statusText) {
+                        statusText.innerText = "Session terminée — Relancer ?";
+                        statusText.className = "battle-status-tag status-busy";
                     }
                     this.hideCombatOverlay();
                 } else if (this.user.status === 'waiting' || this.user.status === 'in_pool') {

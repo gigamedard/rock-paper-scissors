@@ -111,16 +111,12 @@ class BlockchainController extends Controller
                 $user->update([
                     'balance' => 0,
                     'payout_signature' => null,
-                    'status' => 'available' // Reset to available so they can start over
+                    'status' => 'stopped'
                 ]);
 
-                Log::info("User claim processed: Address: {$walletAddress}. Balance zeroed, signature cleared, status set to available.");
-                
-                return response()->json([
-                    'message' => 'User claim processed successfully.',
-                    'address' => $walletAddress,
-                ], 200);
-            }
+                Log::info("✅ [Internal API] User {$user->wallet_address} state fully reset after claim.");
+                return response()->json(['success' => true, 'message' => 'User state reset.']);
+            }    
 
             return response()->json([
                 'message' => 'User not found.',
