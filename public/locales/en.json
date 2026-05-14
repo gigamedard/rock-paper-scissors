@@ -3,7 +3,7 @@
     "arena": "Arena",
     "marketplace": "Marketplace",
     "referral": "Referral",
-    "influencer": "Influencer"
+    "influencer": "VIP"
   },
   "connect": {
     "btn": "Connect Wallet",
@@ -18,13 +18,13 @@
     "status_available": "Available",
     "status_waiting": "Waiting for Match",
     "status_fighting": "In Combat",
-    "status_stopped": "Session Ended — Restart?"
+    "status_stopped": "Session Stopped — Restart?"
   },
   "marketplace": {
     "title": "P2P Marketplace",
-    "subtitle": "Trade your SNT tokens for AVAX directly.",
+    "subtitle": "Swap your SNT tokens for AVAX directly.",
     "create_offer": "Create Offer",
-    "snt_amount": "SNT Amount",
+    "snt_amount": "SNT Quantity",
     "avax_amount": "AVAX Price",
     "duration": "Duration (hours)",
     "active_offers": "Active Offers",
@@ -43,12 +43,28 @@
     "validated": "Validated",
     "pending": "Pending",
     "rewards": "SNT Rewards",
-    "leaderboard": "Top Referrers",
-    "apply_code": "Apply a Code",
+    "leaderboard": "Referrer Leaderboard",
+    "apply_code": "Apply Code",
     "apply_btn": "Apply"
   },
   "claim": {
-    "title": "SESSION COMPLETE - WINNINGS READY",
+    "title": "SESSION COMPLETE - REWARDS READY",
     "btn": "CLAIM & WITHDRAW TO WALLET"
+  },
+  "influencer": {
+    "title": "Influencer Dashboard",
+    "subtitle": "Become a VIP Warrior",
+    "join_btn": "JOIN THE PROGRAM (TEST)",
+    "active_pool": "ACTIVE POOL",
+    "reward_pool": "REWARD POOL",
+    "personal_goal": "Personal Goal",
+    "global_goal": "Global Progress",
+    "claim_btn": "CLAIM MY SHARE",
+    "already_claimed": "ALREADY CLAIMED",
+    "top_influencers": "TOP INFLUENCERS",
+    "my_rank": "My Rank",
+    "referrals": "Referrals",
+    "conversion": "Conversion",
+    "avax_generated": "AVAX Generated"
   }
 }

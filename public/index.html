@@ -6,7 +6,7 @@
     <title>BATTLEPOOL | Arena</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <!-- CSS modules (generÃƒÂ©s par Vite en prod, sinon dev HMR) -->
+    <!-- CSS modules (gÃ©nÃ©rÃ©s par Vite en prod, sinon dev HMR) -->
 </head>
 <body>
 
@@ -15,14 +15,19 @@
         <div class="logo">BATTLEPOOL</div>
         <nav class="spa-nav">
             <a href="#/" class="nav-link" data-i18n="nav.arena">Arena</a>
-            <a href="#/marketplace" class="nav-link" data-i18n="nav.marketplace">MarchÃƒÂ©</a>
+            <a href="#/marketplace" class="nav-link" data-i18n="nav.marketplace">MarchÃ©</a>
             <a href="#/referral" class="nav-link" data-i18n="nav.referral">Parrainage</a>
             <a href="#/influencer" class="nav-link" data-i18n="nav.influencer" style="color: #f59e0b;">VIP</a>
+            
+            <div class="lang-switcher" style="margin-left: 20px; display: flex; gap: 5px;">
+                <button onclick="setLocale('fr')" class="lang-btn" id="lang-fr">FR</button>
+                <button onclick="setLocale('en')" class="lang-btn" id="lang-en">EN</button>
+            </div>
         </nav>
         <div id="wallet-section">
             <div id="connected-user" style="display: none; align-items: center; gap: 10px;">
                 <span id="user-wallet" style="font-family: monospace; color: var(--primary);">0x...</span>
-                <a href="admin.html" id="admin-link" target="_blank" style="display: none; text-decoration: none; font-size: 0.8rem; background: rgba(236, 72, 153, 0.2); color: #ec4899; padding: 4px 8px; border-radius: 8px; border: 1px solid #ec4899; font-weight: 800; margin-left: 10px;">Ã°Å¸â€ºÂ¡Ã¯Â¸Â ADMIN</a>
+                <a href="admin.html" id="admin-link" target="_blank" style="display: none; text-decoration: none; font-size: 0.8rem; background: rgba(236, 72, 153, 0.2); color: #ec4899; padding: 4px 8px; border-radius: 8px; border: 1px solid #ec4899; font-weight: 800; margin-left: 10px;">ðŸ›¡ï¸ ADMIN</a>
                 <div class="live-indicator"></div>
             </div>
             <button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">Connect Wallet</button>
@@ -36,16 +41,16 @@
             <div class="battle-status-tag status-busy" style="margin-bottom: 2rem;">COMBAT IN PROGRESS</div>
             <h2 id="combat-text" style="color: var(--primary); font-size: 3.5rem; text-shadow: 0 0 30px var(--primary); font-weight: 800;">SCANNING...</h2>
             <div class="combat-icons" style="font-size: 4rem; margin-top: 2rem;">
-                <span class="clash-icon">Ã°Å¸Â¥Å </span>
-                <span class="clash-icon">Ã¢Å¡Â¡</span>
-                <span class="clash-icon">Ã°Å¸â€Â¥</span>
+                <span class="clash-icon">ðŸ¥Š</span>
+                <span class="clash-icon">âš¡</span>
+                <span class="clash-icon">ðŸ”¥</span>
             </div>
         </div>
     </div>
 
     <main class="shell">
 
-        <!-- ===== PAGE: ARÃƒË†NE (ancienne page principale) ===== -->
+        <!-- ===== PAGE: ARÃˆNE (ancienne page principale) ===== -->
         <div id="autoplay-page" class="page active">
             <div id="view-disconnected" class="card" style="text-align: center; margin-top: 5rem;">
                 <h1 style="font-size: 3rem; margin-bottom: 1rem;" data-i18n="connect.title">Ready to Fight?</h1>
@@ -60,16 +65,16 @@
                         <label class="label">PRE-MOVE SEQUENCE (10 ROUNDS)</label>
                         <div id="premove-slots" class="premove-grid"></div>
                         <div class="move-selector">
-                            <button class="move-btn" id="move-rock">Ã¢Å“Å </button>
-                            <button class="move-btn" id="move-paper">Ã°Å¸â€“ÂÃ¯Â¸Â</button>
-                            <button class="move-btn" id="move-scissors">Ã¢Å“Å’Ã¯Â¸Â</button>
+                            <button class="move-btn" id="move-rock">âœŠ</button>
+                            <button class="move-btn" id="move-paper">ðŸ–ï¸</button>
+                            <button class="move-btn" id="move-scissors">âœŒï¸</button>
                             <button class="move-btn" id="move-reset" style="font-size: 1.2rem; color: var(--accent);">RESET</button>
                         </div>
                     </div>
                     <div>
                         <label class="label">BASE BET AMOUNT (ETH)</label>
                         <div class="bet-input-container">
-                            <span style="font-size: 1.5rem; color: var(--primary);">ÃŽÅ¾</span>
+                            <span style="font-size: 1.5rem; color: var(--primary);">Îž</span>
                             <input type="number" id="base-bet-input" class="bet-input" value="0.01" step="0.01" min="0.001">
                         </div>
                         <div id="fee-breakdown" style="margin-top:1rem; font-size:0.85rem; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
@@ -122,12 +127,12 @@
         <div id="marketplace-page" class="page" style="display:none;">
             <div class="mp-header">
                 <h1 data-i18n="marketplace.title">Marketplace P2P</h1>
-                <p data-i18n="marketplace.subtitle">Ãƒâ€°changez vos SNT contre des AVAX.</p>
+                <p data-i18n="marketplace.subtitle">Ã‰changez vos SNT contre des AVAX.</p>
             </div>
 
             <div class="mp-stats-bar">
                 <div class="mp-stat-card">
-                    <div class="mp-stat-label" data-i18n="marketplace.stats_total_trades">Total Ãƒâ€°changes</div>
+                    <div class="mp-stat-label" data-i18n="marketplace.stats_total_trades">Total Ã‰changes</div>
                     <div class="mp-stat-value" id="mp-stat-total-trades">--</div>
                 </div>
                 <div class="mp-stat-card">
@@ -141,10 +146,10 @@
             </div>
 
             <div class="mp-create-panel">
-                <h2 data-i18n="marketplace.create_offer">CrÃƒÂ©er une Offre</h2>
+                <h2 data-i18n="marketplace.create_offer">CrÃ©er une Offre</h2>
                 <div class="mp-form-grid">
                     <div class="mp-form-group">
-                        <label data-i18n="marketplace.snt_amount">QuantitÃƒÂ© SNT</label>
+                        <label data-i18n="marketplace.snt_amount">QuantitÃ© SNT</label>
                         <input type="number" id="mp-snt-amount" placeholder="100" min="1">
                     </div>
                     <div class="mp-form-group">
@@ -152,11 +157,11 @@
                         <input type="number" id="mp-avax-amount" placeholder="0.5" min="0.01" step="0.01">
                     </div>
                     <div class="mp-form-group">
-                        <label data-i18n="marketplace.duration">DurÃƒÂ©e (heures)</label>
+                        <label data-i18n="marketplace.duration">DurÃ©e (heures)</label>
                         <input type="number" id="mp-duration" value="24" min="1" max="168">
                     </div>
                 </div>
-                <button class="btn-mp-create" id="marketplace-create-btn" data-i18n="marketplace.create_offer">CrÃƒÂ©er une Offre</button>
+                <button class="btn-mp-create" id="marketplace-create-btn" data-i18n="marketplace.create_offer">CrÃ©er une Offre</button>
             </div>
 
             <div class="mp-offers-section">
@@ -172,16 +177,6 @@
             <div class="ref-header">
                 <h1 data-i18n="referral.title">Tableau de Parrainage</h1>
             </div>
-            <div id="referral-content"></div>
-        </div>
-
-        <!-- ===== PAGE: INFLUENCER (VIP) ===== -->
-        <div id="influencer-dashboard-page" class="page" style="display:none;">
-            <div class="inf-header">
-                <h1 data-i18n="influencer.title">Influencer Dashboard</h1>
-                <p>Loading VIP assets...</p>
-            </div>
-        </div>
 
             <div class="ref-my-code-panel">
                 <div>
@@ -197,7 +192,7 @@
                     <div class="ref-stat-value" id="referral-stat-total">0</div>
                 </div>
                 <div class="ref-stat-card">
-                    <div class="ref-stat-label" data-i18n="referral.validated">ValidÃƒÂ©s</div>
+                    <div class="ref-stat-label" data-i18n="referral.validated">ValidÃ©s</div>
                     <div class="ref-stat-value" id="referral-stat-validated">0</div>
                 </div>
                 <div class="ref-stat-card">
@@ -205,7 +200,7 @@
                     <div class="ref-stat-value" id="referral-stat-pending">0</div>
                 </div>
                 <div class="ref-stat-card">
-                    <div class="ref-stat-label" data-i18n="referral.rewards">RÃƒÂ©compenses</div>
+                    <div class="ref-stat-label" data-i18n="referral.rewards">RÃ©compenses</div>
                     <div class="ref-stat-value" id="referral-stat-rewards">0 SNT</div>
                 </div>
             </div>
@@ -226,14 +221,23 @@
             </div>
         </div>
 
+        <!-- ===== PAGE: INFLUENCER (VIP) ===== -->
+        <div id="influencer-dashboard-page" class="page" style="display:none;">
+            <div class="inf-header">
+                <h1 data-i18n="influencer.title">Influencer Dashboard</h1>
+                <p>Loading VIP assets...</p>
+            </div>
+        </div>
+
     </main>
 
     <!-- Vite Compiled Assets -->
-    <link rel="stylesheet" href="/build/assets/app-B_SY1GJM.css">
+    <link rel="stylesheet" href="/build/assets/app-Bv1M5C7u.css">
     <link rel="stylesheet" href="/build/assets/marketplace-D28AfePH.css">
     <link rel="stylesheet" href="/build/assets/referral-DGb9zrSD.css">
-    <script type="module" src="/build/assets/app-CdFkIMFX.js"></script>
+    <script type="module" src="/build/assets/app-CCqzSbbe.js"></script>
 </body>
 </html>
+
 
 

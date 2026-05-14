@@ -1,3 +1,27 @@
 /* Battlepool SPA - Global CSS entry point */
 /* Main styles are in public/css/style.css loaded by index.html */
 /* Module-specific CSS will be added here as we build new modules */
+
+/* i18n Switcher */
+.lang-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-dim);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lang-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+html[lang="fr"] #lang-fr,
+html[lang="en"] #lang-en {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    font-weight: 800;
+}

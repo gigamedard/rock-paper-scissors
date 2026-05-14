@@ -32,12 +32,12 @@ export async function secureFetch(endpoint, options = {}) {
         headers
     });
 
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.dispatchEvent(new CustomEvent('auth:expired'));
-        throw new Error("Session expirée ou accès non autorisé. Veuillez vous reconnecter.");
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
     }
 
     return response;

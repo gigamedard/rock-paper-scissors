@@ -50,5 +50,21 @@
   "claim": {
     "title": "SESSION COMPLÈTE - GAINS DISPONIBLES",
     "btn": "RÉCLAMER & RETIRER VERS WALLET"
+  },
+  "influencer": {
+    "title": "Dashboard Influenceur",
+    "subtitle": "Devenez un Guerrier VIP",
+    "join_btn": "REJOINDRE LE PROGRAMME (TEST)",
+    "active_pool": "POOL ACTIVE",
+    "reward_pool": "POOL DE RÉCOMPENSES",
+    "personal_goal": "Objectif Personnel",
+    "global_goal": "Progression Globale",
+    "claim_btn": "RÉCLAMER MA PART",
+    "already_claimed": "DÉJÀ RÉCLAMÉ",
+    "top_influencers": "TOP INFLUENCEURS",
+    "my_rank": "Mon Rang",
+    "referrals": "Parrainages",
+    "conversion": "Conversion",
+    "avax_generated": "AVAX Généré"
   }
 }
