@@ -74,7 +74,70 @@ php artisan cache:clear
 
 ---
 
-## Étapes du Scénario Contrôlé Principal
+## 🖥️ PHASE 0.5 — Validation du Frontend SPA Modulaire (OBLIGATOIRE si branche `feature/frontend-modular-spa`)
+
+Cette phase garantit que le nouveau frontend modulaire (Vite.js + Vanilla JS) est opérationnel **avant** de lancer les bots de simulation. Elle doit être exécutée **après** la Phase 0 et **avant** le lancement des bots.
+
+### Étape 0.5.1 — Build Vite & Démarrage
+```bash
+# Recompiler les assets si le code source a changé
+npm run build
+
+# Vérifier que les fichiers compilés existent
+ls public/build/assets/
+# Résultat attendu : app-*.js, app-*.css, marketplace-*.css, referral-*.css
+
+# Vérifier que index.html pointe vers les bons hashes Vite
+# Ouvrir public/index.html et confirmer que les balises <script src> et <link> correspondent aux fichiers présents dans public/build/assets/
+```
+
+### Étape 0.5.2 — Test de Chargement Initial
+```bash
+# Ouvrir dans le navigateur : http://127.0.0.1:8001
+# Vérifier :
+# ✅ Page visible (pas d'écran noir)
+# ✅ Header "BATTLEPOOL" présent
+# ✅ Liens de nav : Arena | Marketplace | Parrainage
+# ✅ Bouton "Connect Wallet" visible
+# ✅ Aucune erreur JS critique dans la console (F12)
+```
+
+### Étape 0.5.3 — Test de Navigation SPA
+```
+Cliquer sur chaque lien dans la navbar et vérifier :
+- "Marketplace" → Formulaire de création (3 inputs : SNT, AVAX, Durée) + zone "Offres Actives"
+- "Parrainage"  → Code "---" + 4 stats à 0 + Leaderboard "Chargement..."
+- "Arena"       → Retour à "Ready to Fight?"
+```
+
+### Étape 0.5.4 — Test Flux Authentifié (avec compte bot #0 ou #1)
+```bash
+# Utiliser le compte Hardhat #0 dans MetaMask
+# Wallet : 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+
+# Dans le navigateur :
+# 1. Cliquer "Connect Wallet" → Approuver MetaMask → Signer le message
+# 2. Résultat attendu :
+#    - Adresse courte (0xf39F...2266) dans le header
+#    - Vue Dashboard avec balance ETH
+# 3. Cliquer "Parrainage" → Le code de parrainage doit s'afficher (ex: "AB12CD")
+# 4. Cliquer "Marketplace" → Stats passent de "--" à "0" (API connectée)
+```
+
+### Étape 0.5.5 — Vérification des Erreurs Console
+
+| Type d'erreur | Statut | Action |
+|---|---|---|
+| `401 Jeton manquant` avant connexion | ✅ Normal | Ignorer |
+| `Cannot find snt_address` (contrat non déployé) | ✅ Normal | Ignorer |
+| `TypeError: Cannot read properties of undefined` | ❌ Critique | Arrêter et corriger |
+| `404 on /build/assets/app-*.js` | ❌ Critique | Relancer `npm run build` |
+| `ReferenceError: X is not defined` | ❌ Critique | Arrêter et corriger |
+
+**Critère de succès Phase 0.5 :** Navigation fonctionnelle + connexion wallet réussie + aucune erreur critique en console.
+
+---
+
 
 1. **Analyse Statique des Règles (sans exécuter le code)** :
    - Parcourir les services backend (ex: `FightService.php`, `PoolLifecycleService.php`, `SessionFinishedEventListener.php`) et les Smart Contracts.
