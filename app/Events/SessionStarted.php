@@ -5,11 +5,11 @@ namespace App\Events;
 use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class SessionStarted implements ShouldBroadcast
+class SessionStarted implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -29,5 +29,10 @@ class SessionStarted implements ShouldBroadcast
         return [
             new PrivateChannel('App.Models.User.' . $this->user->id),
         ];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'SessionStarted';
     }
 }

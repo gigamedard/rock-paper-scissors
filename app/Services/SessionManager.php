@@ -183,12 +183,18 @@ class SessionManager
                 $this->sendPayment($user); // Forces sending whatever is left (e.g. 0.45 ETH)
                 $payoutTriggered = true;
             } else {
-                UserTracker::info("[MANUAL_WITHDRAWAL_REQUIRED] 🛑 Human player {$user->wallet_address} ruined. Funds ({$user->balance} ETH) kept in DB. Manual withdraw required.", ['wallet' => $user->wallet_address]);
-                $this->notificationService->notifyInsufficientBalance($user);
-                // Even on ruin, we provide the signature for the remaining funds
-                $signature = $this->generateHumanSignature($user);
-                $user->payout_signature = $signature;
-                $user->save();
+                if ($user->balance <= 0.0001) {
+                    UserTracker::info("[AUTO_EJECT] 🛑 Human player {$user->wallet_address} ruined with 0 ETH. Server pays gas to eject them from contract.", ['wallet' => $user->wallet_address]);
+                    $this->sendPayment($user); // Forces payout from server, clears isUserInAnyPool
+                    $payoutTriggered = true;
+                } else {
+                    UserTracker::info("[MANUAL_WITHDRAWAL_REQUIRED] 🛑 Human player {$user->wallet_address} ruined. Funds ({$user->balance} ETH) kept in DB. Manual withdraw required.", ['wallet' => $user->wallet_address]);
+                    $this->notificationService->notifyInsufficientBalance($user);
+                    // Even on ruin, we provide the signature for the remaining funds
+                    $signature = $this->generateHumanSignature($user);
+                    $user->payout_signature = $signature;
+                    $user->save();
+                }
             }
             
             event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature));

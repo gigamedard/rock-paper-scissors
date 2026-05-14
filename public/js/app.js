@@ -12,6 +12,20 @@ const app = {
     pendingClaim: null,
     config: {},
     
+    parseRpcError(error) {
+        const msg = error.message || error.toString();
+        if (msg.includes("user rejected transaction")) return "Transaction refusée par l'utilisateur.";
+        if (msg.includes("insufficient funds")) return "Fonds insuffisants pour couvrir la transaction + gaz.";
+        if (msg.includes("nonce too low")) return "Erreur de synchronisation réseau (Nonce). Réessayez.";
+        if (msg.includes("execution reverted")) {
+            const match = msg.match(/reason="([^"]+)"/);
+            if (match && match[1]) return `Action refusée par le contrat : ${match[1]}`;
+            return "Transaction rejetée par le Smart Contract (conditions non remplies).";
+        }
+        if (msg.includes("User not found") || msg.includes("Signature invalid")) return "Erreur d'authentification. Veuillez vous reconnecter.";
+        return "Erreur technique : " + (msg.length > 100 ? msg.substring(0, 100) + "..." : msg);
+    },
+    
     // Contract details
     contractAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // Default Hardhat addr
 
@@ -166,6 +180,12 @@ const app = {
             return;
         }
 
+        const connectBtn = document.getElementById('connect-btn');
+        if (connectBtn) {
+            connectBtn.innerText = "CONNECTING...";
+            connectBtn.disabled = true;
+        }
+
         try {
             console.log("Connecting...");
             const provider = new ethers.BrowserProvider(window.ethereum);
@@ -212,7 +232,14 @@ const app = {
             
         } catch (error) {
             console.error("Auth failed", error);
-            alert("Authentication failed: " + error.message);
+            const friendlyMsg = this.parseRpcError(error);
+            alert("Authentication failed: " + friendlyMsg);
+        } finally {
+            const connectBtn = document.getElementById('connect-btn');
+            if (connectBtn) {
+                connectBtn.innerText = "Connect Wallet";
+                connectBtn.disabled = false;
+            }
         }
     },
 
@@ -279,6 +306,19 @@ const app = {
                 this.triggerClash(e.my_move, e.opponent_move, e.result, e.delta);
                 this.animateValue('balance-val', this.user.balance, e.current_balance, 4);
                 this.user.balance = e.current_balance;
+            })
+            .listen('.SessionStarted', (e) => {
+                console.log("🚀 Session Started:", e);
+                this.user.balance = parseFloat(e.initial_balance) || 0;
+                this.user.status = 'in_pool';
+                this.showCombatOverlay("RECHERCHE D'ADVERSAIRES...");
+                this.updateUI();
+            })
+            .listen('.MartingaleUpdated', (e) => {
+                console.log("📈 Martingale Updated:", e);
+                this.user.bet_amount = parseFloat(e.next_bet) || 0;
+                this.addToFeed(`📈 Martingale : Prochaine mise à ${this.user.bet_amount.toFixed(4)} ETH`, "var(--primary)");
+                this.updateUI();
             });
 
         window.echoInstance.channel('pools')
@@ -340,7 +380,7 @@ const app = {
             
             const tx = await contract.submitPremoveCID(baseBetWei, cid, {
                 value: amountToSendWei,
-                gasLimit: 300000
+                gasLimit: 500000
             });
             
             this.addToFeed("⏳ Transaction pending: " + tx.hash.substring(0,10) + "...", "var(--primary)");
@@ -372,7 +412,9 @@ const app = {
             }
         } catch (error) {
             console.error(error);
-            alert("Error: " + error.message);
+            const friendlyMsg = this.parseRpcError(error);
+            alert("Error: " + friendlyMsg);
+            this.addToFeed("❌ Error: " + friendlyMsg, "var(--accent)");
         } finally {
             btn.innerText = "INITIALIZE BATTLE SEQUENCE";
             btn.disabled = false;
@@ -407,7 +449,9 @@ const app = {
 
         } catch (error) {
             console.error(error);
-            alert("Claim failed: " + error.message);
+            const friendlyMsg = this.parseRpcError(error);
+            alert("Claim failed: " + friendlyMsg);
+            this.addToFeed("❌ Claim Failed: " + friendlyMsg, "var(--accent)");
         } finally {
             btn.innerText = "CLAIM & EXIT ARENA";
             btn.disabled = false;
@@ -463,6 +507,35 @@ const app = {
             
             document.getElementById('balance-val').innerHTML = balance.toFixed(4) + ' <span class="unit">ETH</span>';
             document.getElementById('bet-val').innerHTML = bet.toFixed(4) + ' <span class="unit">ETH</span>';
+
+            // Handle sub-statuses in dashboard
+            if (activeView === views['dashboard']) {
+                const joinBtn = document.getElementById('join-btn');
+                const statusText = document.getElementById('status-text');
+
+                if (this.user.status === 'dashboard' || this.user.status === 'available' || this.user.status === 'stopped') {
+                    if (joinBtn) joinBtn.style.display = 'block';
+                    if (statusText) {
+                        statusText.innerText = "Available";
+                        statusText.className = "battle-status-tag status-online";
+                    }
+                    this.hideCombatOverlay();
+                } else if (this.user.status === 'waiting' || this.user.status === 'in_pool') {
+                    if (joinBtn) joinBtn.style.display = 'none';
+                    if (statusText) {
+                        statusText.innerText = "Waiting for Match";
+                        statusText.className = "battle-status-tag status-busy";
+                    }
+                    this.showCombatOverlay("WAITING FOR OPPONENT...");
+                } else if (this.user.status === 'in_fight') {
+                    if (joinBtn) joinBtn.style.display = 'none';
+                    if (statusText) {
+                        statusText.innerText = "In Combat";
+                        statusText.className = "battle-status-tag status-busy";
+                    }
+                    this.showCombatOverlay("COMBAT IN PROGRESS");
+                }
+            }
 
             // Show admin link if applicable
             const adminLink = document.getElementById('admin-link');

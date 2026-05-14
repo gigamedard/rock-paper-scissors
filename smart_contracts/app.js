@@ -443,7 +443,7 @@ async function startBlockchainListeners() {
                 for (const event of payoutEvents) {
                     const { args } = event;
                     console.log(`🔔 [JEU] PayoutProcessed: ${args[0]}, ${args[1]}`);
-                    postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: "0" });
+                    postToLaravel('/internal/handle-claim', { wallet_address: args[0] });
                 }
 
                 // 6. PlayerClaimed
@@ -451,7 +451,7 @@ async function startBlockchainListeners() {
                 for (const event of claimEvents) {
                     const { args } = event;
                     console.log(`🔔 [JEU] PlayerClaimed: ${args[0]}, Amount=${args[1]}, Nonce=${args[2]}`);
-                    postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: "0" });
+                    postToLaravel('/internal/handle-claim', { wallet_address: args[0] });
                 }
 
                 // --- LISTENERS MARKETPLACE ---

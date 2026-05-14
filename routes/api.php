@@ -171,6 +171,7 @@ Route::prefix('internal')->middleware('auth.internal')->group(function () {
     // --- Routes du JEU (les nouvelles que tu migres) ---
 
     Route::post('/update-balance', [BlockchainController::class, 'updateUserBalance']);
+    Route::post('/handle-claim', [BlockchainController::class, 'handleClaim']);
     Route::post('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
     Route::post('/update-setting', [BlockchainController::class, 'updateSetting']);
     Route::post('/handle-stagnant-refund', [PoolAutoMatchController::class, 'handleStagnantRefund']);

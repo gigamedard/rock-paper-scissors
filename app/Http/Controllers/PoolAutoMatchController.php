@@ -66,6 +66,11 @@ class PoolAutoMatchController extends Controller
             'cid' => 'required|string',
         ]);
 
+        $user = $request->user();
+        if ($user && in_array($user->status, ['in_pool', 'waiting', 'in_fight'])) {
+            return response()->json(['message' => 'You are already in an active session.'], 400);
+        }
+
         $response = $this->preMoveService->storePreMoves($data);
 
         // NOTIFICATION: User Joined Pool (or Queue)

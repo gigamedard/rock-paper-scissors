@@ -94,6 +94,48 @@ class BlockchainController extends Controller
         }
     }
 
+    public function handleClaim(Request $request)
+    {
+        $validated = $request->validate([
+            'wallet_address' => 'required|string',
+        ]);
+
+        $walletAddress = strtolower($validated['wallet_address']);
+
+        Log::info("handleClaim called", ['wallet' => $walletAddress]);
+
+        try {
+            $user = User::where('wallet_address', $walletAddress)->first();
+
+            if ($user) {
+                $user->update([
+                    'balance' => 0,
+                    'payout_signature' => null,
+                    'status' => 'available' // Reset to available so they can start over
+                ]);
+
+                Log::info("User claim processed: Address: {$walletAddress}. Balance zeroed, signature cleared, status set to available.");
+                
+                return response()->json([
+                    'message' => 'User claim processed successfully.',
+                    'address' => $walletAddress,
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'User not found.',
+            ], 404);
+
+        } catch (\Throwable $e) {
+            Log::error("Error handling claim: {$e->getMessage()}");
+
+            return response()->json([
+                'message' => 'Error handling claim.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function getArtefacts()
     {
         Log::info("Fetching game config from Node.js worker...");
