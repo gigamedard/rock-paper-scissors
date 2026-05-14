@@ -32,6 +32,10 @@ export function initReferral() {
 
     // Écouter les changements de langue pour re-rendre
     window.addEventListener('i18n:changed', loadReferralData);
+
+    window.addEventListener('auth:success', () => {
+        loadReferralData();
+    });
 }
 
 /**

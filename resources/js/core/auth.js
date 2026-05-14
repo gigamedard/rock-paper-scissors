@@ -60,7 +60,8 @@ export async function connectWallet() {
         window.userState = {
             id: data.user.id,
             walletAddress: data.user.wallet_address || walletAddress,
-            userObject: data.user
+            userObject: data.user,
+            status: 'dashboard'
         };
 
         console.log("✅ Authentifié avec succès :", window.userState.walletAddress);

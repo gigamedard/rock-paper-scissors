@@ -93,6 +93,10 @@ export function initGame() {
         }
     });
 
+    window.addEventListener('auth:success', () => {
+        fetchUserStatus();
+    });
+
     // Make functions globally available for inline HTML onclick handlers (temporary until HTML is cleaned)
     window.addMove = addMove;
     window.clearMoves = clearMoves;

@@ -8,6 +8,7 @@ import { initGame } from './modules/game.js';
 import { initI18n } from './modules/i18n.js';
 import { initMarketplace } from './modules/marketplace.js';
 import { initReferral } from './modules/referral.js';
+import { initInfluencer } from './modules/influencer.js';
 
 // ===== ÉTAT GLOBAL =====
 window.userState = {
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initGame();
     initMarketplace();
     initReferral();
+    initInfluencer();
 
     // 4. Démarrage du routeur (après les modules)
     initRouter();

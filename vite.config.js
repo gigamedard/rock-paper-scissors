@@ -8,6 +8,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/css/marketplace.css',
                 'resources/css/referral.css',
+                'resources/css/influencer.css',
                 'resources/js/app.js',
             ],
             refresh: true,

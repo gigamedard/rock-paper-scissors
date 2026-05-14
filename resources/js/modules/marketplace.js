@@ -50,6 +50,10 @@ export async function initMarketplace() {
 
     // Écouter les changements de langue
     window.addEventListener('i18n:changed', renderOffers);
+
+    window.addEventListener('auth:success', () => {
+        loadMarketplaceData();
+    });
 }
 
 async function loadContractAddresses() {
