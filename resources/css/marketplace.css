@@ -1,0 +1,219 @@
+/* resources/css/marketplace.css — Thème DBS Battlepool */
+
+#marketplace-page {
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.mp-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.mp-header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.mp-header p {
+    color: var(--text-dim);
+    margin-top: 0.5rem;
+}
+
+/* Stats bar */
+.mp-stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.mp-stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 1rem;
+    padding: 1.2rem;
+    text-align: center;
+    transition: border-color 0.3s;
+}
+
+.mp-stat-card:hover {
+    border-color: var(--primary);
+}
+
+.mp-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+
+.mp-stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+/* Create offer form */
+.mp-create-panel {
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 1.2rem;
+    padding: 1.8rem;
+    margin-bottom: 2rem;
+}
+
+.mp-create-panel h2 {
+    color: var(--primary);
+    margin-bottom: 1.2rem;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.mp-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mp-form-group label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+    letter-spacing: 1px;
+}
+
+.mp-form-group input {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 0.6rem;
+    padding: 0.8rem;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.mp-form-group input:focus {
+    border-color: var(--primary);
+}
+
+.btn-mp-create {
+    width: 100%;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    border: none;
+    border-radius: 0.8rem;
+    padding: 0.9rem;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-mp-create:hover { opacity: 0.85; transform: translateY(-1px); }
+.btn-mp-create:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* Offer cards */
+.mp-offers-section h2 {
+    color: var(--text-dim);
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+}
+
+#marketplace-offers-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.mp-offer-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 1rem;
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: border-color 0.3s, background 0.3s;
+}
+
+.mp-offer-card:hover {
+    background: rgba(99, 102, 241, 0.07);
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+.mp-offer-card.own-trade {
+    border-color: rgba(236, 72, 153, 0.4);
+    background: rgba(236, 72, 153, 0.05);
+}
+
+.mp-offer-amounts {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.mp-snt { color: #f59e0b; }
+.mp-arrow { color: var(--text-dim); }
+.mp-avax { color: #e84142; }
+.mp-snt em, .mp-avax em { font-style: normal; font-size: 0.75rem; font-weight: 400; }
+
+.mp-offer-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    flex: 1;
+    text-align: center;
+}
+
+.btn-mp-buy {
+    background: linear-gradient(135deg, #10b981, #6366f1);
+    border: none;
+    border-radius: 0.6rem;
+    padding: 0.6rem 1.2rem;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-mp-cancel {
+    background: rgba(236, 72, 153, 0.2);
+    border: 1px solid #ec4899;
+    border-radius: 0.6rem;
+    padding: 0.6rem 1.2rem;
+    color: #ec4899;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-mp-buy:hover { opacity: 0.85; }
+.btn-mp-cancel:hover { background: rgba(236, 72, 153, 0.4); }
+
+.mp-empty-state {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 3rem;
+    border: 1px dashed rgba(255,255,255,0.1);
+    border-radius: 1rem;
+}

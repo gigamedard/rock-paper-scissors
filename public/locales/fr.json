@@ -1,0 +1,54 @@
+{
+  "nav": {
+    "arena": "Arène",
+    "marketplace": "Marché",
+    "referral": "Parrainage",
+    "influencer": "Influenceur"
+  },
+  "connect": {
+    "btn": "Connecter Wallet",
+    "enter": "ENTRER DANS L'ARÈNE",
+    "title": "Prêt à Combattre ?",
+    "subtitle": "Connectez votre wallet pour entrer dans l'arène et démarrer votre session."
+  },
+  "dashboard": {
+    "balance": "Solde Principal",
+    "bet": "Mise Actuelle",
+    "strategy": "PRÉPARATION STRATÉGIQUE",
+    "status_available": "Disponible",
+    "status_waiting": "En Attente de Match",
+    "status_fighting": "En Combat",
+    "status_stopped": "Session Terminée — Relancer ?"
+  },
+  "marketplace": {
+    "title": "Marché P2P",
+    "subtitle": "Échangez vos tokens SNT contre des AVAX directement.",
+    "create_offer": "Créer une Offre",
+    "snt_amount": "Quantité de SNT",
+    "avax_amount": "Prix en AVAX",
+    "duration": "Durée (heures)",
+    "active_offers": "Offres Actives",
+    "buy": "Acheter",
+    "cancel": "Annuler",
+    "no_offers": "Aucune offre active pour le moment.",
+    "stats_volume_snt": "Volume SNT",
+    "stats_volume_avax": "Volume AVAX",
+    "stats_total_trades": "Total Échanges"
+  },
+  "referral": {
+    "title": "Tableau de Parrainage",
+    "your_code": "Votre Code de Parrainage",
+    "copy_link": "Copier le Lien",
+    "total_referrals": "Total Parrainages",
+    "validated": "Validés",
+    "pending": "En Attente",
+    "rewards": "Récompenses SNT",
+    "leaderboard": "Classement des Parrains",
+    "apply_code": "Appliquer un Code",
+    "apply_btn": "Appliquer"
+  },
+  "claim": {
+    "title": "SESSION COMPLÈTE - GAINS DISPONIBLES",
+    "btn": "RÉCLAMER & RETIRER VERS WALLET"
+  }
+}

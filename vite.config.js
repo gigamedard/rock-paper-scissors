@@ -6,10 +6,21 @@ export default defineConfig({
         laravel({
             input: [
                 'resources/css/app.css',
+                'resources/css/marketplace.css',
+                'resources/css/referral.css',
                 'resources/js/app.js',
-                'resources/js/echo.js'
             ],
             refresh: true,
+            buildDirectory: 'build',
         }),
     ],
+    resolve: {
+        alias: {
+            '@': '/resources/js',
+        },
+    },
+    build: {
+        outDir: 'public/build',
+        emptyOutDir: true,
+    },
 });

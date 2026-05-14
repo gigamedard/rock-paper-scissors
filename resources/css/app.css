@@ -1,3 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Battlepool SPA - Global CSS entry point */
+/* Main styles are in public/css/style.css loaded by index.html */
+/* Module-specific CSS will be added here as we build new modules */
