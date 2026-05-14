@@ -1,0 +1,2975 @@
+=== CONTEXTE PROJET BATTLEPOOL ===
+Date d'export: 05/14/2026 14:49:48
+---------------------------------
+
+
+
+==========================================================
+FILE: .agents\workflows\project_context.md
+==========================================================
+
+---
+description: Fichier de contexte détaillé du projet pour les agents IA
+---
+
+# CONTEXTE PROJET : Pierre-Feuille-Ciseaux (PFS) Web3
+
+Ce document sert de référence absolue pour comprendre l'architecture et les règles métier du jeu Pierre-Feuille-Ciseaux décentralisé. Il décrit la logique "Event-Driven", la gestion financière, et la synchronisation entre le Smart Contract, Laravel et l'Interface Utilisateur (UI).
+
+## 1. 🛠️ Stack Technique & Architecture
+
+- **Frontend :** Single Page Application (SPA) 100% Vanilla HTML, CSS, et JavaScript.
+- **Backend :** API développée avec le framework PHP Laravel.
+  - **RÈGLE ABSOLUE :** Zéro rendu serveur (pas de `.blade.php`). Communication via API JSON et WebSockets (Laravel Reverb / Echo) pour le temps réel.
+- **Web3 Bridge :** Scripts Node.js relayant les événements (ex: `PoolEmited`) entre la Blockchain et le Backend.
+- **Source de Vérité vs. Logique Off-chain :**
+  - **Smart Contract :** Source de vérité. Détient les fonds, gère les `payOut`, les dépôts et garantit l'intégrité (zeroing de la balance après retrait).
+  - **Laravel :** Moteur de matchmaking et de Martingale (Off-chain) pour supprimer les frais de gas intermédiaires.
+
+## 2. 📜 Le Cycle de Vie (Workflow du Jeu)
+
+### Étape A : Entrée dans la Pool (Event-Driven)
+
+1. **Interaction UI :** Le joueur signe un dépôt sur le Smart Contract et soumet le hash de ses "pre-moves".
+2. **Événement Blockchain :** Le contrat émet `PoolEmited`.
+3. **Capture & Relais :** Le Node.js bridge le transmet à Laravel.
+4. **Validation (Laravel) :** Vérification des CIDs et du `security_coefficient` (balance >= base_bet * coef). 
+5. **Initialisation Session :** Le solde de départ (`session_start_balance`) est figé. Le statut passe à `available`.
+
+### Étape B : Batch Processing & Matching (Scalabilité)
+
+Le `BatchProcessingService` est le cœur du système.
+- **Mode Production :** Il est "Event-Driven" et avance au fur et à mesure des requêtes entrantes des clients (haute fréquence). Il regroupe instantanément les joueurs `available` de même `bet_amount` dans des pools internes.
+- **Mode Simulation (Actuel) :** Un Cron job simule ces milliers de requêtes entrantes pour tester la robustesse.
+- Une fois le groupe (pool interne) formé, le combat est délégué au `FightService`.
+
+### Étape C : Résolution et Martingale (`FightService`)
+
+Le `FightService` confronte les pre-moves. L'argent bascule de la `battle_balance` du perdant au gagnant.
+
+- **Pour le Gagnant :** Son solde augmente, il reste qualifié pour le tour suivant.
+- **Pour le Perdant :**
+  - Son `bet_amount` (mise) est **doublé** pour la prochaine pool (Martingale).
+  - S'il a les fonds pour suivre cette nouvelle mise, il redevient `available` (prêt à être "catché" par le Batch Processor).
+  - S'il ne peut pas couvrir la mise doublée, la règle de **RUIN** s'applique.
+
+### Étape D : Fin de Session (`SessionManager`)
+
+À la fin de l'évaluation, le `SessionManager` calcule le ratio de progression : `q = Solde Final / Solde Initial`.
+
+1. **Succès (`q >= multiplier`) :** 
+   - Le joueur a atteint son but. Le statut passe à `stopped`.
+   - **Payout :** Laravel appelle le Smart Contract (via le Bridge) pour envoyer les fonds sur le wallet du joueur. La balance on-chain est remise à 0.
+2. **Échec / Ruine (`q < 1` ou fonds insuffisants) :** 
+   - Le joueur ne peut pas couvrir le `bet_amount` doublé. Son statut passe à `stopped`.
+   - **Gestion des restes de fonds :**
+     - *Utilisateurs UI (Production) :* L'arrêt est prononcé, mais les fonds restants (ex: 0.45 ETH) restent en base de données. Le joueur doit cliquer sur "Withdraw" manuellement dans l'UI pour récupérer ses fonds.
+     - *Bots (Phase de Test actuelle) :* Un payout automatique est forcé pour simuler le vidage du compte et réinitialiser la boucle de test.
+### Étape E : Clôture de Session & Éjection (Hybride)
+La clôture d'une session (par Ruine ou Payout) dépend de la nature du joueur (autoplay_active) :
+
+Pour les Bots (Test) : Laravel force l'éjection et le paiement via le Bridge Node.js. L'Admin Wallet paie le gas.
+
+Pour les Humains (Prod) : Laravel génère une signature cryptographique (EIP-712) autorisant le retrait. L'UI déverrouille un bouton "Claim & Exit". L'utilisateur signe la transaction via MetaMask, paie ses propres frais de gas, et exécute la fonction claimAndExit sur le Smart Contract. Le backend écoute l'événement on-chain pour finaliser la fermeture de la session en base de données.
+
+Sécurité absolue : Toute éjection on-chain doit nettoyer intégralement les mappings et arrays du joueur sur le Smart Contract (zéro résidu).
+## 3. 🖥️ Cohérence UI & WebSockets
+
+L'interface doit réagir de manière asynchrone aux événements backend pour masquer la latence de traitement des batchs. Le frontend écoutera les événements suivants via des canaux privés :
+
+1. **`SessionStarted` :** Déclenche le verrouillage de l'UI et affiche "Recherche d'adversaires en cours...".
+2. **`MatchFound` :** Le Batch Processor a trouvé un groupe. Déclenche l'animation de combat.
+3. **`FightResult` :** Affiche le delta du combat ("+0.01 ETH" / "-0.01 ETH").
+4. **`MartingaleUpdated` :** Le backend annonce le doublement de la mise ("Prochaine mise : 0.02 ETH"). L'UI actualise l'affichage.
+5. **`SessionFinished` :** Diffusé par le `SessionManager`. Déverrouille l'UI et affiche la notification de fin ("Objectif atteint, retrait en cours" ou "Fonds insuffisants, session stoppée").
+6. **`PoolEmitted` :** Un utilisateur a rejoins une pool avec succés et son battle balance est credité.
+
+## 4. 🧪 Procédures de Test (Protocole TB)
+
+Le protocole **TB (Test Bots)** permet de valider l'intégrité de la chaîne complète (Blockchain -> IPFS -> Laravel -> Matchmaking) dans un environnement propre.
+
+### Étapes du Protocole TB (Orchestration Agent) :
+
+L'agent IA ne doit PAS exécuter `start_all.bat`. Il doit lancer chaque service individuellement dans des terminaux séparés pour permettre un monitoring précis.
+
+1.  **Nettoyage des Logs :** Vider tous les fichiers dans `storage/logs/`.
+2.  **Blockchain Node :** `cd battlepool && npx hardhat node`.
+3.  **Laravel API :** `php artisan serve --port=8001`.
+4.  **Database Reset :** `php artisan migrate:fresh`.
+5.  **Queue Worker :** `php artisan queue:work`.
+6.  **Websocket :** `php artisan reverb:start`.
+7.  **Smart Contract Deploy :** `cd battlepool && npx hardhat run full_deploy.js`.
+8.  **Bridge Node.js :** `cd smart_contracts && node app.js`.
+9.  **Batch Processor :** `cd smart_contracts && node run_batch_processor.js`.
+10. **Lancement de la Simulation :** `node smart_contracts/simulation_bots.js [N] [StartIndex]`.
+
+**RÈGLE DE RÉSERVATION :** Les indices de bot `0` et `1` sont STRICTEMENT réservÉS à l'utilisateur (Admin/Joueur réel). La simulation doit toujours démarrer à partir de l'index `2` (ex: `node smart_contracts/simulation_bots.js 10 2`).
+
+**Critère de Succès :** Les bots doivent s'authentifier, uploader sur IPFS, déposer des fonds on-chain, voir leur balance créditée en DB via le Listener, et être matchés dans des pools par le Batch Processor. L'admin peut ensuite rejoindre avec les comptes #0 ou #1 pour tester l'UI.
+
+
+==========================================================
+FILE: .agents\workflows\colab.md
+==========================================================
+
+---
+description: passerelle entre agent
+---
+
+# MISSION ACTIVE : Validation Admin Dashboard & Protocole TB
+**Date :** 2026-05-14 | **Priorité :** CRITIQUE — Validation Finale Avant TB Complet
+
+---
+
+## 🏆 État des Corrections (Commit 928af32)
+
+L'infrastructure Admin est désormais **complète et sécurisée**. Les 4 correctifs post-audit QA ont été appliqués :
+
+| # | Correction | Fichier(s) | État |
+|---|---|---|---|
+| 1 | Middleware `IsAdmin` (protection 403) | `IsAdmin.php`, `bootstrap/app.php` | ✅ Commité |
+| 2 | Routes `/api/admin/*` protégées | `routes/api.php` | ✅ Commité |
+| 3 | Routes `/admin/influencer/*` sécurisées (étaient ouvertes) | `routes/api.php` | ✅ Commité |
+| 4 | `GameSetting` branché sur `SessionManager` (`min_bet_eth`, `max_martingale_level`) | `SessionManager.php` | ✅ Commité |
+| 5 | Seeder consolidé (source unique de vérité, 8 clés) | `SeedAdminSettings.php` | ✅ Commité |
+| 6 | Cache TTL 24h (remplace `rememberForever`) + purge au seed | `GameSetting.php`, `SeedAdminSettings.php` | ✅ Commité |
+
+---
+
+## 📋 MISSION AGENT 2 — Instructions de Test de Validation
+
+> **Agent 2, ton rôle est de valider que les corrections du commit 928af32 fonctionnent correctement.**
+> Lis les fichiers suivants et fournis un résumé compact de chaque vérification.
+
+### ✅ CHECK 1 — Vérifier que le Seeder est complet
+
+**Fichier à lire :** `database/seeders/SeedAdminSettings.php`
+
+Vérifie que ce seeder contient bien les **8 clés suivantes** (et seulement dans ce seeder — `GameSettingSeeder.php` est désormais un doublon orphelin) :
+- `security_coefficient`
+- `house_fee_percent`
+- `smart_contract_fee_percentage`
+- `game_fee_percentage`
+- `max_bot_per_pool`
+- `martingale_enabled`
+- `min_bet_eth`
+- `max_martingale_level`
+
+Vérifie aussi que chaque `updateOrCreate` est suivi de `Cache::forget(...)`.
+
+---
+
+### ✅ CHECK 2 — Vérifier le Branchement de SessionManager
+
+**Fichier à lire :** `app/Services/SessionManager.php` (lignes 70-100 et lignes 210-220)
+
+Vérifier que :
+- `GameSetting::getValue('min_bet_eth', ...)` remplace bien `config('pool.base_bet')` **deux fois** (ligne ~72 et ~216).
+- `GameSetting::getValue('max_martingale_level', ...)` remplace bien `config('pool.max_martingale_level')` (ligne ~81).
+- Le fallback `config()` est conservé en cas de base de données vide.
+
+---
+
+### ✅ CHECK 3 — Vérifier la Sécurité des Routes
+
+**Fichier à lire :** `routes/api.php` (lignes 140-200)
+
+Vérifier que :
+1. Le groupe `prefix('admin')` utilise `middleware(['token.auth', 'is_admin'])`.
+2. Le groupe `prefix('admin/influencer')` utilise aussi `middleware(['token.auth', 'is_admin'])` (et non plus des routes nues).
+3. **Aucune** route commençant par `/admin/` n'existe en dehors de ces deux groupes protégés.
+
+---
+
+### ✅ CHECK 4 — Vérifier le Cache
+
+**Fichier à lire :** `app/Models/GameSetting.php`
+
+Vérifier que :
+- `getValue()` utilise `Cache::remember($key, now()->addHours(24), ...)` (et **non** `rememberForever`).
+- `setValue()` appelle bien `Cache::forget(...)` après la sauvegarde.
+
+**Fichier à lire :** `app/Http/Controllers/AdminSettingsController.php`
+
+Vérifier que `Cache::forget('game_setting_' . $key)` est appelé après chaque `$setting->save()`.
+
+---
+
+### 📊 Format de Rapport Attendu
+
+Poste ton résumé sous cette forme dans la section **Rapport Agent 2** ci-dessous :
+
+```
+CHECK 1 — Seeder : [OK/FAIL] — [Note courte]
+CHECK 2 — SessionManager : [OK/FAIL] — [Note courte]
+CHECK 3 — Routes sécurisées : [OK/FAIL] — [Note courte]
+CHECK 4 — Cache TTL : [OK/FAIL] — [Note courte]
+VERDICT GLOBAL : [PRÊT / BLOQUANT]
+```
+
+---
+
+## 📥 Rapport Agent 2 — [À compléter]
+
+CHECK 1 — Seeder : OK — Les 8 clés sont présentes dans SeedAdminSettings.php avec purge du cache. GameSettingSeeder est bien orphelin.
+CHECK 2 — SessionManager : OK — min_bet_eth (x2) et max_martingale_level sont branchés sur GameSetting avec fallbacks config().
+CHECK 3 — Routes sécurisées : OK — Groupes /admin et /admin/influencer protégés par token.auth et is_admin. Aucune fuite détectée.
+CHECK 4 — Cache TTL : OK — TTL 24h implémenté dans GameSetting.php et purges présentes dans setValue() et AdminSettingsController.
+VERDICT GLOBAL : PRÊT
+
+---
+
+## ⚠️ Directives Techniques Permanentes
+
+### Architecture WebSocket (Laravel Reverb)
+- **Ports :** Laravel (API) sur `8001`, Reverb (WS) sur `8008`. Host : `127.0.0.1`.
+- **Canaux Privés :** Auth via Bearer Token sur `/api/broadcasting/auth`.
+- **Convention :** Canal `App.Models.User.{id}`. Listener JS : préfixe `.` (ex: `.FightResult`).
+- **Événements :** Toujours implémenter `ShouldBroadcastNow` + `broadcastAs()`.
+
+### Paramètres Clés (Depuis GameSetting DB)
+- `security_coefficient` → dépôt de sécurité (actuellement 1000, TB utilise 100)
+- `smart_contract_fee_percentage` → 2.5% déduits par le contrat
+- `min_bet_eth` → mise de base (0.01 ETH)
+- `max_martingale_level` → 4 doublements max avant reset
+
+### Leçons Post-TB
+- Utiliser `parseFloat(val) || 0` pour les balances dans le HUD.
+- Appel blockchain `submitPremoveCID` obligatoire avant l'API de matchmaking.
+- Envoyer `Montant * 1.025` pour couvrir les frais de dépôt (2.5%).
+- `gasLimit` manuel de `500,000` pour les transactions `submitPremoveCID`.
+
+---
+
+## 📄 Rapports de Référence
+- [Guide d'Intégration WebSocket](file:///C:/Users/GWX1223153/.gemini/antigravity/brain/fc5f5ca0-b028-46e4-ab19-57e8bc9e6e1e/websocket_integration_guide.md)
+- [Analyse Économique Profonde](./../rapports/analyse_profonde_economique.md)
+- [Historique de Stabilization](./../rapports/recap_websocket_fix.md)
+
+
+---
+
+## 🏆 Succès Majeurs de la Session
+L'infrastructure temps réel est désormais **100% stable** et l'interface utilisateur est **réactive (Event-Driven)**.
+
+### 🛰️ Architecture WebSocket (Laravel Reverb)
+- **Ports & Hosts** : Laravel (API) sur `8001`, Reverb (WS) sur `8008`. Host recommandé : `127.0.0.1`.
+- **Canaux Privés** : Authentification validée via Bearer Token sur `/api/broadcasting/auth`.
+- **Convention de Nommage** : 
+  - Canal : `App.Models.User.{id}`
+  - Listener JS : Toujours utiliser le préfixe `.` (ex: `.FightResult`) pour ignorer le namespace PHP.
+- **Événements Instrumentés** :
+  - `BalanceUpdated` : Solde ETH.
+  - `FightResult` : Détails du round (coups joués, résultat, delta).
+  - `PoolEmitted` : Signal global d'entrée en pool.
+  - `SessionFinished` : Clôture avec raison (Victory/Ruin).
+
+### 🎮 Interface Utilisateur (HUD Premium)
+- **Combat Overlay** : DBS Style avec scanner laser et masquage automatique.
+- **Visual FX** : 
+  - `triggerClash()` : Animation de collision d'icônes (✊ vs ✌️).
+  - `impact-flash` : Flash blanc plein écran sur impact.
+  - `shake` : Secousse de l'arène sur victoire ou coup critique.
+  - `animateValue` : Compteur numérique fluide pour les balances.
+### 🧪 Protocole TB (Test Bots) - Validé ✅
+- **Orchestration** : 10 services lancés individuellement (Hardhat, Laravel, Bridge, Batch Processor, Simulation).
+- **Intégrité de la Chaîne** : 
+  - Authentification & IPFS : 10/10 succès.
+  - Bridge & Relais d'événements : Réception instantanée des `DepositReceived` et `PoolEmitted`.
+  - Matchmaking : Pools créées par le `BatchProcessingService` (Pool #1 complétée avec 5 rounds).
+  - Combat : Résolution off-chain (`FightService`) et mise à jour des balances en temps réel.
+
+---
+
+## ⚠️ Erreurs Critiques & Leçons Apprises (Post-TB Protocol)
+
+### 1. Bug "NaN Balance"
+- **Erreur** : L'affichage affichait `NaN ETH` si la balance était `null` ou `undefined` lors de l'auth.
+- **Leçon** : Toujours utiliser `parseFloat(val) || 0` dans le HUD pour garantir une valeur numérique.
+
+### 2. Oubli du Stake Blockchain
+- **Erreur** : L'UI permettait de rejoindre une pool via API sans appeler le Smart Contract `submitPremoveCID`.
+- **Leçon** : L'appel blockchain est **obligatoire** avant l'appel API de matchmaking. L'UI doit attendre le `tx.wait()`.
+
+### 3. Gestion des Frais (2.5%)
+- **Erreur** : Les transactions échouaient par "Out of Gas" (revert) car le contrat déduit 2.5% de frais de dépôt, rendant la balance nette insuffisante pour le stake minimum.
+- **Leçon** : L'UI doit envoyer `Montant Requis * 1.025` pour couvrir les frais d'entrée du contrat.
+
+### 4. Gas Limit Hardhat
+- **Erreur** : Estimation de gaz défaillante sur certaines fonctions complexes, provoquant des "Out of Gas" à 300,000 gas.
+- **Leçon** : Forcer un `gasLimit` manuel de `500,000` (appliqué dans `app.js` et `simulation_bots.js`) pour garantir le passage des transactions `submitPremoveCID`.
+
+### 5. Marge de Sécurité (Security Coefficient)
+- **Erreur** : Les joueurs étaient stoppés immédiatement après une perte (9.99 < 10.0) car le `security_coefficient` par défaut était de `1000`.
+- **Leçon** : Réduire le `security_coefficient` à `100`. Cela permet de jouer avec 10 ETH sur des mises de 0.01 ETH tout en tolérant de nombreuses pertes avant l'éjection automatique.
+
+---
+
+## 📋 Directives pour le Prochain Agent
+
+### 1. Intégrité des Événements
+Si un nouvel événement doit être ajouté, il **DOIT** :
+- Implémenter `ShouldBroadcastNow` (pour éviter la latence des queues).
+- Définir `broadcastAs()` pour un nommage clair côté JS.
+- Être testé via `trigger_test.js [type] [value] [wallet]`.
+
+### 2. Gestion de l'Instance Echo
+Utiliser `window.echoInstance` au lieu de `window.Echo` pour éviter les conflits avec le constructeur IIFE. Toujours vérifier la présence de l'objet avant d'appeler `.private()`.
+
+### 3. Debugging Express
+- **Logs Laravel** : `storage/logs/laravel.log` contient désormais des traces de broadcast.
+- **Console Browser** : Chercher les logs stylisés (`%c⚔️ COMBAT EVENT`).
+- **Network WS** : Vérifier le switch de protocole (101) et les frames JSON.
+
+---
+
+## 📄 Rapports de Référence
+- [Guide d'Intégration WebSocket (Artifact)](file:///C:/Users/GWX1223153/.gemini/antigravity/brain/fc5f5ca0-b028-46e4-ab19-57e8bc9e6e1e/websocket_integration_guide.md)
+- [Analyse Économique Profonde](./../rapports/analyse_profonde_economique.md)
+- [Historique de Stabilization (Post-Bug Ports)](./../rapports/recap_websocket_fix.md)
+
+
+==========================================================
+FILE: .agents\workflows\controlled_scenario_test.md
+==========================================================
+
+---
+description: Test de Scénario Contrôlé & Analyse Statique des Règles
+---
+# Workflow : Test de Scénario Contrôlé et Analyse Statique
+
+Ce workflow est déclenché lorsque l'utilisateur demande d'exécuter un "Test de Scénario Contrôlé", une "Prédiction de Matchups" ou une "Analyse Statique des Règles".
+
+---
+
+## 🛡️ PHASE 0 — Validation Admin Dashboard (OBLIGATOIRE avant tout TB)
+
+Cette phase doit être exécutée **une seule fois avant chaque run TB** pour garantir que les paramètres dynamiques du Dashboard sont bien lus par les services métier.
+
+### Étape 0.1 — Préparer l'environnement
+```bash
+# Réinitialiser la DB et seeder les paramètres Admin
+php artisan migrate:fresh
+php artisan db:seed
+php artisan cache:clear
+
+# Vérifier que la table game_settings est peuplée (8 lignes attendues)
+php artisan tinker --execute="echo \App\Models\GameSetting::count();"
+# Résultat attendu : 8
+```
+
+### Étape 0.2 — Vérifier les paramètres depuis l'API Admin
+
+**Prérequis :** Avoir un compte Admin (lancer `php quick_admin.php` ou seed utilisateur admin).
+
+```bash
+# Récupérer le token admin via login
+curl -X POST http://127.0.0.1:8001/api/login -H "Content-Type: application/json" \
+  -d '{"wallet_address":"0x...","password":"..."}'
+
+# Récupérer les paramètres depuis l'API Admin
+curl http://127.0.0.1:8001/api/admin/settings \
+  -H "Authorization: Bearer <TOKEN>"
+# Résultat attendu : JSON groupé avec 8 clés (economy, blockchain, gameplay, simulation)
+```
+
+### Étape 0.3 — Test de Sécurité des Routes Admin
+
+```bash
+# Tester qu'un utilisateur non-admin reçoit bien 403
+curl http://127.0.0.1:8001/api/admin/stats \
+  -H "Authorization: Bearer <TOKEN_NON_ADMIN>"
+# Résultat attendu : {"error":"Unauthorized. Admin access required."}
+
+# Tester qu'un utilisateur sans token reçoit 401
+curl http://127.0.0.1:8001/api/admin/stats
+# Résultat attendu : 401 Unauthenticated
+```
+
+### Étape 0.4 — Vérifier le Branchement GameSetting → SessionManager
+
+Modifier temporairement `security_coefficient` via le Dashboard (ou directement en DB) pour valider que le changement est pris en compte **sans redémarrer le serveur** :
+
+```bash
+# Changer la valeur via l'API Admin
+curl -X POST http://127.0.0.1:8001/api/admin/settings \
+  -H "Authorization: Bearer <TOKEN_ADMIN>" \
+  -H "Content-Type: application/json" \
+  -d '{"min_bet_eth": "0.05"}'
+
+# Purger le cache (après toute modification depuis la DB directement)
+php artisan cache:clear
+
+# Vérifier dans les logs que le SessionManager lit la nouvelle valeur
+# Chercher dans storage/logs/laravel.log : "Security Coefficient from DB: "
+# ou "min_bet_eth" dans les logs de l'InternalPoolService
+```
+
+**Critère de succès Phase 0 :** Toutes les étapes 0.1 à 0.4 passent sans erreur.
+
+---
+
+## Étapes du Scénario Contrôlé Principal
+
+1. **Analyse Statique des Règles (sans exécuter le code)** :
+   - Parcourir les services backend (ex: `FightService.php`, `PoolLifecycleService.php`, `SessionFinishedEventListener.php`) et les Smart Contracts.
+   - Vérifier théoriquement toutes les règles demandées par l'utilisateur (Transfert de fonds, Éjection des perdants sans argent, Rétention des gagnants, Payouts vers les portefeuilles Web3).
+   - Générer un rapport d'analyse détaillant le parcours exact dans le code pour chaque règle.
+
+2. **Prédiction Déterministe des Matchups** :
+   - Si un scénario pratique doit être simulé, NE PAS lancer la simulation au hasard.
+   - Demander à l'utilisateur son adresse exacte de portefeuille (MetaMask).
+   - Recalculer le `Salt` de la pool (via `predict_matchups.js` ou équivalent) en utilisant le hachage `keccak256` exact des adresses des participants.
+   - Appliquer le tri alphanumérique déterministe pour prédire à l'avance *qui affronte qui*.
+
+3. **Mise en place du Scénario Contrôlé** :
+   - Assigner des `pre-moves` codés en dur aux bots dans `simulation_bots.js` en fonction des affrontements prévus (ex: forcer Bot 1 à faire 'rock' et Bot 2 à faire 'scissors' pour garantir la victoire de Bot 1).
+   - Si l'utilisateur veut tester l'éjection pour fonds insuffisants, créer un script (ex: `bankrupt_bot.php`) pour vider artificiellement la balance "hors combat" du bot ciblé juste avant la résolution du match.
+
+4. **Exécution et Observation** :
+   - Lancer la simulation modifiée.
+   - Demander à l'utilisateur de jouer le coup prévu via l'interface.
+   - Analyser les logs pour valider que le scénario contrôlé s'est bien déroulé comme l'Analyse Statique l'avait prédit.
+   - **Vérifier spécifiquement** dans `storage/logs/laravel.log` les lignes contenant `"Audit Zéro Mock"` pour confirmer que les paramètres lus proviennent bien de la DB et non de valeurs hardcodées.
+
+
+1. **Analyse Statique des Règles (sans exécuter le code)** :
+   - Parcourir les services backend (ex: `FightService.php`, `PoolLifecycleService.php`, `SessionFinishedEventListener.php`) et les Smart Contracts.
+   - Vérifier théoriquement toutes les règles demandées par l'utilisateur (Transfert de fonds, Éjection des perdants sans argent, Rétention des gagnants, Payouts vers les portefeuilles Web3).
+   - Générer un rapport d'analyse détaillant le parcours exact dans le code pour chaque règle.
+
+2. **Prédiction Déterministe des Matchups** :
+   - Si un scénario pratique doit être simulé, NE PAS lancer la simulation au hasard.
+   - Demander à l'utilisateur son adresse exacte de portefeuille (MetaMask).
+   - Recalculer le `Salt` de la pool (via `predict_matchups.js` ou équivalent) en utilisant le hachage `keccak256` exact des adresses des participants.
+   - Appliquer le tri alphanumérique déterministe pour prédire à l'avance *qui affronte qui*.
+
+3. **Mise en place du Scénario Contrôlé** :
+   - Assigner des `pre-moves` codés en dur aux bots dans `simulation_bots.js` en fonction des affrontements prévus (ex: forcer Bot 1 à faire 'rock' et Bot 2 à faire 'scissors' pour garantir la victoire de Bot 1).
+   - Si l'utilisateur veut tester l'éjection pour fonds insuffisants, créer un script (ex: `bankrupt_bot.php`) pour vider artificiellement la balance "hors combat" du bot ciblé juste avant la résolution du match.
+
+4. **Exécution et Observation** :
+   - Lancer la simulation modifiée.
+   - Demander à l'utilisateur de jouer le coup prévu via l'interface.
+   - Analyser les logs pour valider que le scénario contrôlé s'est bien déroulé comme l'Analyse Statique l'avait prédit.
+
+
+==========================================================
+FILE: battlepool\contracts\Battlepool.sol
+==========================================================
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+
+contract Battlepool {
+    using ECDSA for bytes32;
+    struct Pool {
+        uint256 poolId;
+        uint256 baseBet;
+        uint256 maxSize;
+        address[] users;
+        string poolSalt; // Changed to string
+        mapping(address => bool) isUserInPool; // Track if a user is already in the pool
+        uint256 lastActivityBlock; // Track last activity block
+        bool isLockedForValidation; // Prevents new users before backend validates
+    }
+
+    uint256 public nextPoolId = 1;
+    mapping(uint256 => Pool) internal pools; // Internal: accessed via helper functions only
+    mapping(uint256 => address[]) public poolQueues; // Stores users waiting to join a locked pool
+    mapping(address => uint256) public userBalances;
+    mapping(uint256 => string) public poolHistoryCIDs; // Maps poolId to IPFS CID
+    mapping(address => string[]) public sessionHistoryCIDs; // Allows multiple CIDs per user
+    mapping(address => string) public userPremoveCIDs; // Maps user address to IPFS CID for premoves
+    mapping(address => bool) public isUserInAnyPool;
+    mapping(address => uint256) public nextSessionAllowedTime; // Track when user can play again
+    mapping(address => uint256) public nonces; // Replay protection for signatures
+    event PoolCreated(uint256 indexed poolId, uint256 baseBet, uint256 maxSize);
+    event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, string poolSalt, uint256[] balances); // Added balances array
+    event DepositReceived(address indexed user, uint256 amount);
+    event MatchHistoryCIDUpdated(uint256 indexed poolId, string cid);
+    event sessionHistoryCIDUpdated(address indexed user, string cid);
+    event PremoveCIDUpdated(address indexed user, string cid);
+
+    event SecurityCoefficientUpdated(uint256 newCoefficient);
+    event PayoutProcessed(address indexed wallet, uint256 amount);
+    event DefaultPoolMaxSizeChanged(uint256 newSize); // <<<--- AJOUTEZ CETTE LIGNE
+    event PoolStagnantRefund(uint256 indexed poolId, uint256 refundedCount, uint256 timestamp);
+    event StagnantBlockLimitUpdated(uint256 newLimit);
+    event NextSessionTimeUpdated(address indexed user, uint256 nextTime);
+    event FeeBasisPointsUpdated(uint256 newFee);
+    event DevWalletUpdated(address newWallet);
+    event DevFeesWithdrawn(address indexed wallet, uint256 amount);
+    event PlayerClaimed(address indexed wallet, uint256 amount, uint256 nonce);
+
+    address public owner;
+    uint256 public securityCoefficient = 1000;
+    uint256 public defaultPoolMaxSize; // <<<--- AJOUTEZ CETTE LIGNE
+    uint256 public stagnantBlockLimit = 100; // Default 100 blocks
+    
+    uint256 public feeBasisPoints = 250; // Default 2.5% fee
+    uint256 public devBalance; // Accumulated fees
+    address payable public devWallet;
+
+   
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        devWallet = payable(msg.sender); // Default to deployer
+        defaultPoolMaxSize = 5; // <<<--- AJOUTEZ CETTE LIGNE
+    }
+
+    /**
+     * @dev Permet au propriétaire de changer la taille par défaut des nouveaux pools.
+     */
+    function setDefaultPoolMaxSize(uint256 newSize) external onlyOwner {
+        require(newSize >= 2, "Default size must be at least 2");
+        defaultPoolMaxSize = newSize;
+        emit DefaultPoolMaxSizeChanged(newSize);
+    }
+
+    function getContractBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function setSecurityCoefficient(uint256 newCoefficient) external onlyOwner {
+        require(newCoefficient > 0, "Coefficient must be greater than 0");
+        securityCoefficient = newCoefficient;
+        emit SecurityCoefficientUpdated(newCoefficient);
+    }
+
+    function setFeeBasisPoints(uint256 newFee) external onlyOwner {
+        require(newFee <= 10000, "Fee cannot exceed 100%");
+        feeBasisPoints = newFee;
+        emit FeeBasisPointsUpdated(newFee);
+    }
+
+    function setDevWallet(address payable newWallet) external onlyOwner {
+        require(newWallet != address(0), "Invalid wallet address");
+        devWallet = newWallet;
+        emit DevWalletUpdated(newWallet);
+    }
+
+    function withdrawDevFees() external {
+        require(msg.sender == devWallet || msg.sender == owner, "Only dev or owner can withdraw");
+        uint256 amount = devBalance;
+        require(amount > 0, "No fees to withdraw");
+
+        devBalance = 0;
+        (bool success, ) = devWallet.call{value: amount}("");
+        require(success, "Withdrawal failed");
+        
+        emit DevFeesWithdrawn(devWallet, amount);
+    }
+        
+    function triggerPoolEmittedEventForTesting(
+        uint256 poolId,
+        uint256 baseBet,
+        address[] memory users,
+        string[] memory premoveCIDs,
+        string memory poolSalt, // Changed to string
+        uint256[] memory balances
+    ) external {
+        // Emit the PoolEmitted event with the provided parameters
+        emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt, balances);
+    }
+        
+    function createPool(uint256 baseBet, uint256 maxSize) private {
+        require(pools[baseBet].poolId == 0, "Pool already exists");
+        require(maxSize > 0, "Invalid maxSize");
+
+        Pool storage newPool = pools[baseBet];
+        newPool.poolId = nextPoolId;
+        newPool.baseBet = baseBet;
+        newPool.maxSize = maxSize;
+        newPool.poolSalt = ""; // Initialize salt to empty string
+        newPool.lastActivityBlock = block.number; // Initialize activity
+        newPool.isLockedForValidation = false;
+        nextPoolId++;
+
+        emit PoolCreated(newPool.poolId, baseBet, maxSize);
+    }
+
+    function addUsersToPool(uint256 baseBet, address[] memory users) external {
+        require(users.length > 0, "No users to add");
+        
+
+        Pool storage pool = pools[baseBet];
+
+        // Ensure a pool object exists
+        if (pool.poolId == 0) {
+            createPool(baseBet, defaultPoolMaxSize);
+        } else if (pool.users.length == 0 && !pool.isLockedForValidation) {
+            pool.poolId = nextPoolId; // Move to the next pool ID if the previous one is fully processed
+            nextPoolId++;
+        }
+
+        for (uint256 i = 0; i < users.length; i++) {
+            require(users[i] != address(0), "Invalid user address");
+            require(!pool.isUserInPool[users[i]], "User already in pool");
+            require(!isUserInAnyPool[users[i]], "User in another pool");
+            require(block.timestamp >= nextSessionAllowedTime[users[i]], "User is in cooldown");
+
+            if (pool.isLockedForValidation) {
+                // If the pool is locked for verification, put the user in the queue
+                poolQueues[baseBet].push(users[i]);
+                isUserInAnyPool[users[i]] = true; // Mark as taking part in the matchmaking
+            } else {
+                pool.users.push(users[i]);
+                pool.isUserInPool[users[i]] = true; // Mark user as added to the pool
+                isUserInAnyPool[users[i]] = true; // Mark user as in any pool
+                pool.lastActivityBlock = block.number; // Update activity
+
+                // Check if the pool is full
+                if (pool.users.length == pool.maxSize) {
+                    _emitPoolValidation(pool); // Emit and lock the pool for backend validation
+                }
+            }
+        }
+    }
+
+    function addSingleUserToPool(uint256 baseBet, address user) public {
+        
+        require(user != address(0), "Invalid user address");
+        
+        require(!isUserInAnyPool[user], "User in another pool");
+        require(block.timestamp >= nextSessionAllowedTime[user], "User is in cooldown");
+        
+        Pool storage pool = pools[baseBet];
+
+        if (pool.isLockedForValidation) {
+            poolQueues[baseBet].push(user);
+            isUserInAnyPool[user] = true;
+            return;
+        }
+        
+        if (pool.poolId == 0) {
+            createPool(baseBet, defaultPoolMaxSize); // Default maxSize set to defaultPoolMaxSize if pool does not exist
+        } else if (pool.users.length == 0 ) {
+            pool.poolId = nextPoolId; // NOT pool.id
+            nextPoolId++;
+        }
+        
+        pool.users.push(user);
+        pool.isUserInPool[user] = true; // Mark user as added to the pool
+        isUserInAnyPool[user] = true; // Mark user as in any pool
+        pool.lastActivityBlock = block.number; // Update activity
+
+        if (pool.users.length == pool.maxSize) {
+            _emitPoolValidation(pool);
+        }
+    }
+
+    function submitPremoveCID(uint256 baseBet, string memory cid) external payable {
+        require(bytes(cid).length > 0, "CID cannot be empty");
+        require(baseBet > 0, "Base bet must be greater than 0");
+        
+        uint256 requiredBalance = baseBet * securityCoefficient;
+        uint256 depositAmount = (msg.value * 10000) / (10000 + feeBasisPoints);
+        require(depositAmount >= requiredBalance, "Insufficient deposit after fees for the required security margin");
+
+         _processDeposit(msg.sender, msg.value); // Process the deposit
+        userPremoveCIDs[msg.sender] = cid; // Store the CID for the user's premoves
+        emit PremoveCIDUpdated(msg.sender, cid);
+
+        addSingleUserToPool(baseBet, msg.sender);
+    }
+
+    function getPoolInfo(uint256 baseBet) external view returns (uint256 poolId, uint256 maxSize, uint256 userCount, bool isLocked) {
+        Pool storage pool = pools[baseBet];
+        return (pool.poolId, pool.maxSize, pool.users.length, pool.isLockedForValidation);
+    }
+
+    function getPoolUsers(uint256 baseBet) external view returns (address[] memory) {
+        Pool storage pool = pools[baseBet];
+        return pool.users;
+    }
+
+    function storeMatchHistoryCID(uint256 poolId, string memory cid) external {
+        require(bytes(cid).length > 0, "CID cannot be empty");
+        poolHistoryCIDs[poolId] = cid;
+        emit MatchHistoryCIDUpdated(poolId, cid);
+    }
+
+
+    function storeSessionCID(address user, string memory cid) external {
+        require(bytes(cid).length > 0, "CID cannot be empty");
+        sessionHistoryCIDs[user].push(cid); // Append CID instead of replacing it
+        emit sessionHistoryCIDUpdated(user, cid);
+    }
+    
+    function getSessionHistoryCIDs(address user) external view returns (string[] memory) {
+        return sessionHistoryCIDs[user];
+    }
+
+    function getMatchHistoryCID(uint256 poolId) external view returns (string memory) {
+        return poolHistoryCIDs[poolId];
+    }
+
+    function getPremoveCID(address user) external view returns (string memory) {
+        return userPremoveCIDs[user];
+    }
+
+
+    function setPoolMaxSize(uint256 baseBet, uint256 newMaxSize) external onlyOwner {
+        Pool storage pool = pools[baseBet];
+        require(pool.poolId != 0, "Pool does not exist");
+        pool.maxSize = newMaxSize;
+    }
+
+
+
+    function validatePool(uint256 baseBet) external onlyOwner {
+        Pool storage pool = pools[baseBet];
+        require(pool.isLockedForValidation, "Pool is not locked for validation");
+
+        // Clear out all the tracking mappings for valid users
+        for (uint256 i = 0; i < pool.users.length; i++) {
+            pool.isUserInPool[pool.users[i]] = false;
+            isUserInAnyPool[pool.users[i]]   = false;
+            delete userPremoveCIDs[pool.users[i]];
+        }
+
+        delete pool.users;
+        pool.isLockedForValidation = false;
+        
+        _processQueue(baseBet);
+    }
+
+    function invalidatePoolUsers(uint256 baseBet, address[] calldata invalidUsers) external onlyOwner {
+        Pool storage pool = pools[baseBet];
+        require(pool.isLockedForValidation, "Pool is not locked for validation");
+
+        for (uint256 i = 0; i < invalidUsers.length; i++) {
+            address invalidUser = invalidUsers[i];
+            
+            // Remove from pool.users array
+            for (uint256 j = 0; j < pool.users.length; j++) {
+                if (pool.users[j] == invalidUser) {
+                    pool.users[j] = pool.users[pool.users.length - 1];
+                    pool.users.pop();
+                    break;
+                }
+            }
+
+            // Clear mappings
+            pool.isUserInPool[invalidUser] = false;
+            isUserInAnyPool[invalidUser] = false;
+            delete userPremoveCIDs[invalidUser];
+        }
+
+        // Unlock so it can fill up again
+        pool.isLockedForValidation = false;
+        
+        _processQueue(baseBet);
+    }
+
+    function getPoolQueueLength(uint256 baseBet) external view returns (uint256) {
+        return poolQueues[baseBet].length;
+    }
+
+    function _processQueue(uint256 baseBet) internal {
+        Pool storage pool = pools[baseBet];
+        address[] storage queue = poolQueues[baseBet];
+        
+        if (queue.length == 0) return;
+
+        uint256 processedCount = 0;
+        
+        // Ensure pool exists
+        if (pool.poolId == 0) {
+            createPool(baseBet, defaultPoolMaxSize);
+        } else if (pool.users.length == 0) {
+            pool.poolId = nextPoolId;
+            nextPoolId++;
+        }
+
+        for (uint256 i = 0; i < queue.length; i++) {
+            if (pool.isLockedForValidation) {
+                break; // Stop processing if pool just locked
+            }
+            address user = queue[i];
+
+            pool.users.push(user);
+            pool.isUserInPool[user] = true;
+            // isUserInAnyPool is already true from the queue insertion
+            pool.lastActivityBlock = block.number;
+
+            processedCount++;
+
+            if (pool.users.length == pool.maxSize) {
+                _emitPoolValidation(pool);
+            }
+        }
+
+        // Remove processed items from queue
+        // We shift the remaining items forward and pop the end
+        if (processedCount > 0) {
+            uint256 remaining = queue.length - processedCount;
+            for (uint256 i = 0; i < remaining; i++) {
+                queue[i] = queue[i + processedCount];
+            }
+            for (uint256 i = 0; i < processedCount; i++) {
+                queue.pop();
+            }
+        }
+    }
+
+    function _emitPoolValidation(Pool storage pool) internal {
+        // 1) Snapshot users into memory once, so we never accidentally drift
+        address[] memory users = pool.users;
+
+        // 2) Generate the salt based on that snapshot
+        pool.poolSalt = _generateSalt(users);
+
+        // 3) Gather premove CIDs and current balances in lock-step with the snapshot
+        string[] memory premoveCIDs = new string[](users.length);
+        uint256[] memory balances = new uint256[](users.length);
+        
+        for (uint256 i = 0; i < users.length; i++) {
+            premoveCIDs[i] = userPremoveCIDs[users[i]];
+            balances[i]    = userBalances[users[i]];
+        }
+
+        // 4) Emit using the memory arrays – users, premoveCIDs, and balances are guaranteed to align
+        emit PoolEmitted(pool.poolId, pool.baseBet, users, premoveCIDs, pool.poolSalt, balances);
+
+        // 5) Lock the pool, do NOT clear arrays yet. Backend must validate.
+        pool.isLockedForValidation = true;
+    }
+
+    // Generate a salt from the concatenated addresses of all users
+    function _generateSalt(address[] memory _users) internal pure returns (string memory) {
+        bytes memory packedAddresses;
+        for (uint256 i = 0; i < _users.length; i++) {
+            // Each address is individually packed into its 20-byte representation.
+            packedAddresses = abi.encodePacked(packedAddresses, abi.encodePacked(_users[i]));
+        }
+        bytes32 hash = keccak256(packedAddresses); // Hash the concatenated addresses
+        // Convert the hash to a hexadecimal string
+        return _toHexString(hash);
+    }    
+
+
+    function _toHexString(bytes32 _bytes) internal pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory str = new bytes(64); // 64 characters for 32 bytes
+
+        for (uint256 i = 0; i < 32; i++) {
+            str[i * 2] = alphabet[uint8(_bytes[i] >> 4)]; // First 4 bits
+            str[i * 2 + 1] = alphabet[uint8(_bytes[i] & 0x0f)]; // Last 4 bits
+        }
+
+    return string(str);
+    }
+
+    function deposit() external payable {
+        require(msg.value > 0, " from deposit Deposit must be greater than 0");
+        _processDeposit(msg.sender, msg.value);
+    }
+
+    receive() external payable {
+        require(msg.value > 0, " from receive Deposit must be greater than 0");
+        emit DepositReceived(msg.sender, msg.value);
+    }
+
+    fallback() external payable {
+        require(msg.value > 0, "from fallback Deposit must be greater than 0");
+        emit DepositReceived(msg.sender, msg.value);
+    }
+
+    function _processDeposit(address user, uint256 amount) private {
+        // Calculate the actual deposit amount after fees
+        uint256 depositAmount = (amount * 10000) / (10000 + feeBasisPoints);
+        uint256 feeAmount = amount - depositAmount;
+
+        devBalance += feeAmount;
+        uint256 balance = userBalances[user] += depositAmount;
+        
+        emit DepositReceived(user, balance);
+    }
+
+    function getUserBalance(address user) external view returns (uint256) {
+        return userBalances[user];
+    }
+
+    function getContractAddress() external view returns (address) {
+        return address(this);
+    }
+
+
+    function isUserInPoolByBaseBet(uint256 baseBet, address user) public view returns (bool) {
+        return pools[baseBet].isUserInPool[user];
+    }
+
+    //payOut function
+    function payOut(address payable user, uint256 amount) external onlyOwner {
+        require(user != address(0), "Invalid user address");
+        require(amount > 0, "Amount must be greater than 0");
+       
+
+        // 🛑 1. Update state **before** sending ETH (prevents reentrancy)
+        userBalances[user] = 0;
+        isUserInAnyPool[user] = false;
+        delete userPremoveCIDs[user]; // Cleanup residual CID
+
+        // ✅ 2. Use `.call{value: amount}("")` instead of `.transfer()`
+        (bool success, ) = user.call{value: amount}("");
+        require(success, "Payment failed");
+
+        // 📢 3. Emit an event for tracking
+        emit PayoutProcessed(user, amount);
+        emit PlayerClaimed(user, amount, 0); // Nonce 0 for admin-triggered payout
+    }
+
+    /**
+     * @dev Allows a user to claim their funds using a signature from the admin.
+     * Prevents the server from paying gas for human withdrawals.
+     */
+    function claimAndExit(uint256 amount, bytes memory signature) external {
+        require(amount > 0, "Amount must be greater than 0");
+
+        // Verify signature: hash(address, amount, nonce, contractAddress)
+        bytes32 messageHash = keccak256(abi.encodePacked(msg.sender, amount, nonces[msg.sender], address(this)));
+        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
+        
+        address signer = ethSignedMessageHash.recover(signature);
+        require(signer == owner, "Invalid admin signature");
+
+        // Update state
+        uint256 nonceUsed = nonces[msg.sender];
+        nonces[msg.sender]++;
+        userBalances[msg.sender] = 0;
+        isUserInAnyPool[msg.sender] = false;
+        delete userPremoveCIDs[msg.sender];
+
+        // Transfer funds
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Claim payment failed");
+
+        emit PlayerClaimed(msg.sender, amount, nonceUsed);
+    }
+
+
+
+
+    function batchPayOut(address[] calldata wallets, uint256[] calldata amounts) external {
+        require(wallets.length == amounts.length, "Mismatched arrays");
+
+        for (uint i = 0; i < wallets.length; i++) {
+            
+
+            // 🛑 1. Update state first (prevents reentrancy)
+            userBalances[wallets[i]] = 0;
+            isUserInAnyPool[wallets[i]] = false;
+
+            // ✅ 2. Send ETH safely using `.call{value: amount}("")`
+            (bool success, ) = payable(wallets[i]).call{value: amounts[i]}("");
+            require(success, "Payment failed");
+
+            // 📢 3. Emit an event for tracking
+            emit PayoutProcessed(wallets[i], amounts[i]);
+        }
+    }
+
+    function setStagnantBlockLimit(uint256 _limit) external onlyOwner {
+        stagnantBlockLimit = _limit;
+        emit StagnantBlockLimitUpdated(_limit);
+    }
+
+    function setUserNextSessionTime(address user, uint256 nextTime) external onlyOwner {
+        nextSessionAllowedTime[user] = nextTime;
+        emit NextSessionTimeUpdated(user, nextTime);
+    }
+
+    function checkAndRefundStagnantPool(uint256 baseBet) external {
+        Pool storage pool = pools[baseBet];
+        require(pool.poolId != 0, "Pool does not exist");
+        require(pool.users.length > 0, "Pool is empty");
+        require(block.number > pool.lastActivityBlock + stagnantBlockLimit, "Pool is not stagnant");
+
+        uint256 refundedCount = pool.users.length;
+        address[] memory usersToRefund = pool.users;
+
+        for (uint256 i = 0; i < usersToRefund.length; i++) {
+            address user = usersToRefund[i];
+            
+            // Clear user state
+            pool.isUserInPool[user] = false;
+            isUserInAnyPool[user] = false;
+            delete userPremoveCIDs[user];
+
+            // Refund balance
+            uint256 amount = userBalances[user];
+            if (amount > 0) {
+                userBalances[user] = 0;
+                (bool success, ) = payable(user).call{value: amount}("");
+                require(success, "Refund failed");
+            }
+        }
+
+        // Reset pool
+        delete pool.users;
+        pool.lastActivityBlock = block.number; // Reset timer (though pool is empty now)
+
+        emit PoolStagnantRefund(pool.poolId, refundedCount, block.timestamp);
+    }
+} 
+
+
+==========================================================
+FILE: app\Services\SessionManager.php
+==========================================================
+
+<?php
+
+namespace App\Services;
+
+use App\Helpers\UserTracker;
+use App\Helpers\Web3Helper;
+use App\Models\Fight;
+use App\Models\Pool;
+use App\Models\User;
+use Illuminate\Support\Facades\Log;
+
+class SessionManager
+{
+    protected NotificationService $notificationService;
+    protected SignatureService $signatureService;
+
+    public function __construct(Web3Helper $web3Helper, SessionHistoryService $historyService, NotificationService $notificationService, SignatureService $signatureService)
+    {
+        $this->web3Helper = $web3Helper;
+        $this->historyService = $historyService;
+        $this->notificationService = $notificationService;
+        $this->signatureService = $signatureService;
+    }
+
+    /**
+     * Executes the end-of-pool logic for all participants.
+     */
+    public function evaluatePoolEnd(Pool $pool): void
+    {
+        // 1. Identify users who fought vs users who were left out
+        $fightUserIds = Fight::where('pool_id', $pool->id)
+            ->get()
+            ->flatMap(fn ($fight) => [$fight->user1_id, $fight->user2_id])
+            ->unique()
+            ->values();
+
+        $foughtUsers = User::whereIn('id', $fightUserIds)->get();
+
+        $noFightUserIds = $pool->users()
+            ->where('battle_balance', '>', 0)
+            ->pluck('id')
+            ->diff($fightUserIds);
+
+        $noFightUsers = User::whereIn('id', $noFightUserIds)->get();
+
+        // 2. Refund users who didn't fight
+        foreach ($noFightUsers as $user) {
+            $this->refundNoFightUser($user);
+        }
+
+        // 3. Evaluate session for users who fought
+        foreach ($foughtUsers as $user) {
+            $this->processFoughtUser($user, $pool);
+        }
+    }
+
+    private function refundNoFightUser(User $user): void
+    {
+        $refunded = $user->battle_balance;
+        $user->balance += $refunded;
+        $user->battle_balance = 0;
+        
+        $user->status = 'available';
+        $user->pool_id = null;
+        $user->save();
+
+        UserTracker::info("[POOL_FINISH] 🔄 Player {$user->wallet_address} had no fight. Refunded {$refunded} ETH. Balance restored to: {$user->balance}.", ['wallet' => $user->wallet_address]);
+    }
+
+    private function processFoughtUser(User $user, Pool $pool): void
+    {
+        $baseBet = (float) \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min());
+
+        // 1. Martingale Logic — 3 cases based on the pool outcome:
+        //    - LOSS  : battle_balance < base_bet  → double the bet (Martingale escalation)
+        //    - WIN   : battle_balance > base_bet  → reset bet_amount to base (0.01) per business rule
+        //    - NULL  : battle_balance == base_bet → keep current tier (no change, user stays at same level)
+        if ($user->battle_balance < $pool->base_bet) {
+            // POOL LOSS: Martingale — double the next bet
+            $nextBet = (float) ($user->bet_amount * 2);
+            $maxLevel = (int) \App\Models\GameSetting::getValue('max_martingale_level', config('pool.max_martingale_level', 4));
+            $maxMartingaleAmount = (float) ($baseBet * pow(2, $maxLevel));
+
+            if ($nextBet > $maxMartingaleAmount) {
+                // Global Limit reached: Reset to base bet
+                $user->bet_amount = $baseBet;
+                UserTracker::info("[MARTINGALE_LIMIT] 🛡️ Player {$user->wallet_address} reached global martingale limit level {$maxLevel} ({$nextBet} > {$maxMartingaleAmount}). Resetting to base bet: {$baseBet}.", ['wallet' => $user->wallet_address]);
+            } else {
+                // Escalation: Double the bet
+                $user->bet_amount = $nextBet;
+                UserTracker::info("[MARTINGALE] 📉 Player {$user->wallet_address} lost pool. Next bet doubled to: {$user->bet_amount}.", ['wallet' => $user->wallet_address, 'next_bet' => $user->bet_amount]);
+            }
+            event(new \App\Events\MartingaleUpdated($user, (string)$user->bet_amount));
+
+        } elseif ($user->battle_balance > $pool->base_bet) {
+            // POOL WIN: Reset bet_amount to base bet (0.01) — business rule
+            $user->bet_amount = $baseBet;
+            UserTracker::info("[BET_RESET] ✅ Player {$user->wallet_address} won pool. bet_amount reset to base: {$baseBet}.", ['wallet' => $user->wallet_address, 'next_bet' => $baseBet]);
+
+        } else {
+            // POOL NULL (battle_balance == base_bet): Stay at current tier — no change
+            UserTracker::info("[POOL_NULL] ↔️ Player {$user->wallet_address} drew pool (null). bet_amount unchanged: {$user->bet_amount}.", ['wallet' => $user->wallet_address, 'current_bet' => $user->bet_amount]);
+        }
+
+        // 2. Calculate Q and Evaluate Session State
+        $q = $this->calculateQValue($user);
+
+        // 3. Consolidate funds from battle back to main balance
+        $gained = $user->battle_balance;
+        
+        \App\Helpers\UserTracker::info("[POOL_FINISH] 💰 Battle phase ended for Player {$user->wallet_address}. Gained: {$gained}. Total Internal Balance: " . ($user->balance + $user->battle_balance), ['wallet' => $user->wallet_address]);
+
+        $user->balance += $user->battle_balance;
+        $user->battle_balance = 0;
+        $user->pool_id = null;
+
+        $this->evaluateUserSession($user, $q);
+    }
+
+
+    private function calculateQValue(User $user): float
+    {
+        $initialTotal = $user->session_start_balance + $user->session_start_battle_balance;
+        $finalTotal = $user->balance + $user->battle_balance;
+
+        if ($initialTotal <= 0) {
+            Log::warning("[SESSION_GUARD] ⚠️ calculateQValue called with initialTotal=0 for user {$user->wallet_address}. Returning q=0 to prevent illegitimate payout.", [
+                'wallet' => $user->wallet_address,
+                'balance' => $user->balance,
+                'battle_balance' => $user->battle_balance,
+                'session_start_balance' => $user->session_start_balance,
+                'session_start_battle_balance' => $user->session_start_battle_balance,
+            ]);
+            return 0.0;
+        }
+
+        return $finalTotal / $initialTotal;
+    }
+
+    private function evaluateUserSession(User $user, float $q): void
+    {
+        $multiplierLevel = $user->multiplier_level ?? 1;
+        $multiplier = config("game_levels.multiplier.{$multiplierLevel}", 2.0);
+
+        if ($q >= $multiplier) {
+            // CASE 1: Session Goal Reached (PAYOUT)
+            Log::info("[SESSION_PAYOUT] 🏆 User {$user->id} (Wallet: {$user->wallet_address}) reached multiplier ($q >= $multiplier). Processing withdrawal!");
+            
+            $this->closeSession($user, 'stopped');
+            $this->historyService->archiveSessionHistory($user);
+            $this->setNextSessionCooldown($user);
+
+            $signature = null;
+            $payoutTriggered = false;
+
+            if ($user->autoplay_active) { 
+                // ALL BOTS (Autoplay) get Automatic Payout
+                $this->sendPayment($user);
+                $payoutTriggered = true;
+            } else {
+                // HUMANS (ID < 100) or Manual Players: Always generate Signature for MetaMask
+                $signature = $this->generateHumanSignature($user);
+                $user->payout_signature = $signature;
+                $user->save();
+            }
+            
+            event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature));
+            
+        } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount)) {
+            // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet)
+            $type = ($q < 1) ? "RUIN" : "STRATEGIC_LIMIT";
+            UserTracker::info("[SESSION_{$type}] ⚠️ User {$user->wallet_address} (q=$q) cannot cover next bet ({$user->balance} < {$user->bet_amount}). Session ended.", ['wallet' => $user->wallet_address, 'q' => $q]);
+            
+            $this->closeSession($user, 'stopped');
+            $this->historyService->archiveSessionHistory($user);
+            
+            // DIVERGENCE: Bots get auto-payout for tests, Humans must manually withdraw
+            $payoutTriggered = false;
+            $signature = null;
+
+            if ($user->autoplay_active) {
+                UserTracker::info("[BOT_AUTO_WITHDRAW] 🤖 Bot {$user->wallet_address} ruined. Forcing payout to clear balance for next run.", ['wallet' => $user->wallet_address]);
+                $this->sendPayment($user); // Forces sending whatever is left (e.g. 0.45 ETH)
+                $payoutTriggered = true;
+            } else {
+                if ($user->balance <= 0.0001) {
+                    UserTracker::info("[AUTO_EJECT] 🛑 Human player {$user->wallet_address} ruined with 0 ETH. Server pays gas to eject them from contract.", ['wallet' => $user->wallet_address]);
+                    $this->sendPayment($user); // Forces payout from server, clears isUserInAnyPool
+                    $payoutTriggered = true;
+                } else {
+                    UserTracker::info("[MANUAL_WITHDRAWAL_REQUIRED] 🛑 Human player {$user->wallet_address} ruined. Funds ({$user->balance} ETH) kept in DB. Manual withdraw required.", ['wallet' => $user->wallet_address]);
+                    $this->notificationService->notifyInsufficientBalance($user);
+                    // Even on ruin, we provide the signature for the remaining funds
+                    $signature = $this->generateHumanSignature($user);
+                    $user->payout_signature = $signature;
+                    $user->save();
+                }
+            }
+            
+            event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature));
+            
+        } else {
+            // CASE 3: Session Continues (RETURN TO POOL QUEUE)
+            UserTracker::info("[SESSION_CONTINUE] 🔄 User {$user->wallet_address} continues session (q=$q < $multiplier). Current Balance: {$user->balance}.", ['wallet' => $user->wallet_address]);
+            
+            $user->status = 'available';
+            $user->save();
+        }
+    }
+
+    private function closeSession(User $user, string $newStatus): void
+    {
+        $user->status = $newStatus;
+        // Reset bet_amount to the base bet (0.01) so the bot can re-enter the arena
+        // on its next session after a payout, ruin, or strategic limit.
+        $baseBet = (float) \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min());
+        $user->bet_amount = $baseBet;
+        if ($user->preMove) {
+            $user->preMove->current_index = 0;
+            $user->preMove->save();
+        }
+        $user->session_started = false;
+        $user->session_start_balance = 0;
+        $user->session_start_battle_balance = 0;
+        $user->save();
+    }
+
+    private function sendPayment(User $user): void
+    {
+        try {
+            $this->web3Helper->sendPayement(config('app.NODE_WORKER_URL'), $user->wallet_address, $user->balance);
+        } catch (\Exception $e) {
+            Log::error("Failed to send payment for {$user->wallet_address}: " . $e->getMessage());
+        }
+    }
+
+    private function setNextSessionCooldown(User $user): void
+    {
+        $recoveryLevel = $user->recovery_level ?? 1;
+        $minutes = config("game_levels.recovery_time.{$recoveryLevel}", 1440);
+        $nextTime = now()->addMinutes($minutes)->timestamp;
+
+        try {
+            $this->web3Helper->setUserNextSessionTime(config('app.NODE_WORKER_URL'), $user->wallet_address, $nextTime);
+        } catch (\Exception $e) {
+            Log::error("Failed to set cooldown for {$user->wallet_address}: " . $e->getMessage());
+        }
+    }
+
+    private function generateHumanSignature(User $user): ?string
+    {
+        try {
+            $nodeUrl = config('app.NODE_WORKER_URL');
+            $contractAddress = env('BATTLEPOOL_ADDRESS');
+            $nonce = $this->web3Helper->getUserNonce($nodeUrl, $user->wallet_address);
+            $amountWei = $this->web3Helper->etherToWei($user->balance);
+
+            return $this->signatureService->generateClaimSignature(
+                $user->wallet_address,
+                $amountWei,
+                $nonce,
+                $contractAddress
+            );
+        } catch (\Exception $e) {
+            Log::error("Failed to generate signature for {$user->wallet_address}: " . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+
+==========================================================
+FILE: app\Services\FightService.php
+==========================================================
+
+<?php
+
+namespace App\Services;
+
+use App\Helpers\Web3Helper;
+use App\Helpers\UserTracker;
+use App\Models\Fight;
+use App\Models\Pool;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class FightService
+{
+    protected $historicalFightService;
+
+    protected $web3Helper;
+
+    protected $notificationService;
+
+    public function __construct(HistoricalFightService $historicalFightService, Web3Helper $web3Helper, NotificationService $notificationService)
+    {
+        $this->historicalFightService = $historicalFightService;
+        $this->web3Helper = $web3Helper;
+        $this->notificationService = $notificationService;
+    }
+
+    public function handleAutoplayFight(Fight $fight)
+    {
+        $user1Move = $this->getPreMove($fight->user1_id);
+        $user2Move = $this->getPreMove($fight->user2_id);
+
+        $result = $this->determineResult($user1Move, $user2Move);
+
+        $this->updateBalances($fight, $result);
+
+        $fight->update([
+            'status' => 'completed',
+            'result' => $result,
+        ]);
+
+        return $result;
+    }
+
+    public function handlePoolAutoplayFight(Fight $fight, $baseBet, $poolSize)
+    {
+        // Real-time Event: Fight Started via NotificationService
+        $this->notificationService->notifyFightStarted(User::find($fight->user1_id), User::find($fight->user2_id), $fight);
+        $this->notificationService->notifyFightStarted(User::find($fight->user2_id), User::find($fight->user1_id), $fight);
+
+        $user1Move = $this->getPreMove($fight->user1_id);
+        $user2Move = $this->getPreMove($fight->user2_id);
+
+        $fight->user1_chosed = $user1Move;
+        $fight->user2_chosed = $user2Move;
+
+        $result = $this->determineResult($user1Move, $user2Move);
+        $fight->result = $result;
+
+        $fHist = $this->historicalFightService->archiveFight($fight->id);
+
+        if ($result === 'draw') {
+            User::where('id', $fight->user1_id)->update(['status' => 'in_pool']);
+            User::where('id', $fight->user2_id)->update(['status' => 'in_pool']);
+
+            $user1 = User::find($fight->user1_id);
+            $user2 = User::find($fight->user2_id);
+            if ($user1) event(new \App\Events\FightResult($user1, 'draw', '0', (string)$user1->balance, $user1Move, $user2Move));
+            if ($user2) event(new \App\Events\FightResult($user2, 'draw', '0', (string)$user2->balance, $user2Move, $user1Move));
+        } else {
+            $winnerId = ($result === 'user1_win') ? $fight->user1_id : $fight->user2_id;
+            $loserId = ($result === 'user1_win') ? $fight->user2_id : $fight->user1_id;
+
+            // Transfer the base bet amount from loser to winner in battle_balance
+            $this->transferBattleBalance($winnerId, $loserId, $baseBet);
+
+            // LOGGING ENHANCEMENT: Explicit Transfer Log
+            $winnerUser = User::find($winnerId);
+            $loserUser = User::find($loserId);
+            $winnerWallet = $winnerUser->wallet_address ?? 'UNKNOWN';
+            $loserWallet = $loserUser->wallet_address ?? 'UNKNOWN';
+            UserTracker::info("[FIGHT_TRANSFER] ⚔️ Player {$winnerWallet} won against {$loserWallet}. Transferred {$baseBet} from Loser to Winner.", ['winner' => $winnerWallet, 'loser' => $loserWallet, 'amount' => $baseBet]);
+
+            if ($winnerUser) event(new \App\Events\FightResult($winnerUser, 'win', "+{$baseBet}", (string)$winnerUser->balance, ($result === 'user1_win' ? $user1Move : $user2Move), ($result === 'user1_win' ? $user2Move : $user1Move)));
+            if ($loserUser) event(new \App\Events\FightResult($loserUser, 'loss', "-{$baseBet}", (string)$loserUser->balance, ($result === 'user1_win' ? $user2Move : $user1Move), ($result === 'user1_win' ? $user1Move : $user2Move)));
+
+            // Notify winner (User gains baseBet)
+            if ($winnerUser) {
+                $this->notificationService->notifyFightWin($winnerUser, $baseBet, $fight->id);
+            }
+
+            // Check loser's remaining battle balance
+            if ($loserUser->battle_balance < $baseBet) {
+                UserTracker::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool matching (battle_balance < baseBet). Will wait for SessionManager to evaluate session.", ['wallet' => $loserWallet, 'battle_balance' => $loserUser->battle_balance]);
+            }
+        }
+
+        $fight->status = 'completed';
+        $fight->save();
+
+        $this->historicalFightService->archiveFight($fight->id, $fHist);
+    }
+
+    public function getPreMove($userId)
+    {
+        $preMove = DB::table('pre_moves')->where('user_id', $userId)->first();
+        if (! $preMove) {
+            throw new \Exception("No pre-moves found for user ID $userId");
+        }
+        // PreMove model casts 'moves' to array, so it is already an array if retrieved via Eloquent.
+        // But since we use DB::table(), it returns a JSON string, which json_decode makes an array.
+        // Wait, if it is stored as JSON in DB and cast is array, maybe sometimes it's double-encoded?
+        // Let's decode it safely.
+        $moves = is_string($preMove->moves) ? json_decode($preMove->moves, true) : $preMove->moves;
+        if (is_string($moves)) {
+            $moves = json_decode($moves, true);
+        }
+        $currentIndex = $preMove->current_index;
+        if ($currentIndex >= count($moves)) {
+            $currentIndex = 0;
+        }
+        $nextMove = $moves[$currentIndex];
+        DB::table('pre_moves')->where('user_id', $userId)->update(['current_index' => $currentIndex + 1]);
+
+        return $nextMove;
+    }
+
+    public function determineResult($user1Move, $user2Move)
+    {
+        $winningCombinations = ['rock' => 'scissors', 'scissors' => 'paper', 'paper' => 'rock'];
+        if (! $user1Move) {
+            return 'user2_win';
+        }
+        if (! $user2Move) {
+            return 'user1_win';
+        }
+        if ($user1Move === $user2Move) {
+            return 'draw';
+        }
+
+        return $winningCombinations[$user1Move] === $user2Move ? 'user1_win' : 'user2_win';
+    }
+
+    protected function updateBalances(Fight $fight, $result)
+    {
+        $betAmount = $fight->base_bet_amount;
+        if ($result === 'user1_win') {
+            DB::table('users')->where('id', $fight->user1_id)->increment('balance', $betAmount);
+            DB::table('users')->where('id', $fight->user2_id)->decrement('balance', $betAmount);
+        } elseif ($result === 'user2_win') {
+            DB::table('users')->where('id', $fight->user2_id)->increment('balance', $betAmount);
+            DB::table('users')->where('id', $fight->user1_id)->decrement('balance', $betAmount);
+        }
+    }
+
+    protected function transferBattleBalance($winnerId, $loserId, $amount)
+    {
+        $loserUser = User::find($loserId);
+        $winnerUser = User::find($winnerId);
+
+        if ($loserUser && $winnerUser) {
+            $loserUser->battle_balance -= $amount;
+            $winnerUser->battle_balance += $amount;
+
+            $loserUser->save();
+            $winnerUser->save();
+        }
+    }
+}
+
+
+==========================================================
+FILE: app\Services\BatchProcessingService.php
+==========================================================
+
+<?php
+
+namespace App\Services;
+
+use App\Services\BatchProcessing\BatchCriteriaService;
+use App\Services\BatchProcessing\BatchFinderService;
+use App\Services\BatchProcessing\BatchManagerService;
+use App\Services\BatchProcessing\PoolFetcherService;
+use App\Services\BatchProcessing\PoolProcessorService;
+use App\Helpers\UserTracker;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class BatchProcessingService
+{
+    protected $batchCriteriaService;
+
+    protected $batchFinderService;
+
+    protected $poolFetcherService;
+
+    protected $batchManagerService;
+
+    protected $poolProcessorService;
+
+    public function __construct(
+        BatchCriteriaService $batchCriteriaService,
+        BatchFinderService $batchFinderService,
+        PoolFetcherService $poolFetcherService,
+        BatchManagerService $batchManagerService,
+        PoolProcessorService $poolProcessorService
+    ) {
+        $this->batchCriteriaService = $batchCriteriaService;
+        $this->batchFinderService = $batchFinderService;
+        $this->poolFetcherService = $poolFetcherService;
+        $this->batchManagerService = $batchManagerService;
+        $this->poolProcessorService = $poolProcessorService;
+    }
+
+    public function processBatch(float $baseBet): array
+    {
+        $criteriaResult = $this->batchCriteriaService->getTargetPoolSize();
+        if ($criteriaResult['error']) {
+            return ['status' => 'error', 'message' => $criteriaResult['error'], 'http_code' => 500];
+        }
+        $targetPoolSize = $criteriaResult['targetPoolSize'];
+
+        $poolsToProcess = collect();
+        $batchForProcessing = null;
+
+        try {
+            $resultData = DB::transaction(function () use (
+                $targetPoolSize,
+                $baseBet,
+                &$poolsToProcess,
+                &$batchForProcessing
+            ) {
+                $batch = $this->batchFinderService->findActiveBatchWithLock($targetPoolSize, $baseBet);
+
+                if (! $batch) {
+                    if (! $this->poolFetcherService->processablePoolsExist($targetPoolSize, $baseBet)) {
+                        return ['status' => 'no_work', 'message' => "No active batch or available pools for pool_size {$targetPoolSize} base_bet {$baseBet}."];
+                    }
+                    $initialPools = $this->poolFetcherService->fetchInitialPools($targetPoolSize, $baseBet, config('pool.batch_initial_limit', 50));
+                    if ($initialPools->isEmpty()) {
+                        return ['status' => 'no_work', 'message' => "No pools available to form an initial batch for pool_size {$targetPoolSize} base_bet {$baseBet}."];
+                    }
+                    $createdBatch = $this->batchManagerService->createBatch($targetPoolSize, $baseBet, $initialPools);
+
+                    return ['status' => 'created', 'message' => "New batch {$createdBatch->id} for pool_size {$targetPoolSize} base_bet {$baseBet} created and is {$createdBatch->status}."];
+                }
+
+                $isStale = $batch->updated_at->diffInSeconds(now()) > config('pool.batch_ttl_seconds', 60);
+
+                if ($batch->status === 'waiting' && $batch->number_of_pools < $batch->max_size) {
+                    $needed = $batch->max_size - $batch->number_of_pools;
+                    $newPools = $this->poolFetcherService->fetchPoolsToLoad($batch, $needed);
+                    if ($newPools->isEmpty()) {
+                        if ($isStale && $batch->number_of_pools > 0) {
+                            Log::info("Batch {$batch->id} is stale (waiting > TTL). Forcing transition to running with {$batch->number_of_pools} pools.");
+                            // Do not return here. Let it fall through to the 'running' block below.
+                        } else {
+                            $msg = ($batch->number_of_pools > 0)
+                                ? "Batch {$batch->id} remains waiting with {$batch->number_of_pools} pools, no new pools found."
+                                : "Batch {$batch->id} remains waiting and empty, no new pools found.";
+
+                            return ['status' => 'no_change', 'message' => $msg];
+                        }
+                    } else {
+                        $this->batchManagerService->loadWaitingBatch($batch, $newPools);
+                        // Refresh staleness check since batch was just updated
+                        $isStale = false;
+                        
+                        // If the batch is STILL not full after loading, return 'updated'.
+                        if ($batch->number_of_pools < $batch->max_size) {
+                            return ['status' => 'updated', 'message' => "Batch {$batch->id} (pool_size {$batch->pool_size}) updated with {$newPools->count()} pools. Status: {$batch->status}"];
+                        }
+                    }
+                }
+
+                if ($batch->status === 'waiting' && ($batch->number_of_pools >= $batch->max_size || ($isStale && $batch->number_of_pools > 0))) {
+                    if ($batch->status !== 'running') {
+                        $batch->status = 'running';
+                        $batch->save();
+                    }
+                    $retrievedPools = $this->poolFetcherService->fetchPoolsForProcessing($batch);
+                    if ($retrievedPools->isEmpty()) {
+                        $batch->status = 'settled';
+                        $batch->save();
+
+                        return ['status' => 'no_work', 'message' => "Batch {$batch->id} found no processable pools in its range. Transitioned to settled to avoid blocking tier."];
+                    }
+                    $poolsToProcess = $retrievedPools;
+                    $batchForProcessing = $batch;
+
+                    return ['status' => 'processing_deferred'];
+                }
+
+                return ['status' => 'no_action', 'message' => "Batch {$batch->id} status '{$batch->status}' did not trigger action."];
+            });
+
+            if (isset($resultData['status']) && $resultData['status'] === 'processing_deferred') {
+                if (! $batchForProcessing || $poolsToProcess->isEmpty()) {
+                    return ['status' => 'error', 'message' => 'Internal error during deferred processing setup.', 'http_code' => 500];
+                }
+                $processingResult = $this->poolProcessorService->processPools($poolsToProcess, $batchForProcessing);
+                $updatedBatch = $this->batchManagerService->updateBatchStatusAfterProcessing($batchForProcessing->id, ! is_null($processingResult['error']), $processingResult['processedCount']);
+
+                if ($processingResult['error']) {
+                    return [
+                        'status' => 'partial_error',
+                        'message' => "Batch {$updatedBatch->id} (pool_size {$updatedBatch->pool_size}) processed with errors. Final Status: {$updatedBatch->status}",
+                        'processed_count' => $processingResult['processedCount'],
+                        'total_in_batch' => $poolsToProcess->count(),
+                        'iteration' => $updatedBatch->iteration_count,
+                        'error' => $processingResult['error']->getMessage(),
+                        'http_code' => 207,
+                    ];
+                } else {
+                    return [
+                        'status' => 'success',
+                        'message' => "Batch {$updatedBatch->id} (pool_size {$updatedBatch->pool_size}) processed successfully. Final Status: {$updatedBatch->status}",
+                        'processed_count' => $processingResult['processedCount'],
+                        'iteration' => $updatedBatch->iteration_count,
+                        'http_code' => 200,
+                    ];
+                }
+            } elseif (isset($resultData['status'])) {
+                $httpStatusCode = match ($resultData['status']) {
+                    'no_work', 'no_change' => 200,
+                    'created', 'updated' => 201,
+                    'error', 'no_action' => 400,
+                    default => 200,
+                };
+
+                return ['status' => $resultData['status'], 'message' => $resultData['message'], 'target_pool_size' => $targetPoolSize, 'http_code' => $httpStatusCode];
+            } else {
+                return ['status' => 'error', 'message' => 'An unexpected server error occurred (unknown state).', 'http_code' => 500];
+            }
+        } catch (\Exception $e) {
+            Log::error('Error in BatchProcessingService: '.$e->getMessage());
+
+            return ['status' => 'error', 'message' => 'An error occurred during batch processing: '.$e->getMessage(), 'http_code' => 500];
+        }
+    }
+
+    /**
+     * Round-robin: process ONE bet tier per call, cycling through active tiers.
+     * Discovers active base_bet values from the pools table and rotates.
+     */
+    public function processAllBetTiers(): array
+    {
+        $criteriaResult = $this->batchCriteriaService->getTargetPoolSize();
+        if ($criteriaResult['error']) {
+            return ['status' => 'error', 'message' => $criteriaResult['error'], 'http_code' => 500];
+        }
+        $targetPoolSize = $criteriaResult['targetPoolSize'];
+
+        $activeBetTiers = \App\Models\Pool::whereIn('status', ['from_server_waitting', 'batched'])
+            ->distinct()
+            ->pluck('base_bet')
+            ->toArray();
+
+        if (empty($activeBetTiers)) {
+            return ['status' => 'no_work', 'message' => 'No waiting pools found for any base_bet tier.', 'http_code' => 200];
+        }
+
+        sort($activeBetTiers, SORT_NUMERIC);
+
+        $cacheKey = 'bet_tier_round_robin_index';
+        $currentIndex = (int) \Illuminate\Support\Facades\Cache::get($cacheKey, 0) % count($activeBetTiers);
+
+        $tierBet = $activeBetTiers[$currentIndex];
+
+        $nextIndex = ($currentIndex + 1) % count($activeBetTiers);
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $nextIndex, now()->addMinutes(5));
+
+        $result = $this->processBatch((float) $tierBet);
+
+        UserTracker::info("BatchProcessingService [Round-Robin {$currentIndex}/".(count($activeBetTiers) - 1)."]: Processing tier {$tierBet} → {$result['status']}", ['tier' => $tierBet, 'status' => $result['status']]);
+
+        return [
+            'status' => $result['status'],
+            'message' => $result['message'],
+            'current_tier' => $tierBet,
+            'tier_index' => $currentIndex,
+            'next_tier_index' => $nextIndex,
+            'active_tiers' => $activeBetTiers,
+            'processed_count' => $result['processed_count'] ?? 0,
+            'http_code' => $result['http_code'] ?? 200,
+        ];
+    }
+}
+
+
+==========================================================
+FILE: app\Services\MatchmakingEngine.php
+==========================================================
+
+<?php
+
+namespace App\Services;
+
+use App\Helpers\Web3Helper;
+use App\Models\Fight;
+use App\Models\Pool;
+use Illuminate\Support\Facades\Log;
+
+class MatchmakingEngine
+{
+    protected Web3Helper $web3Helper;
+    protected SessionManager $sessionManager;
+
+    public function __construct(Web3Helper $web3Helper, SessionManager $sessionManager)
+    {
+        $this->web3Helper = $web3Helper;
+        $this->sessionManager = $sessionManager;
+    }
+
+    /**
+     * Process fights for a given pool ID.
+     * Loops through matching rounds until insufficient users remain.
+     */
+    public function process(int $poolId): void
+    {
+        $pool = Pool::with(['users' => function ($query) {
+            $query->where('status', 'in_pool')->orderBy('id');
+        }])->findOrFail($poolId);
+
+        // FIX: Prevent re-processing if the pool is already finished or being finished.
+        if ($pool->status === 'from_server_finished') {
+            Log::info("Pool {$poolId} already finished. Skipping matchmaking and session evaluation.");
+            return;
+        }
+
+        $minUsers = ceil($pool->pool_size * config('pool.percentage_limit_of_pool_size'));
+        $minUsers = max($minUsers, 2);
+
+        // Guard: if the pool arrives with fewer than 2 eligible fighters,
+        // skip the fight loop entirely and close it via SessionManager directly.
+        $eligibleAtStart = $pool->users->filter(fn($u) => $u->battle_balance >= $pool->base_bet)->count();
+        if ($eligibleAtStart < 2) {
+            Log::info("Pool {$poolId} has only {$eligibleAtStart} eligible fighter(s) at start (need ≥ 2). Closing pool immediately via SessionManager.");
+            $pool->update(['status' => 'from_server_finished']);
+            $this->sessionManager->evaluatePoolEnd($pool);
+            return;
+        }
+
+        $maxIterations = $pool->pool_size;
+        $iterations = 0;
+
+        while ($this->hasSufficientUsersForMatch($pool->users->count(), $minUsers) && $iterations < $maxIterations) {
+            $this->executeMatchingRound($pool, $iterations);
+            
+            // Refresh users collection for the next round
+            $pool->load(['users' => function ($query) {
+                $query->where('status', 'in_pool')->where('battle_balance', '>', 0)->orderBy('id');
+            }]);
+            
+            $iterations++;
+        }
+
+        if ($iterations >= $maxIterations && $pool->users->count() >= 2) {
+            $wallets = $pool->users->pluck('wallet_address')->toArray();
+            Log::info("Pool {$pool->id} completed its allocated rounds ({$maxIterations}). Remaining users: " . implode(', ', $wallets));
+        }
+
+        $pool->update(['status' => 'from_server_finished']);
+
+        // Delegate end of pool logic to SessionManager
+        $this->sessionManager->evaluatePoolEnd($pool);
+    }
+
+
+    private function hasSufficientUsersForMatch(int $userCount, int $minUsers): bool
+    {
+        return $userCount >= $minUsers && $userCount >= 2;
+    }
+
+    private function executeMatchingRound(Pool $pool, int $iterationIndex): void
+    {
+        $availableUsers = $pool->users;
+
+        // Filter out users who were eliminated in a previous matching round
+        foreach ($availableUsers as $user) {
+            if ($user->battle_balance < $pool->base_bet) {
+                $availableUsers = $availableUsers->reject(fn ($u) => $u->id === $user->id);
+            }
+        }
+
+        $dynamicSalt = hash('sha256', $pool->salt . $iterationIndex);
+
+        $sortedAddresses = $this->web3Helper->sortAddressesWithSalt(
+            $availableUsers->pluck('wallet_address')->toArray(),
+            $dynamicSalt
+        );
+
+        $availableUsers = $availableUsers->sortBy(function ($user) use ($sortedAddresses) {
+            return array_search($user->wallet_address, $sortedAddresses);
+        })->values();
+
+        // Remove the last user if the count is odd
+        if ($availableUsers->count() % 2 !== 0) {
+            $availableUsers->pop();
+        }
+
+        for ($i = 0; $i < $availableUsers->count(); $i += 2) {
+            $fight = Fight::create([
+                'user1_id'        => $availableUsers[$i]->id,
+                'user2_id'        => $availableUsers[$i + 1]->id,
+                'base_bet_amount' => $pool->base_bet,
+                'status'          => 'waiting_for_result',
+                'pool_id'         => $pool->id,
+            ]);
+
+            $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
+
+            event(new \App\Events\MatchFound($availableUsers[$i], $fight->id, $availableUsers[$i + 1]->wallet_address));
+            event(new \App\Events\MatchFound($availableUsers[$i + 1], $fight->id, $availableUsers[$i]->wallet_address));
+
+            $this->notifyBattleStarted($availableUsers[$i], $availableUsers[$i + 1], $fight, $pool->id);
+        }
+    }
+
+    private function notifyBattleStarted($user1, $user2, Fight $fight, int $poolId): void
+    {
+        foreach ([$user1, $user2] as $combatant) {
+            \App\Models\GameNotification::create([
+                'user_id' => $combatant->id,
+                'type' => 'BATTLE_STARTED',
+                'data' => [
+                    'fight_id' => $fight->id,
+                    'opponent_id' => ($combatant->id == $fight->user1_id) ? $fight->user2_id : $fight->user1_id,
+                    'pool_id' => $poolId,
+                ],
+            ]);
+        }
+    }
+}
+
+
+==========================================================
+FILE: app\Models\GameSetting.php
+==========================================================
+
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class GameSetting extends Model
+{
+    protected $fillable = ['key', 'value', 'type', 'description', 'group'];
+
+    /**
+     * Get a setting value by key.
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public static function getValue($key, $default = null)
+    {
+        $setting = \Illuminate\Support\Facades\Cache::remember('game_setting_' . $key, now()->addHours(24), function () use ($key) {
+            return self::where('key', $key)->first();
+        });
+        
+        if (!$setting) {
+            return $default;
+        }
+
+        switch ($setting->type) {
+            case 'integer':
+                return (int) $setting->value;
+            case 'float':
+                return (float) $setting->value;
+            case 'boolean':
+                return filter_var($setting->value, FILTER_VALIDATE_BOOLEAN);
+            case 'json':
+                return json_decode($setting->value, true);
+            default:
+                return $setting->value;
+        }
+    }
+
+    /**
+     * Set a setting value.
+     */
+    public static function setValue($key, $value, $type = 'string', $group = 'general', $description = null)
+    {
+        $setting = self::updateOrCreate(
+            ['key' => $key],
+            [
+                'value' => $value,
+                'type' => $type,
+                'group' => $group,
+                'description' => $description
+            ]
+        );
+        
+        \Illuminate\Support\Facades\Cache::forget('game_setting_' . $key);
+        
+        return $setting;
+    }
+}
+
+
+==========================================================
+FILE: database\seeders\SeedAdminSettings.php
+==========================================================
+
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\GameSetting;
+
+class SeedAdminSettings extends Seeder
+{
+    /**
+     * Run the database seeds.
+     * Source of truth for ALL GameSettings parameters.
+     */
+    public function run(): void
+    {
+        $settings = [
+            [
+                'key' => 'security_coefficient',
+                'value' => '1000',
+                'type' => 'integer',
+                'group' => 'blockchain',
+                'description' => 'Coefficient multiplicateur pour le dépôt de sécurité (Base Bet x Coef)'
+            ],
+            [
+                'key' => 'house_fee_percent',
+                'value' => '2.5',
+                'type' => 'float',
+                'group' => 'economy',
+                'description' => 'Pourcentage de frais affichés (référence dashboard)'
+            ],
+            [
+                'key' => 'smart_contract_fee_percentage',
+                'value' => '2.5',
+                'type' => 'float',
+                'group' => 'blockchain',
+                'description' => 'Frais de transaction Smart Contract (%) — doit correspondre à feeBasisPoints/100'
+            ],
+            [
+                'key' => 'game_fee_percentage',
+                'value' => '5.0',
+                'type' => 'float',
+                'group' => 'economy',
+                'description' => 'Frais de jeu globaux (%) — frais perçus par la house sur les gains'
+            ],
+            [
+                'key' => 'max_bot_per_pool',
+                'value' => '10',
+                'type' => 'integer',
+                'group' => 'simulation',
+                'description' => 'Nombre maximum de bots autorisés par pool de combat'
+            ],
+            [
+                'key' => 'martingale_enabled',
+                'value' => 'true',
+                'type' => 'boolean',
+                'group' => 'gameplay',
+                'description' => 'Activer ou désactiver le doublement de mise automatique après une défaite'
+            ],
+            [
+                'key' => 'min_bet_eth',
+                'value' => '0.01',
+                'type' => 'float',
+                'group' => 'gameplay',
+                'description' => 'Mise minimale autorisée en ETH (base_bet)'
+            ],
+            [
+                'key' => 'max_martingale_level',
+                'value' => '4',
+                'type' => 'integer',
+                'group' => 'gameplay',
+                'description' => 'Nombre maximum de doublements avant réinitialisation de la mise'
+            ],
+        ];
+
+        foreach ($settings as $setting) {
+            GameSetting::updateOrCreate(['key' => $setting['key']], $setting);
+            \Illuminate\Support\Facades\Cache::forget('game_setting_' . $setting['key']);
+        }
+    }
+}
+
+
+==========================================================
+FILE: routes\api.php
+==========================================================
+
+<?php
+
+// routes/api.php
+use App\Http\Controllers\BlockchainController;
+use App\Http\Controllers\InfluencerController;
+use App\Http\Controllers\InternalPayoutController;
+use App\Http\Controllers\InternalTradeController;
+use App\Http\Controllers\MarketplaceController;
+use App\Http\Controllers\PoolAutoMatchController;
+use App\Http\Controllers\ReferralController;
+use App\Http\Controllers\WalletAuthController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Broadcast;
+
+// Wallet authentication
+Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateMessage']);
+Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySignature']);
+Route::post('/auth/challenge', [WalletAuthController::class, 'generateMessage']); // Alias for debug-test.html
+Route::post('/auth/verify', [WalletAuthController::class, 'verifySignature']);    // Alias for debug-test.html
+Route::post('/login', [WalletAuthController::class, 'login']);                    // Direct login for UI/Bots
+Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);           // Publié pour permettre l'init Web3
+
+// Protected routes (using our custom ApiAuth middleware)
+Route::middleware('token.auth')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+    Route::get('/user/polling-status', [PoolAutoMatchController::class, 'getPollingStatus']);
+    Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
+    Route::get('/referral/status', [ReferralController::class, 'getStatus']);
+    Route::get('/referral/reward-history', [ReferralController::class, 'getRewardHistory']);
+    Route::post('/referral/validate', [ReferralController::class, 'validateReferral']);
+    Route::post('/marketplace/purchase', [MarketplaceController::class, 'handleTokenPurchase']);
+    Route::post('/user/pre-moves', [PoolAutoMatchController::class, 'storePremoves']);
+    Route::post('/pre-moves', [PoolAutoMatchController::class, 'storePremoves']);       // Alias for debug-test.html
+    Route::get('/user/status', [PoolAutoMatchController::class, 'getPollingStatus']);  // Alias for debug-test.html
+    Route::post('/ipfs/upload', [\App\Http\Controllers\IpfsController::class, 'upload']);
+    
+    // Broadcasting Auth using our custom token authentication (Allow GET and POST to avoid 405)
+    Route::match(['get', 'post'], '/broadcasting/auth', function (Request $request) {
+        return Broadcast::auth($request);
+    });
+
+});
+
+// Public referral leaderboard
+Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard']);
+
+Route::post('/debug-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
+
+Route::post('/debug/trigger-event', function (Request $request) {
+    $type = $request->input('type');
+    $wallet = $request->input('wallet', '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266');
+    $user = \App\Models\User::where('wallet_address', strtolower($wallet))->first();
+    
+    if (!$user) return response()->json(['error' => 'User not found for address ' . $wallet], 404);
+
+    switch($type) {
+        case 'balance':
+            $newBalance = $request->input('value', 9.99);
+            $user->update(['balance' => $newBalance]);
+            event(new \App\Events\BalanceUpdated($user->id, $newBalance));
+            break;
+        case 'match':
+            // Emit a global arena event that the UI listens to as 'BasicEvent'
+            event(new \App\Events\GlobalArenaEvent("Global Match Found for user " . $user->id, 'match'));
+            break;
+        case 'fight':
+            $outcome = $request->input('value', 'win');
+            $delta = ($outcome === 'win') ? '+0.01' : ($outcome === 'draw' ? '0' : '-0.01');
+            $myMove = $request->input('my_move', 'rock');
+            $oppMove = $request->input('opp_move', ($outcome === 'win' ? 'scissors' : ($outcome === 'draw' ? 'rock' : 'paper')));
+            $newBalance = $user->balance + (float)$delta;
+            $user->update(['balance' => $newBalance]);
+            event(new \App\Events\FightResult($user, $outcome, $delta, (string)$newBalance, $myMove, $oppMove));
+            break;
+        case 'discovery':
+            // Simulates a PoolEmitted event
+            event(new \App\Events\PoolEmitted("pool_".uniqid(), [$user->wallet_address], 0.01));
+            break;
+        case 'victory':
+            event(new \App\Events\SessionFinished($user, 'SUCCESS', '1.25', true));
+            break;
+        case 'ruin':
+            event(new \App\Events\SessionFinished($user, 'RUIN', '0.00', false));
+            break;
+        default:
+            return response()->json(['error' => 'Invalid event type'], 400);
+    }
+
+    return response()->json(['message' => "Event $type triggered successfully"]);
+});
+
+// Public routes
+Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard']);
+Route::get('/influencer/pools', [InfluencerController::class, 'getPools']);
+// Route::get('/escrow/trades', [EscrowController::class, 'getTrades']);
+// Route::get('/escrow/trade/{tradeId}', [EscrowController::class, 'getTrade']);
+// Route::get('/escrow/stats', [EscrowController::class, 'getStats']);
+
+// ===============================================
+// == Routes pour le Marketplace
+// ===============================================
+Route::prefix('marketplace')->middleware('token.auth')->group(function () {
+    // --- Routes de Lecture ---
+    Route::get('/stats', [MarketplaceController::class, 'getStats']);
+    Route::get('/trades', [MarketplaceController::class, 'getActiveTrades']);
+
+    // --- Routes d'Écriture (que nous implémenterons plus tard) ---
+    Route::post('/create-offer', [MarketplaceController::class, 'createOffer']);
+    Route::post('/fulfill-offer', [MarketplaceController::class, 'fulfillOffer']);
+    Route::post('/cancel-offer', [MarketplaceController::class, 'cancelOffer']);
+});
+
+// ===============================================
+// ==        Routes pour les INFLUENCEURS       ==
+// ===============================================
+Route::prefix('influencer')->middleware('token.auth')->group(function () {
+
+    // NOUVELLE ROUTE PRINCIPALE POUR LE DASHBOARD
+    Route::get('/dashboard', [InfluencerController::class, 'getDashboardData']);
+
+    // ANCIENNE ROUTE (tu peux la garder ou la supprimer)
+    Route::get('/stats', [InfluencerController::class, 'getStats']);
+
+    // ANCIENNE ROUTE (tu peux la garder ou la supprimer)
+    Route::get('/pools', [InfluencerController::class, 'getPools']);
+
+    // Route pour réclamer la récompense
+    Route::post('/claim-reward', [InfluencerController::class, 'claimReward']);
+
+    // Route de TEST pour devenir influenceur
+    Route::post('/join-test', [InfluencerController::class, 'joinTestProgram']);
+
+    // --- Gestion des Candidatures ---
+    Route::post('/apply', [InfluencerController::class, 'apply']);
+    Route::get('/application-status', [InfluencerController::class, 'getApplicationStatus']);
+});
+
+// ===============================================
+// == Routes ADMIN (Protected by IsAdmin Middleware)
+// ===============================================
+Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function () {
+    Route::get('/stats', [\App\Http\Controllers\AdminController::class, 'getStats']);
+    Route::get('/users', [\App\Http\Controllers\AdminController::class, 'getUsers']);
+    Route::post('/users/{id}/status', [\App\Http\Controllers\AdminController::class, 'updateUserStatus']);
+    
+    Route::get('/applications', [\App\Http\Controllers\AdminController::class, 'getApplications']);
+    Route::post('/applications/{id}/approve', [\App\Http\Controllers\AdminController::class, 'approveApplication']);
+    Route::post('/applications/{id}/reject', [\App\Http\Controllers\AdminController::class, 'rejectApplication']);
+    
+    // Settings API
+    Route::get('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'index']);
+    Route::post('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'update']);
+});
+
+// ===============================================
+// == Routes Internes (pour le serveur/listener Node.js)
+// ===============================================
+Route::prefix('internal')->middleware('auth.internal')->group(function () {
+
+    // --- Routes du Marketplace ---
+    Route::post('/trades/create', [InternalTradeController::class, 'create']);
+    Route::post('/trades/update-status', [InternalTradeController::class, 'updateStatus']);
+    Route::post('/trades/trigger-referral-check', [InternalTradeController::class, 'triggerReferralCheck']);
+    Route::post('/trades/sync-transfer', [InternalTradeController::class, 'syncTransfer']);
+
+    // --- Routes des Influenceurs ---
+    Route::post('/influencer/log-fee', [InfluencerController::class, 'logFee']);
+
+    // --- Routes du JEU (les nouvelles que tu migres) ---
+
+    Route::post('/update-balance', [BlockchainController::class, 'updateUserBalance']);
+    Route::post('/handle-claim', [BlockchainController::class, 'handleClaim']);
+    Route::post('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+    Route::post('/update-setting', [BlockchainController::class, 'updateSetting']);
+    Route::post('/handle-stagnant-refund', [PoolAutoMatchController::class, 'handleStagnantRefund']);
+    Route::post('/batch-processing', [PoolAutoMatchController::class, 'processBatch']);
+    Route::post('/batch-processing-all', [PoolAutoMatchController::class, 'processAllBetTiers']);
+    Route::post('/internal-pools', [PoolAutoMatchController::class, 'processInternalPools']);
+    Route::post('/payout', [InternalPayoutController::class, 'payout']);
+    //todo: do not forget sendPremove from frontend to backend since we use now we use token auth middleware
+
+});
+
+// ===============================================
+
+// Admin Influencer Management Routes (PROTECTED)
+Route::prefix('admin/influencer')->middleware(['token.auth', 'is_admin'])->group(function () {
+    Route::post('/create-pool', [InfluencerController::class, 'createPool']);
+    Route::post('/add-influencer', [InfluencerController::class, 'addInfluencer']);
+    Route::put('/{influencerId}/eligibility', [InfluencerController::class, 'updateEligibility']);
+    Route::post('/update-stats', [InfluencerController::class, 'updateStats']);
+});
+
+// Whitelist API
+Route::get('/whitelist', function () {
+    try {
+        if (! Storage::disk('public')->exists('whitelist.json')) {
+            return response()->json([
+                'error' => 'Whitelist not found',
+            ], 404);
+        }
+
+        $whitelistData = json_decode(
+            Storage::disk('public')->get('whitelist.json'),
+            true
+        );
+
+        return response()->json([
+            'addresses' => $whitelistData['addresses'],
+            'root' => $whitelistData['root'],
+            'count' => count($whitelistData['addresses']),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Failed to load whitelist: '.$e->getMessage(),
+        ], 500);
+    }
+});
+
+Route::get('/whitelist/proof/{address}', function ($address) {
+    try {
+        if (! Storage::disk('public')->exists('whitelist.json')) {
+            return response()->json([
+                'error' => 'Whitelist not found',
+            ], 404);
+        }
+
+        $whitelistData = json_decode(
+            Storage::disk('public')->get('whitelist.json'),
+            true
+        );
+
+        $address = strtolower($address);
+
+        if (! in_array($address, $whitelistData['addresses'])) {
+            return response()->json([
+                'error' => 'Address not whitelisted',
+            ], 404);
+        }
+
+        return response()->json([
+            'address' => $address,
+            'proof' => $whitelistData['proofs'][$address] ?? [],
+            'root' => $whitelistData['root'],
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Failed to get proof: '.$e->getMessage(),
+        ], 500);
+    }
+});
+
+Route::post('/update-counter', [BlockchainController::class, 'updateCounter']);
+Route::middleware('api')->group(function () {
+    Route::post('/update-counter', [BlockchainController::class, 'updateCounter']);
+});
+
+// Public referral routes
+Route::get('/referrals/leaderboard', [ReferralController::class, 'getLeaderboard']);
+Route::post('/referrals/validate', [ReferralController::class, 'validateReferral']);
+
+
+==========================================================
+FILE: smart_contracts\app.js
+==========================================================
+
+// app.js (Le nouveau script qui remplace server.js ET listener3.js)
+
+import express from "express";
+import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits, parseEther } from "ethers";
+import { createHelia } from 'helia';
+import { json } from '@helia/json';
+import { FsBlockstore } from 'blockstore-fs';
+import {
+    LARAVEL_API_URL,
+    INTERNAL_API_SECRET,
+    BACKEND_URL,
+    LOCAL_HARDHAT_URL,
+    FUJI_RPC_URL,
+    NODE_SERVER_PORT,
+    GAME_WALLET_PK,
+    MARKETPLACE_WALLET_PK,
+    SECURITY_COEFFICIENT,
+    pinata,
+    contracts
+} from "./config.js";
+
+// ===================================
+// == INITIALISATION
+// ===================================
+
+const app = express();
+app.use(express.json());
+
+// --- HELIA IPFS SETUP ---
+let heliaJson;
+async function initIPFS() {
+    try {
+        const blockstore = new FsBlockstore('./ipfs-storage');
+        const helia = await createHelia({ 
+            blockstore,
+            start: false // Crucial: prevents hanging on P2P network discovery in local dev
+        });
+        heliaJson = json(helia);
+        console.log('✅ Local Helia IPFS node initialized');
+        return true;
+    } catch (e) {
+        console.error('❌ Failed to init Helia:', e);
+        return false;
+    }
+}
+
+app.post("/ipfs/add-json", async (req, res) => {
+    try {
+        console.log("Receiving IPFS payload:", req.body);
+        if (!heliaJson) {
+            throw new Error("IPFS Node not initialized");
+        }
+        const cid = await heliaJson.add(req.body);
+        console.log(`📦 Real IPFS CID generated: ${cid}`);
+        res.json({ Hash: cid.toString() });
+    } catch (e) {
+        console.error("IPFS Error:", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// --- Connexion au Jeu (Hardhat) ---
+const gameProvider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
+const gameWallet = new Wallet(GAME_WALLET_PK, gameProvider);
+const gameContract = new Contract(contracts.game.address, contracts.game.abi, gameWallet);
+
+
+console.log(`[DEBUG] Le worker écoute le contrat Battlepool à l'adresse: ${contracts.game.address}`);
+
+// --- Connexion au Marketplace (Fuji) ---
+// const marketplaceProvider = new JsonRpcProvider(FUJI_RPC_URL); // Utilise gameProvider pour économiser les ressources
+// const marketplaceWallet = new Wallet(MARKETPLACE_WALLET_PK, gameProvider);
+const marketplaceContract = new Contract(contracts.marketplace.address, contracts.marketplace.abi, gameWallet);
+// ===================================
+// == API SERVER (Logique de server.js)
+// ===================================
+// (Ici on met toutes les routes POST de ton ancien server.js)
+
+app.post("/sendPoolCID", async (req, res) => {
+    try {
+        const { poolId, CID } = req.body;
+
+        if (!poolId || !CID) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+
+        console.log(`📡 Sending  CID on smart contract...`);
+        // Call the smart contract function (Replace with actual function name)
+        const tx = await gameContract.storeMatchHistoryCID(poolId, CID);
+        await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash });
+    } catch (error) {
+        console.error("❌ Error sending CID to smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/sendSessionCID", async (req, res) => {
+    try {
+        const { wallet, CID } = req.body;
+
+        if (!wallet || !CID) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+
+        console.log(`📡 Sending session  CID on smart contract...`)
+        // Call the smart contract function (Replace with actual function name)
+        const tx = await gameContract.storeSessionCID(wallet, CID);
+        await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash });
+    } catch (error) {
+        console.error("❌ Error sending session CID to smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
+
+}
+);
+
+app.post("/sendPayment", async (req, res) => {
+    try {
+        const { wallet, amount } = req.body;
+
+        if (!wallet || !amount) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+
+        console.log(`📡 Sending payment - amount: ${formatEther(amount)} ETH on smart contract...`);
+        // Call the smart contract function (Replace with actual function name)
+        //const nonce = await provider.getTransactionCount(wallet, 'latest');
+
+
+        const balanceBefore = await gameProvider.getBalance(wallet);
+
+        // Step 2: Send the payout transaction
+        const tx = await gameContract.payOut(wallet, amount);
+        const receipt = await tx.wait();
+
+        // Step 3: Small delay to allow for sync (optional in local dev)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Step 4: Get balance after payment
+        const balanceAfter = await gameProvider.getBalance(wallet);
+
+        // Step 5: Calculate difference
+        const balanceDiff = balanceAfter - balanceBefore;
+        const received = balanceDiff >= amount;
+
+        // ✅ Return result with verification
+        res.json({
+            success: true,
+            txHash: tx.hash,
+            received,
+            expectedETH: formatEther(amount),
+            actualIncrease: formatEther(balanceDiff)
+        });
+        //log the actual increase in balance
+        console.log(`💰 Payment sent successfully! Expected: ${formatEther(amount)} ETH, Actual: ${formatEther(balanceDiff)} ETH`);
+    } catch (error) {
+        console.error("❌ Error sending Payement to smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/sendBatchPayment", async (req, res) => {
+    try {
+        const { wallets, amounts } = req.body;
+
+        if (!Array.isArray(wallets) || !Array.isArray(amounts) || wallets.length !== amounts.length) {
+            return res.status(400).json({ error: "Invalid input. Ensure wallets and amounts are arrays of equal length." });
+        }
+
+        console.log(`📡 Sending batch payment - total recipients: ${wallets.length}`);
+
+        // Call the smart contract function
+        const tx = await gameContract.batchPayOut(wallets, amounts);
+        await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash });
+    } catch (error) {
+        console.error("❌ Error sending batch payments to smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/getUserNonce/:wallet', async (req, res) => {
+    try {
+        const { wallet } = req.params;
+        const nonce = await gameContract.nonces(wallet);
+        res.json({ nonce: nonce.toString() });
+    } catch (error) {
+        console.error("Error fetching nonce:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/create-offer", async (req, res) => {
+    try {
+        const { sellerAddress, sntAmount, avaxAmount, durationHours } = req.body;
+
+        if (!sellerAddress || !sntAmount || !avaxAmount || !durationHours) {
+            return res.status(400).json({ error: "Paramètres manquants." });
+        }
+
+        console.log(`📡 Tentative de création d'offre pour ${sellerAddress}...`);
+
+        // On convertit les montants pour le smart contract (avec 18 décimales)
+        const sntAmountWei = parseUnits(sntAmount.toString(), 18);
+        const avaxAmountWei = parseUnits(avaxAmount.toString(), 18);
+
+        // Appel de la fonction du smart contract
+        // Note: Le 'approve' doit avoir été fait par l'utilisateur côté frontend AVANT
+        const tx = await marketplaceContract.createOffer(sntAmountWei, avaxAmountWei, durationHours);
+
+        await tx.wait(); // On attend que la transaction soit minée
+
+        console.log(`✅ Offre créée avec succès ! Hash: ${tx.hash}`);
+
+        res.json({ success: true, txHash: tx.hash });
+
+    } catch (error) {
+        console.error("❌ Erreur lors de la création de l'offre:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+
+
+/**
+ * NOUVELLE ROUTE SÉCURISÉE
+ * Permet à Laravel de récupérer la configuration du contrat de jeu.
+ */
+app.get("/get-game-config", (req, res) => {
+    // Sécurité : On vérifie que c'est bien Laravel qui appelle
+    const secret = req.headers['x-internal-secret'];
+    if (!secret || secret !== INTERNAL_API_SECRET) {
+        return res.status(403).json({ error: "Accès non autorisé." });
+    }
+
+    console.log('contract address:', contracts.game.address);
+    console.log('contract abi:', contracts.game.abi);
+
+
+    try {
+        res.status(200).json({
+            abi: contracts.game.abi,
+            address: contracts.game.address,
+            marketplace: contracts.marketplace,
+            snt: contracts.snt,
+            security_coefficient: SECURITY_COEFFICIENT,
+            pinata_secret: pinata.PINATA_SECRET,
+            pinata_api_url: pinata.PINATA_API_URL,
+            pinata_api_key: pinata.PINATA_API_KEY
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur interne: impossible de lire la configuration." });
+    }
+});
+
+app.get("/admin/contract-stats", async (req, res) => {
+    try {
+        const devBalance = await gameContract.devBalance();
+        res.json({
+            houseBalance: formatEther(devBalance)
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ===================================
+// == ROUTES APPELÉES PAR LARAVEL (Web3Helper)
+// ===================================
+
+app.post("/pool/validate", async (req, res) => {
+    try {
+        const { baseBet } = req.body;
+        console.log(`📡 [pool/validate] Validating pool for baseBet: ${baseBet}`);
+
+        if (!baseBet) {
+            return res.status(400).json({ error: "baseBet is required" });
+        }
+
+        const baseBetWei = parseUnits(baseBet.toString(), 18);
+        console.log(`   [Action] Calling gameContract.validatePool(${baseBetWei.toString()})...`);
+        const tx = await gameContract.validatePool(baseBetWei);
+        const receipt = await tx.wait();
+
+        console.log(`   ✅ Pool Validated! TX Hash: ${receipt.hash}`);
+        res.json({ success: true, txHash: receipt.hash });
+    } catch (error) {
+        console.error("❌ Error in /pool/validate:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/refundUsers", async (req, res) => {
+    try {
+        const { wallets } = req.body;
+        console.log(`📡 [refundUsers] Refunding ${wallets?.length || 0} wallets (logged only)`);
+        res.json({ success: true, message: "Refund instruction acknowledged" });
+    } catch (error) {
+        console.error("❌ Error in /refundUsers:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/pool/invalidate", async (req, res) => {
+    try {
+        const { baseBet, invalidUsers } = req.body;
+        console.log(`📡 [pool/invalidate] Invalidating users for pool ${baseBet}:`, invalidUsers);
+
+        if (!baseBet || !invalidUsers) {
+            return res.status(400).json({ error: "baseBet and invalidUsers are required" });
+        }
+
+        const baseBetWei = parseUnits(baseBet.toString(), 18);
+        console.log(`   [Action] Calling gameContract.invalidatePoolUsers...`);
+        const tx = await gameContract.invalidatePoolUsers(baseBetWei, invalidUsers);
+        const receipt = await tx.wait();
+
+        console.log(`   ✅ Pool Users Invalidated! TX Hash: ${receipt.hash}`);
+        res.json({ success: true, txHash: receipt.hash });
+    } catch (error) {
+        console.error("❌ Error in /pool/invalidate:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ===================================
+// == LISTENERS (Logique de listener3.js + server.js)
+// ===================================
+
+/**
+ * Fonction d'aide pour appeler Laravel de manière sécurisée
+ */
+async function postToLaravel(endpoint, body) {
+    const url = `${LARAVEL_API_URL}${endpoint}`; // ex: /internal/update-balance
+    console.log(`📡 [BRIDGE] Calling Laravel: ${url}`);
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Internal-Secret': INTERNAL_API_SECRET // <-- Notre header de sécurité
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+            console.log(`✅ Appel Laravel réussi vers ${endpoint}`);
+        } else {
+            const errorText = await response.text();
+            console.error(`❌ Echec de l'appel Laravel vers ${endpoint}: ${response.status} ${errorText}`);
+        }
+    } catch (error) {
+        console.error(`🚨 Erreur réseau en appelant ${endpoint}:`, error.message);
+    }
+}
+
+/**
+ * Démarre tous les listeners de blockchain
+ */
+let lastBlock = 0;
+
+async function startBlockchainListeners() {
+    console.log("🔄 Starting Polling Listeners (Robust Mode)...");
+
+    try {
+        lastBlock = 0; // Start from 0 for local hardhat catch-up
+        console.log(`   Starting from Block: ${lastBlock}`);
+    } catch (e) {
+        console.error("Failed to get initial block:", e);
+    }
+
+    let isPolling = false;
+
+    setInterval(async () => {
+        if (isPolling) return;
+        isPolling = true;
+
+        try {
+            const chainBlock = await gameProvider.getBlockNumber();
+            // Chunking: process max 100 blocks at a time
+            const currentBlock = Math.min(chainBlock, lastBlock + 100);
+
+            if (currentBlock > lastBlock) {
+                console.log(`📡 Catching up: blocks ${lastBlock + 1} to ${currentBlock}...`);
+
+                // 1. PoolEmitted
+                const poolEvents = await gameContract.queryFilter("PoolEmitted", lastBlock + 1, currentBlock);
+                for (const event of poolEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] PoolEmitted: ${args[0]}`);
+                    postToLaravel('/internal/handle-pool-emited', {
+                        pool_id: args[0].toString(),
+                        base_bet: args[1].toString(),
+                        users: args[2],
+                        premove_cids: args[3],
+                        pool_salt: args[4],
+                        balances: args[5].map(b => b.toString())
+                    });
+                }
+
+                // 2. DepositReceived
+                const depositEvents = await gameContract.queryFilter("DepositReceived", lastBlock + 1, currentBlock);
+                for (const event of depositEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] DepositReceived: ${args[0]}, ${args[1]}`);
+                    postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: args[1].toString() });
+                }
+
+                // 4. SecurityCoefficientUpdated
+                const coeffEvents = await gameContract.queryFilter("SecurityCoefficientUpdated", lastBlock + 1, currentBlock);
+                for (const event of coeffEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] SecurityCoefficientUpdated: ${args[0]}`);
+                    postToLaravel('/internal/update-setting', {
+                        key: 'security_coefficient',
+                        value: args[0].toString(),
+                        type: 'integer'
+                    });
+                }
+
+                // 4b. FeeBasisPointsUpdated
+                const feeEvents = await gameContract.queryFilter("FeeBasisPointsUpdated", lastBlock + 1, currentBlock);
+                for (const event of feeEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] FeeBasisPointsUpdated: ${args[0]}`);
+                    const percentage = parseFloat(args[0]) / 100; // 250 -> 2.5
+                    postToLaravel('/internal/update-setting', {
+                        key: 'smart_contract_fee_percentage',
+                        value: percentage.toString(),
+                        type: 'float'
+                    });
+                }
+
+                // 5. PayoutProcessed
+                const payoutEvents = await gameContract.queryFilter("PayoutProcessed", lastBlock + 1, currentBlock);
+                for (const event of payoutEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] PayoutProcessed: ${args[0]}, ${args[1]}`);
+                    postToLaravel('/internal/handle-claim', { wallet_address: args[0] });
+                }
+
+                // 6. PlayerClaimed
+                const claimEvents = await gameContract.queryFilter("PlayerClaimed", lastBlock + 1, currentBlock);
+                for (const event of claimEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [JEU] PlayerClaimed: ${args[0]}, Amount=${args[1]}, Nonce=${args[2]}`);
+                    postToLaravel('/internal/handle-claim', { wallet_address: args[0] });
+                }
+
+                // --- LISTENERS MARKETPLACE ---
+
+                // 4. OfferCreated
+                const offerCreatedEvents = await marketplaceContract.queryFilter("OfferCreated", lastBlock + 1, currentBlock);
+                for (const event of offerCreatedEvents) {
+                    const { args } = event;
+                    const offerId = args[0];
+                    console.log(`🔔 [MARKET] OfferCreated: ID=${offerId}, Seller=${args[1]}`);
+
+                    try {
+                        // Fetch details (expiration) form contract
+                        const offerDetails = await marketplaceContract.offers(offerId);
+                        const expiresAt = offerDetails.expiresAt;
+
+                        postToLaravel('/internal/trades/create', {
+                            offerId: offerId.toString(),
+                            seller: args[1],
+                            sntAmount: formatEther(args[2]), // Wei to Eth/Token unit if needed, check controller expectations. 
+                            // Controller validation says numeric. internalTradeController stores strictly what receives.
+                            // Frontend sends Wei to contract. Contract emits Wei.
+                            // However, DB usually stores "human readable" or consistent units.
+                            // 'formatEther' converts Wei to string decimal.
+                            // Let's assume Laravel expects human readable for display or verify internalTradeController logic.
+                            // internalTradeController just stores it. Frontend displays it.
+                            // Frontend `loadTrades` does `parseFloat(trade.snt_amount).toLocaleString()`. 
+                            // If we store Wei, parseFloat might be huge. 
+                            // Let's use formatEther to store as "tokens" not "wei".
+                            avaxAmount: formatEther(args[3]),
+                            expiresAt: expiresAt.toString()
+                        });
+                    } catch (err) {
+                        console.error(`❌ Failed to fetch offer details for ${offerId}:`, err);
+                    }
+                }
+
+                // 5. OfferFulfilled
+                const offerFulfilledEvents = await marketplaceContract.queryFilter("OfferFulfilled", lastBlock + 1, currentBlock);
+                for (const event of offerFulfilledEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [MARKET] OfferFulfilled: ID=${args[0]}, Buyer=${args[1]}`);
+                    postToLaravel('/internal/trades/update-status', {
+                        offerId: args[0].toString(),
+                        newStatus: 'fulfilled',
+                        buyerAddress: args[1]
+                    });
+                }
+
+                // 6. OfferCancelled
+                const offerCancelledEvents = await marketplaceContract.queryFilter("OfferCancelled", lastBlock + 1, currentBlock);
+                for (const event of offerCancelledEvents) {
+                    const { args } = event;
+                    console.log(`🔔 [MARKET] OfferCancelled: ID=${args[0]}`);
+                    postToLaravel('/internal/trades/update-status', {
+                        offerId: args[0].toString(),
+                        newStatus: 'cancelled'
+                    });
+                }
+
+                // 7. SNT Transfer (Sync Balance & Referral Check)
+                // We re-enable this to catch Direct Mints or P2P transfers not covered by Marketplace events.
+                // CRITICAL: We skip if the transfer involves the Marketplace to avoid double-counting (since OfferFulfilled handles that).
+                // Assuming we need to instantiate it similar to gameContract.
+                // Re-using gameWallet (provider) for reading events.
+                const sntContract = new Contract(contracts.snt.address, contracts.snt.abi, gameWallet);
+                const transferEvents = await sntContract.queryFilter("Transfer", lastBlock + 1, currentBlock);
+
+                for (const event of transferEvents) {
+                    const { args } = event;
+                    const from = args[0];
+                    const to = args[1];
+                    const amount = formatEther(args[2]);
+
+                    // DEDUPLICATION: Skip if Marketplace is sender or receiver (handled by OfferFulfilled/OfferCreated logic usually, 
+                    // though OfferCreated doesn't transfer token to buyer, OfferFulfilled does).
+                    // Actually, OfferFulfilled updates DB balance based on trade struct.
+                    // If we also update based on Transfer event, we double count.
+                    // Marketplace address: contracts.marketplace.address
+                    if (from.toLowerCase() === contracts.marketplace.address.toLowerCase() ||
+                        to.toLowerCase() === contracts.marketplace.address.toLowerCase()) {
+                        console.log(`⚠️ [SNT] Ignoring Marketplace Transfer: ${from} -> ${to}`);
+                        continue;
+                    }
+
+                    console.log(`🔔 [SNT] Transfer: From=${from} To=${to} Value=${amount}`);
+
+                    postToLaravel('/internal/trades/sync-transfer', {
+                        from: from,
+                        to: to,
+                        amount: amount
+                    });
+                }
+
+                lastBlock = currentBlock;
+            }
+        } catch (error) {
+            console.error("Polling Error:", error.message);
+        } finally {
+            isPolling = false;
+        }
+    }, 5000); // Poll every 5 seconds
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ===================================
+// == DÉMARRAGE DU SERVEUR
+// ===================================
+(async () => {
+    // 1. Initialiser IPFS
+    await initIPFS();
+
+    // 2. Démarrer le serveur
+    app.listen(NODE_SERVER_PORT, '0.0.0.0', () => {
+        console.log(`🚀 Serveur API Node.js unifié démarré on port ${NODE_SERVER_PORT}`);
+        
+        // 3. Lancer les listeners blockchain
+        startBlockchainListeners();
+    });
+})();
+
+
+==========================================================
+FILE: smart_contracts\run_batch_processor.js
+==========================================================
+
+import fetch from 'node-fetch';
+import express from 'express';
+import { LARAVEL_API_URL, INTERNAL_API_SECRET } from "./config.js";
+
+const app = express();
+const PORT = process.env.PROCESS_PORT || 3001; // Port for this worker
+const INTERVAL = 5000; // Return to 5s for stability
+const BASE_BET = "0.01"; // Default base bet, can be made dynamic
+
+app.use(express.json());
+
+console.log("🔄 Starting Hybrid Batch Processor...");
+console.log(`   Target: ${LARAVEL_API_URL}`);
+console.log(`   Internal Secret: ${INTERNAL_API_SECRET ? "LOADED" : "MISSING"}`);
+console.log(`   Interval: ${INTERVAL}ms`);
+console.log(`   Base Bet: ${BASE_BET}`);
+
+/**
+ * Orchestrates the full recycling -> matching cycle.
+ * @param {string} source - 'TIMER' or 'HTTP'
+ */
+async function runHybridCycle(source) {
+    const timestamp = new Date().toLocaleTimeString();
+    console.log(`[${timestamp}] 🚀 Starting Cycle (${source})`);
+
+    // Step 1: Recycle Available Users
+    // This finds 'available' users and puts them into new pools
+    try {
+        console.log(`   Step 1: Recycling Users (internal-pools)...`);
+        const poolResponse = await fetch(`${LARAVEL_API_URL}/internal/internal-pools`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Internal-Secret': INTERNAL_API_SECRET
+            },
+            body: JSON.stringify({ base_bet: BASE_BET })
+        });
+
+        const poolText = await poolResponse.text();
+        let poolLog = `   Step 1 Status: ${poolResponse.status}`;
+        try {
+            const json = JSON.parse(poolText);
+            if (json.message) poolLog += ` | ${json.message}`;
+            if (json.created_pools > 0) poolLog += ` | Created: ${json.created_pools}`;
+        } catch (e) { poolLog += ` | ${poolText.substring(0, 50)}...`; }
+        console.log(poolLog);
+
+    } catch (error) {
+        console.error(`   ❌ Step 1 Error: ${error.message}`);
+    }
+
+    // Step 2: Process Batches (Matchmaking) - Round-robin across ALL bet tiers
+    try {
+        console.log(`   Step 2: Processing ALL bet tiers (batch-processing-all)...`);
+        const batchResponse = await fetch(`${LARAVEL_API_URL}/internal/batch-processing-all`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Internal-Secret': INTERNAL_API_SECRET
+            },
+            body: JSON.stringify({})
+        });
+
+        const batchText = await batchResponse.text();
+        let batchLog = `   Step 2 Status: ${batchResponse.status}`;
+        try {
+            const json = JSON.parse(batchText);
+            if (json.message) batchLog += ` | ${json.message}`;
+            if (json.tiers_processed) batchLog += ` | Tiers: ${json.tiers_processed}`;
+            if (json.pools_processed) batchLog += ` | Pools: ${json.pools_processed}`;
+        } catch (e) { batchLog += ` | ${batchText.substring(0, 50)}...`; }
+        console.log(batchLog);
+
+    } catch (error) {
+        console.error(`   ❌ Step 2 Error: ${error.message}`);
+    }
+
+    console.log(`[${timestamp}] ✅ Cycle Complete (${source})\n`);
+}
+
+// --- HTTP ENDPOINT ---
+app.post('/trigger-sync', async (req, res) => {
+    console.log("⚡ HTTP Trigger Received");
+    // Run cycle asynchronously (fire and forget from HTTP perspective, or await if we want to return results)
+    // For simplicity and preventing timeout, we can await it.
+    await runHybridCycle('HTTP');
+    res.json({ success: true, message: "Hybrid cycle triggered" });
+});
+
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// --- STARTUP ---
+
+// 1. Start Server
+app.listen(PORT, () => {
+    console.log(`📡 Hybrid Worker listening on port ${PORT}`);
+});
+
+// 2. Start Timer
+setInterval(() => runHybridCycle('TIMER'), INTERVAL);
+
+// 3. Run Initial
+runHybridCycle('INIT');
+
