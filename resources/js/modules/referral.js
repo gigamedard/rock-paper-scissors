@@ -58,7 +58,7 @@ function captureReferralFromUrl() {
 
 async function applyCodeSilently(code) {
     try {
-        const res = await secureFetch('/referral/apply', {
+        const res = await secureFetch('/user/set-referral', {
             method: 'POST',
             body: JSON.stringify({ referral_code: code })
         });
@@ -77,7 +77,7 @@ async function loadReferralData() {
 
 async function loadMyStats() {
     try {
-        const res = await secureFetch('/referral/status');
+        const res = await secureFetch('/referral/status'); // route: api/referral/status
         if (!res.ok) return;
         const data = await res.json();
 
@@ -158,7 +158,7 @@ async function applyReferralCode() {
     const code = input.value.trim().toUpperCase();
 
     try {
-        const res = await secureFetch('/referral/apply', {
+        const res = await secureFetch('/user/set-referral', {
             method: 'POST',
             body: JSON.stringify({ referral_code: code })
         });

@@ -105,7 +105,7 @@ export function initGame() {
 async function fetchUserStatus() {
     if (!window.userState?.id) return;
     try {
-        const res = await secureFetch('/api/user/status');
+        const res = await secureFetch('/user/status');
         if (res.ok) {
             const data = await res.json();
             window.userState.balance = data.balance;

@@ -91,7 +91,7 @@ let currentOffers = [];
 
 async function loadOffers() {
     try {
-        const res = await secureFetch('/marketplace/offers');
+        const res = await secureFetch('/marketplace/trades');
         if (!res.ok) return;
         const data = await res.json();
         currentOffers = data.trades || [];
