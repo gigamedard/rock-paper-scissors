@@ -1,9 +1,18 @@
 import express from "express";
 import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits, parseEther } from "ethers";
-import { contractAddress3, privateKey3, Avax_wallet_privateKey, localHardhatUrl, abi3 } from "./_config.js";
 import { createHelia } from 'helia';
 import { json } from '@helia/json';
 import { FsBlockstore } from 'blockstore-fs';
+import {
+  LARAVEL_API_URL,
+  INTERNAL_API_SECRET,
+  LOCAL_HARDHAT_URL,
+  FUJI_RPC_URL,
+  NODE_SERVER_PORT,
+  GAME_WALLET_PK,
+  MARKETPLACE_WALLET_PK,
+  contracts
+} from "./config.js";
 
 const app = express();
 app.use(express.json());
@@ -25,7 +34,7 @@ app.post("/ipfs/add-json", async (req, res) => {
 	try {
 		if (!heliaJson) return res.status(503).json({ error: "IPFS node not ready" });
 
-		const content = req.body; // Expecting the full JSON object directly
+		const content = req.body; 
 
 		const cid = await heliaJson.add(content);
 		const cidString = cid.toString();
@@ -39,12 +48,12 @@ app.post("/ipfs/add-json", async (req, res) => {
 });
 
 // Initialize provider, wallet, and contract
-const provider = new JsonRpcProvider(localHardhatUrl);
-const wallet = new Wallet(privateKey3, provider);
-const contract = new Contract(contractAddress3, abi3, wallet);
+const provider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
+const wallet = new Wallet(GAME_WALLET_PK, provider);
+const contract = new Contract(contracts.game.address, contracts.game.abi, wallet);
 
-const fujiRpcUrl = "https://api.avax-test.network/ext/bc/C/rpc";
-const Avax_wallet = new Wallet(Avax_wallet_privateKey, fujiRpcUrl);
+const fujiRpcUrl = FUJI_RPC_URL;
+const Avax_wallet = new Wallet(MARKETPLACE_WALLET_PK, fujiRpcUrl);
 
 
 
@@ -459,9 +468,9 @@ app.get("/get-game-config", (req, res) => {
 	}
 
 	res.json({
-		address: contractAddress3,
-		abi: abi3,
-		marketplace: marketplaceAddress,
+		address: contracts.game.address,
+		abi: contracts.game.abi,
+		marketplace: contracts.marketplace?.address || "0x5FbDB2315678afecb367f032d93F642f64180aa3",
 		snt: "0x05A26c7f06127710463692263E12c1BF51A34184", // SNT Token Address
 		pinata_api_key: "***REMOVED***",
 		pinata_secret: "***REMOVED***",

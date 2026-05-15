@@ -23,8 +23,18 @@ const contract = new Contract(contracts.game.address, contracts.game.abi, wallet
 // Function to update user balance in the backend
 async function updateUserBalance(user, balance) {
   try {
-    const url = `http://72.60.211.162/update-balance?balance=${formatEther(balance)}&wallet_address=${user}`;
-    const response = await fetch(url);
+    const url = `${LARAVEL_API_URL}/internal/update-balance`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': INTERNAL_API_SECRET
+      },
+      body: JSON.stringify({
+        wallet_address: user,
+        balance: formatEther(balance)
+      })
+    });
 
     if (response.ok) {
       console.log(`✅ Balance updated successfully for user: ${user}`);
@@ -38,11 +48,26 @@ async function updateUserBalance(user, balance) {
 }
 
 // Function to submit to handle pool emoted event
-async function submitToHandlePoolEmitedEvent(poolId, baseBet, users, premoveCIDs, poolSalt) {
+// Function to submit to handle pool emoted event
+async function submitToHandlePoolEmitedEvent(poolId, baseBet, users, premoveCIDs, poolSalt, balances) {
 
   try {
-    const url = `http://${BACKEND_URL}/handle-pool-emited?token=${INTERNAL_API_SECRET}&pool_id=${poolId}&base_bet=${baseBet}&users=${users}&premove_cids=${premoveCIDs}&pool_salt=${poolSalt}`;
-    const response = await fetch(url);
+    const url = `${LARAVEL_API_URL}/internal/handle-pool-emited`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': INTERNAL_API_SECRET
+      },
+      body: JSON.stringify({
+        pool_id: poolId.toString(),
+        base_bet: baseBet.toString(),
+        users: Array.isArray(users) ? users : users.split(','),
+        premove_cids: Array.isArray(premoveCIDs) ? premoveCIDs : premoveCIDs.split(','),
+        pool_salt: poolSalt,
+        balances: Array.isArray(balances) ? balances.map(b => b.toString()) : []
+      })
+    });
     console.log(url);
 
     if (response.ok) {
@@ -64,8 +89,19 @@ async function submitToHandlePoolEmitedEvent(poolId, baseBet, users, premoveCIDs
 // Function to handle stagnant pool refund event
 async function handleStagnantRefund(poolId, refundedCount, timestamp) {
   try {
-    const url = `http://72.60.211.162/handle-stagnant-refund?pool_id=${poolId}&refunded_count=${refundedCount}&timestamp=${timestamp}`;
-    const response = await fetch(url);
+    const url = `${LARAVEL_API_URL}/internal/handle-stagnant-refund`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Secret': INTERNAL_API_SECRET
+      },
+      body: JSON.stringify({
+        pool_id: poolId.toString(),
+        refunded_count: parseInt(refundedCount),
+        timestamp: parseInt(timestamp)
+      })
+    });
 
     if (response.ok) {
       console.log(`✅ Stagnant pool refund handled for poolId: ${poolId}. Refunded ${refundedCount} users.`);
@@ -100,7 +136,7 @@ async function main() {
 
 
 
-    contract.on("PoolEmitted", async (poolId, baseBet, users, premoveCIDs, poolSalt) => {
+    contract.on("PoolEmitted", async (poolId, baseBet, users, premoveCIDs, poolSalt, balances) => {
 
       console.log(`🔔 PoolEmitted Event Detected:`);
       console.log(`- User: ${users}`);
@@ -108,9 +144,10 @@ async function main() {
       console.log(`- poolId: ${poolId}`);
       console.log(`- premoveCIDs: ${premoveCIDs}`);
       console.log(`- poolSalt: ${poolSalt}`);
+      console.log(`- balances: ${balances}`);
 
       // submit to handle pool emoted event
-      await submitToHandlePoolEmitedEvent(poolId, baseBet, users, premoveCIDs, poolSalt);
+      await submitToHandlePoolEmitedEvent(poolId, baseBet, users, premoveCIDs, poolSalt, balances);
     });
 
     contract.on("PoolStagnantRefund", async (poolId, refundedCount, timestamp) => {

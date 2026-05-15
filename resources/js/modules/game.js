@@ -121,7 +121,10 @@ async function fetchUserStatus() {
         if (res.ok) {
             const data = await res.json();
             window.userState.balance = data.balance;
-            window.userState.status = data.status;
+            // Ne pas écraser l'état 'setup' local si le serveur dit 'available'
+            if (window.userState.status !== 'setup' || data.status !== 'available') {
+                window.userState.status = data.status;
+            }
             
             if (data.payout_signature) {
                 gameState.pendingClaim = { amount: data.balance, signature: data.payout_signature };

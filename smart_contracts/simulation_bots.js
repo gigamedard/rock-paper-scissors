@@ -135,11 +135,22 @@ async function simulateBot(botIndex) {
     console.log(`   [Bot ${botIndex + 1}] Calling Smart Contract submitPremoveCID...`);
 
     // Fetch dynamic config from Laravel
-    const configRes = await fetch(`${LARAVEL_API_URL}/artefacts`);
-    const config = await configRes.json();
+    let config;
+    try {
+        const configRes = await fetch(`${LARAVEL_API_URL}/artefacts`);
+        if (!configRes.ok) {
+            console.warn(`   [Bot ${botIndex + 1}] Warning: Failed to fetch artefacts (${configRes.status}). Using defaults.`);
+            config = { security_coefficient: 1000, smart_contract_fee_percentage: 2.5 };
+        } else {
+            config = await configRes.json();
+        }
+    } catch (e) {
+        console.warn(`   [Bot ${botIndex + 1}] Warning: Error fetching artefacts (${e.message}). Using defaults.`);
+        config = { security_coefficient: 1000, smart_contract_fee_percentage: 2.5 };
+    }
     
-    const securityCoefficient = config.security_coefficient;
-    const feePercentage = config.smart_contract_fee_percentage;
+    const securityCoefficient = config.security_coefficient || 1000;
+    const feePercentage = config.smart_contract_fee_percentage || 2.5;
 
     const gameContract = new Contract(contracts.game.address, contracts.game.abi, wallet);
 
