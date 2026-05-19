@@ -154,6 +154,21 @@ Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function (
     // Settings API
     Route::get('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'index']);
     Route::post('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'update']);
+
+    // --- Admin Routes for Cards ---
+    Route::get('/cards', [\App\Http\Controllers\Admin\CardController::class, 'index']);
+    Route::post('/cards', [\App\Http\Controllers\Admin\CardController::class, 'store']);
+    Route::put('/cards/{id}', [\App\Http\Controllers\Admin\CardController::class, 'update']);
+    Route::delete('/cards/{id}', [\App\Http\Controllers\Admin\CardController::class, 'destroy']);
+});
+
+// ===============================================
+// == Routes Boutique (Cards)
+// ===============================================
+Route::prefix('shop')->middleware(['token.auth'])->group(function () {
+    Route::get('/cards', [\App\Http\Controllers\ShopController::class, 'index']);
+    Route::get('/inventory', [\App\Http\Controllers\ShopController::class, 'inventory']);
+    Route::post('/buy', [\App\Http\Controllers\ShopController::class, 'buy']);
 });
 
 // ===============================================

@@ -597,6 +597,10 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::post('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'update'])->name('admin.settings.update');
 });
 
+Route::get('/admin/cards', function() {
+    return view('admin.cards');
+})->name('admin.cards.index');
+
 // Route "catch-all" pour que le rafraîchissement (F5) fonctionne sur des sous-pages
 Route::get('/{any}', function () {
     return file_get_contents(public_path('index.html'));

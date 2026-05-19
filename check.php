@@ -1,0 +1,1 @@
+<?php require 'vendor/autoload.php'; \ = require_once 'bootstrap/app.php'; \ = \->make(Illuminate\Contracts\Console\Kernel::class); \->bootstrap(); \ = \App\Models\User::where('wallet', '0x70997970C51812dc3A010C7d01b50e0d17dc79C8')->first(); echo \ ? \->token_balance : 'Not found';

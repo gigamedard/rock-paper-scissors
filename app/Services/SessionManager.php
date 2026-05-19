@@ -71,6 +71,20 @@ class SessionManager
     {
         $baseBet = (float) \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min());
 
+        // --- CARD EFFECT: BASE BET MODIFIER ---
+        $activeBaseBetCards = \App\Models\UserCard::with('card')
+            ->where('user_id', $user->id)
+            ->where('status', 'available')
+            ->whereHas('card', function ($q) {
+                $q->where('effect_type', 'base_bet_modifier');
+            })
+            ->get();
+
+        foreach ($activeBaseBetCards as $userCard) {
+            $baseBet += $userCard->card->effect_value; // ex: +0.01 au base bet
+            $this->consumeCard($userCard);
+        }
+
         // 1. Martingale Logic — 3 cases based on the pool outcome:
         //    - LOSS  : battle_balance < base_bet  → double the bet (Martingale escalation)
         //    - WIN   : battle_balance > base_bet  → reset bet_amount to base (0.01) per business rule
@@ -141,6 +155,20 @@ class SessionManager
     {
         $multiplierLevel = $user->multiplier_level ?? 1;
         $multiplier = config("game_levels.multiplier.{$multiplierLevel}", 2.0);
+
+        // --- CARD EFFECT: CEILING INCREASE ---
+        $activeCeilingCards = \App\Models\UserCard::with('card')
+            ->where('user_id', $user->id)
+            ->where('status', 'available')
+            ->whereHas('card', function ($q) {
+                $q->where('effect_type', 'ceiling_increase');
+            })
+            ->get();
+
+        foreach ($activeCeilingCards as $userCard) {
+            $multiplier += $userCard->card->effect_value; // ex: +0.5 au plafond
+            $this->consumeCard($userCard);
+        }
 
         if ($q >= $multiplier) {
             // CASE 1: Session Goal Reached (PAYOUT)
@@ -238,12 +266,52 @@ class SessionManager
     {
         $recoveryLevel = $user->recovery_level ?? 1;
         $minutes = config("game_levels.recovery_time.{$recoveryLevel}", 1440);
+
+        // --- CARD EFFECT: COOLDOWN REDUCTION ---
+        $activeCooldownCards = \App\Models\UserCard::with('card')
+            ->where('user_id', $user->id)
+            ->where('status', 'available')
+            ->whereHas('card', function ($q) {
+                $q->where('effect_type', 'cooldown_reduction');
+            })
+            ->get();
+
+        foreach ($activeCooldownCards as $userCard) {
+            $effectValue = $userCard->card->effect_value; // ex: 0.5 (50%) ou 60 (60 minutes)
+            if ($effectValue < 1) {
+                // Pourcentage (ex: 0.5 => -50%)
+                $minutes = $minutes * (1 - $effectValue);
+            } else {
+                // Valeur fixe (ex: 60 => -60 mins)
+                $minutes = max(0, $minutes - $effectValue);
+            }
+            $this->consumeCard($userCard);
+        }
+
         $nextTime = now()->addMinutes($minutes)->timestamp;
 
         try {
             $this->web3Helper->setUserNextSessionTime(config('app.NODE_WORKER_URL'), $user->wallet_address, $nextTime);
         } catch (\Exception $e) {
             Log::error("Failed to set cooldown for {$user->wallet_address}: " . $e->getMessage());
+        }
+    }
+
+    private function consumeCard(\App\Models\UserCard $userCard): void
+    {
+        if ($userCard->card->duration_type === 'sessions') {
+            if ($userCard->remaining_sessions > 0) {
+                $userCard->remaining_sessions -= 1;
+                if ($userCard->remaining_sessions <= 0) {
+                    $userCard->status = 'consumed';
+                }
+                $userCard->save();
+            }
+        } elseif ($userCard->card->duration_type === 'time') {
+            if ($userCard->expires_at && now()->greaterThan($userCard->expires_at)) {
+                $userCard->status = 'consumed';
+                $userCard->save();
+            }
         }
     }
 

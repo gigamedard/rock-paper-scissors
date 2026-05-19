@@ -129,32 +129,34 @@
         <!-- ===== PAGE: MARKETPLACE ===== -->
         <div id="marketplace-page" class="page" style="display:none;">
             <div class="mp-header">
-                <h1 data-i18n="marketplace.title">Marketplace P2P</h1>
-                <p data-i18n="marketplace.subtitle">Échangez vos SNT contre des AVAX.</p>
+                <h1 data-i18n="marketplace.title">Marketplace</h1>
+                <div class="mp-tabs" style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: center;">
+                    <button id="tab-p2p" class="mp-tab active" style="padding: 0.5rem 2rem; background: var(--primary); border: none; border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;">P2P Trading</button>
+                    <button id="tab-cards" class="mp-tab" style="padding: 0.5rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;">Boutique Cartes</button>
+                </div>
             </div>
 
-            <div class="mp-stats-bar">
-                <div class="mp-stat-card">
-                    <div class="mp-stat-label" data-i18n="marketplace.stats_total_trades">Total Échanges</div>
-                    <div class="mp-stat-value" id="mp-stat-total-trades">--</div>
+            <!-- Notification toast (global au marketplace) -->
+            <div id="mp-notification" style="display:none; padding:0.8rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem; transition: all 0.3s; text-align: center;"></div>
+
+            <!-- CONTENU P2P TRADING -->
+            <div id="mp-p2p-content">
+                <p data-i18n="marketplace.subtitle" style="text-align: center; color: var(--text-dim); margin-bottom: 2rem;">Échangez vos SNT contre des AVAX.</p>
+                <div class="mp-stats-grid">
+                    <div class="mp-stat-card">
+                        <div class="mp-stat-label" data-i18n="marketplace.stats_volume_snt">Volume SNT</div>
+                        <div class="mp-stat-value" id="mp-stat-snt-volume">--</div>
+                    </div>
+                    <div class="mp-stat-card">
+                        <div class="mp-stat-label" data-i18n="marketplace.stats_volume_avax">Volume AVAX</div>
+                        <div class="mp-stat-value" id="mp-stat-avax-volume">--</div>
+                    </div>
                 </div>
-                <div class="mp-stat-card">
-                    <div class="mp-stat-label" data-i18n="marketplace.stats_volume_snt">Volume SNT</div>
-                    <div class="mp-stat-value" id="mp-stat-snt-volume">--</div>
-                </div>
-                <div class="mp-stat-card">
-                    <div class="mp-stat-label" data-i18n="marketplace.stats_volume_avax">Volume AVAX</div>
-                    <div class="mp-stat-value" id="mp-stat-avax-volume">--</div>
-                </div>
-            </div>
 
             <!-- Bannière indisponibilité contrat (cachée par défaut) -->
             <div id="mp-contract-error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.5); color:#fca5a5; padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;">
                 ⚠️ Service blockchain indisponible. Assurez-vous que le Node.js Bridge est démarré. La création d'offres est désactivée.
             </div>
-
-            <!-- Notification toast (cachée par défaut) -->
-            <div id="mp-notification" style="display:none; padding:0.8rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem; transition: all 0.3s;"></div>
 
             <div class="mp-create-panel">
                 <h2 data-i18n="marketplace.create_offer">Créer une Offre</h2>
@@ -184,6 +186,17 @@
                     <!-- Dynamic content -->
                 </div>
             </div>
+            
+            </div> <!-- Fin de mp-p2p-content -->
+
+            <!-- CONTENU BOUTIQUE CARTES -->
+            <div id="mp-cards-content" style="display:none; padding: 2rem 0;">
+                <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);">Boutique Officielle</h2>
+                <div id="marketplace-cards-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+                    <!-- Les cartes générées par JS iront ici -->
+                </div>
+            </div>
+
         </div>
 
         <!-- ===== PAGE: REFERRAL ===== -->

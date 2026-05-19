@@ -19,7 +19,8 @@ import { parseEther, formatEther } from 'ethers';
 
 const SNT_ABI = [
     "function approve(address spender, uint256 amount) returns (bool)",
-    "function allowance(address owner, address spender) view returns (uint256)"
+    "function allowance(address owner, address spender) view returns (uint256)",
+    "function transfer(address to, uint256 amount) returns (bool)"
 ];
 
 const ESCROW_ABI = [
@@ -72,12 +73,150 @@ export async function initMarketplace() {
     const timerId = setInterval(loadMarketplaceData, 30000);
     setAppTimer('marketplace-poll', timerId);
 
+    // Gestion des onglets P2P / Cartes
+    const tabP2p = document.getElementById('tab-p2p');
+    const tabCards = document.getElementById('tab-cards');
+    if (tabP2p && tabCards) {
+        tabP2p.onclick = () => switchMarketplaceTab('p2p');
+        tabCards.onclick = () => switchMarketplaceTab('cards');
+    }
+
     if (!window.marketplaceListenersInitialized) {
         window.marketplaceListenersInitialized = true;
         window.addEventListener('i18n:changed', renderOffers);
         window.addEventListener('auth:success', () => loadMarketplaceData());
     }
 }
+
+// ─── TAB SWITCHING ────────────────────────────────────────────────────────────
+function switchMarketplaceTab(tab) {
+    const tabP2p = document.getElementById('tab-p2p');
+    const tabCards = document.getElementById('tab-cards');
+    const contentP2p = document.getElementById('mp-p2p-content');
+    const contentCards = document.getElementById('mp-cards-content');
+
+    if (tab === 'p2p') {
+        tabP2p.classList.add('active');
+        tabP2p.style.background = 'var(--primary)';
+        tabP2p.style.border = 'none';
+        tabCards.classList.remove('active');
+        tabCards.style.background = 'rgba(255,255,255,0.1)';
+        tabCards.style.border = '1px solid var(--primary)';
+        
+        contentP2p.style.display = 'block';
+        contentCards.style.display = 'none';
+    } else if (tab === 'cards') {
+        tabCards.classList.add('active');
+        tabCards.style.background = 'var(--primary)';
+        tabCards.style.border = 'none';
+        tabP2p.classList.remove('active');
+        tabP2p.style.background = 'rgba(255,255,255,0.1)';
+        tabP2p.style.border = '1px solid var(--primary)';
+        
+        contentP2p.style.display = 'none';
+        contentCards.style.display = 'block';
+        loadShopCards();
+    }
+}
+
+// ─── SHOP CARDS LOGIC ─────────────────────────────────────────────────────────
+async function loadShopCards() {
+    try {
+        const res = await secureFetch('/shop/cards');
+        if (!res.ok) return;
+        const cards = await res.json();
+        renderShopCards(cards);
+    } catch (e) {
+        console.error('[Marketplace] Erreur chargement cartes:', e);
+    }
+}
+
+function renderShopCards(cards) {
+    const container = document.getElementById('marketplace-cards-list');
+    if (!container) return;
+    
+    if (cards.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color: var(--text-dim); grid-column: 1 / -1;">Aucune carte disponible pour le moment.</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+    cards.forEach(card => {
+        let effectDisplay = '';
+        if (card.effect_type === 'cooldown_reduction') effectDisplay = `⏳ Cooldown -${card.effect_value < 1 ? (card.effect_value * 100) + '%' : card.effect_value + ' mins'}`;
+        else if (card.effect_type === 'ceiling_increase') effectDisplay = `🚀 Plafond +${card.effect_value}x`;
+        else if (card.effect_type === 'base_bet_modifier') effectDisplay = `💰 Base Bet +${card.effect_value}`;
+        else effectDisplay = `⚡ ${card.effect_type} (${card.effect_value})`;
+
+        const cardEl = document.createElement('div');
+        cardEl.className = 'holo-card';
+        cardEl.innerHTML = `
+            <div class="holo-card-content">
+                <div class="holo-card-title">${card.name}</div>
+                <div class="holo-card-effect">${effectDisplay}</div>
+                <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem; min-height: 40px;">${card.description || 'Une carte mystérieuse offrant des avantages uniques.'}</p>
+                <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">Durée: ${card.duration_value} ${card.duration_type === 'sessions' ? 'Sessions' : 'Heures'}</div>
+                <div class="holo-card-price">${card.price} SNT</div>
+                <button class="btn-buy-card" onclick="window.marketplaceBuyCard(${card.id}, ${card.price})">Acheter</button>
+            </div>
+        `;
+        container.appendChild(cardEl);
+    });
+}
+
+window.marketplaceBuyCard = async function(cardId, cardPrice) {
+    if (!window.userState || !window.userState.walletAddress) {
+        _showMpNotification('⚠️ Connectez votre portefeuille pour acheter.', 'error');
+        return;
+    }
+    
+    // Définir l'adresse de réception (Owner du projet)
+    const OWNER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
+    
+    try {
+        if (!CONTRACT_ADDRESSES.sntToken) {
+            throw new Error("Adresse du token SNT non chargée.");
+        }
+
+        addToFeed('⏳ Validation de la transaction Web3 (transfert SNT)...', 'var(--primary)');
+        _showMpNotification('Veuillez signer la transaction dans votre portefeuille...', 'info');
+
+        const sntContract = await getContract(CONTRACT_ADDRESSES.sntToken, SNT_ABI);
+        
+        // Convertir le prix en Wei (18 décimales standard)
+        const amountInWei = parseEther(cardPrice.toString());
+        
+        // 1. Transaction On-Chain
+        const tx = await sntContract.transfer(OWNER_ADDRESS, amountInWei);
+        addToFeed(`⏳ Envoi de ${cardPrice} SNT en cours... (${tx.hash.substring(0,10)}...)`, 'var(--primary)');
+        
+        // Attendre la confirmation
+        await tx.wait();
+        addToFeed('✅ SNT transférés avec succès !', 'var(--success)');
+        
+        // 2. Notification au Backend
+        addToFeed('⏳ Attribution de la carte...', 'var(--primary)');
+        const res = await secureFetch('/shop/buy', {
+            method: 'POST',
+            body: JSON.stringify({ 
+                card_id: cardId,
+                tx_hash: tx.hash
+            })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur inconnue');
+        
+        _showMpNotification('🎉 Carte achetée avec succès !', 'success');
+        addToFeed('✅ Carte ajoutée à votre inventaire.', 'var(--success)');
+        
+        // Mettre à jour l'affichage de la balance si nécessaire
+        // (La DApp met déjà à jour la balance via les events ou un fetch séparé)
+    } catch (e) {
+        console.error('[Marketplace] Erreur achat carte:', e);
+        _showMpNotification('❌ Achat échoué : ' + e.message, 'error');
+    }
+};
 
 // FIX #1 : lire les bonnes clés 'snt' et 'marketplace' du JSON
 async function loadContractAddresses() {

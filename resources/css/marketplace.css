@@ -279,3 +279,105 @@
     box-sizing: border-box;
 }
 .mp-input-group input:focus { border-color: var(--primary); }
+
+/* --- BOUTIQUE CARTES HOLOGRAPHIQUES --- */
+.holo-card {
+    position: relative;
+    background: rgba(20, 20, 20, 0.8);
+    border-radius: 15px;
+    padding: 20px;
+    overflow: hidden;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.holo-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+}
+
+.holo-card::before {
+    content: "";
+    position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: linear-gradient(
+        45deg,
+        rgba(255, 0, 0, 0.1) 0%,
+        rgba(255, 154, 0, 0.1) 10%,
+        rgba(208, 222, 33, 0.1) 20%,
+        rgba(79, 220, 74, 0.1) 30%,
+        rgba(63, 218, 216, 0.1) 40%,
+        rgba(47, 201, 226, 0.1) 50%,
+        rgba(28, 127, 238, 0.1) 60%,
+        rgba(95, 21, 242, 0.1) 70%,
+        rgba(186, 12, 248, 0.1) 80%,
+        rgba(251, 7, 217, 0.1) 90%,
+        rgba(255, 0, 0, 0.1) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s;
+    mix-blend-mode: color-dodge;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.holo-card:hover::before {
+    opacity: 1;
+    animation: holoAnim 3s linear infinite;
+}
+
+@keyframes holoAnim {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.holo-card-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+}
+
+.holo-card-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to right, #fff, #aaa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.holo-card-effect {
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    background: rgba(255,255,255,0.1);
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+}
+
+.holo-card-price {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--success);
+    margin: 1rem 0;
+}
+
+.btn-buy-card {
+    background: linear-gradient(90deg, #10b981, #059669);
+    border: none;
+    border-radius: 25px;
+    padding: 0.8rem 2rem;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+.btn-buy-card:hover {
+    background: linear-gradient(90deg, #34d399, #10b981);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+}
+
