@@ -107,6 +107,7 @@ class PoolAutoMatchController extends Controller
             'autoplay_active' => $user->autoplay_active,
             'session_started' => $user->session_started,
             'balance' => $user->balance,
+            'bet_amount' => $user->bet_amount,
             'session_start_balance' => $user->session_start_balance,
             'battle_balance' => $user->battle_balance,
             'session_start_battle_balance' => $user->session_start_battle_balance,

@@ -17,9 +17,17 @@ class DatabaseSeeder extends Seeder
             SeedAdminSettings::class,
         ]);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Seed Account #0 as Admin
+        User::updateOrCreate(
+            ['wallet_address' => '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'],
+            [
+                'name' => 'Admin Hardhat #0',
+                'email' => 'admin@battlepool.com',
+                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                'is_admin' => 1,
+                'referral_code' => 'REF-ADMIN0',
+                'balance' => 1000.0,
+            ]
+        );
     }
 }

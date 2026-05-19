@@ -78,6 +78,19 @@ export function applyTranslations() {
 
     // Met à jour l'attribut lang du HTML
     document.documentElement.lang = currentLocale;
+
+    // Met à jour la classe active sur les boutons de langue
+    const btnFr = document.getElementById('lang-fr');
+    const btnEn = document.getElementById('lang-en');
+    if (btnFr && btnEn) {
+        if (currentLocale === 'fr') {
+            btnFr.classList.add('active');
+            btnEn.classList.remove('active');
+        } else {
+            btnEn.classList.add('active');
+            btnFr.classList.remove('active');
+        }
+    }
 }
 
 export function getCurrentLocale() {

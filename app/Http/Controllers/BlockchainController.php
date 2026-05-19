@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Traits\UserBalanceTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use App\Events\testevent;
+use App\Events\BalanceUpdated;
 use App\Helpers\Web3Helper;
 use Illuminate\Support\Facades\Http;
 class BlockchainController extends Controller
@@ -43,7 +43,7 @@ class BlockchainController extends Controller
                         'user_id' => $user->id,
                         'type' => 'BANKRUPTCY',
                         'data' => ['balance' => $balanceEth]
-                    ]);
+                     ]);
                 }
             } else {
                 Log::info("Creating new user", ['wallet' => $walletAddress, 'balance' => $balanceEth]);
@@ -54,7 +54,7 @@ class BlockchainController extends Controller
             Log::info("User balance updated: Address: {$walletAddress}, Balance: {$balanceEth} ETH (from {$balanceWei} wei)");
 
             try {
-              event(new testevent(1,$balanceEth));
+              event(new BalanceUpdated($user->id, $balanceEth));
             } catch (\Throwable $e) {
                 Log::error("Error emit event: {$e->getMessage()}");
             }

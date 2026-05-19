@@ -27,10 +27,20 @@ export function initRouter() {
 }
 
 function handleRouteChange() {
-    const hash = window.location.hash;
+    const hash = window.location.hash || '#/';
     const pageId = routes[hash] !== undefined ? routes[hash] : (routes['#/' + hash.slice(2)] || 'autoplay-page');
 
     showPage(pageId);
+
+    // Met à jour la classe active sur les liens de navigation
+    document.querySelectorAll('.spa-nav .nav-link').forEach(link => {
+        const linkHash = link.getAttribute('href');
+        if (linkHash === hash || (hash === '#/' && linkHash === '#/')) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
 
     // Notifier les modules du changement de route
     window.dispatchEvent(new CustomEvent('route:changed', { detail: { pageId, hash } }));

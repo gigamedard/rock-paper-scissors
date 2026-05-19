@@ -1,17 +1,22 @@
 // resources/js/modules/marketplace.js
 /**
  * Module Marketplace P2P (SNT <-> AVAX)
- * - Lit les offres via l'API Laravel (MarketplaceController)
- * - Crée / Achète / Annule des offres via le Smart Contract MarketplaceEscrow
+ * FIXES:
+ *  - Clés JSON correctes depuis /api/artefacts : 'snt' et 'marketplace'
+ *  - Flux en 2 étapes séparées : Approuver d'abord, puis Créer
+ *  - Guard d'authentification wallet avant toute action
+ *  - Remplacement de tous les alert() par addToFeed() + banners
+ *  - Vérification allowance avant de re-demander une approbation inutile
+ *  - Protection parseEther sur format invalide
+ *  - Polling protégé contre les cumuls via setAppTimer
  */
-import { getContract, getSigner } from '../web3/web3-core.js';
+import { getContract, getSigner, getProvider } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
 import { addToFeed } from './game.js';
 import { t } from './i18n.js';
 import { setAppTimer } from '../core/timers.js';
 import { parseEther, formatEther } from 'ethers';
 
-// ABIs minimaux (on n'importe pas tout le fichier ABI complet pour rester léger)
 const SNT_ABI = [
     "function approve(address spender, uint256 amount) returns (bool)",
     "function allowance(address owner, address spender) view returns (uint256)"
@@ -23,49 +28,91 @@ const ESCROW_ABI = [
     "function cancelOffer(uint256 offerId) external"
 ];
 
-// Ces adresses seront chargées depuis la config ou l'API en production
+// FIX #1 : les vraies clés retournées par /get-game-config sont 'snt' et 'marketplace'
 let CONTRACT_ADDRESSES = {
     sntToken: null,
     marketplace: null
 };
 
+// État interne : approbation déjà faite pour ce montant ?
+let _approvalDone = false;
+
 export async function initMarketplace() {
     console.log("[Marketplace] Initialisation du module Marketplace");
 
-    // Charger les adresses de contrats depuis l'API
     await loadContractAddresses();
-
-    // Charger les offres et stats
+    _updateContractStatusBanner();
     await loadMarketplaceData();
 
-    // Bind les boutons du formulaire de création d'offre
-    const createOfferBtn = document.getElementById('marketplace-create-btn');
-    if (createOfferBtn) {
-        createOfferBtn.addEventListener('click', handleCreateOffer);
+    // FIX #2 : Bouton Approuver séparé
+    const approveBtn = document.getElementById('marketplace-approve-btn');
+    if (approveBtn) {
+        approveBtn.onclick = handleApprove;
     }
 
-    // Polling toutes les 30 secondes pour actualiser les offres
+    const createOfferBtn = document.getElementById('marketplace-create-btn');
+    if (createOfferBtn) {
+        createOfferBtn.onclick = handleCreateOffer;
+        createOfferBtn.disabled = true; // Désactivé jusqu'à approbation
+    }
+
+    // Réinitialiser l'état d'approbation quand le montant SNT change
+    const sntInput = document.getElementById('mp-snt-amount');
+    if (sntInput) {
+        sntInput.addEventListener('input', () => {
+            _approvalDone = false;
+            const createBtn = document.getElementById('marketplace-create-btn');
+            if (createBtn) createBtn.disabled = true;
+            const approveBtn = document.getElementById('marketplace-approve-btn');
+            if (approveBtn) approveBtn.disabled = false;
+        });
+    }
+
+    // Polling (protégé : setAppTimer remplace l'ancien timer)
     const timerId = setInterval(loadMarketplaceData, 30000);
     setAppTimer('marketplace-poll', timerId);
 
-    // Écouter les changements de langue
-    window.addEventListener('i18n:changed', renderOffers);
-
-    window.addEventListener('auth:success', () => {
-        loadMarketplaceData();
-    });
+    if (!window.marketplaceListenersInitialized) {
+        window.marketplaceListenersInitialized = true;
+        window.addEventListener('i18n:changed', renderOffers);
+        window.addEventListener('auth:success', () => loadMarketplaceData());
+    }
 }
 
+// FIX #1 : lire les bonnes clés 'snt' et 'marketplace' du JSON
 async function loadContractAddresses() {
     try {
         const res = await fetch('/api/artefacts');
         if (res.ok) {
             const data = await res.json();
-            CONTRACT_ADDRESSES.sntToken = data.snt_address || data.token_address;
-            CONTRACT_ADDRESSES.marketplace = data.marketplace_address;
+            // Le Node.js peut retourner une string ("0x...") ou un objet ({address: "0x...", abi: [...]})
+            const sntData = data.snt || data.snt_address || data.token_address;
+            const mpData  = data.marketplace || data.marketplace_address;
+
+            CONTRACT_ADDRESSES.sntToken    = typeof sntData === 'object' ? sntData?.address : (sntData || null);
+            CONTRACT_ADDRESSES.marketplace = typeof mpData === 'object'  ? mpData?.address  : (mpData || null);
+            console.log('[Marketplace] Adresses chargées:', CONTRACT_ADDRESSES);
+        } else {
+            console.warn('[Marketplace] /api/artefacts a retourné', res.status);
         }
     } catch (e) {
         console.warn('[Marketplace] Impossible de charger les adresses de contrats:', e);
+    }
+}
+
+// FIX #3 : Bannière d'état visible dans l'UI (plus de crash silencieux)
+function _updateContractStatusBanner() {
+    const banner = document.getElementById('mp-contract-error');
+    const approveBtn = document.getElementById('marketplace-approve-btn');
+    const createBtn  = document.getElementById('marketplace-create-btn');
+
+    if (!CONTRACT_ADDRESSES.sntToken || !CONTRACT_ADDRESSES.marketplace) {
+        if (banner) banner.style.display = 'block';
+        if (approveBtn) approveBtn.disabled = true;
+        if (createBtn)  createBtn.disabled  = true;
+    } else {
+        if (banner) banner.style.display = 'none';
+        if (approveBtn) approveBtn.disabled = false;
     }
 }
 
@@ -78,14 +125,12 @@ async function loadStats() {
         const res = await secureFetch('/marketplace/stats');
         if (!res.ok) return;
         const stats = await res.json();
-
         const elTotal = document.getElementById('mp-stat-total-trades');
-        const elSnt = document.getElementById('mp-stat-snt-volume');
-        const elAvax = document.getElementById('mp-stat-avax-volume');
-
+        const elSnt   = document.getElementById('mp-stat-snt-volume');
+        const elAvax  = document.getElementById('mp-stat-avax-volume');
         if (elTotal) elTotal.textContent = stats.total_trades || 0;
-        if (elSnt) elSnt.textContent = parseFloat(stats.total_snt_volume || 0).toFixed(2) + ' SNT';
-        if (elAvax) elAvax.textContent = parseFloat(stats.total_avax_volume || 0).toFixed(4) + ' AVAX';
+        if (elSnt)   elSnt.textContent   = parseFloat(stats.total_snt_volume  || 0).toFixed(2) + ' SNT';
+        if (elAvax)  elAvax.textContent  = parseFloat(stats.total_avax_volume || 0).toFixed(4) + ' AVAX';
     } catch (e) {
         console.error('[Marketplace] Erreur chargement stats:', e);
     }
@@ -108,12 +153,10 @@ async function loadOffers() {
 function renderOffers() {
     const container = document.getElementById('marketplace-offers-list');
     if (!container) return;
-
     if (currentOffers.length === 0) {
         container.innerHTML = `<p class="mp-empty-state">${t('marketplace.no_offers')}</p>`;
         return;
     }
-
     container.innerHTML = currentOffers.map(offer => `
         <div class="mp-offer-card ${offer.is_own_trade ? 'own-trade' : ''}" data-offer-id="${offer.blockchain_id}">
             <div class="mp-offer-amounts">
@@ -135,80 +178,184 @@ function renderOffers() {
     `).join('');
 }
 
+// FIX #3 : Guard wallet
+function _assertWalletConnected() {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    if (!token && !window.userState?.id) {
+        _showMpNotification('⚠️ Connectez votre wallet avant de créer une offre.', 'error');
+        return false;
+    }
+    return true;
+}
+
+// FIX #4 : Utilitaire de notification (remplace alert)
+function _showMpNotification(message, type = 'info') {
+    const banner = document.getElementById('mp-notification');
+    if (banner) {
+        banner.textContent = message;
+        banner.className = `mp-notification mp-notification-${type}`;
+        banner.style.display = 'block';
+        setTimeout(() => { banner.style.display = 'none'; }, 6000);
+    }
+    // Aussi dans le feed global
+    const color = type === 'error' ? 'var(--accent)' : type === 'success' ? 'var(--success)' : 'var(--primary)';
+    addToFeed(message, color);
+}
+
+// FIX #5 : Protection parseEther (format invalide)
+function _safeParseEther(value) {
+    try {
+        // Normaliser : remplacer virgule par point, supprimer espaces
+        const normalized = String(value).replace(',', '.').trim();
+        return parseEther(normalized);
+    } catch (e) {
+        throw new Error(`Montant invalide : "${value}". Utilisez un point comme séparateur décimal.`);
+    }
+}
+
+// ─── ÉTAPE 1 : APPROBATION ERC20 ──────────────────────────────────────────────
+async function handleApprove() {
+    if (!_assertWalletConnected()) return;
+
+    const sntAmount   = document.getElementById('mp-snt-amount')?.value;
+    if (!sntAmount || parseFloat(sntAmount) <= 0) {
+        _showMpNotification('Veuillez renseigner un montant SNT valide avant d\'approuver.', 'error');
+        return;
+    }
+
+    if (!CONTRACT_ADDRESSES.sntToken || !CONTRACT_ADDRESSES.marketplace) {
+        _showMpNotification('⚠️ Service blockchain indisponible. Impossible d\'approuver.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('marketplace-approve-btn');
+    const createBtn = document.getElementById('marketplace-create-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Approbation en cours...';
+
+    try {
+        const sntAmountWei = _safeParseEther(sntAmount);
+        const sntContract  = await getContract(CONTRACT_ADDRESSES.sntToken, SNT_ABI);
+
+        // FIX #6 : Vérifier l'allowance existante avant de re-approuver
+        const signer    = await getSigner();
+        const signerAddr = await signer.getAddress();
+        const allowance  = await sntContract.allowance(signerAddr, CONTRACT_ADDRESSES.marketplace);
+
+        if (allowance >= sntAmountWei) {
+            _showMpNotification('✅ Approbation déjà suffisante. Vous pouvez créer l\'offre.', 'success');
+            _approvalDone = true;
+            createBtn.disabled = false;
+            btn.textContent = '✅ Approuvé';
+            return;
+        }
+
+        btn.textContent = '⏳ Confirmation dans MetaMask...';
+        const approveTx = await sntContract.approve(CONTRACT_ADDRESSES.marketplace, sntAmountWei);
+        await approveTx.wait();
+
+        _approvalDone = true;
+        createBtn.disabled = false;
+        btn.textContent = '✅ Approuvé';
+        _showMpNotification('✅ Approbation réussie ! Vous pouvez maintenant créer votre offre.', 'success');
+
+    } catch (e) {
+        console.error('[Marketplace] Erreur approbation:', e);
+        _showMpNotification('❌ Approbation échouée : ' + (e.reason || e.message), 'error');
+        btn.disabled = false;
+        btn.textContent = '1. Approuver les SNT';
+    }
+}
+
+// ─── ÉTAPE 2 : CRÉATION DE L'OFFRE ────────────────────────────────────────────
 async function handleCreateOffer() {
-    const sntAmount = document.getElementById('mp-snt-amount')?.value;
-    const avaxAmount = document.getElementById('mp-avax-amount')?.value;
+    if (!_assertWalletConnected()) return;
+    if (!_approvalDone) {
+        _showMpNotification('⚠️ Veuillez d\'abord approuver vos SNT (Étape 1).', 'error');
+        return;
+    }
+
+    const sntAmount     = document.getElementById('mp-snt-amount')?.value;
+    const avaxAmount    = document.getElementById('mp-avax-amount')?.value;
     const durationHours = document.getElementById('mp-duration')?.value || 24;
 
     if (!sntAmount || !avaxAmount || parseFloat(sntAmount) <= 0 || parseFloat(avaxAmount) <= 0) {
-        alert("Veuillez renseigner des montants valides.");
+        _showMpNotification('Veuillez renseigner des montants valides.', 'error');
         return;
     }
 
     const btn = document.getElementById('marketplace-create-btn');
-    btn.disabled = true;
-    btn.textContent = "⏳ Approbation en cours...";
+    btn.disabled  = true;
+    btn.textContent = '⏳ Création de l\'offre...';
 
     try {
-        // Étape 1 : Approbation ERC20 (SNT → Escrow)
-        if (!CONTRACT_ADDRESSES.sntToken || !CONTRACT_ADDRESSES.marketplace) {
-            throw new Error("Adresses de contrats non chargées. Assurez-vous que le backend est démarré.");
-        }
-
-        const sntContract = await getContract(CONTRACT_ADDRESSES.sntToken, SNT_ABI);
-        const sntAmountWei = parseEther(sntAmount.toString());
-
-        const approveTx = await sntContract.approve(CONTRACT_ADDRESSES.marketplace, sntAmountWei);
-        btn.textContent = "⏳ Confirmation approbation...";
-        await approveTx.wait();
-
-        // Étape 2 : Création de l'offre on-chain
-        btn.textContent = "⏳ Création de l'offre...";
+        const sntAmountWei  = _safeParseEther(sntAmount);
+        const avaxAmountWei = _safeParseEther(avaxAmount);
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
-        const avaxAmountWei = parseEther(avaxAmount.toString());
 
         const createTx = await escrowContract.createOffer(sntAmountWei, avaxAmountWei, parseInt(durationHours));
+        btn.textContent = '⏳ Transaction en cours...';
         await createTx.wait();
 
-        addToFeed(`✅ Offre créée : ${sntAmount} SNT → ${avaxAmount} AVAX`, "var(--success)");
-        await loadMarketplaceData(); // Actualiser
+        _approvalDone = false;
+        _showMpNotification(`✅ Offre créée : ${sntAmount} SNT → ${avaxAmount} AVAX`, 'success');
+        addToFeed(`✅ Offre Marketplace créée : ${sntAmount} SNT → ${avaxAmount} AVAX`, 'var(--success)');
+
+        // Reset formulaire
+        document.getElementById('mp-snt-amount').value  = '';
+        document.getElementById('mp-avax-amount').value = '';
+        const approveBtn = document.getElementById('marketplace-approve-btn');
+        if (approveBtn) { approveBtn.textContent = '1. Approuver les SNT'; approveBtn.disabled = false; }
+
+        // Attendre 4s avant refresh (temps que le listener Node.js sync la DB)
+        setTimeout(() => loadMarketplaceData(), 4000);
+
     } catch (e) {
         console.error('[Marketplace] Erreur création offre:', e);
-        alert("Erreur: " + (e.reason || e.message));
+        _showMpNotification('❌ Création échouée : ' + (e.reason || e.message), 'error');
     } finally {
-        btn.disabled = false;
-        btn.textContent = t('marketplace.create_offer');
+        btn.disabled  = false;
+        btn.textContent = t('marketplace.create_offer') || 'Créer l\'Offre';
     }
 }
 
-// Achat d'une offre
+// ─── ACHAT D'UNE OFFRE ────────────────────────────────────────────────────────
 window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
+    if (!_assertWalletConnected()) return;
+    if (!CONTRACT_ADDRESSES.marketplace) {
+        _showMpNotification('⚠️ Service blockchain indisponible.', 'error');
+        return;
+    }
     try {
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
-        const avaxWei = parseEther(avaxAmount.toString());
-
+        const avaxWei = _safeParseEther(avaxAmount.toString());
+        addToFeed(`⏳ Achat en cours (offre #${offerId})...`, 'var(--primary)');
         const tx = await escrowContract.fulfillOffer(offerId, { value: avaxWei });
-        addToFeed(`⏳ Achat en cours (offre #${offerId})...`, "var(--primary)");
         await tx.wait();
-        addToFeed(`✅ Achat réussi ! Vous avez reçu des SNT.`, "var(--success)");
-        await loadMarketplaceData();
+        _showMpNotification(`✅ Achat réussi ! Vous avez reçu des SNT.`, 'success');
+        setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {
         console.error('[Marketplace] Erreur achat:', e);
-        alert("Erreur: " + (e.reason || e.message));
+        _showMpNotification('❌ Achat échoué : ' + (e.reason || e.message), 'error');
     }
 };
 
-// Annulation d'une offre
+// ─── ANNULATION D'UNE OFFRE ───────────────────────────────────────────────────
 window.marketplaceCancelOffer = async function(offerId) {
+    if (!_assertWalletConnected()) return;
+    if (!CONTRACT_ADDRESSES.marketplace) {
+        _showMpNotification('⚠️ Service blockchain indisponible.', 'error');
+        return;
+    }
     try {
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
+        addToFeed(`⏳ Annulation de l'offre #${offerId}...`, 'var(--text-dim)');
         const tx = await escrowContract.cancelOffer(offerId);
-        addToFeed(`⏳ Annulation de l'offre #${offerId}...`, "var(--text-dim)");
         await tx.wait();
-        addToFeed(`✅ Offre #${offerId} annulée. SNT restitués.`, "var(--success)");
-        await loadMarketplaceData();
+        _showMpNotification(`✅ Offre #${offerId} annulée. SNT restitués.`, 'success');
+        setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {
         console.error('[Marketplace] Erreur annulation:', e);
-        alert("Erreur: " + (e.reason || e.message));
+        _showMpNotification('❌ Annulation échouée : ' + (e.reason || e.message), 'error');
     }
 };

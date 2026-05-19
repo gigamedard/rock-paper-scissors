@@ -28,6 +28,26 @@ async function main() {
     
     console.log("Deployment complete!");
 
+    // --- AUTOMATION: Transfer 1000 SNT to Account #0 (TB testing) ---
+    console.log("Transferring 1000 SNT to Account #0 for testing...");
+    const ownerAddress = "0x8C3229EC621644789d7F61FAa82c6d0E5F97d43D";
+    await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [ownerAddress],
+    });
+    await hre.network.provider.send("hardhat_setBalance", [
+        ownerAddress,
+        "0x56BC75E2D63100000", // 100 ETH
+    ]);
+    const ownerSigner = await ethers.getSigner(ownerAddress);
+    const sntTokenAsOwner = sntToken.connect(ownerSigner);
+    await sntTokenAsOwner.transfer(deployer.address, ethers.parseEther("1000"));
+    await hre.network.provider.request({
+        method: "hardhat_stopImpersonatingAccount",
+        params: [ownerAddress],
+    });
+    console.log("✅ Transferred 1000 SNT to Account #0 for TB testing.");
+
     // --- AUTOMATION: Update smart_contracts/config.js ---
     const configPath = path.join(__dirname, "..", "smart_contracts", "config.js");
     if (fs.existsSync(configPath)) {

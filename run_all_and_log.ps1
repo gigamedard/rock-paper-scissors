@@ -10,7 +10,7 @@ echo "Demarrage du serveur Laravel..."
 Start-Process -NoNewWindow -FilePath "php" -ArgumentList "artisan serve --port=8001" -WorkingDirectory "d:\dev\PHP\rock-paper-scissors" -RedirectStandardOutput "d:\dev\PHP\rock-paper-scissors\storage\logs\laravel.log" -RedirectStandardError "d:\dev\PHP\rock-paper-scissors\storage\logs\laravel_err.log"
 
 echo "Nettoyage de la base de donnees..."
-php artisan migrate:fresh
+php artisan migrate:fresh --seed
 
 echo "Demarrage de la file dattente..."
 Start-Process -NoNewWindow -FilePath "php" -ArgumentList "artisan queue:work" -WorkingDirectory "d:\dev\PHP\rock-paper-scissors" -RedirectStandardOutput "d:\dev\PHP\rock-paper-scissors\storage\logs\queue.log" -RedirectStandardError "d:\dev\PHP\rock-paper-scissors\storage\logs\queue_err.log"
@@ -30,4 +30,9 @@ Start-Process -NoNewWindow -FilePath "node" -ArgumentList "app.js" -WorkingDirec
 echo "Demarrage du Batch Processor..."
 Start-Process -NoNewWindow -FilePath "node" -ArgumentList "run_batch_processor.js" -WorkingDirectory "d:\dev\PHP\rock-paper-scissors\smart_contracts" -RedirectStandardOutput "d:\dev\PHP\rock-paper-scissors\storage\logs\batch.log" -RedirectStandardError "d:\dev\PHP\rock-paper-scissors\storage\logs\batch_err.log"
 
-echo "Tous les services sont lances en arriere-plan !"
+Start-Sleep -Seconds 2
+
+echo "Demarrage de la simulation de test bots (30 bots a partir de l index 2)..."
+Start-Process -NoNewWindow -FilePath "node" -ArgumentList "simulation_bots.js 30 2" -WorkingDirectory "d:\dev\PHP\rock-paper-scissors\smart_contracts" -RedirectStandardOutput "d:\dev\PHP\rock-paper-scissors\storage\logs\simulation.log" -RedirectStandardError "d:\dev\PHP\rock-paper-scissors\storage\logs\simulation_err.log"
+
+echo "Tous les services et bots de simulation sont lances en arriere-plan !"

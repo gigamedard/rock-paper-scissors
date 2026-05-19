@@ -286,6 +286,20 @@ h1 {
     animation: flash-anim 0.3s ease-out forwards;
 }
 
+.setup-container {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 2.5rem;
+    align-items: start;
+}
+
+@media (max-width: 992px) {
+    .setup-container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
 .clash-container {
     display: flex;
     align-items: center;
@@ -373,12 +387,7 @@ h1 {
     from { transform: translateX(-20px); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
-/* --- Pre-match Setup & Moves --- */
-.setup-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
+
 
 .premove-grid {
     display: grid;
@@ -484,4 +493,202 @@ h1 {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* Premium SPA Navigation & Header */
+.spa-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.nav-link {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+}
+
+.nav-link:hover {
+    color: var(--primary);
+    background: rgba(0, 242, 255, 0.05);
+    border: 1px solid rgba(0, 242, 255, 0.1);
+}
+
+.nav-link.active {
+    color: var(--text);
+    background: rgba(112, 0, 255, 0.15);
+    border: 1px solid rgba(112, 0, 255, 0.3);
+    box-shadow: 0 0 15px rgba(112, 0, 255, 0.2);
+}
+
+.lang-switcher {
+    border-left: 1px solid var(--glass-border);
+    padding-left: 1.5rem;
+    display: flex;
+    gap: 5px;
+}
+
+.lang-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-dim);
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lang-btn:hover, .lang-btn.active {
+    background: var(--primary);
+    color: var(--bg-color) !important;
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.4);
+}
+
+/* 2-Column Cohesive Dashboard Layout */
+.dashboard {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 2.5rem;
+    margin-top: 2rem;
+    align-items: start;
+}
+
+@media (max-width: 992px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
+.main-dashboard-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Arena Grid & Stat Cards */
+.arena-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .arena-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.stat-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 140px;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 242, 255, 0.15);
+    border-color: var(--primary);
+}
+
+.card-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+}
+
+.card-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.card-value .unit {
+    font-size: 1.2rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.card-trend {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.card-trend.up {
+    color: var(--success);
+}
+
+/* Battle Controls */
+.battle-actions {
+    margin-top: 0.5rem;
+}
+
+.claim-panel {
+    background: rgba(0, 255, 136, 0.05);
+    border: 1px dashed var(--success);
+    border-radius: 18px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.claim-amount {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--success);
+    margin: 1rem 0;
+}
+
+/* Sidebar Activity Log */
+.activity-log {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 2rem;
+    height: 100%;
+    max-height: 480px;
+    display: flex;
+    flex-direction: column;
+}
+
+.feed-container {
+    overflow-y: auto;
+    flex: 1;
+    margin-top: 1rem;
+    padding-right: 0.5rem;
+}
+
+/* Custom Scrollbar for premium aesthetic */
+.feed-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.feed-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.feed-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.feed-container::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
 }

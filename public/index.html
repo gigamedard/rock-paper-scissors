@@ -57,7 +57,7 @@
                 <button class="btn-primary" id="enter-arena-btn" style="padding: 1.5rem 3rem; font-size: 1.2rem;" data-i18n="connect.enter">ENTER THE ARENA</button>
             </div>
 
-            <div id="view-setup" class="card fade-in" style="display: none; max-width: 800px; margin: 2rem auto;">
+            <div id="view-setup" class="card fade-in" style="display: none; max-width: 1000px; margin: 2rem auto;">
                 <h2 style="margin-bottom: 1rem; color: var(--primary);">SYSTEM INITIALIZATION</h2>
                 <div class="setup-container">
                     <div>
@@ -82,35 +82,37 @@
                             <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:0.5rem 0;">
                             <div style="display:flex; justify-content:space-between; font-weight:800; color:var(--primary);"><span>TOTAL DEPOSIT:</span><span id="display-total-deposit">0.0000 ETH</span></div>
                         </div>
+                        <button class="btn-primary" id="start-session-btn" style="margin-top: 1rem; width: 100%;">INITIALIZE BATTLE SEQUENCE</button>
                     </div>
-                    <button class="btn-primary" id="start-session-btn" style="margin-top: 1rem;">INITIALIZE BATTLE SEQUENCE</button>
                 </div>
             </div>
 
             <div id="view-dashboard" class="dashboard" style="display: none;">
-                <!-- Main Arena Stats -->
-                <div class="arena-grid">
-                    <div class="card stat-card pulse-primary">
-                        <div class="card-label" data-i18n="dashboard.balance">Main Balance</div>
-                        <div class="card-value" id="balance-val">0.0000 <span class="unit">ETH</span></div>
-                        <div class="card-trend up">↑ Live Sync</div>
+                <div class="main-dashboard-content">
+                    <!-- Main Arena Stats -->
+                    <div class="arena-grid">
+                        <div class="card stat-card pulse-primary">
+                            <div class="card-label" data-i18n="dashboard.balance">Main Balance</div>
+                            <div class="card-value" id="balance-val">0.0000 <span class="unit">ETH</span></div>
+                            <div class="card-trend up">↑ Live Sync</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="card-label" data-i18n="dashboard.bet">Current Bet</div>
+                            <div class="card-value" id="bet-val">0.0100 <span class="unit">ETH</span></div>
+                            <div id="status-text" class="battle-status-tag status-online">Available</div>
+                        </div>
                     </div>
-                    <div class="card stat-card">
-                        <div class="card-label" data-i18n="dashboard.bet">Current Bet</div>
-                        <div class="card-value" id="bet-val">0.0100 <span class="unit">ETH</span></div>
-                        <div id="status-text" class="battle-status-tag status-online">Available</div>
-                    </div>
-                </div>
 
-                <!-- Battle Controls -->
-                <div class="battle-actions">
-                    <button class="btn-primary" id="join-btn" style="width: 100%; padding: 1.5rem; font-size: 1.2rem; display: none;" data-i18n="dashboard.strategy">STRATEGY SETUP</button>
-                    
-                    <!-- Claim Section (Hidden by default) -->
-                    <div id="claim-section" class="claim-panel fade-in" style="display: none;">
-                        <h3 data-i18n="claim.title">SESSION COMPLETE - REWARDS READY</h3>
-                        <div class="claim-amount"><span id="claim-amount-display">0.0000</span> ETH</div>
-                        <button class="btn-claim" id="claim-btn" data-i18n="claim.btn">CLAIM & WITHDRAW TO WALLET</button>
+                    <!-- Battle Controls -->
+                    <div class="battle-actions">
+                        <button class="btn-primary" id="join-btn" style="width: 100%; padding: 1.5rem; font-size: 1.2rem; display: none;" data-i18n="dashboard.strategy">STRATEGY SETUP</button>
+                        
+                        <!-- Claim Section (Hidden by default) -->
+                        <div id="claim-section" class="claim-panel fade-in" style="display: none;">
+                            <h3 data-i18n="claim.title">SESSION COMPLETE - REWARDS READY</h3>
+                            <div class="claim-amount"><span id="claim-amount-display">0.0000</span> ETH</div>
+                            <button class="btn-claim" id="claim-btn" data-i18n="claim.btn">CLAIM & WITHDRAW TO WALLET</button>
+                        </div>
                     </div>
                 </div>
 
@@ -146,35 +148,46 @@
                 </div>
             </div>
 
+            <!-- Bannière indisponibilité contrat (cachée par défaut) -->
+            <div id="mp-contract-error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.5); color:#fca5a5; padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;">
+                ⚠️ Service blockchain indisponible. Assurez-vous que le Node.js Bridge est démarré. La création d'offres est désactivée.
+            </div>
+
+            <!-- Notification toast (cachée par défaut) -->
+            <div id="mp-notification" style="display:none; padding:0.8rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem; transition: all 0.3s;"></div>
+
             <div class="mp-create-panel">
                 <h2 data-i18n="marketplace.create_offer">Créer une Offre</h2>
                 <div class="mp-form-grid">
                     <div class="mp-input-group">
                         <label data-i18n="marketplace.snt_amount">SNT Amount</label>
-                        <input type="number" id="mp-snt-amount" placeholder="0.0">
+                        <input type="number" id="mp-snt-amount" placeholder="0.0" step="any">
                     </div>
                     <div class="mp-input-group">
                         <label data-i18n="marketplace.avax_amount">AVAX Price</label>
-                        <input type="number" id="mp-avax-price" placeholder="0.0">
+                        <input type="number" id="mp-avax-amount" placeholder="0.0" step="any">
                     </div>
                     <div class="mp-input-group">
                         <label data-i18n="marketplace.duration">Duration (h)</label>
                         <input type="number" id="mp-duration" value="24">
                     </div>
                 </div>
-                <button class="mp-btn-create" id="mp-btn-create" data-i18n="marketplace.create_offer">Créer une Offre</button>
+                <div style="display:flex; gap:1rem; margin-top:1rem;">
+                    <button class="mp-btn-approve" id="marketplace-approve-btn" style="flex:1;">1. Approuver les SNT</button>
+                    <button class="mp-btn-create" id="marketplace-create-btn" style="flex:1;" disabled data-i18n="marketplace.create_offer">2. Créer l'Offre</button>
+                </div>
             </div>
 
             <div class="mp-offers-section">
                 <h2 data-i18n="marketplace.active_offers">Offres Actives</h2>
-                <div id="mp-offers-list" class="mp-offers-list">
+                <div id="marketplace-offers-list" class="mp-offers-list">
                     <!-- Dynamic content -->
                 </div>
             </div>
         </div>
 
         <!-- ===== PAGE: REFERRAL ===== -->
-        <div id="referral-page" class="page" style="display:none;">
+        <div id="referral-dashboard-page" class="page" style="display:none;">
             <div class="ref-header">
                 <h1 data-i18n="referral.title">Tableau de Parrainage</h1>
             </div>
@@ -183,26 +196,26 @@
                 <div class="ref-card-main">
                     <h2 data-i18n="referral.your_code">Votre Code</h2>
                     <div class="ref-code-box">
-                        <span id="ref-code-display">---</span>
-                        <button id="btn-copy-ref" data-i18n="referral.copy_link">Copier</button>
+                        <span id="referral-my-code">---</span>
+                        <button id="referral-copy-btn" data-i18n="referral.copy_link">Copier</button>
                     </div>
                     
                     <div class="ref-stats-mini">
                         <div class="ref-stat-item">
                             <span data-i18n="referral.total_referrals">Total</span>
-                            <b id="ref-stat-total">0</b>
+                            <b id="referral-stat-total">0</b>
                         </div>
                         <div class="ref-stat-item">
                             <span data-i18n="referral.validated">Validés</span>
-                            <b id="ref-stat-validated" style="color: var(--success);">0</b>
+                            <b id="referral-stat-validated" style="color: var(--success);">0</b>
                         </div>
                         <div class="ref-stat-item">
                             <span data-i18n="referral.pending">En Attente</span>
-                            <b id="ref-stat-pending" style="color: var(--accent);">0</b>
+                            <b id="referral-stat-pending" style="color: var(--accent);">0</b>
                         </div>
                         <div class="ref-stat-item">
                             <span data-i18n="referral.rewards">Récompenses</span>
-                            <b id="ref-stat-rewards">0 SNT</b>
+                            <b id="referral-stat-rewards">0 SNT</b>
                         </div>
                     </div>
                 </div>
@@ -210,15 +223,15 @@
                 <div class="ref-card-side">
                     <h3 data-i18n="referral.apply_code">Appliquer un Code</h3>
                     <div style="display: flex; gap: 10px; margin-top: 1rem;">
-                        <input type="text" id="input-apply-ref" placeholder="CODE..." style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--primary); padding: 10px; color: #fff; border-radius: 5px;">
-                        <button id="btn-apply-ref" class="btn-primary" style="padding: 10px 20px;" data-i18n="referral.apply_btn">Appliquer</button>
+                        <input type="text" id="referral-apply-input" placeholder="CODE..." style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--primary); padding: 10px; color: #fff; border-radius: 5px;">
+                        <button id="referral-apply-btn" class="btn-primary" style="padding: 10px 20px;" data-i18n="referral.apply_btn">Appliquer</button>
                     </div>
                 </div>
             </div>
 
             <div class="ref-leaderboard-section">
                 <h2 data-i18n="referral.leaderboard">Classement des Parrains</h2>
-                <div id="ref-leaderboard-list" class="ref-lb-list">
+                <div id="referral-leaderboard" class="ref-lb-list">
                     <!-- Dynamic content -->
                 </div>
             </div>
@@ -235,9 +248,10 @@
     </main>
 
     <!-- Vite Compiled Assets -->
-    <link rel="stylesheet" href="/build/assets/app-Bv1M5C7u.css">
-    <link rel="stylesheet" href="/build/assets/marketplace-D28AfePH.css">
-    <link rel="stylesheet" href="/build/assets/referral-DGb9zrSD.css">
-    <script type="module" src="/build/assets/app-BkRnWPwb.js"></script>
+    <link rel="stylesheet" href="/build/assets/app.css">
+    <link rel="stylesheet" href="/build/assets/marketplace.css">
+    <link rel="stylesheet" href="/build/assets/referral.css">
+    <link rel="stylesheet" href="/build/assets/influencer.css">
+    <script type="module" src="/build/assets/app2.js"></script>
 </body>
 </html>

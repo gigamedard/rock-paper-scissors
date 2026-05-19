@@ -12,30 +12,34 @@ import { getCurrentLocale } from './i18n.js';
 export function initReferral() {
     console.log("[Referral] Initialisation du module Parrainage");
 
-    // Intercepter le code de parrainage de l'URL à l'arrivée (lien d'invitation)
-    captureReferralFromUrl();
-
-    // Charger les données au montage de la page
-    loadReferralData();
-
-    // Bind le bouton "Copier le lien"
+    // Bind le bouton "Copier le lien" (direct property to prevent double-binding)
     const copyBtn = document.getElementById('referral-copy-btn');
     if (copyBtn) {
-        copyBtn.addEventListener('click', copyReferralLink);
+        copyBtn.onclick = copyReferralLink;
     }
 
-    // Bind le formulaire d'application de code
+    // Bind le formulaire d'application de code (direct property to prevent double-binding)
     const applyBtn = document.getElementById('referral-apply-btn');
     if (applyBtn) {
-        applyBtn.addEventListener('click', applyReferralCode);
+        applyBtn.onclick = applyReferralCode;
     }
 
-    // Écouter les changements de langue pour re-rendre
-    window.addEventListener('i18n:changed', loadReferralData);
+    // Écouter les changements de langue pour re-rendre (guarding against double-binding)
+    if (!window.referralListenersInitialized) {
+        window.referralListenersInitialized = true;
 
-    window.addEventListener('auth:success', () => {
-        loadReferralData();
-    });
+        // Intercepter le code de parrainage de l'URL à l'arrivée (lien d'invitation)
+        captureReferralFromUrl();
+
+        window.addEventListener('i18n:changed', loadReferralData);
+
+        window.addEventListener('auth:success', () => {
+            loadReferralData();
+        });
+    }
+
+    // Charger les données à chaque montage/init du module
+    loadReferralData();
 }
 
 /**

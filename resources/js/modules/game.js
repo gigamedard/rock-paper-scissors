@@ -13,97 +13,119 @@ const gameState = {
 export function initGame() {
     console.log("[Game] Initialisation du module Game");
     
-    // Bind UI buttons
+    // Bind UI buttons using direct properties to prevent double binding
     const betInput = document.getElementById('base-bet-input');
     if (betInput) {
-        betInput.addEventListener('input', updateFeeDisplay);
+        betInput.oninput = updateFeeDisplay;
     }
     
     const startBtn = document.getElementById('start-session-btn');
     if (startBtn) {
-        startBtn.addEventListener('click', startSession);
+        startBtn.onclick = startSession;
     }
     
     const claimBtn = document.getElementById('claim-btn');
     if (claimBtn) {
-        claimBtn.addEventListener('click', claim);
+        claimBtn.onclick = claim;
     }
 
     const joinBtn = document.getElementById('join-btn');
     if (joinBtn) {
-        joinBtn.addEventListener('click', () => {
+        joinBtn.onclick = () => {
             window.userState.status = 'setup';
             updateUI();
-        });
+        };
     }
 
-    // Bind event listeners from Echo
-    window.addEventListener('game:balanceUpdated', (e) => {
-        const newBalance = parseFloat(e.detail.balance || e.detail.user?.balance) || 0;
-        animateValue('balance-val', window.userState.balance || 0, newBalance, 4);
-        window.userState.balance = newBalance;
-    });
+    // Bind strategy pre-move buttons (ensuring no duplicate click listeners)
+    const btnRock = document.getElementById('move-rock');
+    if (btnRock) {
+        btnRock.onclick = () => addMove('rock');
+    }
+    const btnPaper = document.getElementById('move-paper');
+    if (btnPaper) {
+        btnPaper.onclick = () => addMove('paper');
+    }
+    const btnScissors = document.getElementById('move-scissors');
+    if (btnScissors) {
+        btnScissors.onclick = () => addMove('scissors');
+    }
+    const btnReset = document.getElementById('move-reset');
+    if (btnReset) {
+        btnReset.onclick = () => clearMoves();
+    }
 
-    window.addEventListener('game:userBalanceUpdated', (e) => {
-        const newBalance = parseFloat(e.detail.user?.balance) || 0;
-        animateValue('balance-val', window.userState.balance || 0, newBalance, 4);
-        window.userState.balance = newBalance;
-    });
+    // Bind event listeners from Echo (guarding against double-binding)
+    if (!window.gameListenersInitialized) {
+        window.gameListenersInitialized = true;
 
-    window.addEventListener('game:sessionStarted', (e) => {
-        window.userState.balance = parseFloat(e.detail.initial_balance) || 0;
-        window.userState.status = 'in_pool';
-        showCombatOverlay("RECHERCHE D'ADVERSAIRES...");
-        updateUI();
-    });
+        window.addEventListener('game:balanceUpdated', (e) => {
+            const newBalance = parseFloat(e.detail.balance || e.detail.user?.balance) || 0;
+            animateValue('balance-val', window.userState.balance || 0, newBalance, 4);
+            window.userState.balance = newBalance;
+        });
 
-    window.addEventListener('game:sessionFinished', (e) => {
-        window.userState.status = 'stopped';
-        hideCombatOverlay();
-        
-        if (e.detail.signature) {
-            gameState.pendingClaim = {
-                amount: e.detail.user.balance,
-                signature: e.detail.signature
-            };
-            const claimSection = document.getElementById('claim-section');
-            if (claimSection) {
-                claimSection.style.display = 'block';
-                document.getElementById('claim-amount-display').innerText = parseFloat(e.detail.user.balance).toFixed(4);
+        window.addEventListener('game:userBalanceUpdated', (e) => {
+            const newBalance = parseFloat(e.detail.user?.balance) || 0;
+            animateValue('balance-val', window.userState.balance || 0, newBalance, 4);
+            window.userState.balance = newBalance;
+        });
+
+        window.addEventListener('game:sessionStarted', (e) => {
+            window.userState.balance = parseFloat(e.detail.initial_balance) || 0;
+            window.userState.status = 'in_pool';
+            showCombatOverlay("RECHERCHE D'ADVERSAIRES...");
+            updateUI();
+        });
+
+        window.addEventListener('game:sessionFinished', (e) => {
+            window.userState.status = 'stopped';
+            hideCombatOverlay();
+            
+            if (e.detail.signature) {
+                gameState.pendingClaim = {
+                    amount: e.detail.user.balance,
+                    signature: e.detail.signature
+                };
+                const claimSection = document.getElementById('claim-section');
+                if (claimSection) {
+                    claimSection.style.display = 'block';
+                    document.getElementById('claim-amount-display').innerText = parseFloat(e.detail.user.balance).toFixed(4);
+                }
             }
-        }
 
-        if (e.detail.reason === 'SUCCESS') {
-            const profit = (parseFloat(e.detail.user.balance) - parseFloat(window.userState.session_start_balance || 0)).toFixed(4);
-            addToFeed(`🏆 VICTORY! Final Balance: ${parseFloat(e.detail.user.balance).toFixed(4)} ETH (Profit: ${profit})`, "var(--success)");
-        } else {
-            addToFeed(`💀 SESSION ENDED: ${e.detail.reason}`, "var(--accent)");
-        }
-        updateUI();
-    });
+            if (e.detail.reason === 'SUCCESS') {
+                const profit = (parseFloat(e.detail.user.balance) - parseFloat(window.userState.session_start_balance || 0)).toFixed(4);
+                addToFeed(`🏆 VICTORY! Final Balance: ${parseFloat(e.detail.user.balance).toFixed(4)} ETH (Profit: ${profit})`, "var(--success)");
+            } else {
+                addToFeed(`💀 SESSION ENDED: ${e.detail.reason}`, "var(--accent)");
+            }
+            updateUI();
+        });
 
-    window.addEventListener('game:fightResult', (e) => {
-        triggerClash(e.detail.my_move, e.detail.opponent_move, e.detail.result, e.detail.delta);
-        animateValue('balance-val', window.userState.balance || 0, e.detail.current_balance, 4);
-        window.userState.balance = e.detail.current_balance;
-    });
+        window.addEventListener('game:fightResult', (e) => {
+            triggerClash(e.detail.my_move, e.detail.opponent_move, e.detail.result, e.detail.delta);
+            animateValue('balance-val', window.userState.balance || 0, e.detail.current_balance, 4);
+            window.userState.balance = e.detail.current_balance;
+        });
 
-    window.addEventListener('game:martingaleUpdated', (e) => {
-        window.userState.bet_amount = parseFloat(e.detail.next_bet) || 0;
-        addToFeed(`📈 Martingale : Prochaine mise à ${window.userState.bet_amount.toFixed(4)} ETH`, "var(--primary)");
-        updateUI();
-    });
+        window.addEventListener('game:martingaleUpdated', (e) => {
+            window.userState.bet_amount = parseFloat(e.detail.next_bet) || 0;
+            addToFeed(`📈 Martingale : Prochaine mise à ${window.userState.bet_amount.toFixed(4)} ETH`, "var(--primary)");
+            updateUI();
+        });
 
-    window.addEventListener('game:poolEmitted', (e) => {
-        if (window.userState?.walletAddress && e.detail.users.includes(window.userState.walletAddress.toLowerCase())) {
-            showCombatOverlay(`POOL FOUND`);
-            addToFeed(`⚔️ Match Found! Entering Pool`, "var(--primary)");
-        }
-    });
+        window.addEventListener('game:poolEmitted', (e) => {
+            if (window.userState?.walletAddress && e.detail.users.includes(window.userState.walletAddress.toLowerCase())) {
+                showCombatOverlay(`POOL FOUND`);
+                addToFeed(`⚔️ Match Found! Entering Pool`, "var(--primary)");
+            }
+        });
 
-    window.addEventListener('auth:success', () => {
-        fetchUserStatus();
-    });
+        window.addEventListener('auth:success', () => {
+            fetchUserStatus();
+        });
+    }
 
     // Make functions globally available for inline HTML onclick handlers (temporary until HTML is cleaned)
     window.addMove = addMove;
@@ -121,6 +143,7 @@ async function fetchUserStatus() {
         if (res.ok) {
             const data = await res.json();
             window.userState.balance = data.balance;
+            window.userState.bet_amount = data.bet_amount;
             // Ne pas écraser l'état 'setup' local si le serveur dit 'available'
             if (window.userState.status !== 'setup' || data.status !== 'available') {
                 window.userState.status = data.status;
@@ -276,6 +299,7 @@ async function startSession() {
 
         if (joinRes.ok) {
             window.userState.status = 'dashboard';
+            window.userState.bet_amount = parseFloat(bet) || 0;
             window.userState.session_start_balance = parseFloat(window.userState.balance) || 0;
             updateUI();
             addToFeed("🚀 Session Initialized. Waiting for pool...", "var(--primary)");
