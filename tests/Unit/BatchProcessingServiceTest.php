@@ -87,11 +87,12 @@ class BatchProcessingServiceTest extends TestCase
             
         $this->poolFetcherMock->shouldReceive('fetchInitialPools')
             ->with(5, 1.0, Mockery::any()) 
-            ->andReturn(collect([new \App\Models\Pool(['id' => 1])]));
+            ->andReturn(new \Illuminate\Database\Eloquent\Collection([new \App\Models\Pool(['id' => 1])]));
 
-        $mockBatch = new Batch(['id' => 123, 'status' => 'waiting']);
+        $mockBatch = new Batch(['status' => 'waiting']);
+        $mockBatch->id = 123;
         $this->batchManagerMock->shouldReceive('createBatch')
-            ->with(5, 1.0, Mockery::type('Illuminate\Support\Collection'))
+            ->with(5, 1.0, Mockery::type('Illuminate\Database\Eloquent\Collection'))
             ->once()->andReturn($mockBatch);
 
         $result = $this->service->processBatch(1.0);

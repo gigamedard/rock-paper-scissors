@@ -38,27 +38,43 @@ class InfluencerStatsTest extends TestCase
         // Initial stats (should be 0 or null)
         $this->assertNull($influencer->stats);
 
-        // 3. Create Referee
-        $referee = User::factory()->create();
+        // 3. Create Referee 1
+        $referee1 = User::factory()->create();
 
-        // 4. Create Pending Referral
+        // 4. Create Pending Referral 1
         Referral::create([
             'referrer_id' => $referrer->id,
-            'referred_id' => $referee->id,
+            'referred_id' => $referee1->id,
             'referral_code' => 'INF123',
             'status' => 'pending'
         ]);
 
-        // 5. Validate Referral (Call API)
-        $response = $this->postJson('/api/referrals/validate', [
-            'user_id' => $referee->id
+        // 5. Validate Referral 1 (Call API)
+        $response1 = $this->postJson('/api/referrals/validate', [
+            'user_id' => $referee1->id
+        ]);
+        $response1->assertStatus(200);
+
+        // 6. Create Referee 2
+        $referee2 = User::factory()->create();
+
+        // 7. Create Pending Referral 2
+        Referral::create([
+            'referrer_id' => $referrer->id,
+            'referred_id' => $referee2->id,
+            'referral_code' => 'INF123',
+            'status' => 'pending'
         ]);
 
-        $response->assertStatus(200);
+        // 8. Validate Referral 2 (Call API)
+        $response2 = $this->postJson('/api/referrals/validate', [
+            'user_id' => $referee2->id
+        ]);
+        $response2->assertStatus(200);
 
-        // 6. Verify Stats
+        // 9. Verify Stats
         $influencer->refresh();
         $this->assertNotNull($influencer->stats, 'Influencer stats should be created');
-        $this->assertEquals(1, $influencer->stats->referral_count, 'Referral count should be 1');
+        $this->assertEquals(2, $influencer->stats->referral_count, 'Referral count should be 2');
     }
 }

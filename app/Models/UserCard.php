@@ -16,6 +16,7 @@ class UserCard extends Model
         'remaining_sessions',
         'expires_at',
         'purchased_at',
+        'tx_hash',
     ];
 
     protected $casts = [

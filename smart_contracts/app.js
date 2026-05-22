@@ -1,7 +1,7 @@
 // app.js (Le nouveau script qui remplace server.js ET listener3.js)
 
 import express from "express";
-import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits, parseEther } from "ethers";
+import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits, parseEther, solidityPackedKeccak256, getBytes } from "ethers";
 import { createHelia } from 'helia';
 import { json } from '@helia/json';
 import { FsBlockstore } from 'blockstore-fs';
@@ -184,6 +184,44 @@ app.post("/sendBatchPayment", async (req, res) => {
     }
 });
 
+app.post("/setUserLimits", async (req, res) => {
+    try {
+        const { wallet, maxBaseBet, maxQ, minCooldown, expiry } = req.body;
+
+        if (!wallet || maxBaseBet === undefined || maxQ === undefined || minCooldown === undefined || expiry === undefined) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+
+        console.log(`📡 Setting user limits for ${wallet} on smart contract...`);
+        const tx = await gameContract.setUserLimits(wallet, maxBaseBet, maxQ, minCooldown, expiry);
+        await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash });
+    } catch (error) {
+        console.error("❌ Error setting user limits on smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/setUserNextSessionTime", async (req, res) => {
+    try {
+        const { wallet, nextTime } = req.body;
+
+        if (!wallet || nextTime === undefined) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+
+        console.log(`📡 Setting next session time for ${wallet} to ${nextTime} on smart contract...`);
+        const tx = await gameContract.setUserNextSessionTime(wallet, nextTime);
+        await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash });
+    } catch (error) {
+        console.error("❌ Error setting user next session time on smart contract:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/getUserNonce/:wallet', async (req, res) => {
     try {
         const { wallet } = req.params;
@@ -191,6 +229,30 @@ app.get('/getUserNonce/:wallet', async (req, res) => {
         res.json({ nonce: nonce.toString() });
     } catch (error) {
         console.error("Error fetching nonce:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post("/generate-signature", async (req, res) => {
+    try {
+        const { wallet, amount } = req.body;
+        if (!wallet || !amount) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+        
+        console.log(`📡 Generating signature for claim: ${wallet} - ${amount} wei`);
+        const nonce = await gameContract.nonces(wallet);
+        
+        const messageHash = solidityPackedKeccak256(
+            ["address", "uint256", "uint256", "address"],
+            [wallet, amount, nonce, contracts.game.address]
+        );
+        const messageHashBytes = getBytes(messageHash);
+        const signature = await gameWallet.signMessage(messageHashBytes);
+        
+        res.json({ signature });
+    } catch (error) {
+        console.error("❌ Error generating signature:", error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -225,8 +287,57 @@ app.post("/create-offer", async (req, res) => {
     }
 });
 
+app.post("/verify-snt-transfer", async (req, res) => {
+    try {
+        const { txHash, expectedAmount, sender } = req.body;
 
+        if (!txHash || !expectedAmount || !sender) {
+            return res.status(400).json({ error: "Paramètres manquants." });
+        }
 
+        console.log(`📡 Checking SNT transfer tx: ${txHash}`);
+
+        const receipt = await gameProvider.getTransactionReceipt(txHash);
+        if (!receipt) {
+             return res.status(404).json({ error: "Transaction introuvable ou non minée." });
+        }
+        if (receipt.status !== 1) {
+             return res.status(400).json({ error: "Transaction échouée (reverted)." });
+        }
+
+        const sntContract = new Contract(contracts.snt.address, contracts.snt.abi, gameProvider);
+        let validTransferFound = false;
+
+        for (const log of receipt.logs) {
+            if (log.address.toLowerCase() === contracts.snt.address.toLowerCase()) {
+                try {
+                    const parsedLog = sntContract.interface.parseLog({ topics: [...log.topics], data: log.data });
+                    if (parsedLog && parsedLog.name === "Transfer") {
+                        const from = parsedLog.args[0].toLowerCase();
+                        const amount = formatEther(parsedLog.args[2]);
+
+                        if (from === sender.toLowerCase() && parseFloat(amount) >= parseFloat(expectedAmount)) {
+                            validTransferFound = true;
+                            break;
+                        }
+                    }
+                } catch(err) {
+                    // Ignore parse errors
+                }
+            }
+        }
+
+        if (!validTransferFound) {
+             return res.status(400).json({ error: "Aucun transfert SNT valide correspondant n'a été trouvé." });
+        }
+
+        res.json({ success: true, message: "Transfert SNT vérifié avec succès." });
+
+    } catch (error) {
+        console.error("❌ Erreur /verify-snt-transfer:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 /**
  * NOUVELLE ROUTE SÉCURISÉE

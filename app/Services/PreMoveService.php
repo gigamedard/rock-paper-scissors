@@ -19,9 +19,28 @@ class PreMoveService
      */
     public function storePreMoves(array $data): array
     {
+        $user = User::findOrFail($data['user_id']);
+        $limits = $user->getActiveLimits();
+
+        $bet_amount = $data['bet_amount'];
+        $target_q = $data['target_q'] ?? 2.0;
+        $cooldown_time = $data['cooldown_time'] ?? 1440;
+
+        // Perform validations against limits
+        if ($bet_amount > $limits['max_base_bet']) {
+            abort(422, 'Bet amount exceeds the authorized limit.');
+        }
+
+        if ($target_q > $limits['max_q']) {
+            abort(422, 'Target multiplier Q exceeds the authorized limit.');
+        }
+
+        if ($cooldown_time < $limits['min_cooldown']) {
+            abort(422, 'Cooldown time is less than the authorized minimum limit.');
+        }
+
         $nonce = bin2hex(random_bytes(16));
         $preMoves = $data['pre_moves'];
-        $bet_amount = $data['bet_amount'];
 
         $hashedMoves = array_map(fn($move) => hash('sha3-256', $move . $nonce), $preMoves);
 
@@ -38,10 +57,10 @@ class PreMoveService
         );
 
         // Register user for autoplay and (stub) store on blockchain.
-        $this->userDataService->registerForAutoplay($data['user_id'], $bet_amount);
+        $this->userDataService->registerForAutoplay($data['user_id'], $bet_amount, $target_q, $cooldown_time);
         
         // Clear previous payout signature as a new session is starting
-        User::where('id', $data['user_id'])->update(['payout_signature' => null]);
+        $user->update(['payout_signature' => null]);
 
         $this->storeOnBlockchain($hashedMoves);
 

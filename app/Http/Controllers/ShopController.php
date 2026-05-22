@@ -35,18 +35,26 @@ class ShopController extends Controller
         }
 
         $validated = $request->validate([
-            'card_id' => 'required|exists:cards,id'
+            'card_id' => 'required|exists:cards,id',
+            'tx_hash' => 'required|string|unique:user_cards,tx_hash'
         ]);
 
         $card = \App\Models\Card::where('id', $validated['card_id'])->where('is_active', true)->firstOrFail();
 
-        // Note: La vérification de la transaction Web3 et la déduction des tokens SNT 
-        // sont gérées de manière asynchrone par le pont Node.js (via syncTransfer).
-        // Le frontend envoie le tx_hash pour l'audit.
-        $txHash = $request->input('tx_hash');
-        if ($txHash) {
-            \Illuminate\Support\Facades\Log::info("Achat de carte On-Chain", ['user' => $user->id, 'card' => $card->id, 'tx_hash' => $txHash]);
+        $txHash = $validated['tx_hash'];
+
+        // Vérification synchrone auprès du pont Node.js
+        $nodeUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+        $verifyResponse = \App\Helpers\Web3Helper::verifySntTransfer($nodeUrl, $txHash, $card->price, $user->wallet_address);
+
+        if (isset($verifyResponse['error'])) {
+             return response()->json(['error' => $verifyResponse['error']], 400);
         }
+        if (!isset($verifyResponse['success']) || !$verifyResponse['success']) {
+             return response()->json(['error' => 'Vérification de la transaction échouée.'], 400);
+        }
+
+        \Illuminate\Support\Facades\Log::info("Achat de carte On-Chain validé", ['user' => $user->id, 'card' => $card->id, 'tx_hash' => $txHash]);
 
         // Ajouter la carte à l'inventaire
         $expiresAt = null;
@@ -60,7 +68,12 @@ class ShopController extends Controller
             'status' => 'available',
             'remaining_sessions' => $card->duration_type === 'sessions' ? $card->duration_value : null,
             'expires_at' => $expiresAt,
+            'tx_hash' => $txHash,
         ]);
+
+        // Sync limits to blockchain
+        $user->load('userCards.card');
+        $user->syncLimitsToBlockchain();
 
         return response()->json([
             'message' => 'Carte achetée avec succès !',

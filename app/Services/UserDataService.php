@@ -6,7 +6,7 @@ use App\Models\User;
 
 class UserDataService
 {
-    public function registerForAutoplay(int $userId, $bet_amount)
+    public function registerForAutoplay(int $userId, $bet_amount, $target_q = 2.0, $cooldown_time = 1440)
     {
         $user = User::find($userId);
         if (!$user) {
@@ -16,6 +16,8 @@ class UserDataService
             'autoplay_active' => true,
             'bet_amount' => $bet_amount,
             'status' => 'available',
+            'target_q' => $target_q,
+            'cooldown_time' => $cooldown_time,
         ]);
     }
 

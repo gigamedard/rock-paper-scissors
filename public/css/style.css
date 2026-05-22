@@ -457,8 +457,18 @@ h1 {
     color: white;
     font-size: 2rem;
     font-weight: 800;
-    width: 150px;
+    width: 100%;
     outline: none;
+    cursor: pointer;
+}
+select.bet-input option {
+    background-color: #14161e;
+    color: white;
+    font-size: 1.2rem;
+}
+select.bet-input option:disabled {
+    color: rgba(255, 255, 255, 0.2);
+    background-color: #0c0d12;
 }
 
 .claim-section {

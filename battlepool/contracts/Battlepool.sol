@@ -44,6 +44,24 @@ contract Battlepool {
     event DevFeesWithdrawn(address indexed wallet, uint256 amount);
     event PlayerClaimed(address indexed wallet, uint256 amount, uint256 nonce);
 
+    event DefaultMaxBaseBetChanged(uint256 newLimit);
+    event DefaultMaxQChanged(uint256 newLimit);
+    event DefaultMinCooldownChanged(uint256 newLimit);
+    event UserLimitsUpdated(address indexed user, uint256 maxBaseBet, uint256 maxQ, uint256 minCooldown, uint256 expiry);
+
+    struct UserLimit {
+        uint256 maxBaseBet;
+        uint256 maxQ;
+        uint256 minCooldown;
+        uint256 expiry;
+    }
+
+    mapping(address => UserLimit) public userLimits;
+
+    uint256 public defaultMaxBaseBet;
+    uint256 public defaultMaxQ;
+    uint256 public defaultMinCooldown;
+
     address public owner;
     uint256 public securityCoefficient = 1000;
     uint256 public defaultPoolMaxSize; // <<<--- AJOUTEZ CETTE LIGNE
@@ -64,6 +82,9 @@ contract Battlepool {
         owner = msg.sender;
         devWallet = payable(msg.sender); // Default to deployer
         defaultPoolMaxSize = 5; // <<<--- AJOUTEZ CETTE LIGNE
+        defaultMaxBaseBet = 0.01 ether;
+        defaultMaxQ = 2.0 * 1e18;
+        defaultMinCooldown = 86400;
     }
 
     /**
@@ -153,6 +174,7 @@ contract Battlepool {
 
         for (uint256 i = 0; i < users.length; i++) {
             require(users[i] != address(0), "Invalid user address");
+            require(baseBet <= getUserMaxBaseBet(users[i]), "Base bet exceeds authorized limit");
             require(!pool.isUserInPool[users[i]], "User already in pool");
             require(!isUserInAnyPool[users[i]], "User in another pool");
             require(block.timestamp >= nextSessionAllowedTime[users[i]], "User is in cooldown");
@@ -178,6 +200,7 @@ contract Battlepool {
     function addSingleUserToPool(uint256 baseBet, address user) public {
         
         require(user != address(0), "Invalid user address");
+        require(baseBet <= getUserMaxBaseBet(user), "Base bet exceeds authorized limit");
         
         require(!isUserInAnyPool[user], "User in another pool");
         require(block.timestamp >= nextSessionAllowedTime[user], "User is in cooldown");
@@ -210,6 +233,7 @@ contract Battlepool {
     function submitPremoveCID(uint256 baseBet, string memory cid) external payable {
         require(bytes(cid).length > 0, "CID cannot be empty");
         require(baseBet > 0, "Base bet must be greater than 0");
+        require(baseBet <= getUserMaxBaseBet(msg.sender), "Base bet exceeds authorized limit");
         
         uint256 requiredBalance = baseBet * securityCoefficient;
         uint256 depositAmount = (msg.value * 10000) / (10000 + feeBasisPoints);
@@ -525,6 +549,7 @@ contract Battlepool {
     }
 
     function setUserNextSessionTime(address user, uint256 nextTime) external onlyOwner {
+        require(nextTime == 0 || nextTime >= block.timestamp + getUserMinCooldown(user), "Cooldown is too short");
         nextSessionAllowedTime[user] = nextTime;
         emit NextSessionTimeUpdated(user, nextTime);
     }
@@ -560,5 +585,82 @@ contract Battlepool {
         pool.lastActivityBlock = block.number; // Reset timer (though pool is empty now)
 
         emit PoolStagnantRefund(pool.poolId, refundedCount, block.timestamp);
+    }
+
+    function getUserMaxBaseBet(address user) public view returns (uint256) {
+        UserLimit memory limit = userLimits[user];
+        if (limit.expiry == 0) {
+            return defaultMaxBaseBet;
+        }
+        if (limit.expiry < 1e9) {
+            if (block.number > limit.expiry) {
+                return defaultMaxBaseBet;
+            }
+        } else {
+            if (block.timestamp > limit.expiry) {
+                return defaultMaxBaseBet;
+            }
+        }
+        return limit.maxBaseBet;
+    }
+
+    function getUserMaxQ(address user) public view returns (uint256) {
+        UserLimit memory limit = userLimits[user];
+        if (limit.expiry == 0) {
+            return defaultMaxQ;
+        }
+        if (limit.expiry < 1e9) {
+            if (block.number > limit.expiry) {
+                return defaultMaxQ;
+            }
+        } else {
+            if (block.timestamp > limit.expiry) {
+                return defaultMaxQ;
+            }
+        }
+        return limit.maxQ;
+    }
+
+    function getUserMinCooldown(address user) public view returns (uint256) {
+        UserLimit memory limit = userLimits[user];
+        if (limit.expiry == 0) {
+            return defaultMinCooldown;
+        }
+        if (limit.expiry < 1e9) {
+            if (block.number > limit.expiry) {
+                return defaultMinCooldown;
+            }
+        } else {
+            if (block.timestamp > limit.expiry) {
+                return defaultMinCooldown;
+            }
+        }
+        return limit.minCooldown;
+    }
+
+    function setUserLimits(
+        address user,
+        uint256 maxBaseBet,
+        uint256 maxQ,
+        uint256 minCooldown,
+        uint256 expiry
+    ) external onlyOwner {
+        userLimits[user] = UserLimit(maxBaseBet, maxQ, minCooldown, expiry);
+        emit UserLimitsUpdated(user, maxBaseBet, maxQ, minCooldown, expiry);
+    }
+
+    function setDefaultMaxBaseBet(uint256 newLimit) external onlyOwner {
+        defaultMaxBaseBet = newLimit;
+        emit DefaultMaxBaseBetChanged(newLimit);
+    }
+
+    function setDefaultMaxQ(uint256 newLimit) external onlyOwner {
+        defaultMaxQ = newLimit;
+        emit DefaultMaxQChanged(newLimit);
+    }
+
+    function setDefaultMinCooldown(uint256 newLimit) external onlyOwner {
+        defaultMinCooldown = newLimit;
+        emit DefaultMinCooldownChanged(newLimit);
     }
 } 

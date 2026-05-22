@@ -114,7 +114,7 @@ class ReferralController extends Controller
         $top = User::withCount(['referrals as validated_referrals_count' => function ($q) {
                 $q->where('status', 'validated');
             }])
-            ->withSum('referralRewards', 'reward_tokens') // <-- AJOUTE CETTE LIGNE
+            ->withSum('referralRewards', 'reward_tokens')
             ->orderBy('validated_referrals_count', 'desc')
             ->limit(10)
             ->get(['id', 'name', 'wallet_address']);
@@ -123,14 +123,25 @@ class ReferralController extends Controller
                 'name'           => $u->name,
                 'wallet_address' => substr($u->wallet_address, 0, 6) . '...' . substr($u->wallet_address, -4),
                 'referral_count' => $u->validated_referrals_count,
-                // --- CORRECTION ICI ---
                 'rewards_earned' => (int) $u->referral_rewards_sum_reward_tokens ?? 0,
             ]);
 
         return response()->json($top);
     }
 
-    // Dans app/Http/Controllers/ReferralController.php
+    public function getRewardHistory(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $history = $user->referralRewards()
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($history);
+    }
 
     public function validateReferral(Request $request)
     {
@@ -138,92 +149,17 @@ class ReferralController extends Controller
             'user_id' => 'required|integer|exists:users,id'
         ]);
 
-        // L'utilisateur qui vient de participer à son premier tournoi (le "filleul")
         $referredUser = User::find($validated['user_id']);
 
-        // On le marque comme éligible pour parrainer à son tour.
-        if ($referredUser && !$referredUser->is_eligible_to_refer) {
-            $referredUser->update(['is_eligible_to_refer' => true]);
-            Log::info('User is now eligible to refer', ['user_id' => $referredUser->id]);
-        }
-
-        // Cherche si cet utilisateur a été parrainé
-        $referral = Referral::where('referred_id', $validated['user_id'])
+        $referral = Referral::where('referred_id', $referredUser->id)
             ->where('status', 'pending')
             ->first();
 
-        // S'il n'a pas de parrainage en attente, il n'y a rien de plus à faire pour le système de parrainage.
+        $referralService = app(\App\Services\ReferralService::class);
+        $referralService->processReferralValidation($referredUser);
+
         if (!$referral) {
             return response()->json(['message' => 'User is now eligible to refer. No pending referral found.'], 200);
-        }
-
-        // ====> DÉBUT DE LA NOUVELLE LOGIQUE POUR LE BONUS DU FILLEUL <====
-        
-        // On vérifie si le filleul n'a pas déjà reçu son bonus et s'il a bien un parrainage.
-        if (!$referredUser->has_received_signup_bonus) {
-            // Il est venu avec un code, on lui donne son bonus de 1 SNT !
-            $referredUser->increment('token_balance', 1);
-            $referredUser->update(['has_received_signup_bonus' => true]);
-
-            Log::info('🎉 Signup bonus granted to referred user', [
-                'user_id' => $referredUser->id,
-                'bonus_amount' => 1,
-                'new_token_balance' => $referredUser->fresh()->token_balance
-            ]);
-        }
-        // ====> FIN DE LA NOUVELLE LOGIQUE <====
-
-        // On continue avec la logique existante pour récompenser le PARRAIN
-        $referral->update(['status' => 'validated']);
-        
-        $referrer = $referral->referrer;
-
-        // ===> INFLUENCER STATS UPDATE <===
-        // Check if the referrer is an influencer and update their stats
-        $influencer = Influencer::where('user_id', $referrer->id)->first();
-        if ($influencer) {
-            $stats = $influencer->stats;
-            if (!$stats) {
-                $stats = InfluencerStat::create([
-                    'influencer_id' => $influencer->id,
-                    'referral_count' => 0,
-                    'total_avax_spent' => 0
-                ]);
-            }
-            $stats->incrementReferralCount(1);
-            Log::info('Influencer stats updated via referral validation', [
-                'influencer_id' => $influencer->id,
-                'referrer_id' => $referrer->id,
-                'new_count' => $stats->fresh()->referral_count
-            ]);
-        }
-        // ===> END INFLUENCER STATS UPDATE <===
-        $totalValidated = Referral::where('referrer_id', $referrer->id)
-            ->where('status', 'validated')
-            ->count();
-
-        $milestones = [ 1 => 1, 3 => 1, 5 => 1, 11 => 1, 50 => 1, 100 => 1 ];
-
-        $alreadyRewarded = \App\Models\ReferralReward::where('referrer_id', $referrer->id)
-            ->where('milestone_reached', $totalValidated)
-            ->exists();
-
-        if (array_key_exists($totalValidated, $milestones) && !$alreadyRewarded) {
-            $rewardAmount = $milestones[$totalValidated];
-
-            \App\Models\ReferralReward::create([
-                'referrer_id' => $referrer->id,
-                'milestone_reached' => $totalValidated,
-                'reward_tokens' => $rewardAmount,
-            ]);
-
-            $referrer->increment('token_balance', $rewardAmount);
-
-            Log::info('🎁 Reward granted and token balance updated for referrer', [
-                'referrer_id' => $referrer->id,
-                'milestone' => $totalValidated,
-                'new_token_balance' => $referrer->fresh()->token_balance
-            ]);
         }
 
         return response()->json([

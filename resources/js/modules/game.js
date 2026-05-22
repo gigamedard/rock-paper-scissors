@@ -16,7 +16,7 @@ export function initGame() {
     // Bind UI buttons using direct properties to prevent double binding
     const betInput = document.getElementById('base-bet-input');
     if (betInput) {
-        betInput.oninput = updateFeeDisplay;
+        betInput.onchange = updateFeeDisplay;
     }
     
     const startBtn = document.getElementById('start-session-btn');
@@ -248,6 +248,8 @@ async function startSession() {
     }
 
     const bet = document.getElementById('base-bet-input').value;
+    const targetQ = document.getElementById('target-q-input') ? parseFloat(document.getElementById('target-q-input').value) : 2.0;
+    const cooldownTime = document.getElementById('cooldown-input') ? parseInt(document.getElementById('cooldown-input').value, 10) : 1440;
     const btn = document.getElementById('start-session-btn');
     btn.innerText = "UPLOADING TO IPFS...";
     btn.disabled = true;
@@ -293,7 +295,9 @@ async function startSession() {
                 pre_moves: gameState.preMoves,
                 user_id: window.userState.id,
                 bet_amount: bet,
-                cid: cid
+                cid: cid,
+                target_q: targetQ,
+                cooldown_time: cooldownTime
             })
         });
 
@@ -372,6 +376,9 @@ export function updateUI() {
 
     if (activeView) {
         activeView.style.display = (activeView === views['dashboard']) ? 'grid' : 'block';
+        if (activeView === views['setup']) {
+            applyActiveLimits();
+        }
     }
 
     const connectBtn = document.getElementById('connect-btn');
@@ -519,4 +526,76 @@ function triggerShake(id) {
     if(!obj) return;
     obj.style.animation = 'none';
     setTimeout(() => obj.style.animation = 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both', 10);
+}
+
+async function applyActiveLimits() {
+    if (!window.userState?.id) return;
+    try {
+        const res = await secureFetch('/user');
+        if (res.ok) {
+            const data = await res.json();
+            const limits = data.active_limits;
+            if (!limits) return;
+
+            const betSelect = document.getElementById('base-bet-input');
+            if (betSelect) {
+                let firstValid = null;
+                let currentValValid = false;
+                Array.from(betSelect.options).forEach(opt => {
+                    const val = parseFloat(opt.value);
+                    if (val > limits.max_base_bet) {
+                        opt.disabled = true;
+                    } else {
+                        opt.disabled = false;
+                        if (firstValid === null) firstValid = opt.value;
+                        if (betSelect.value === opt.value) currentValValid = true;
+                    }
+                });
+                if (!currentValValid && firstValid !== null) {
+                    betSelect.value = firstValid;
+                    updateFeeDisplay();
+                }
+            }
+
+            const qSelect = document.getElementById('target-q-input');
+            if (qSelect) {
+                let firstValid = null;
+                let currentValValid = false;
+                Array.from(qSelect.options).forEach(opt => {
+                    const val = parseFloat(opt.value);
+                    if (val > limits.max_q) {
+                        opt.disabled = true;
+                    } else {
+                        opt.disabled = false;
+                        if (firstValid === null) firstValid = opt.value;
+                        if (qSelect.value === opt.value) currentValValid = true;
+                    }
+                });
+                if (!currentValValid && firstValid !== null) {
+                    qSelect.value = firstValid;
+                }
+            }
+
+            const cooldownSelect = document.getElementById('cooldown-input');
+            if (cooldownSelect) {
+                let firstValid = null;
+                let currentValValid = false;
+                Array.from(cooldownSelect.options).forEach(opt => {
+                    const val = parseInt(opt.value, 10);
+                    if (val < limits.min_cooldown) {
+                        opt.disabled = true;
+                    } else {
+                        opt.disabled = false;
+                        if (firstValid === null) firstValid = opt.value;
+                        if (cooldownSelect.value === opt.value) currentValValid = true;
+                    }
+                });
+                if (!currentValValid && firstValid !== null) {
+                    cooldownSelect.value = firstValid;
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to fetch and apply active user limits", e);
+    }
 }

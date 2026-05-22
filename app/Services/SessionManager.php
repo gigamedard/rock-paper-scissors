@@ -75,6 +75,9 @@ class SessionManager
         $activeBaseBetCards = \App\Models\UserCard::with('card')
             ->where('user_id', $user->id)
             ->where('status', 'available')
+            ->where(function($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
             ->whereHas('card', function ($q) {
                 $q->where('effect_type', 'base_bet_modifier');
             })
@@ -160,6 +163,9 @@ class SessionManager
         $activeCeilingCards = \App\Models\UserCard::with('card')
             ->where('user_id', $user->id)
             ->where('status', 'available')
+            ->where(function($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
             ->whereHas('card', function ($q) {
                 $q->where('effect_type', 'ceiling_increase');
             })
@@ -194,8 +200,8 @@ class SessionManager
             
             event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature));
             
-        } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount)) {
-            // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet)
+        } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount) || $q <= 0.95) {
+            // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet, OR fast defeat threshold for testing)
             $type = ($q < 1) ? "RUIN" : "STRATEGIC_LIMIT";
             UserTracker::info("[SESSION_{$type}] ⚠️ User {$user->wallet_address} (q=$q) cannot cover next bet ({$user->balance} < {$user->bet_amount}). Session ended.", ['wallet' => $user->wallet_address, 'q' => $q]);
             
@@ -234,6 +240,9 @@ class SessionManager
             $user->status = 'available';
             $user->save();
         }
+
+        // Sync limits to blockchain in case any cards expired/consumed
+        $user->syncLimitsToBlockchain();
     }
 
     private function closeSession(User $user, string $newStatus): void
@@ -271,6 +280,9 @@ class SessionManager
         $activeCooldownCards = \App\Models\UserCard::with('card')
             ->where('user_id', $user->id)
             ->where('status', 'available')
+            ->where(function($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
             ->whereHas('card', function ($q) {
                 $q->where('effect_type', 'cooldown_reduction');
             })

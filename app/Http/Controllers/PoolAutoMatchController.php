@@ -64,6 +64,8 @@ class PoolAutoMatchController extends Controller
             'user_id' => 'required|integer|exists:users,id',
             'bet_amount' => 'required|numeric|min:0.000001',
             'cid' => 'required|string',
+            'target_q' => 'nullable|numeric|min:1.0',
+            'cooldown_time' => 'nullable|integer|min:0',
         ]);
 
         $user = $request->user();

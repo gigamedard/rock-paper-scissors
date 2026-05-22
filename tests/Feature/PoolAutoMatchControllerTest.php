@@ -19,8 +19,8 @@ class PoolAutoMatchControllerTest extends TestCase
         config(['app.INTERNAL_API_SECRET' => 'test_secret']);
         Event::fake();
 
-        $user1 = User::factory()->create(['wallet_address' => '0x1234567890123456789012345678901234567890', 'balance' => 0]);
-        $user2 = User::factory()->create(['wallet_address' => '0x0987654321098765432109876543210987654321', 'balance' => 0]);
+        $user1 = User::factory()->create(['wallet_address' => '0x1234567890123456789012345678901234567890', 'balance' => 1000]);
+        $user2 = User::factory()->create(['wallet_address' => '0x0987654321098765432109876543210987654321', 'balance' => 1000]);
 
         $user1->preMove()->create([
             'moves' => json_encode(['rock', 'paper', 'scissors']),

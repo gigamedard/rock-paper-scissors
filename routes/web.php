@@ -601,7 +601,15 @@ Route::get('/admin/cards', function() {
     return view('admin.cards');
 })->name('admin.cards.index');
 
+Route::get('/admin', function () {
+    return file_get_contents(public_path('admin.html'));
+});
+
 // Route "catch-all" pour que le rafraîchissement (F5) fonctionne sur des sous-pages
+Route::get('/dashboard', function () {
+    return file_get_contents(public_path('index.html'));
+})->name('dashboard');
+
 Route::get('/{any}', function () {
     return file_get_contents(public_path('index.html'));
 })->where('any', '.*');

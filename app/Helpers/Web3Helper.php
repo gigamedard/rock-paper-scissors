@@ -225,6 +225,18 @@ class Web3Helper
         return $response->json();
     }
 
+    public static function setUserLimits($nodeUrl, $walletAddress, $maxBaseBet, $maxQ, $minCooldown, $expiry)
+    {
+        $response = Http::post("{$nodeUrl}/setUserLimits", [
+            'wallet' => $walletAddress,
+            'maxBaseBet' => self::etherToWei($maxBaseBet),
+            'maxQ' => self::etherToWei($maxQ),
+            'minCooldown' => $minCooldown,
+            'expiry' => $expiry,
+        ]);
+
+        return $response->json();
+    }
 
 
 
@@ -235,6 +247,22 @@ class Web3Helper
 
 
 
+
+
+    public static function verifySntTransfer($nodeUrl, $txHash, $expectedAmount, $sender)
+    {
+        try {
+            $response = Http::post("{$nodeUrl}/verify-snt-transfer", [
+                'txHash' => $txHash,
+                'expectedAmount' => $expectedAmount,
+                'sender' => $sender
+            ]);
+            return $response->json();
+        } catch (\Exception $e) {
+            Log::error("Web3Helper::verifySntTransfer error: " . $e->getMessage());
+            return ['error' => 'Erreur de connexion avec le pont Node.js.'];
+        }
+    }
 
     public static function getUserNonce($nodeUrl, $walletAddress)
     {

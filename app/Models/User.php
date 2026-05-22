@@ -39,6 +39,12 @@ class User extends Authenticatable
         'language',
         'has_received_signup_bonus',
         'is_eligible_to_refer',
+        'target_q',
+        'cooldown_time',
+    ];
+
+    protected $appends = [
+        'active_limits',
     ];
 
     protected $hidden = [
@@ -49,6 +55,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'target_q' => 'float',
+        'cooldown_time' => 'integer',
     ];
 
     public function challengesSent()
@@ -149,5 +157,106 @@ class User extends Authenticatable
         return $code;
     }
 
-    
+    public function userCards()
+    {
+        return $this->hasMany(UserCard::class);
+    }
+
+    public function getActiveLimits()
+    {
+        $maxBaseBet = 0.01;
+        $maxQ = 2.0;
+        $minCooldown = 1440; // in minutes (24h)
+
+        $activeCards = $this->userCards()
+            ->with('card')
+            ->where('status', 'available')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->get();
+
+        foreach ($activeCards as $userCard) {
+            $card = $userCard->card;
+            if (!$card || !$card->is_active) {
+                continue;
+            }
+            if ($card->effect_type === 'base_bet_modifier') {
+                $maxBaseBet += (float)$card->effect_value;
+            } elseif ($card->effect_type === 'ceiling_increase') {
+                $maxQ += (float)$card->effect_value;
+            } elseif ($card->effect_type === 'cooldown_reduction') {
+                $minCooldown = max(60, $minCooldown - (int)$card->effect_value);
+            }
+        }
+
+        return [
+            'max_base_bet' => $maxBaseBet,
+            'max_q' => $maxQ,
+            'min_cooldown' => $minCooldown,
+        ];
+    }
+
+    public function getActiveLimitsAttribute()
+    {
+        return $this->getActiveLimits();
+    }
+
+    public function syncLimitsToBlockchain()
+    {
+        if (empty($this->wallet_address)) {
+            return null;
+        }
+
+        $nodeUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+        $limits = $this->getActiveLimits();
+
+        // Calculate expiry
+        $activeCards = $this->userCards()
+            ->with('card')
+            ->where('status', 'available')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->get();
+
+        $expiry = 0;
+        $hasSessionCard = false;
+        $maxExpiresAt = null;
+
+        foreach ($activeCards as $userCard) {
+            $card = $userCard->card;
+            if (!$card || !$card->is_active) {
+                continue;
+            }
+            if ($card->duration_type === 'sessions') {
+                $hasSessionCard = true;
+            } elseif ($card->duration_type === 'time' && $userCard->expires_at) {
+                $ts = $userCard->expires_at->timestamp;
+                if ($maxExpiresAt === null || $ts > $maxExpiresAt) {
+                    $maxExpiresAt = $ts;
+                }
+            }
+        }
+
+        if ($hasSessionCard) {
+            // For session-based cards (which don't have temporal expiry), use a huge timestamp as the expiry value.
+            // On the contract: any value >= 1e9 is a timestamp. So we can use 9999999999.
+            $expiry = 9999999999;
+        } elseif ($maxExpiresAt !== null) {
+            $expiry = $maxExpiresAt;
+        }
+
+        // min_cooldown in active limits is in minutes, contract expects seconds
+        $minCooldownSeconds = $limits['min_cooldown'] * 60;
+
+        return \App\Helpers\Web3Helper::setUserLimits(
+            $nodeUrl,
+            $this->wallet_address,
+            $limits['max_base_bet'],
+            $limits['max_q'],
+            $minCooldownSeconds,
+            $expiry
+        );
+    }
 }

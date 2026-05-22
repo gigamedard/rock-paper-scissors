@@ -41,7 +41,7 @@ class EnhancedRegistrationController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'preferred_language' => ['required', 'string', 'in:fr,en,es,de'],
-            'referral_code' => ['nullable', 'string', 'regex:/^REF-[A-Z0-9]{6}$/'],
+            'referral_code' => ['nullable', 'string', 'regex:/^[A-Z0-9\-]{5,12}$/'],
         ]);
 
         DB::beginTransaction();
@@ -57,7 +57,7 @@ class EnhancedRegistrationController extends Controller
                 'password' => Hash::make($request->password),
                 'preferred_language' => $request->preferred_language,
                 'referral_code' => $userReferralCode,
-                'balance' => 500, // Bonus de bienvenue
+                'token_balance' => 500, // Bonus de bienvenue (SNT)
                 'autoplay_active' => false,
                 'status' => 'available',
             ]);
@@ -135,8 +135,10 @@ class EnhancedRegistrationController extends Controller
             'validated_at' => null,
         ]);
 
-        // Ajouter le bonus immédiat au nouvel utilisateur
-        $user->increment('balance', $bonusAmount);
+        // Ajouter le bonus immédiat au nouvel utilisateur (SNT)
+        $user->increment('token_balance', $bonusAmount);
+        $user->increment('locked_balance', $bonusAmount);
+        $user->update(['has_received_signup_bonus' => true]);
 
         Log::info("Parrainage créé: {$referrer->name} -> {$user->name} avec le code {$referralCode}");
 

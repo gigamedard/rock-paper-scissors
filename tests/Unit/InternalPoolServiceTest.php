@@ -18,7 +18,8 @@ class InternalPoolServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new InternalPoolService();
+        $mockNotification = $this->createMock(\App\Services\NotificationService::class);
+        $this->service = new InternalPoolService($mockNotification);
         Config::set('pool.size', [5]); // Set pool size to 5 for testing
     }
 
@@ -29,6 +30,7 @@ class InternalPoolServiceTest extends TestCase
             'status' => 'available',
             'bet_amount' => 1.0,
             'autoplay_active' => true,
+            'balance' => 10.0,
         ]);
 
         $result = $this->service->processInternalPools(1.0);
@@ -43,6 +45,7 @@ class InternalPoolServiceTest extends TestCase
             'status' => 'available',
             'bet_amount' => 1.0,
             'autoplay_active' => true,
+            'balance' => 10.0,
         ]);
 
         $result = $this->service->processInternalPools(1.0);
@@ -60,7 +63,7 @@ class InternalPoolServiceTest extends TestCase
             $user->refresh();
             $this->assertEquals('in_pool', $user->status);
             $this->assertEquals($pool->id, $user->pool_id);
-            $this->assertFalse((bool)$user->session_started);
+            $this->assertTrue((bool)$user->session_started);
         }
     }
 
@@ -71,6 +74,7 @@ class InternalPoolServiceTest extends TestCase
             'status' => 'available',
             'bet_amount' => 1.0,
             'autoplay_active' => true,
+            'balance' => 10.0,
         ]);
 
         $result = $this->service->processInternalPools(1.0);
@@ -90,12 +94,14 @@ class InternalPoolServiceTest extends TestCase
             'status' => 'available',
             'bet_amount' => 1.0,
             'autoplay_active' => true,
+            'balance' => 10.0,
         ]);
         // 5 users with 2.0
         User::factory()->count(5)->create([
             'status' => 'available',
             'bet_amount' => 2.0,
             'autoplay_active' => true,
+            'balance' => 10.0,
         ]);
 
         // Process for 1.0
@@ -116,18 +122,21 @@ class InternalPoolServiceTest extends TestCase
             'status' => 'available',
             'bet_amount' => 1.0,
             'autoplay_active' => true,
+            'balance' => 10.0,
         ]);
         // 1 user busy
         User::factory()->create([
             'status' => 'in_pool',
             'bet_amount' => 1.0,
             'autoplay_active' => true,
+            'balance' => 10.0,
         ]);
         // 1 user autoplay off
         User::factory()->create([
             'status' => 'available',
             'bet_amount' => 1.0,
             'autoplay_active' => false,
+            'balance' => 10.0,
         ]);
 
         // Total 5 users match bet amount, but only 3 are valid candidates

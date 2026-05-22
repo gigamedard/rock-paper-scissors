@@ -74,8 +74,36 @@
                         <label class="label">BASE BET AMOUNT (ETH)</label>
                         <div class="bet-input-container">
                             <span style="font-size: 1.5rem; color: var(--primary);">Ξ</span>
-                            <input type="number" id="base-bet-input" class="bet-input" value="0.01" step="0.01" min="0.001">
+                            <select id="base-bet-input" class="bet-input" style="font-size: 1.5rem;">
+                                <option value="0.01" selected>0.01 ETH</option>
+                                <option value="0.02">0.02 ETH</option>
+                                <option value="0.05">0.05 ETH</option>
+                                <option value="0.10">0.10 ETH</option>
+                            </select>
                         </div>
+
+                        <label class="label" style="margin-top: 1rem; display: block;">TARGET MULTIPLIER (Q)</label>
+                        <div class="bet-input-container">
+                            <span style="font-size: 1.5rem; color: var(--primary);">q</span>
+                            <select id="target-q-input" class="bet-input" style="font-size: 1.5rem;">
+                                <option value="1.5">1.5x</option>
+                                <option value="2.0" selected>2.0x</option>
+                                <option value="2.5">2.5x</option>
+                                <option value="3.0">3.0x</option>
+                            </select>
+                        </div>
+
+                        <label class="label" style="margin-top: 1rem; display: block;">MIN COOLDOWN TIME</label>
+                        <div class="bet-input-container">
+                            <span style="font-size: 1.5rem; color: var(--primary);">⏱</span>
+                            <select id="cooldown-input" class="bet-input" style="font-size: 1.5rem;">
+                                <option value="1440" selected>24 Hours</option>
+                                <option value="720">12 Hours</option>
+                                <option value="360">6 Hours</option>
+                                <option value="60">1 Hour</option>
+                            </select>
+                        </div>
+
                         <div id="fee-breakdown" style="margin-top:1rem; font-size:0.85rem; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
                             <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span>Required Stake (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 ETH</span></div>
                             <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span>Matchmaking Fee (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 ETH</span></div>

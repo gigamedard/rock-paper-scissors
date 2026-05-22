@@ -25,16 +25,16 @@ class RouteServiceProvider extends ServiceProvider
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
-            // Routes Web
-            Route::middleware('web')
-                ->group(base_path('routes/web.php'));
-
             // Routes Auth (optionnel, si tu veux garder un fichier séparé)
             if (file_exists(base_path('routes/auth.php'))) {
                 Route::middleware('web')
                     ->prefix('auth')
                     ->group(base_path('routes/auth.php'));
             }
+
+            // Routes Web
+            Route::middleware('web')
+                ->group(base_path('routes/web.php'));
         });
     }
 }
