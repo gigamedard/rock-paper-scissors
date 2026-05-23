@@ -12,10 +12,10 @@ import {
 // ===================================
 
 // La nouvelle valeur pour le coefficient de sécurité (ex: 1)
-const NOUVEAU_COEFFICIENT = 1;
+const NOUVEAU_COEFFICIENT = 100;
 
 // La nouvelle valeur pour la taille maximale par défaut des pools (ex: 5)
-const NOUVELLE_TAILLE_MAX = 5;
+const NOUVELLE_TAILLE_MAX = 2;
 
 // Account #0 of Hardhat default accounts
 const LOCAL_OWNER_PK = "***REMOVED***";

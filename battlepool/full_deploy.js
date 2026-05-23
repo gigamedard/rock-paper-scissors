@@ -14,6 +14,16 @@ async function main() {
     const gameAddr = await battlepool.getAddress();
     console.log("Battlepool deployed to:", gameAddr);
     
+    console.log("Setting Security Coefficient to 100...");
+    const txCoeff = await battlepool.setSecurityCoefficient(100);
+    await txCoeff.wait();
+    console.log("✅ Security Coefficient set to 100.");
+    
+    console.log("Setting Default Min Cooldown to 10 seconds...");
+    const txCooldown = await battlepool.setDefaultMinCooldown(10);
+    await txCooldown.wait();
+    console.log("✅ Default Min Cooldown set to 10 seconds.");
+    
     const SNTToken = await ethers.getContractFactory("SNTToken");
     const sntToken = await SNTToken.deploy({ gasLimit: 5000000 });
     await sntToken.waitForDeployment();

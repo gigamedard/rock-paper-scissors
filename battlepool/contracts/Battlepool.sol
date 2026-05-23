@@ -589,16 +589,18 @@ contract Battlepool {
 
     function getUserMaxBaseBet(address user) public view returns (uint256) {
         UserLimit memory limit = userLimits[user];
-        if (limit.expiry == 0) {
+        if (limit.maxBaseBet == 0) {
             return defaultMaxBaseBet;
         }
-        if (limit.expiry < 1e9) {
-            if (block.number > limit.expiry) {
-                return defaultMaxBaseBet;
-            }
-        } else {
-            if (block.timestamp > limit.expiry) {
-                return defaultMaxBaseBet;
+        if (limit.expiry > 0) {
+            if (limit.expiry < 1e9) {
+                if (block.number > limit.expiry) {
+                    return defaultMaxBaseBet;
+                }
+            } else {
+                if (block.timestamp > limit.expiry) {
+                    return defaultMaxBaseBet;
+                }
             }
         }
         return limit.maxBaseBet;
@@ -606,16 +608,18 @@ contract Battlepool {
 
     function getUserMaxQ(address user) public view returns (uint256) {
         UserLimit memory limit = userLimits[user];
-        if (limit.expiry == 0) {
+        if (limit.maxQ == 0) {
             return defaultMaxQ;
         }
-        if (limit.expiry < 1e9) {
-            if (block.number > limit.expiry) {
-                return defaultMaxQ;
-            }
-        } else {
-            if (block.timestamp > limit.expiry) {
-                return defaultMaxQ;
+        if (limit.expiry > 0) {
+            if (limit.expiry < 1e9) {
+                if (block.number > limit.expiry) {
+                    return defaultMaxQ;
+                }
+            } else {
+                if (block.timestamp > limit.expiry) {
+                    return defaultMaxQ;
+                }
             }
         }
         return limit.maxQ;
@@ -623,16 +627,18 @@ contract Battlepool {
 
     function getUserMinCooldown(address user) public view returns (uint256) {
         UserLimit memory limit = userLimits[user];
-        if (limit.expiry == 0) {
+        if (limit.minCooldown == 0) {
             return defaultMinCooldown;
         }
-        if (limit.expiry < 1e9) {
-            if (block.number > limit.expiry) {
-                return defaultMinCooldown;
-            }
-        } else {
-            if (block.timestamp > limit.expiry) {
-                return defaultMinCooldown;
+        if (limit.expiry > 0) {
+            if (limit.expiry < 1e9) {
+                if (block.number > limit.expiry) {
+                    return defaultMinCooldown;
+                }
+            } else {
+                if (block.timestamp > limit.expiry) {
+                    return defaultMinCooldown;
+                }
             }
         }
         return limit.minCooldown;

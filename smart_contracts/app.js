@@ -64,6 +64,32 @@ const gameProvider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
 const gameWallet = new Wallet(GAME_WALLET_PK, gameProvider);
 const gameContract = new Contract(contracts.game.address, contracts.game.abi, gameWallet);
 
+// Queue de transactions globale pour éviter les conflits de nonce
+let txQueue = Promise.resolve();
+let managedNonce = null;
+
+async function enqueueTx(txFunction) {
+    return new Promise((resolve, reject) => {
+        txQueue = txQueue.then(async () => {
+            try {
+                // Initialize nonce from blockchain if not yet tracked
+                if (managedNonce === null) {
+                    managedNonce = await gameProvider.getTransactionCount(gameWallet.address, "pending");
+                }
+                const currentNonce = managedNonce;
+                managedNonce++; // Pre-increment for next queued tx
+
+                const tx = await txFunction(currentNonce);
+                const receipt = await tx.wait();
+                resolve(tx);
+            } catch (err) {
+                // On failure, re-sync nonce from blockchain to recover
+                managedNonce = null;
+                reject(err);
+            }
+        });
+    });
+}
 
 console.log(`[DEBUG] Le worker écoute le contrat Battlepool à l'adresse: ${contracts.game.address}`);
 
@@ -86,8 +112,7 @@ app.post("/sendPoolCID", async (req, res) => {
 
         console.log(`📡 Sending  CID on smart contract...`);
         // Call the smart contract function (Replace with actual function name)
-        const tx = await gameContract.storeMatchHistoryCID(poolId, CID);
-        await tx.wait();
+        const tx = await enqueueTx((nonce) => gameContract.storeMatchHistoryCID(poolId, CID, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -106,8 +131,7 @@ app.post("/sendSessionCID", async (req, res) => {
 
         console.log(`📡 Sending session  CID on smart contract...`)
         // Call the smart contract function (Replace with actual function name)
-        const tx = await gameContract.storeSessionCID(wallet, CID);
-        await tx.wait();
+        const tx = await enqueueTx((nonce) => gameContract.storeSessionCID(wallet, CID, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -134,8 +158,7 @@ app.post("/sendPayment", async (req, res) => {
         const balanceBefore = await gameProvider.getBalance(wallet);
 
         // Step 2: Send the payout transaction
-        const tx = await gameContract.payOut(wallet, amount);
-        const receipt = await tx.wait();
+        const tx = await enqueueTx((nonce) => gameContract.payOut(wallet, amount, { nonce }));
 
         // Step 3: Small delay to allow for sync (optional in local dev)
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -174,8 +197,7 @@ app.post("/sendBatchPayment", async (req, res) => {
         console.log(`📡 Sending batch payment - total recipients: ${wallets.length}`);
 
         // Call the smart contract function
-        const tx = await gameContract.batchPayOut(wallets, amounts);
-        await tx.wait();
+        const tx = await enqueueTx((nonce) => gameContract.batchPayOut(wallets, amounts, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -193,8 +215,7 @@ app.post("/setUserLimits", async (req, res) => {
         }
 
         console.log(`📡 Setting user limits for ${wallet} on smart contract...`);
-        const tx = await gameContract.setUserLimits(wallet, maxBaseBet, maxQ, minCooldown, expiry);
-        await tx.wait();
+        const tx = await enqueueTx((nonce) => gameContract.setUserLimits(wallet, maxBaseBet, maxQ, minCooldown, expiry, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -212,8 +233,7 @@ app.post("/setUserNextSessionTime", async (req, res) => {
         }
 
         console.log(`📡 Setting next session time for ${wallet} to ${nextTime} on smart contract...`);
-        const tx = await gameContract.setUserNextSessionTime(wallet, nextTime);
-        await tx.wait();
+        const tx = await enqueueTx((nonce) => gameContract.setUserNextSessionTime(wallet, nextTime, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -396,11 +416,10 @@ app.post("/pool/validate", async (req, res) => {
 
         const baseBetWei = parseUnits(baseBet.toString(), 18);
         console.log(`   [Action] Calling gameContract.validatePool(${baseBetWei.toString()})...`);
-        const tx = await gameContract.validatePool(baseBetWei);
-        const receipt = await tx.wait();
+        const tx = await enqueueTx((nonce) => gameContract.validatePool(baseBetWei, { nonce }));
 
-        console.log(`   ✅ Pool Validated! TX Hash: ${receipt.hash}`);
-        res.json({ success: true, txHash: receipt.hash });
+        console.log(`   ✅ Pool Validated! TX Hash: ${tx.hash}`);
+        res.json({ success: true, txHash: tx.hash });
     } catch (error) {
         console.error("❌ Error in /pool/validate:", error);
         res.status(500).json({ error: error.message });
@@ -429,11 +448,10 @@ app.post("/pool/invalidate", async (req, res) => {
 
         const baseBetWei = parseUnits(baseBet.toString(), 18);
         console.log(`   [Action] Calling gameContract.invalidatePoolUsers...`);
-        const tx = await gameContract.invalidatePoolUsers(baseBetWei, invalidUsers);
-        const receipt = await tx.wait();
+        const tx = await enqueueTx((nonce) => gameContract.invalidatePoolUsers(baseBetWei, invalidUsers, { nonce }));
 
-        console.log(`   ✅ Pool Users Invalidated! TX Hash: ${receipt.hash}`);
-        res.json({ success: true, txHash: receipt.hash });
+        console.log(`   ✅ Pool Users Invalidated! TX Hash: ${tx.hash}`);
+        res.json({ success: true, txHash: tx.hash });
     } catch (error) {
         console.error("❌ Error in /pool/invalidate:", error);
         res.status(500).json({ error: error.message });

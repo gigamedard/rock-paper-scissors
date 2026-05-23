@@ -2,7 +2,7 @@
 
 return [
     'recovery_time' => [
-        1 => 24 * 60,  // 24 hours (in minutes)
+        1 => env('APP_ENV') === 'local' ? 2 : 24 * 60,  // 2 minutes en local, sinon 24h
         2 => 20 * 60,
         3 => 16 * 60,
         4 => 12 * 60,

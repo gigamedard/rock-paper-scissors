@@ -182,6 +182,11 @@ class SessionManager
             
             $this->closeSession($user, 'stopped');
             $this->historyService->archiveSessionHistory($user);
+
+            // CRITICAL: Sync limits to blockchain BEFORE setting cooldown.
+            // The smart contract validates nextTime >= block.timestamp + getUserMinCooldown(user).
+            // If we set the cooldown first, the contract still has stale limits and may reject.
+            $user->syncLimitsToBlockchain();
             $this->setNextSessionCooldown($user);
 
             $signature = null;
@@ -241,8 +246,12 @@ class SessionManager
             $user->save();
         }
 
-        // Sync limits to blockchain in case any cards expired/consumed
-        $user->syncLimitsToBlockchain();
+        // Note: syncLimitsToBlockchain() is now called before setNextSessionCooldown()
+        // in the PAYOUT case (CASE 1) to ensure on-chain limits are fresh.
+        // For CASE 2 (ruin) and CASE 3 (continue), sync limits here.
+        if ($q < $multiplier) {
+            $user->syncLimitsToBlockchain();
+        }
     }
 
     private function closeSession(User $user, string $newStatus): void
@@ -264,11 +273,7 @@ class SessionManager
 
     private function sendPayment(User $user): void
     {
-        try {
-            $this->web3Helper->sendPayement(config('app.NODE_WORKER_URL'), $user->wallet_address, $user->balance);
-        } catch (\Exception $e) {
-            Log::error("Failed to send payment for {$user->wallet_address}: " . $e->getMessage());
-        }
+        $this->web3Helper->sendPayement(config('app.NODE_WORKER_URL'), $user->wallet_address, $user->balance);
     }
 
     private function setNextSessionCooldown(User $user): void
@@ -302,11 +307,7 @@ class SessionManager
 
         $nextTime = now()->addMinutes($minutes)->timestamp;
 
-        try {
-            $this->web3Helper->setUserNextSessionTime(config('app.NODE_WORKER_URL'), $user->wallet_address, $nextTime);
-        } catch (\Exception $e) {
-            Log::error("Failed to set cooldown for {$user->wallet_address}: " . $e->getMessage());
-        }
+        $this->web3Helper->setUserNextSessionTime(config('app.NODE_WORKER_URL'), $user->wallet_address, $nextTime);
     }
 
     private function consumeCard(\App\Models\UserCard $userCard): void

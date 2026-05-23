@@ -114,7 +114,7 @@ class Web3Helper
         $response = Http::post("{$nodeUrl}/sendPoolCID", [
             'poolId' => $poolId,
             'CID' => $CID,
-        ]);
+        ])->throw();
 
         return $response->json();
     }
@@ -124,7 +124,7 @@ class Web3Helper
         $response = Http::post("{$nodeUrl}/sendSessionCID", [
             'wallet' => $walletAddress,
             'CID' => $CID,
-        ]);
+        ])->throw();
 
         return $response->json();
     }
@@ -134,7 +134,7 @@ class Web3Helper
         $response = Http::post("{$nodeUrl}/sendPayment", [
             'wallet' => $walletAddress,
             'amount' => self::etherToWei($amount),
-        ]);
+        ])->throw();
 
         return $response->json();
     }
@@ -173,10 +173,10 @@ class Web3Helper
         $response = Http::post("{$nodeUrl}/sendBatchPayment", [
             'wallets' => $walletAddresses,
             'amounts' => $amounts,
-        ]);
+        ])->throw();
 
         return $response->json();
-}
+    }
 
     public static function getPoolUsers($nodeUrl, $baseBet)
     {
@@ -194,7 +194,7 @@ class Web3Helper
     {
         $response = Http::post("{$nodeUrl}/refundUsers", [
             'wallets' => $walletAddresses,
-        ]);
+        ])->throw();
         return $response->json();
     }
 
@@ -202,7 +202,7 @@ class Web3Helper
     {
         $response = Http::post("{$nodeUrl}/pool/validate", [
             'baseBet' => $baseBet,
-        ]);
+        ])->throw();
         return $response->json();
     }
 
@@ -211,7 +211,7 @@ class Web3Helper
         $response = Http::post("{$nodeUrl}/pool/invalidate", [
             'baseBet' => $baseBet,
             'invalidUsers' => $invalidWalletAddresses,
-        ]);
+        ])->throw();
         return $response->json();
     }
 
@@ -220,7 +220,7 @@ class Web3Helper
         $response = Http::post("{$nodeUrl}/setUserNextSessionTime", [
             'wallet' => $walletAddress,
             'nextTime' => $nextTime,
-        ]);
+        ])->throw();
 
         return $response->json();
     }
@@ -233,7 +233,7 @@ class Web3Helper
             'maxQ' => self::etherToWei($maxQ),
             'minCooldown' => $minCooldown,
             'expiry' => $expiry,
-        ]);
+        ])->throw();
 
         return $response->json();
     }

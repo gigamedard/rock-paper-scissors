@@ -51,7 +51,7 @@ if (!GAME_WALLET_PK || !MARKETPLACE_WALLET_PK) {
 export const contracts = {
   // --- Contrat du JEU (de listener3.js) ---
   game: {
-    address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
     abi: [
   {
     "inputs": [],
@@ -84,6 +84,45 @@ export const contracts = {
     ],
     "name": "ECDSAInvalidSignatureS",
     "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "DefaultMaxBaseBetChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "DefaultMaxQChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "DefaultMinCooldownChanged",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -393,6 +432,43 @@ export const contracts = {
       },
       {
         "indexed": false,
+        "internalType": "uint256",
+        "name": "maxBaseBet",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "maxQ",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "minCooldown",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "expiry",
+        "type": "uint256"
+      }
+    ],
+    "name": "UserLimitsUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
         "internalType": "string",
         "name": "cid",
         "type": "string"
@@ -488,6 +564,45 @@ export const contracts = {
     "name": "claimAndExit",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "defaultMaxBaseBet",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "defaultMaxQ",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "defaultMinCooldown",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -726,6 +841,63 @@ export const contracts = {
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getUserMaxBaseBet",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getUserMaxQ",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getUserMinCooldown",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "baseBet",
         "type": "uint256"
@@ -950,6 +1122,45 @@ export const contracts = {
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "newLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "setDefaultMaxBaseBet",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "setDefaultMaxQ",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "setDefaultMinCooldown",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "newSize",
         "type": "uint256"
       }
@@ -1025,6 +1236,39 @@ export const contracts = {
       }
     ],
     "name": "setStagnantBlockLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxBaseBet",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxQ",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minCooldown",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "expiry",
+        "type": "uint256"
+      }
+    ],
+    "name": "setUserLimits",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1179,6 +1423,40 @@ export const contracts = {
         "type": "address"
       }
     ],
+    "name": "userLimits",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "maxBaseBet",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxQ",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minCooldown",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "expiry",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "name": "userPremoveCIDs",
     "outputs": [
       {
@@ -1218,7 +1496,7 @@ export const contracts = {
   },
   // --- Contrat MARKETPLACE (de app.js/server.js) ---
   marketplace: {
-    address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0", // MarketplaceEscrow
+    address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707", // MarketplaceEscrow
     abi: [
       {
         "inputs": [
@@ -1585,7 +1863,7 @@ export const contracts = {
   },
   // --- Contrat du JETON (SNT / USDT) ---
   snt: {
-    address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", // SNTToken
+    address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // SNTToken
     abi: [
       { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
       { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },

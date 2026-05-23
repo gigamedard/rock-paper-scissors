@@ -166,7 +166,8 @@ class User extends Authenticatable
     {
         $maxBaseBet = 0.01;
         $maxQ = 2.0;
-        $minCooldown = 1440; // in minutes (24h)
+        $recoveryLevel = $this->recovery_level ?? 1;
+        $minCooldown = config("game_levels.recovery_time.{$recoveryLevel}", 1440); // in minutes (from configuration)
 
         $activeCards = $this->userCards()
             ->with('card')
@@ -186,7 +187,12 @@ class User extends Authenticatable
             } elseif ($card->effect_type === 'ceiling_increase') {
                 $maxQ += (float)$card->effect_value;
             } elseif ($card->effect_type === 'cooldown_reduction') {
-                $minCooldown = max(60, $minCooldown - (int)$card->effect_value);
+                $effectValue = (float)$card->effect_value;
+                if ($effectValue < 1) {
+                    $minCooldown = $minCooldown * (1 - $effectValue);
+                } else {
+                    $minCooldown = max(0, $minCooldown - $effectValue);
+                }
             }
         }
 
@@ -248,7 +254,8 @@ class User extends Authenticatable
         }
 
         // min_cooldown in active limits is in minutes, contract expects seconds
-        $minCooldownSeconds = $limits['min_cooldown'] * 60;
+        // Subtract 20 seconds as safety margin for transaction processing time
+        $minCooldownSeconds = max(0, ($limits['min_cooldown'] * 60) - 20);
 
         return \App\Helpers\Web3Helper::setUserLimits(
             $nodeUrl,
