@@ -702,3 +702,290 @@ select.bet-input option:disabled {
 .feed-container::-webkit-scrollbar-thumb:hover {
     background: var(--primary);
 }
+
+/* ========================================== */
+/* == PROGRESSIVE WEB APP (PWA) & MOBILE UX == */
+/* ========================================== */
+
+/* PWA Install Banner styling */
+.pwa-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(20, 22, 30, 0.85);
+    backdrop-filter: blur(25px);
+    border: 1px solid var(--glass-border);
+    border-bottom: 2px solid var(--primary);
+    padding: 1rem 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin-bottom: 1rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+.pwa-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pwa-banner-icon {
+    font-size: 2rem;
+}
+
+.pwa-banner-text strong {
+    color: var(--text);
+    font-size: 1rem;
+    display: block;
+    margin-bottom: 0.15rem;
+}
+
+.pwa-banner-text p {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.pwa-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.btn-pwa-install {
+    background: linear-gradient(45deg, var(--secondary), var(--accent));
+    color: white;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(112, 0, 255, 0.3);
+}
+
+.btn-pwa-install:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(112, 0, 255, 0.5);
+}
+
+.btn-pwa-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: color 0.2s;
+}
+
+.btn-pwa-close:hover {
+    color: var(--accent);
+}
+
+/* iOS Install Guide */
+.ios-install-guide {
+    width: 100%;
+    padding: 0.2rem 0;
+}
+
+.ios-install-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+.ios-install-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 14px;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ios-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.ios-step-number {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.ios-step-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 122, 255, 0.12);
+    border-radius: 8px;
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.ios-step-arrow {
+    color: var(--primary);
+    font-size: 1.2rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Bottom Navigation Bar for Mobile */
+.bottom-nav {
+    display: none; /* Hidden on Desktop */
+}
+
+/* ========================================== */
+/* == RESPONSIVE MOBILE TWEAKS (max-width: 768px) == */
+/* ========================================== */
+@media (max-width: 768px) {
+    /* Hide top nav items and lang switcher in header */
+    header .spa-nav {
+        display: none !important;
+    }
+
+    header {
+        padding: 1rem 1.2rem;
+    }
+
+    /* Padding adjustments for shell to prevent content from being covered by bottom nav */
+    .shell {
+        padding: 1rem 1rem calc(80px + env(safe-area-inset-bottom)) 1rem;
+    }
+
+    /* Force all grids to stack vertically */
+    .setup-container, .dashboard, .arena-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+    }
+
+    /* Optimize touch target sizes for mobile */
+    .move-btn {
+        padding: 1.2rem;
+        font-size: 2.2rem;
+        flex: 1;
+    }
+
+    .move-selector {
+        gap: 0.8rem;
+    }
+
+    .btn-primary, .wallet-btn {
+        min-height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.8rem 1.5rem;
+    }
+
+    /* Prevent automatic iOS zoom on form fields */
+    .bet-input, select, input {
+        font-size: 16px !important;
+    }
+
+    /* Bottom Nav Bar configuration */
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: calc(65px + env(safe-area-inset-bottom));
+        background: rgba(20, 22, 30, 0.92);
+        backdrop-filter: blur(25px);
+        border-top: 1px solid rgba(0, 242, 255, 0.25);
+        justify-content: space-around;
+        align-items: center;
+        padding-bottom: env(safe-area-inset-bottom);
+        z-index: 1000;
+        box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .bottom-nav-link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        height: 100%;
+        color: var(--text-dim);
+        text-decoration: none;
+        transition: all 0.2s ease;
+        padding: 5px 0;
+    }
+
+    .bottom-nav-link .nav-icon {
+        font-size: 1.3rem;
+        margin-bottom: 2px;
+        transition: transform 0.2s;
+    }
+
+    .bottom-nav-link .nav-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Active bottom nav state */
+    .bottom-nav-link.active {
+        color: var(--primary);
+    }
+
+    .bottom-nav-link.active .nav-icon {
+        transform: translateY(-2px);
+        filter: drop-shadow(0 0 5px var(--primary));
+    }
+
+    .bottom-nav-link.active .nav-label {
+        color: var(--text);
+        text-shadow: 0 0 5px rgba(0, 242, 255, 0.3);
+    }
+
+    /* Specific adjust for vip button */
+    #btn-nav-vip.active .nav-label {
+        color: #f59e0b;
+        text-shadow: 0 0 5px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Simplify Cards on Mobile */
+    .card {
+        padding: 1.25rem;
+        border-radius: 18px;
+    }
+
+    .card-value {
+        font-size: 1.8rem;
+    }
+
+    /* Sidebar height constraints on mobile */
+    .activity-log {
+        max-height: 350px;
+    }
+}
+

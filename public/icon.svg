@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#14161e"/>
+      <stop offset="100%" stop-color="#0a0b10"/>
+    </radialGradient>
+    
+    <!-- Neon Gradients -->
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2ff"/>
+      <stop offset="100%" stop-color="#7000ff"/>
+    </linearGradient>
+    
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff00c8"/>
+      <stop offset="100%" stop-color="#7000ff"/>
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background Shield/Circle -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" stroke="#1a1c24" stroke-width="8"/>
+
+  <!-- Outer Neon Ring -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="url(#primaryGrad)" stroke-width="4" opacity="0.4" filter="url(#neonGlow)"/>
+  <circle cx="256" cy="256" r="190" fill="none" stroke="url(#accentGrad)" stroke-width="2" stroke-dasharray="10 15" opacity="0.6"/>
+
+  <!-- Center Crest / Shield -->
+  <g transform="translate(128, 110)" filter="url(#neonGlow)">
+    <!-- Shield Outline -->
+    <path d="M 0,0 L 256,0 L 256,120 C 256,220 128,280 128,280 C 128,280 0,220 0,120 Z" fill="none" stroke="url(#primaryGrad)" stroke-width="8" stroke-linejoin="round"/>
+    
+    <!-- Shield Inner Glow -->
+    <path d="M 15,15 L 241,15 L 241,115 C 241,200 128,252 128,252 C 128,252 15,200 15,115 Z" fill="url(#accentGrad)" opacity="0.15"/>
+
+    <!-- Rock (Circle/Fist Symbol) -->
+    <circle cx="70" cy="100" r="24" fill="none" stroke="#00f2ff" stroke-width="6"/>
+    
+    <!-- Paper (Hand/Line Symbol) -->
+    <rect x="110" y="76" width="36" height="48" rx="8" fill="none" stroke="#ffffff" stroke-width="6"/>
+    
+    <!-- Scissors (Scissors Shape) -->
+    <g transform="translate(160, 76)">
+      <circle cx="12" cy="36" r="10" fill="none" stroke="#ff00c8" stroke-width="6"/>
+      <circle cx="28" cy="36" r="10" fill="none" stroke="#ff00c8" stroke-width="6"/>
+      <line x1="12" y1="26" x2="24" y2="8" stroke="#ff00c8" stroke-width="6" stroke-linecap="round"/>
+      <line x1="28" y1="26" x2="16" y2="8" stroke="#ff00c8" stroke-width="6" stroke-linecap="round"/>
+    </g>
+
+    <!-- Glowing Battle Pool Text -->
+    <text x="128" y="195" font-family="'Inter', sans-serif" font-weight="900" font-size="28" fill="#ffffff" text-anchor="middle" letter-spacing="4">BATTLE</text>
+    <text x="128" y="225" font-family="'Inter', sans-serif" font-weight="900" font-size="22" fill="#00f2ff" text-anchor="middle" letter-spacing="6">POOL</text>
+  </g>
+</svg>

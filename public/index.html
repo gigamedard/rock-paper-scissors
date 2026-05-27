@@ -2,8 +2,19 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>BATTLEPOOL | Arena</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#7000ff">
+    
+    <!-- iOS support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BATTLEPOOL">
+    <link rel="apple-touch-icon" href="/pwa_icon_192.png">
+
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <!-- CSS modules (générés par Vite en prod, sinon dev HMR) -->
@@ -27,11 +38,30 @@
         <div id="wallet-section">
             <div id="connected-user" style="display: none; align-items: center; gap: 10px;">
                 <span id="user-wallet" class="wallet-badge">0x...</span>
+                <span class="network-status-text wallet-badge" style="font-size: 0.75rem; border-color: rgba(0, 242, 255, 0.2);">Live Sync</span>
                 <div class="live-indicator"></div>
             </div>
-            <button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">Connect Wallet</button>
+            <div id="connection-buttons" style="display: flex; gap: 10px;">
+                <button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">MetaMask</button>
+                <button class="wallet-btn" id="connect-wc-btn" style="background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);" data-i18n="connect.wc_btn">WalletConnect</button>
+            </div>
         </div>
     </header>
+
+    <!-- ===== PWA INSTALLATION BANNER ===== -->
+    <div id="pwa-install-banner" class="pwa-banner" style="display: none;">
+        <div class="pwa-banner-content">
+            <span class="pwa-banner-icon">📱</span>
+            <div class="pwa-banner-text">
+                <strong data-i18n="pwa.install_title">Installer BATTLEPOOL</strong>
+                <p data-i18n="pwa.install_desc">Ajoutez l'arène de combat sur votre écran d'accueil pour jouer en plein écran.</p>
+            </div>
+        </div>
+        <div class="pwa-banner-actions">
+            <button onclick="installPWA()" class="btn-pwa-install" data-i18n="pwa.install_btn">Installer</button>
+            <button onclick="hidePWAInstall()" class="btn-pwa-close">✖</button>
+        </div>
+    </div>
 
     <div class="impact-flash" id="impact-flash"></div>
     <div id="combat-overlay" style="display: none;">
@@ -287,6 +317,26 @@
         </div>
 
     </main>
+
+    <!-- Bottom Navigation Bar for Mobile -->
+    <nav class="bottom-nav">
+        <a href="#/" class="bottom-nav-link active" id="btn-nav-arena">
+            <span class="nav-icon">🎮</span>
+            <span class="nav-label" data-i18n="nav.arena">Arena</span>
+        </a>
+        <a href="#/marketplace" class="bottom-nav-link" id="btn-nav-marketplace">
+            <span class="nav-icon">🪙</span>
+            <span class="nav-label" data-i18n="nav.marketplace">Marché</span>
+        </a>
+        <a href="#/referral" class="bottom-nav-link" id="btn-nav-referral">
+            <span class="nav-icon">👥</span>
+            <span class="nav-label" data-i18n="nav.referral">Parrainage</span>
+        </a>
+        <a href="#/influencer" class="bottom-nav-link" id="btn-nav-vip">
+            <span class="nav-icon" style="color: #f59e0b;">👑</span>
+            <span class="nav-label" data-i18n="nav.influencer" style="color: #f59e0b;">VIP</span>
+        </a>
+    </nav>
 
     <!-- Vite Compiled Assets -->
     <link rel="stylesheet" href="/build/assets/app.css">

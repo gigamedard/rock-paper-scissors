@@ -9,6 +9,7 @@ import { initI18n } from './modules/i18n.js';
 import { initMarketplace } from './modules/marketplace.js';
 import { initReferral } from './modules/referral.js';
 import { initInfluencer } from './modules/influencer.js';
+import { initPWA } from './core/pwa.js';
 
 // ===== ÉTAT GLOBAL =====
 window.userState = {
@@ -22,6 +23,9 @@ window.userState = {
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("🚀 Battlepool SPA — Démarrage");
+
+    // 0. Initialisation de la PWA
+    initPWA();
 
     // 1. Internationalisation (doit être en premier pour traduire le DOM)
     await initI18n();
@@ -41,7 +45,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 5. Bouton de connexion
     const connectBtn = document.getElementById('connect-btn');
     if (connectBtn) {
-        connectBtn.addEventListener('click', connectWallet);
+        connectBtn.addEventListener('click', () => connectWallet('injected'));
+    }
+
+    const connectWcBtn = document.getElementById('connect-wc-btn');
+    if (connectWcBtn) {
+        connectWcBtn.addEventListener('click', () => connectWallet('walletconnect'));
     }
 
     // 6. Écouteurs globaux

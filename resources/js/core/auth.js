@@ -1,10 +1,10 @@
 // resources/js/core/auth.js
-import { BrowserProvider } from 'ethers';
+import { getProvider, getSigner } from '../web3/web3-core.js';
 import { secureFetch } from './api.js';
 
 export function parseRpcError(error) {
     const msg = error.message || error.toString();
-    if (msg.includes("user rejected transaction")) return "Transaction refusée par l'utilisateur.";
+    if (msg.includes("user rejected transaction") || msg.includes("User rejected")) return "Transaction refusée par l'utilisateur.";
     if (msg.includes("insufficient funds")) return "Fonds insuffisants pour couvrir la transaction + gaz.";
     if (msg.includes("nonce too low")) return "Erreur de synchronisation réseau (Nonce). Réessayez.";
     if (msg.includes("execution reverted")) {
@@ -16,17 +16,27 @@ export function parseRpcError(error) {
     return "Erreur technique : " + (msg.length > 100 ? msg.substring(0, 100) + "..." : msg);
 }
 
-export async function connectWallet() {
-    if (typeof window.ethereum === 'undefined') {
+export async function connectWallet(providerType = 'injected') {
+    if (providerType === 'injected' && typeof window.ethereum === 'undefined') {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+            // Construit l'URL sans le protocole (ex: battlepool.com/dashboard)
+            const cleanedUrl = window.location.href.replace(/^https?:\/\//, '');
+            const metamaskDeepLink = `https://metamask.app.link/dapp/${cleanedUrl}`;
+            console.log("[Auth] Appareil mobile détecté. Redirection vers MetaMask Mobile via Deep Link:", metamaskDeepLink);
+            window.open(metamaskDeepLink, '_blank');
+            return false;
+        }
         alert("MetaMask is required!");
         return false;
     }
 
     try {
-        console.log("[Auth] Connexion MetaMask en cours...");
-        const provider = new BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
+        console.log(`[Auth] Connexion ${providerType} en cours...`);
+        const provider = await getProvider(providerType);
+        const signer = await getSigner(providerType);
         const walletAddress = await signer.getAddress();
+
         
         // 1. Get Challenge
         const challengeRes = await fetch('/api/wallet/generate-message', {

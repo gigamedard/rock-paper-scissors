@@ -6,7 +6,8 @@
     "influencer": "Influenceur"
   },
   "connect": {
-    "btn": "Connecter Wallet",
+    "btn": "MetaMask",
+    "wc_btn": "WalletConnect",
     "enter": "ENTRER DANS L'ARÈNE",
     "title": "Prêt à Combattre ?",
     "subtitle": "Connectez votre wallet pour entrer dans l'arène et démarrer votre session."
@@ -66,5 +67,10 @@
     "referrals": "Parrainages",
     "conversion": "Conversion",
     "avax_generated": "AVAX Généré"
+  },
+  "pwa": {
+    "install_title": "Installer BATTLEPOOL",
+    "install_desc": "Ajoutez l'arène de combat sur votre écran d'accueil pour jouer en plein écran.",
+    "install_btn": "Installer"
   }
 }

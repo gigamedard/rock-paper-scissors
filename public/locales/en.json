@@ -6,7 +6,8 @@
     "influencer": "VIP"
   },
   "connect": {
-    "btn": "Connect Wallet",
+    "btn": "MetaMask",
+    "wc_btn": "WalletConnect",
     "enter": "ENTER THE ARENA",
     "title": "Ready to Fight?",
     "subtitle": "Connect your wallet to enter the arena and start your session."
@@ -66,5 +67,10 @@
     "referrals": "Referrals",
     "conversion": "Conversion",
     "avax_generated": "AVAX Generated"
+  },
+  "pwa": {
+    "install_title": "Install BATTLEPOOL",
+    "install_desc": "Add the battle arena to your home screen for full-screen gameplay.",
+    "install_btn": "Install"
   }
 }

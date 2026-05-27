@@ -32,8 +32,8 @@ function handleRouteChange() {
 
     showPage(pageId);
 
-    // Met à jour la classe active sur les liens de navigation
-    document.querySelectorAll('.spa-nav .nav-link').forEach(link => {
+    // Met à jour la classe active sur les liens de navigation (desktop et mobile)
+    document.querySelectorAll('.spa-nav .nav-link, .bottom-nav-link').forEach(link => {
         const linkHash = link.getAttribute('href');
         if (linkHash === hash || (hash === '#/' && linkHash === '#/')) {
             link.classList.add('active');

@@ -1,5 +1,6 @@
 // resources/js/modules/game.js
-import { BrowserProvider, Contract, parseUnits, parseEther } from 'ethers';
+import { Contract, parseUnits, parseEther } from 'ethers';
+import { getProvider } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
 import { parseRpcError } from '../core/auth.js';
 
@@ -265,7 +266,7 @@ async function startSession() {
         addToFeed("⛓️ Requesting Blockchain Stake...", "var(--primary)");
 
         // 2. Blockchain Transaction
-        const provider = new BrowserProvider(window.ethereum);
+        const provider = await getProvider();
         const signer = await provider.getSigner();
         
         const securityCoefficient = gameState.config.security_coefficient; 
@@ -328,7 +329,7 @@ async function claim() {
     btn.disabled = true;
 
     try {
-        const provider = new BrowserProvider(window.ethereum);
+        const provider = await getProvider();
         const signer = await provider.getSigner();
         
         const abi = ["function claimAndExit(uint256 amount, bytes signature) external"];

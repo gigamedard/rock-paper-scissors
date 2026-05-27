@@ -14,9 +14,10 @@ dotenv.config({ path: join(__dirname, '.env') });
 // ===================================
 // == CONFIGURATION PRINCIPALE
 // ===================================
-export const LARAVEL_API_URL = "http://127.0.0.1:8001/api"; // Local Access
+export const LARAVEL_API_URL = process.env.LARAVEL_API_URL || "http://127.0.0.1:8000/api";
 export const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
-export const BACKEND_URL = "https://srv1198092.hstgr.cloud"; // Force correct domain
+export const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+
 
 // VALIDATION - Arrête l'application si les secrets ne sont pas définis
 if (!INTERNAL_API_SECRET) {
@@ -51,7 +52,7 @@ if (!GAME_WALLET_PK || !MARKETPLACE_WALLET_PK) {
 export const contracts = {
   // --- Contrat du JEU (de listener3.js) ---
   game: {
-    address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     abi: [
   {
     "inputs": [],
@@ -1496,7 +1497,7 @@ export const contracts = {
   },
   // --- Contrat MARKETPLACE (de app.js/server.js) ---
   marketplace: {
-    address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707", // MarketplaceEscrow
+    address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // MarketplaceEscrow
     abi: [
       {
         "inputs": [
@@ -1863,7 +1864,7 @@ export const contracts = {
   },
   // --- Contrat du JETON (SNT / USDT) ---
   snt: {
-    address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // SNTToken
+    address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9", // SNTToken
     abi: [
       { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
       { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },
