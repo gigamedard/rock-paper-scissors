@@ -178,13 +178,24 @@ window.marketplaceBuyCard = async function(cardId, cardPrice) {
             throw new Error("Adresse du token SNT non chargée.");
         }
 
+        const sntContract = await getContract(CONTRACT_ADDRESSES.sntToken, [
+            ...SNT_ABI,
+            "function balanceOf(address owner) view returns (uint256)"
+        ]);
+        
+        // 0. Vérification du solde SNT de l'utilisateur
+        const signer = await getSigner();
+        const signerAddr = await signer.getAddress();
+        const userBalance = await sntContract.balanceOf(signerAddr);
+        const amountInWei = parseEther(cardPrice.toString());
+
+        if (userBalance < amountInWei) {
+            _showMpNotification(`❌ Solde SNT insuffisant. Requis : ${cardPrice} SNT, Votre solde : ${formatEther(userBalance)} SNT.`, 'error');
+            return;
+        }
+
         addToFeed('⏳ Validation de la transaction Web3 (transfert SNT)...', 'var(--primary)');
         _showMpNotification('Veuillez signer la transaction dans votre portefeuille...', 'info');
-
-        const sntContract = await getContract(CONTRACT_ADDRESSES.sntToken, SNT_ABI);
-        
-        // Convertir le prix en Wei (18 décimales standard)
-        const amountInWei = parseEther(cardPrice.toString());
         
         // 1. Transaction On-Chain
         const tx = await sntContract.transfer(OWNER_ADDRESS, amountInWei);

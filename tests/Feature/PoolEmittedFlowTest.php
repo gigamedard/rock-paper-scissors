@@ -25,8 +25,15 @@ class PoolEmittedFlowTest extends TestCase
     {
         parent::setUp();
 
-        // La base de données est gérée par le trait RefreshDatabase.
-        // L'appel à migrate:fresh n'est pas nécessaire ici et cause un conflit avec SQLite.
+        // Fake all HTTP calls to Node.js server to avoid external dependencies during tests
+        \Illuminate\Support\Facades\Http::fake([
+            '*/setUserLimits' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*/setUserNextSessionTime' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*/sendPayment' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*/getUserNonce/*' => \Illuminate\Support\Facades\Http::response(['nonce' => 0], 200),
+            '*/get-game-config' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+        ]);
         
         // Définir le token interne pour l'API
         config(['app.INTERNAL_API_SECRET' => 'test_token_secret']);
@@ -96,6 +103,9 @@ class PoolEmittedFlowTest extends TestCase
 
 
 
+        if ($response->status() !== 200) {
+            dd($response->json());
+        }
         $response->assertStatus(200);
 
         // --- 3. Vérification de la Création du Pool et des Fights (Étapes 4 & 5) ---

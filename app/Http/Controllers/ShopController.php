@@ -43,20 +43,7 @@ class ShopController extends Controller
 
         $txHash = $validated['tx_hash'];
 
-        // Vérification synchrone auprès du pont Node.js
-        $nodeUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
-        $verifyResponse = \App\Helpers\Web3Helper::verifySntTransfer($nodeUrl, $txHash, $card->price, $user->wallet_address);
-
-        if (isset($verifyResponse['error'])) {
-             return response()->json(['error' => $verifyResponse['error']], 400);
-        }
-        if (!isset($verifyResponse['success']) || !$verifyResponse['success']) {
-             return response()->json(['error' => 'Vérification de la transaction échouée.'], 400);
-        }
-
-        \Illuminate\Support\Facades\Log::info("Achat de carte On-Chain validé", ['user' => $user->id, 'card' => $card->id, 'tx_hash' => $txHash]);
-
-        // Ajouter la carte à l'inventaire
+        // Ajouter la carte à l'inventaire avec un statut 'pending'
         $expiresAt = null;
         if ($card->duration_type === 'time') {
             $expiresAt = now()->addHours($card->duration_value);
@@ -65,20 +52,23 @@ class ShopController extends Controller
         $userCard = \App\Models\UserCard::create([
             'user_id' => $user->id,
             'card_id' => $card->id,
-            'status' => 'available',
+            'status' => 'pending',
             'remaining_sessions' => $card->duration_type === 'sessions' ? $card->duration_value : null,
             'expires_at' => $expiresAt,
             'tx_hash' => $txHash,
         ]);
 
-        // Sync limits to blockchain
-        $user->load('userCards.card');
-        $user->syncLimitsToBlockchain();
+        // Lancer la vérification et la synchronisation de façon asynchrone
+        \App\Jobs\VerifyCardPurchaseJob::dispatch($userCard);
+
+        // Rafraîchir pour avoir le statut final si le queue driver est 'sync' (comme en test)
+        $userCard->refresh();
 
         return response()->json([
-            'message' => 'Carte achetée avec succès !',
+            'message' => 'L\'achat de la carte a été initié et est en cours de traitement.',
             'user_card' => $userCard->load('card'),
             'new_balance' => $user->token_balance
         ]);
+
     }
 }

@@ -30,5 +30,7 @@
         <env name="BROADCAST_CONNECTION" value="log"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="BATTLEPOOL_ADDRESS" value="0x5FbDB2315678afecb367f032d93F642f64180aa3"/>
+        <env name="GAME_WALLET_PK" value="***REMOVED***"/>
     </php>
 </phpunit>

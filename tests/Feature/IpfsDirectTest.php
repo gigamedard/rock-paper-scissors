@@ -17,7 +17,7 @@ class IpfsDirectTest extends TestCase
     public function test_ipfs_service_mocked()
     {
         Http::fake([
-            '*/api/v0/add*' => Http::response(['Hash' => 'QmTestHash123'], 200),
+            '*/ipfs/add-json' => Http::response(['Hash' => 'QmTestHash123'], 200),
             '*/ipfs/QmTestHash123' => Http::response(['message' => 'Hello IPFS'], 200),
         ]);
 
@@ -37,7 +37,7 @@ class IpfsDirectTest extends TestCase
     {
         // We still mock it because we can't guarantee a running node in this environment
         Http::fake([
-            '*/api/v0/add*' => Http::response(['Hash' => 'QmRouteTest'], 200),
+            '*/ipfs/add-json' => Http::response(['Hash' => 'QmRouteTest'], 200),
             '*/ipfs/QmRouteTest' => Http::response([
                 'message' => 'Hello from Direct IPFS!', 
                 // We won't match timestamp exactly in mock vs code, so let's allow mismatch in "match" field or handled gracefully

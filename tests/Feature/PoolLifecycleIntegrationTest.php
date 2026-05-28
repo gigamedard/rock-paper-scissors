@@ -23,6 +23,16 @@ class PoolLifecycleIntegrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Fake all HTTP calls to Node.js server to avoid external dependencies during tests
+        \Illuminate\Support\Facades\Http::fake([
+            '*/setUserLimits' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*/setUserNextSessionTime' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*/sendPayment' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*/getUserNonce/*' => \Illuminate\Support\Facades\Http::response(['nonce' => 0], 200),
+            '*/get-game-config' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+        ]);
         
         // Configure pool settings for test
         Config::set('pool.size', [2]); // Small pool size for easy testing
@@ -33,11 +43,14 @@ class PoolLifecycleIntegrationTest extends TestCase
         Config::set('game_settings.abi', []); 
 
         // Mock Web3Helper to avoid network calls
-        $web3Mock = \Mockery::mock(\App\Helpers\Web3Helper::class);
-        $web3Mock->shouldReceive('premoveExists')->andReturn(true);
+        $web3Mock = \Mockery::mock(\App\Helpers\Web3Helper::class)->shouldIgnoreMissing();
+        $web3Mock->shouldReceive('premoveExists')->andReturn(true)->byDefault();
         $web3Mock->shouldReceive('sortAddressesWithSalt')->andReturnUsing(function($addrs, $salt) { 
             sort($addrs); return $addrs; 
-        });
+        })->byDefault();
+        $web3Mock->shouldReceive('setUserLimits')->andReturn(['status' => 'success'])->byDefault();
+        $web3Mock->shouldReceive('setUserNextSessionTime')->andReturn(['status' => 'success'])->byDefault();
+        $web3Mock->shouldReceive('sendPayement')->andReturn(['status' => 'success'])->byDefault();
         $this->app->instance(\App\Helpers\Web3Helper::class, $web3Mock);
 
         // Mock PinataService
@@ -51,19 +64,24 @@ class PoolLifecycleIntegrationTest extends TestCase
 
     public function test_full_lifecycle_flow()
     {
-        // 1. Setup Users
-        $users = User::factory()->count(4)->create([
-            'status' => 'available',
-            'bet_amount' => 1.0,
-            'autoplay_active' => true,
-            'balance' => 10.0,
-        ]);
+        // 1. Setup Users with unique wallet addresses
+        $users = collect();
+        for ($i = 0; $i < 4; $i++) {
+            $users->push(User::factory()->create([
+                'status' => 'available',
+                'bet_amount' => 1.0,
+                'autoplay_active' => true,
+                'balance' => 10.0,
+                'wallet_address' => '0x' . \Illuminate\Support\Str::random(40),
+            ]));
+        }
         
         // Fix PreMove relation if Factory doesn't handle it
-        foreach($users as $user) {
+        foreach($users as $index => $user) {
+            $moves = ($index % 2 === 0) ? ['rock', 'rock', 'rock'] : ['scissors', 'scissors', 'scissors'];
             DB::table('pre_moves')->insert([
                 'user_id' => $user->id,
-                'moves' => json_encode(['rock', 'paper', 'scissors']),
+                'moves' => json_encode($moves),
                 'current_index' => 0,
                 'cid' => 'QmTest',
                 'session_first_pool_id' => 0

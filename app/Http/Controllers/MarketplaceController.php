@@ -117,22 +117,20 @@ class MarketplaceController extends Controller
 
         $user = $request->user();
 
-        Log::info('Relaying create-offer request to Node.js server', $validated);
+        Log::info('Relaying create-offer request asynchronously using CreateOfferJob', $validated);
 
-        // On transmet la requête au serveur Node.js qui gère les transactions blockchain
-        $response = Http::post('http://127.0.0.1:3000/create-offer', [
+        \App\Jobs\CreateOfferJob::dispatch([
             'sellerAddress' => $user->wallet_address,
             'sntAmount' => $validated['snt_amount'],
             'avaxAmount' => $validated['avax_amount'],
             'durationHours' => $validated['expiry_hours'],
         ]);
 
-        if (!$response->successful()) {
-            Log::error('Node.js server failed to create offer', ['response' => $response->body()]);
-            return response()->json(['error' => 'La création de l"offre a échoué.'], 500);
-        }
-
-        return $response->json();
+        return response()->json([
+            'status' => 'pending',
+            'message' => 'L\'offre est en cours de création.'
+        ]);
     }
+
 
 }

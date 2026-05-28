@@ -30,6 +30,7 @@ foreach ($users as $u) {
 echo "Created 5 users with status 'available' and bet_amount {$baseBet}.\n";
 
 // 2. Call InternalPoolService
+config(['pool.size' => [5]]);
 $service = app(InternalPoolService::class);
 echo "Calling processInternalPools($baseBet)...\n";
 $result = $service->processInternalPools($baseBet);

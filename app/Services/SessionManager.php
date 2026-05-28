@@ -186,7 +186,7 @@ class SessionManager
             // CRITICAL: Sync limits to blockchain BEFORE setting cooldown.
             // The smart contract validates nextTime >= block.timestamp + getUserMinCooldown(user).
             // If we set the cooldown first, the contract still has stale limits and may reject.
-            $user->syncLimitsToBlockchain();
+            \App\Jobs\SyncUserLimitsJob::dispatch($user);
             $this->setNextSessionCooldown($user);
 
             $signature = null;
@@ -250,7 +250,7 @@ class SessionManager
         // in the PAYOUT case (CASE 1) to ensure on-chain limits are fresh.
         // For CASE 2 (ruin) and CASE 3 (continue), sync limits here.
         if ($q < $multiplier) {
-            $user->syncLimitsToBlockchain();
+            \App\Jobs\SyncUserLimitsJob::dispatch($user);
         }
     }
 
@@ -273,7 +273,9 @@ class SessionManager
 
     private function sendPayment(User $user): void
     {
-        $this->web3Helper->sendPayement(config('app.NODE_WORKER_URL'), $user->wallet_address, $user->balance);
+        if (!empty($user->wallet_address)) {
+            \App\Jobs\ProcessPayoutJob::dispatch($user->wallet_address, (float) $user->balance);
+        }
     }
 
     private function setNextSessionCooldown(User $user): void
@@ -307,7 +309,9 @@ class SessionManager
 
         $nextTime = now()->addMinutes($minutes)->timestamp;
 
-        $this->web3Helper->setUserNextSessionTime(config('app.NODE_WORKER_URL'), $user->wallet_address, $nextTime);
+        if (!empty($user->wallet_address)) {
+            \App\Jobs\SetCooldownJob::dispatch($user->wallet_address, $nextTime);
+        }
     }
 
     private function consumeCard(\App\Models\UserCard $userCard): void

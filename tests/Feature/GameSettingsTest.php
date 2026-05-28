@@ -34,7 +34,7 @@ class GameSettingsTest extends TestCase
 
         // Assert that 'base_bet' exists and matches the expected value
         $baseBet = config('game_settings.base_bet');
-        $this->assertIsInt($baseBet);
-        $this->assertEquals(1, $baseBet);
+        $this->assertIsFloat($baseBet);
+        $this->assertEquals(0.01, $baseBet);
     }
 }

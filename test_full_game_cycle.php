@@ -52,8 +52,9 @@ $mockBatchCriteria->shouldReceive('getTargetPoolSize')->andReturn(['targetPoolSi
 $app->instance(App\Services\BatchProcessing\BatchCriteriaService::class, $mockBatchCriteria);
 
 // Override Config for Test
-// By setting security_coefficient to 1 and initial DB balance to 0, The session starts with balance = 0.1.
-// Winning the match brings balance to 0.2, yielding q = 0.2 / 0.1 = 2.0, which triggers payout.
+// Override Config for Test
+// By setting security_coefficient to 1 and initial DB balance to 0, The session starts with balance = 0.01.
+// Winning the match brings balance to 0.02, yielding q = 0.02 / 0.01 = 2.0, which triggers payout.
 config(['game_settings.security_coefficient' => 1]);
 
 // 1. Setup Users
@@ -100,7 +101,7 @@ logOutput("Storing PreMoves...");
 // User 1 Stores PreMove
 $request1 = Request::create('/api/store-pre-moves', 'POST', [
     'user_id' => $user1->id,
-    'bet_amount' => 0.1,
+    'bet_amount' => 0.01,
     'cid' => $cid1,
     'pre_moves' => ['rock', 'rock'] // 2 moves just in case
 ]);
@@ -109,7 +110,7 @@ $controller->storePreMoves($request1);
 // User 2 Stores PreMove
 $request2 = Request::create('/api/store-pre-moves', 'POST', [
     'user_id' => $user2->id,
-    'bet_amount' => 0.1,
+    'bet_amount' => 0.01,
     'cid' => $cid2,
     'pre_moves' => ['scissors', 'scissors']
 ]);
@@ -135,7 +136,7 @@ foreach ($dbUsers as $index => $u) {
 // We use a high ID to avoid conflict
 $poolId = rand(100000, 999999);
 $salt = "test_salt_" . uniqid();
-$betAmount = 0.1;
+$betAmount = 0.01;
 
 $betAmountWei = bcmul((string)$betAmount, "1000000000000000000"); 
 
@@ -146,7 +147,8 @@ $requestPool = Request::create('/internal/pool-emited', 'POST', [
     'base_bet' => $betAmountWei,
     'users' => $orderedWallets,
     'premove_cids' => $orderedCids,
-    'pool_salt' => $salt
+    'pool_salt' => $salt,
+    'balances' => ['1000000000000000000', '1000000000000000000']
 ]);
 
 // Let's check what CIDs we are sending:

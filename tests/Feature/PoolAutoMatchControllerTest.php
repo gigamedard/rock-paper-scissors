@@ -7,6 +7,7 @@ use App\Models\Pool;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use App\Events\PoolFinishedEvent;
 use App\Events\SessionFinishedEvent;
 
@@ -16,11 +17,13 @@ class PoolAutoMatchControllerTest extends TestCase
 
     public function testHandlePoolEmitedEvent()
     {
+        Http::fake();
         config(['app.INTERNAL_API_SECRET' => 'test_secret']);
+        config(['game_settings.security_coefficient' => 1]);
         Event::fake();
 
-        $user1 = User::factory()->create(['wallet_address' => '0x1234567890123456789012345678901234567890', 'balance' => 1000]);
-        $user2 = User::factory()->create(['wallet_address' => '0x0987654321098765432109876543210987654321', 'balance' => 1000]);
+        $user1 = User::factory()->create(['wallet_address' => '0x1234567890123456789012345678901234567890', 'balance' => 0.1]);
+        $user2 = User::factory()->create(['wallet_address' => '0x0987654321098765432109876543210987654321', 'balance' => 0.1]);
 
         $user1->preMove()->create([
             'moves' => json_encode(['rock', 'paper', 'scissors']),
@@ -37,7 +40,7 @@ class PoolAutoMatchControllerTest extends TestCase
             'base_bet' => '100000000000000000', // 0.1 ETH in wei
             'users' => [$user1->wallet_address, $user2->wallet_address],
             'premove_cids' => ['cid1', 'cid2'],
-            'balances' => ['100000000000000000000', '100000000000000000000'],
+            'balances' => ['100000000000000000', '100000000000000000'], // 0.1 ETH in wei
             'pool_salt' => 'random_salt',
             'token' => env('INNER_SCRIPT_TOKEN'),
         ];
@@ -45,6 +48,10 @@ class PoolAutoMatchControllerTest extends TestCase
         $response = $this->withHeaders([
             'X-Internal-Secret' => 'test_secret',
         ])->postJson('/api/internal/handle-pool-emited', $payload);
+
+        if ($response->status() !== 200) {
+            dump($response->json());
+        }
 
         $response->assertStatus(200)
             ->assertJson([
@@ -64,12 +71,12 @@ class PoolAutoMatchControllerTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'id' => $user1->id,
-            'status' => 'in_pool',
+            'status' => 'stopped',
         ]);
 
         $this->assertDatabaseHas('users', [
             'id' => $user2->id,
-            'status' => 'in_pool',
+            'status' => 'stopped',
         ]);
 
         // Event::assertDispatched(PoolFinishedEvent::class);

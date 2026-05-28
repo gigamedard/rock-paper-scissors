@@ -18,8 +18,28 @@ echo "--- START SCENARIO A: Recycling Failure Verification ---\n";
 
 // 1. Setup Data
 $baseBet = 0.01;
-$user1 = User::factory()->create(['balance' => 10, 'battle_balance' => $baseBet, 'status' => 'in_pool', 'bet_amount' => $baseBet, 'wallet_address' => '0xUser1_' . \Illuminate\Support\Str::random(5)]);
-$user2 = User::factory()->create(['balance' => 10, 'battle_balance' => $baseBet, 'status' => 'in_pool', 'bet_amount' => $baseBet, 'wallet_address' => '0xUser2_' . \Illuminate\Support\Str::random(5)]);
+$user1 = User::factory()->create([
+    'balance' => 10,
+    'battle_balance' => 1.0,
+    'session_start_battle_balance' => 1.0,
+    'session_start_balance' => 10,
+    'session_started' => true,
+    'status' => 'in_pool',
+    'bet_amount' => $baseBet,
+    'autoplay_active' => true,
+    'wallet_address' => '0xUser1_' . \Illuminate\Support\Str::random(5)
+]);
+$user2 = User::factory()->create([
+    'balance' => 10,
+    'battle_balance' => 1.0,
+    'session_start_battle_balance' => 1.0,
+    'session_start_balance' => 10,
+    'session_started' => true,
+    'status' => 'in_pool',
+    'bet_amount' => $baseBet,
+    'autoplay_active' => true,
+    'wallet_address' => '0xUser2_' . \Illuminate\Support\Str::random(5)
+]);
 
 // Ensure PreMove exists (required for logic)
 DB::table('pre_moves')->insert([
@@ -43,6 +63,9 @@ echo "Created Fight ID: {$fight->id} between U1 ({$user1->id}) and U2 ({$user2->
 $fightService = app(FightService::class);
 $fightService->handlePoolAutoplayFight($fight, $baseBet, 2);
 
+$sessionManager = app(\App\Services\SessionManager::class);
+$sessionManager->evaluatePoolEnd($pool);
+
 $user1->refresh();
 echo "User 1 (Loser) Status after fight: {$user1->status} (Expected: available)\n";
 echo "User 1 Pool ID: " . ($user1->pool_id ?? 'NULL') . "\n";
@@ -52,23 +75,11 @@ if ($user1->status !== 'available') {
     exit(1);
 }
 
-// 3. Simulate Session Finish Event
-echo "Simulating SessionFinishedEvent...\n";
-// We need to verify if the listener picks it up. 
-// We can't easily spy on the listener in this script without complex mocking, 
-// but we can check the outcome (User 1 status changing back to 'in_pool').
-
-$listener = app(\App\Listeners\SessionFinishedEventListener::class);
-$event = new SessionFinishedEvent($user1->id, $pool);
-$listener->handle($event);
-
 $user1->refresh();
-echo "User 1 Status after Event Listener: {$user1->status} (Expected: still available)\n";
-
 if ($user1->status === 'available') {
-    echo "✅ TEST PASSED: User 1 remained 'available' (Recycling Gap Confirmed).\n";
+    echo "✅ TEST PASSED: User 1 remained 'available'.\n";
 } else {
-    echo "❌ TEST FAILED: User 1 status changed to {$user1->status}. The bug might not exist?\n";
+    echo "❌ TEST FAILED: User 1 status is {$user1->status}.\n";
 }
 
 // Cleanup

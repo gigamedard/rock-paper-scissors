@@ -56,35 +56,16 @@ class EscrowController extends Controller
             'wallet_address' => 'required|string|regex:/^0x[a-fA-F0-9]{40}$/'
         ]);
 
-        try {
-            // Call Node.js bridge to create trade on smart contract
-            $response = Http::post(env('NODE_URL') . '/escrow/create-trade', [
-                'sntAmount' => $validated['snt_amount'],
-                'avaxAmount' => $validated['avax_amount'],
-                'walletAddress' => $validated['wallet_address']
-            ]);
+        \App\Jobs\ProcessEscrowJob::dispatch('create-trade', [
+            'sntAmount' => $validated['snt_amount'],
+            'avaxAmount' => $validated['avax_amount'],
+            'walletAddress' => $validated['wallet_address']
+        ]);
 
-            if ($response->successful()) {
-                $result = $response->json();
-                
-                // Clear trades cache
-                $this->clearTradesCache();
-
-                return response()->json([
-                    'message' => 'Trade created successfully',
-                    'transaction_hash' => $result['transactionHash'] ?? null,
-                    'trade_id' => $result['tradeId'] ?? null
-                ]);
-            } else {
-                $error = $response->json();
-                return response()->json([
-                    'error' => $error['error'] ?? 'Failed to create trade'
-                ], 400);
-            }
-        } catch (\Exception $e) {
-            Log::error('Error creating trade: ' . $e->getMessage());
-            return response()->json(['error' => 'Service unavailable'], 503);
-        }
+        return response()->json([
+            'status' => 'pending',
+            'message' => 'Trade creation request submitted'
+        ]);
     }
 
     /**
@@ -96,33 +77,15 @@ class EscrowController extends Controller
             'wallet_address' => 'required|string|regex:/^0x[a-fA-F0-9]{40}$/'
         ]);
 
-        try {
-            // Call Node.js bridge to accept trade on smart contract
-            $response = Http::post(env('NODE_URL') . '/escrow/accept-trade', [
-                'tradeId' => $tradeId,
-                'walletAddress' => $validated['wallet_address']
-            ]);
+        \App\Jobs\ProcessEscrowJob::dispatch('accept-trade', [
+            'tradeId' => $tradeId,
+            'walletAddress' => $validated['wallet_address']
+        ]);
 
-            if ($response->successful()) {
-                $result = $response->json();
-                
-                // Clear trades cache
-                $this->clearTradesCache();
-
-                return response()->json([
-                    'message' => 'Trade accepted successfully',
-                    'transaction_hash' => $result['transactionHash'] ?? null
-                ]);
-            } else {
-                $error = $response->json();
-                return response()->json([
-                    'error' => $error['error'] ?? 'Failed to accept trade'
-                ], 400);
-            }
-        } catch (\Exception $e) {
-            Log::error('Error accepting trade: ' . $e->getMessage());
-            return response()->json(['error' => 'Service unavailable'], 503);
-        }
+        return response()->json([
+            'status' => 'pending',
+            'message' => 'Trade acceptance request submitted'
+        ]);
     }
 
     /**
@@ -134,33 +97,15 @@ class EscrowController extends Controller
             'wallet_address' => 'required|string|regex:/^0x[a-fA-F0-9]{40}$/'
         ]);
 
-        try {
-            // Call Node.js bridge to cancel trade on smart contract
-            $response = Http::post(env('NODE_URL') . '/escrow/cancel-trade', [
-                'tradeId' => $tradeId,
-                'walletAddress' => $validated['wallet_address']
-            ]);
+        \App\Jobs\ProcessEscrowJob::dispatch('cancel-trade', [
+            'tradeId' => $tradeId,
+            'walletAddress' => $validated['wallet_address']
+        ]);
 
-            if ($response->successful()) {
-                $result = $response->json();
-                
-                // Clear trades cache
-                $this->clearTradesCache();
-
-                return response()->json([
-                    'message' => 'Trade cancelled successfully',
-                    'transaction_hash' => $result['transactionHash'] ?? null
-                ]);
-            } else {
-                $error = $response->json();
-                return response()->json([
-                    'error' => $error['error'] ?? 'Failed to cancel trade'
-                ], 400);
-            }
-        } catch (\Exception $e) {
-            Log::error('Error cancelling trade: ' . $e->getMessage());
-            return response()->json(['error' => 'Service unavailable'], 503);
-        }
+        return response()->json([
+            'status' => 'pending',
+            'message' => 'Trade cancellation request submitted'
+        ]);
     }
 
     /**

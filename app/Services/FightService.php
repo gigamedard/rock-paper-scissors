@@ -93,6 +93,16 @@ class FightService
             if ($loserUser->battle_balance < $baseBet) {
                 UserTracker::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool matching (battle_balance < baseBet). Will wait for SessionManager to evaluate session.", ['wallet' => $loserWallet, 'battle_balance' => $loserUser->battle_balance]);
             }
+
+            // Add loser to queue_table (legacy compatibility)
+            try {
+                DB::table('queue_table')->insert([
+                    'user_id' => $loserId,
+                    'created_at' => now(),
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Queue table insert failed: " . $e->getMessage());
+            }
         }
 
         $fight->status = 'completed';

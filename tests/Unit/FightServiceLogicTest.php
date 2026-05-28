@@ -42,6 +42,7 @@ class FightServiceLogicTest extends TestCase
         $this->web3Helper->shouldReceive('sendPayement')->andReturn([]);
         $this->web3Helper->shouldReceive('setUserNextSessionTime')->andReturn([]);
         $this->web3Helper->shouldReceive('setUserLimits')->andReturn([]);
+        $this->app->instance(Web3Helper::class, $this->web3Helper);
         
         $this->notificationService = Mockery::mock(NotificationService::class);
         $this->notificationService->shouldReceive('notifyFightWin')->andReturnNull();

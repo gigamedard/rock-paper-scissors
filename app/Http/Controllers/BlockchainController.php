@@ -139,26 +139,21 @@ class BlockchainController extends Controller
         $nodeWorkerUrl = config('app.NODE_WORKER_URL');
         $internalSecret = config('app.INTERNAL_API_SECRET');
 
-        Log::info("Internal API Secret: {$internalSecret}");
-        Log::info("Node Worker URL: {$nodeWorkerUrl}");
-
-
         try {
-            // Appelle le serveur Node.js en passant le header secret
-            $response = Http::withHeaders([
-                'X-Internal-Secret' => $internalSecret,
-                'Accept' => 'application/json',
-            ])->get("{$nodeWorkerUrl}/get-game-config");
-            Log::info("Response body: " . $response->body());
-            // Si l'appel échoue
-            if (!$response->successful()) {
-                return response()->json([
-                    'error' => 'Erreur: --Le service de configuration est indisponible.--!'
-                ], 503); // 503 Service Unavailable
-            }
+            // Cache the Node.js config for 5 minutes (300 seconds)
+            $nodeConfig = \Illuminate\Support\Facades\Cache::remember('game_config', 300, function () use ($nodeWorkerUrl, $internalSecret) {
+                Log::info("Making network request to fetch game config from Node.js...");
+                $response = Http::withHeaders([
+                    'X-Internal-Secret' => $internalSecret,
+                    'Accept' => 'application/json',
+                ])->get("{$nodeWorkerUrl}/get-game-config");
 
-            // Si l'appel réussit, on récupère la config du Node
-            $nodeConfig = $response->json();
+                if (!$response->successful()) {
+                    throw new \Exception("Configuration service unavailable.");
+                }
+
+                return $response->json();
+            });
 
             // On enrichit avec les paramètres "Business" stockés en base de données Laravel
             $dbConfig = [
@@ -192,45 +187,13 @@ class BlockchainController extends Controller
         Log::info("Triggering payout: Wallet: {$walletAddress}, Amount: {$amountEth} ETH");
 
         try {
-            // Get Node.js worker URL from config
-            $nodeWorkerUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+            \App\Jobs\ProcessPayoutJob::dispatch($walletAddress, (float) $amountEth);
 
-            // Call Node.js worker to send payment via smart contract
-            $result = Web3Helper::sendPayement($nodeWorkerUrl, $walletAddress, $amountEth);
-
-            if (isset($result['success']) && $result['success']) {
-                Log::info("Payout successful: TxHash: {$result['txHash']}");
-                
-                // NOTIFICATION: Payout Received
-                $user = User::where('wallet_address', $walletAddress)->first();
-                if ($user) {
-                    \App\Models\GameNotification::create([
-                        'user_id' => $user->id,
-                        'type' => 'PAYOUT',
-                        'data' => [
-                            'amount' => $amountEth,
-                            'currency' => 'ETH', // or AVAX
-                            'tx_hash' => $result['txHash']
-                        ]
-                    ]);
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Payout sent successfully.',
-                    'txHash' => $result['txHash'],
-                    'wallet_address' => $walletAddress,
-                    'amount_eth' => $amountEth,
-                ], 200);
-            } else {
-                Log::error("Payout failed: " . json_encode($result));
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payout failed.',
-                    'error' => $result['error'] ?? 'Unknown error',
-                ], 500);
-            }
+            return response()->json([
+                'success' => true,
+                'status' => 'pending',
+                'message' => 'Payout transaction has been queued.'
+            ], 202);
 
         } catch (\Throwable $e) {
             Log::error("Error triggering payout: {$e->getMessage()}");

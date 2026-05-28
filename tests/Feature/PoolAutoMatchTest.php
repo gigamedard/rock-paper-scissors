@@ -18,15 +18,15 @@ class PoolAutoMatchTest extends TestCase
     {
         // Create a pool and users
         $pool = Pool::factory()->create(['base_bet' => 10, 'pool_size' => 2]);
-        $user1 = User::factory()->create(['status' => 'available', 'balance' => 100]);
-        $user2 = User::factory()->create(['status' => 'available', 'balance' => 100]);
+        $user1 = User::factory()->create(['status' => 'available', 'balance' => 100, 'wallet_address' => '0x' . bin2hex(random_bytes(20))]);
+        $user2 = User::factory()->create(['status' => 'available', 'balance' => 100, 'wallet_address' => '0x' . bin2hex(random_bytes(20))]);
 
         // Add pre-moves for the users
         DB::table('pre_moves')->insert([
             [
                 'user_id' => $user1->id,
-                'moves' => json_encode(['rock', 'paper', 'scissors']),
-                'hashed_moves' => json_encode(['hashed_rock', 'hashed_paper', 'hashed_scissors']),
+                'moves' => json_encode(['scissors', 'rock', 'paper']),
+                'hashed_moves' => json_encode(['hashed_scissors', 'hashed_rock', 'hashed_paper']),
                 'nonce' => bin2hex(random_bytes(16)),
                 'current_index' => 0,
             ],
@@ -40,7 +40,7 @@ class PoolAutoMatchTest extends TestCase
         ]);
 
         // Add users to the pool
-        $pool->users()->attach([$user1->id, $user2->id]);
+        $pool->users()->saveMany([$user1, $user2]);
 
         // Simulate a fight where user1 loses
         $fight = Fight::create([
@@ -63,25 +63,23 @@ class PoolAutoMatchTest extends TestCase
         // Check if a pool with the same base_bet and pool_size exists
         $existingPool = Pool::where('base_bet', $pool->base_bet)
                             ->where('pool_size', $pool->pool_size)
-                            ->whereDoesntHave('users', function ($query) {
-                                $query->havingRaw('COUNT(*) >= ?', [2]);
-                            })
+                            ->has('users', '<', 2)
                             ->first();
 
         if ($existingPool) {
             // Assert that the loser is added to the existing pool
-            $this->assertTrue($existingPool->users()->where('user_id', $user1->id)->exists());
+            $this->assertTrue($existingPool->users()->where('id', $user1->id)->exists());
         } else {
             // Assert that a new pool is created and the loser is added to it
             $newPool = Pool::where('base_bet', $pool->base_bet)
                            ->where('pool_size', $pool->pool_size)
                            ->whereHas('users', function ($query) use ($user1) {
-                               $query->where('user_id', $user1->id);
+                               $query->where('id', $user1->id);
                            })
                            ->first();
 
             $this->assertNotNull($newPool);
-            $this->assertTrue($newPool->users()->where('user_id', $user1->id)->exists());
+            $this->assertTrue($newPool->users()->where('id', $user1->id)->exists());
         }
     }
 
@@ -89,11 +87,11 @@ class PoolAutoMatchTest extends TestCase
     public function it_creates_a_new_pool_from_queue_table()
     {
         // Add users to the queue_table
-        $user1 = User::factory()->create(['status' => 'available']);
-        $user2 = User::factory()->create(['status' => 'available']);
-        $user3 = User::factory()->create(['status' => 'available']);
-        $user4 = User::factory()->create(['status' => 'available']);
-        $user5 = User::factory()->create(['status' => 'available']);
+        $user1 = User::factory()->create(['status' => 'available', 'wallet_address' => '0x' . bin2hex(random_bytes(20))]);
+        $user2 = User::factory()->create(['status' => 'available', 'wallet_address' => '0x' . bin2hex(random_bytes(20))]);
+        $user3 = User::factory()->create(['status' => 'available', 'wallet_address' => '0x' . bin2hex(random_bytes(20))]);
+        $user4 = User::factory()->create(['status' => 'available', 'wallet_address' => '0x' . bin2hex(random_bytes(20))]);
+        $user5 = User::factory()->create(['status' => 'available', 'wallet_address' => '0x' . bin2hex(random_bytes(20))]);
 
         // Add pre-moves for the users
         DB::table('pre_moves')->insert([
@@ -151,11 +149,11 @@ class PoolAutoMatchTest extends TestCase
         ]);
 
         // Assert that users are added to the new pool
-        $this->assertTrue($pool->users()->where('user_id', $user1->id)->exists());
-        $this->assertTrue($pool->users()->where('user_id', $user2->id)->exists());
-        $this->assertTrue($pool->users()->where('user_id', $user3->id)->exists());
-        $this->assertTrue($pool->users()->where('user_id', $user4->id)->exists());
-        $this->assertTrue($pool->users()->where('user_id', $user5->id)->exists());
+        $this->assertTrue($pool->users()->where('id', $user1->id)->exists());
+        $this->assertTrue($pool->users()->where('id', $user2->id)->exists());
+        $this->assertTrue($pool->users()->where('id', $user3->id)->exists());
+        $this->assertTrue($pool->users()->where('id', $user4->id)->exists());
+        $this->assertTrue($pool->users()->where('id', $user5->id)->exists());
 
         // Assert that users are removed from the queue_table
         $this->assertDatabaseMissing('queue_table', [
@@ -168,8 +166,8 @@ class PoolAutoMatchTest extends TestCase
     {
         // Create a pool and users
         $pool = Pool::factory()->create(['base_bet' => 10, 'pool_size' => 2]);
-        $user1 = User::factory()->create(['status' => 'available', 'balance' => 100]);
-        $user2 = User::factory()->create(['status' => 'available', 'balance' => 100]);
+        $user1 = User::factory()->create(['status' => 'available', 'balance' => 100, 'wallet_address' => '0x' . bin2hex(random_bytes(20))]);
+        $user2 = User::factory()->create(['status' => 'available', 'balance' => 100, 'wallet_address' => '0x' . bin2hex(random_bytes(20))]);
 
         // Add pre-moves for the users
         DB::table('pre_moves')->insert([
@@ -190,7 +188,7 @@ class PoolAutoMatchTest extends TestCase
         ]);
 
         // Add users to the pool
-        $pool->users()->attach([$user1->id, $user2->id]);
+        $pool->users()->saveMany([$user1, $user2]);
 
         // Simulate a fight that ends in a draw
         $fight = Fight::create([
@@ -206,8 +204,8 @@ class PoolAutoMatchTest extends TestCase
         $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
 
         // Assert that both users remain in the pool
-        $this->assertTrue($pool->users()->where('user_id', $user1->id)->exists());
-        $this->assertTrue($pool->users()->where('user_id', $user2->id)->exists());
+        $this->assertTrue($pool->users()->where('id', $user1->id)->exists());
+        $this->assertTrue($pool->users()->where('id', $user2->id)->exists());
     }
 
     private function createNewPool(): Pool
@@ -231,7 +229,7 @@ class PoolAutoMatchTest extends TestCase
 
         // Add users to the pool
         foreach ($queuedUsers as $queuedUser) {
-            $pool->users()->attach($queuedUser->user_id);
+            User::where('id', $queuedUser->user_id)->update(['pool_id' => $pool->id]);
         }
 
         // Remove users from the queue table

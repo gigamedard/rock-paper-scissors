@@ -25,8 +25,18 @@ class EndToEndGameFlowTest extends TestCase
     {
         parent::setUp();
 
+        // Fake all HTTP calls to Node.js server to avoid external dependencies during tests
+        \Illuminate\Support\Facades\Http::fake([
+            '*/setUserLimits' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*/setUserNextSessionTime' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*/sendPayment' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*/getUserNonce/*' => \Illuminate\Support\Facades\Http::response(['nonce' => 0], 200),
+            '*/get-game-config' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+            '*' => \Illuminate\Support\Facades\Http::response(['status' => 'success'], 200),
+        ]);
+
         // Mock Web3Helper to avoid actual blockchain calls
-        $this->web3HelperMock = Mockery::mock(Web3Helper::class);
+        $this->web3HelperMock = Mockery::mock(Web3Helper::class)->shouldIgnoreMissing();
         $this->web3HelperMock->shouldReceive('weiToEther')->andReturnArg(0); // Simple pass-through for test
         $this->web3HelperMock->shouldReceive('sortAddressesWithSalt')->andReturnUsing(function ($addresses, $salt) {
             sort($addresses); // Simple sort for predictability

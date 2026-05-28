@@ -351,7 +351,7 @@ Route::get('/user/balance', function () {
         'balance' => auth()->user()->balance,
     ]);
 });
-
+*/
 
 
 
@@ -362,6 +362,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+/*
 // autoprocess routes
 
 Route::get('/triggermatching', [AutoMatchController::class, 'selectSliceInstenceForAllBetAmount']);// later add a unique use token in parameter for security

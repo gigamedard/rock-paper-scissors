@@ -37,6 +37,7 @@ class LevelingSystemTest extends TestCase
         $this->web3HelperMock->shouldReceive('sendPayement')->byDefault();
         $this->web3HelperMock->shouldReceive('setUserNextSessionTime')->byDefault();
         $this->web3HelperMock->shouldReceive('setUserLimits')->byDefault();
+        $this->app->instance(Web3Helper::class, $this->web3HelperMock);
 
         $this->historyServiceMock = Mockery::mock(SessionHistoryService::class);
         $this->historyServiceMock->shouldReceive('archiveSessionHistory')->byDefault();

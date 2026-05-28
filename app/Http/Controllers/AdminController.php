@@ -9,6 +9,7 @@ use App\Models\Influencer;
 use App\Models\InfluencerPool;
 use App\Models\InfluencerStat;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class AdminController extends Controller
 {
@@ -21,7 +22,9 @@ class AdminController extends Controller
         $totalVolume = \App\Models\Fight::sum('base_bet_amount');
         
         $nodeUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
-        $totalFees = \App\Helpers\Web3Helper::getContractHouseBalance($nodeUrl);
+        $totalFees = Cache::remember('house_balance', 300, function () use ($nodeUrl) {
+            return \App\Helpers\Web3Helper::getContractHouseBalance($nodeUrl);
+        });
 
         $activePools = \App\Models\Pool::where('status', 'active')->count();
         

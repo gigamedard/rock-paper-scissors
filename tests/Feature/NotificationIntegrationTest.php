@@ -11,6 +11,7 @@ use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Mockery;
 
 class NotificationIntegrationTest extends TestCase
@@ -24,13 +25,15 @@ class NotificationIntegrationTest extends TestCase
     {
         parent::setUp();
         
+        Http::fake();
+        
         // Configure pool settings for test
         Config::set('pool.size', [2]);
         Config::set('pool.base_bet', [1.0]);
         Config::set('game_settings.abi', []); 
         
         // Mock Web3Helper
-        $web3Mock = Mockery::mock(\App\Helpers\Web3Helper::class);
+        $web3Mock = Mockery::mock(\App\Helpers\Web3Helper::class)->shouldIgnoreMissing();
         $web3Mock->shouldReceive('premoveExists')->andReturn(true);
         $web3Mock->shouldReceive('sortAddressesWithSalt')->andReturnUsing(function($addrs, $salt) { 
             sort($addrs); return $addrs; 
@@ -87,6 +90,10 @@ class NotificationIntegrationTest extends TestCase
         // 4. Setup expectations for Fight Wins
         // Each pool (size 2) has 1 fight. So 2 fights total. 2 winners.
         // We expect notifyFightWin called 2 times.
+        $this->notificationMock->shouldReceive('notifyFightStarted')
+            ->times(4)
+            ->with(Mockery::type(User::class), Mockery::type(User::class), Mockery::type(Fight::class));
+
         $this->notificationMock->shouldReceive('notifyFightWin')
             ->times(2)
             ->with(Mockery::type(User::class), Mockery::any(), Mockery::any());

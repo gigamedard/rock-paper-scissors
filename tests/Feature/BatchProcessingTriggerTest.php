@@ -21,23 +21,14 @@ class BatchProcessingTriggerTest extends TestCase
         $mockService = Mockery::mock(BatchProcessingService::class);
         $mockService->shouldReceive('processBatch')
             ->once()
-            ->andReturn(new JsonResponse(['message' => 'Batch processed'], 200));
+            ->with(1.0)
+            ->andReturn(['message' => 'Batch processed', 'http_code' => 200]);
 
         $this->app->instance(BatchProcessingService::class, $mockService);
 
-        // Create a user for internal auth if needed, or bypass middleware if possible.
-        // The route is protected by 'auth.internal'. We need to see how to pass this.
-        // Looking at InternalApiAuth middleware might be needed, but for now let's try acting as a user 
-        // or mocking the middleware.
-        
-        // Assuming InternalApiAuth checks for a specific token or user capability.
-        // Let's try to mock the middleware or just assert 401 if we don't provide auth, 
-        // then try to provide auth.
-        
-        // For this test, we'll mock the middleware to allow the request.
         $this->withoutMiddleware(\App\Http\Middleware\InternalApiAuth::class);
 
-        $response = $this->getJson('/api/internal/batch-processing');
+        $response = $this->postJson('/api/internal/batch-processing', ['base_bet' => 1.0]);
 
         $response->assertStatus(200)
             ->assertJson(['message' => 'Batch processed']);
@@ -47,15 +38,24 @@ class BatchProcessingTriggerTest extends TestCase
     {
         // Mock the BatchProcessingService
         $mockService = Mockery::mock(BatchProcessingService::class);
-        $mockService->shouldReceive('processBatch')
+        $mockService->shouldReceive('processAllBetTiers')
             ->once()
-            ->andReturn(new JsonResponse(['message' => 'Batch processed via command'], 200));
+            ->andReturn([
+                'status' => 'success',
+                'message' => 'Batch processed via command',
+                'http_code' => 200,
+                'current_tier' => 1.0,
+                'processed_count' => 1
+            ]);
 
         $this->app->instance(BatchProcessingService::class, $mockService);
 
         $this->artisan('batch:process')
             ->expectsOutput('Starting batch processing...')
-            ->expectsOutput('Batch processing completed successfully. Status: 200')
+            ->expectsOutput('Batch processing completed. Status: success')
+            ->expectsOutput('Message: Batch processed via command')
+            ->expectsOutput('Processed Count: 1')
+            ->expectsOutput('Tier processed: 1')
             ->assertExitCode(0);
     }
 }

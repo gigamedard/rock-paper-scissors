@@ -257,7 +257,7 @@ class User extends Authenticatable
         // Subtract 20 seconds as safety margin for transaction processing time
         $minCooldownSeconds = max(0, ($limits['min_cooldown'] * 60) - 20);
 
-        return \App\Helpers\Web3Helper::setUserLimits(
+        return app(\App\Helpers\Web3Helper::class)->setUserLimits(
             $nodeUrl,
             $this->wallet_address,
             $limits['max_base_bet'],
