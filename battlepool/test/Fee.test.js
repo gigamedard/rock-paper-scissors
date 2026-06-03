@@ -22,9 +22,9 @@ describe("Battlepool - Fees and Payout", function () {
         securityCoefficient = await battlepool.securityCoefficient();
     });
 
-    it("should deduct 2.5% fee on deposit and credit the remainder to user balance", async function () {
+    it("should deduct 5% fee on deposit and credit the remainder to user balance", async function () {
         const requiredBalance = baseBet * securityCoefficient;
-        const depositAmount = (requiredBalance * 10250n) / 10000n;
+        const depositAmount = (requiredBalance * 10500n) / 10000n;
 
         await battlepool.connect(user1).submitPremoveCID(baseBet, "QmTest", { value: depositAmount });
 
@@ -55,7 +55,7 @@ describe("Battlepool - Fees and Payout", function () {
 
     it("should allow withdrawal of dev fees", async function () {
         const requiredBalance = baseBet * securityCoefficient;
-        const depositAmount = (requiredBalance * 10250n) / 10000n;
+        const depositAmount = (requiredBalance * 10500n) / 10000n;
 
         await battlepool.connect(user1).submitPremoveCID(baseBet, "QmTest", { value: depositAmount });
 

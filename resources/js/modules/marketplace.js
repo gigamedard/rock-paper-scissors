@@ -73,12 +73,14 @@ export async function initMarketplace() {
     const timerId = setInterval(loadMarketplaceData, 30000);
     setAppTimer('marketplace-poll', timerId);
 
-    // Gestion des onglets P2P / Cartes
+    // Gestion des onglets P2P / Cartes / Inventaire
     const tabP2p = document.getElementById('tab-p2p');
     const tabCards = document.getElementById('tab-cards');
-    if (tabP2p && tabCards) {
+    const tabInventory = document.getElementById('tab-inventory');
+    if (tabP2p && tabCards && tabInventory) {
         tabP2p.onclick = () => switchMarketplaceTab('p2p');
         tabCards.onclick = () => switchMarketplaceTab('cards');
+        tabInventory.onclick = () => switchMarketplaceTab('inventory');
     }
 
     if (!window.marketplaceListenersInitialized) {
@@ -92,30 +94,49 @@ export async function initMarketplace() {
 function switchMarketplaceTab(tab) {
     const tabP2p = document.getElementById('tab-p2p');
     const tabCards = document.getElementById('tab-cards');
+    const tabInventory = document.getElementById('tab-inventory');
     const contentP2p = document.getElementById('mp-p2p-content');
     const contentCards = document.getElementById('mp-cards-content');
+    const contentInventory = document.getElementById('mp-inventory-content');
 
+    // Réinitialiser les styles de tous les onglets
+    [tabP2p, tabCards, tabInventory].forEach(el => {
+        if (el) {
+            el.classList.remove('active');
+            el.style.background = 'rgba(255,255,255,0.1)';
+            el.style.border = '1px solid var(--primary)';
+        }
+    });
+
+    // Cacher tous les contenus
+    if (contentP2p) contentP2p.style.display = 'none';
+    if (contentCards) contentCards.style.display = 'none';
+    if (contentInventory) contentInventory.style.display = 'none';
+
+    // Activer l'onglet et le contenu sélectionné
     if (tab === 'p2p') {
-        tabP2p.classList.add('active');
-        tabP2p.style.background = 'var(--primary)';
-        tabP2p.style.border = 'none';
-        tabCards.classList.remove('active');
-        tabCards.style.background = 'rgba(255,255,255,0.1)';
-        tabCards.style.border = '1px solid var(--primary)';
-        
-        contentP2p.style.display = 'block';
-        contentCards.style.display = 'none';
+        if (tabP2p) {
+            tabP2p.classList.add('active');
+            tabP2p.style.background = 'var(--primary)';
+            tabP2p.style.border = 'none';
+        }
+        if (contentP2p) contentP2p.style.display = 'block';
     } else if (tab === 'cards') {
-        tabCards.classList.add('active');
-        tabCards.style.background = 'var(--primary)';
-        tabCards.style.border = 'none';
-        tabP2p.classList.remove('active');
-        tabP2p.style.background = 'rgba(255,255,255,0.1)';
-        tabP2p.style.border = '1px solid var(--primary)';
-        
-        contentP2p.style.display = 'none';
-        contentCards.style.display = 'block';
+        if (tabCards) {
+            tabCards.classList.add('active');
+            tabCards.style.background = 'var(--primary)';
+            tabCards.style.border = 'none';
+        }
+        if (contentCards) contentCards.style.display = 'block';
         loadShopCards();
+    } else if (tab === 'inventory') {
+        if (tabInventory) {
+            tabInventory.classList.add('active');
+            tabInventory.style.background = 'var(--primary)';
+            tabInventory.style.border = 'none';
+        }
+        if (contentInventory) contentInventory.style.display = 'block';
+        loadUserInventory();
     }
 }
 
@@ -200,10 +221,12 @@ window.marketplaceBuyCard = async function(cardId, cardPrice) {
         // 1. Transaction On-Chain
         const tx = await sntContract.transfer(OWNER_ADDRESS, amountInWei);
         addToFeed(`⏳ Envoi de ${cardPrice} SNT en cours... (${tx.hash.substring(0,10)}...)`, 'var(--primary)');
+        _showMpNotification('⏳ Transaction envoyée. En attente de confirmation sur la blockchain...', 'info');
         
         // Attendre la confirmation
         await tx.wait();
         addToFeed('✅ SNT transférés avec succès !', 'var(--success)');
+        _showMpNotification('✅ Transaction confirmée sur la blockchain ! Attribution de la carte...', 'info');
         
         // 2. Notification au Backend
         addToFeed('⏳ Attribution de la carte...', 'var(--primary)');
@@ -221,13 +244,97 @@ window.marketplaceBuyCard = async function(cardId, cardPrice) {
         _showMpNotification('🎉 Carte achetée avec succès !', 'success');
         addToFeed('✅ Carte ajoutée à votre inventaire.', 'var(--success)');
         
-        // Mettre à jour l'affichage de la balance si nécessaire
-        // (La DApp met déjà à jour la balance via les events ou un fetch séparé)
+        // Basculer vers l'onglet inventaire
+        switchMarketplaceTab('inventory');
     } catch (e) {
         console.error('[Marketplace] Erreur achat carte:', e);
         _showMpNotification('❌ Achat échoué : ' + e.message, 'error');
     }
 };
+
+export async function loadUserInventory() {
+    const container = document.getElementById('marketplace-inventory-list');
+    if (!container) return;
+
+    try {
+        container.innerHTML = '<p style="text-align:center; color: var(--text-dim); grid-column: 1 / -1;">Chargement de votre inventaire...</p>';
+        const res = await secureFetch('/shop/inventory');
+        if (!res.ok) throw new Error("Impossible de charger l'inventaire");
+        const userCards = await res.json();
+
+        if (userCards.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color: var(--text-dim); grid-column: 1 / -1;">Vous ne possédez aucune carte pour le moment.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        userCards.forEach(uc => {
+            const card = uc.card;
+            if (!card) return;
+
+            let effectDisplay = '';
+            if (card.effect_type === 'cooldown_reduction') effectDisplay = `⏳ Cooldown -${card.effect_value < 1 ? (card.effect_value * 100) + '%' : card.effect_value + ' mins'}`;
+            else if (card.effect_type === 'ceiling_increase') effectDisplay = `🚀 Plafond +${card.effect_value}x`;
+            else if (card.effect_type === 'base_bet_modifier') effectDisplay = `💰 Base Bet +${card.effect_value}`;
+            else effectDisplay = `⚡ ${card.effect_type} (${card.effect_value})`;
+
+            let isExpired = false;
+            if (uc.status === 'consumed' || uc.status === 'expired' || uc.status === 'failed') {
+                isExpired = true;
+            }
+            if (card.duration_type === 'time' && uc.expires_at) {
+                const expiresDate = new Date(uc.expires_at);
+                if (expiresDate < new Date()) {
+                    isExpired = true;
+                }
+            } else if (card.duration_type === 'sessions' && uc.remaining_sessions !== null && uc.remaining_sessions <= 0) {
+                isExpired = true;
+            }
+
+            let statusDisplay = '';
+            let statusColor = '';
+            if (uc.status === 'pending') {
+                statusDisplay = '⏳ Validation en cours';
+                statusColor = '#f59e0b';
+            } else if (isExpired) {
+                statusDisplay = '🔴 Expirée';
+                statusColor = '#ef4444';
+            } else if (uc.status === 'available' || uc.status === 'active') {
+                statusDisplay = '🟢 Active';
+                statusColor = '#10b981';
+            } else {
+                statusDisplay = `⚡ ${uc.status}`;
+                statusColor = '#aaa';
+            }
+
+            let validityDisplay = '';
+            if (card.duration_type === 'sessions') {
+                validityDisplay = `${uc.remaining_sessions !== null ? uc.remaining_sessions : card.duration_value} sessions restantes`;
+            } else {
+                const expDate = uc.expires_at ? new Date(uc.expires_at).toLocaleString() : 'N/A';
+                validityDisplay = `Expire le: ${expDate}`;
+            }
+
+            const cardEl = document.createElement('div');
+            cardEl.className = 'holo-card';
+            cardEl.innerHTML = `
+                <div class="holo-card-content">
+                    <div class="holo-card-title">${card.name}</div>
+                    <div class="holo-card-effect" style="margin-bottom: 0.5rem;">${effectDisplay}</div>
+                    <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem; min-height: 40px;">${card.description || ''}</p>
+                    <div style="font-size: 0.9rem; font-weight: bold; color: ${statusColor}; margin-bottom: 0.5rem;">${statusDisplay}</div>
+                    <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">${validityDisplay}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-dim); word-break: break-all;">Tx: <a href="#" onclick="event.preventDefault(); window.open('https://subnets-test.avax.network/fuji-wagmi/tx/${uc.tx_hash}', '_blank');" style="color: #6366f1;">${uc.tx_hash.substring(0, 14)}...</a></div>
+                </div>
+            `;
+            container.appendChild(cardEl);
+        });
+    } catch (e) {
+        console.error('[Marketplace] Erreur chargement inventaire:', e);
+        container.innerHTML = '<p style="text-align:center; color: #ef4444; grid-column: 1 / -1;">Erreur lors du chargement de l\'inventaire.</p>';
+    }
+}
+
 
 // FIX #1 : lire les bonnes clés 'snt' et 'marketplace' du JSON
 async function loadContractAddresses() {

@@ -181,7 +181,9 @@
                         <div class="feed-entry"><span class="feed-time">System Initialized</span> Waiting for signals...</div>
                     </div>
                 </aside>
+                </div>
             </div>
+
         </div>
 
         <!-- ===== PAGE: MARKETPLACE ===== -->
@@ -191,6 +193,7 @@
                 <div class="mp-tabs" style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: center;">
                     <button id="tab-p2p" class="mp-tab active" style="padding: 0.5rem 2rem; background: var(--primary); border: none; border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;">P2P Trading</button>
                     <button id="tab-cards" class="mp-tab" style="padding: 0.5rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;">Boutique Cartes</button>
+                    <button id="tab-inventory" class="mp-tab" style="padding: 0.5rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;">Mes Cartes</button>
                 </div>
             </div>
 
@@ -252,6 +255,14 @@
                 <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);">Boutique Officielle</h2>
                 <div id="marketplace-cards-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
                     <!-- Les cartes générées par JS iront ici -->
+                </div>
+            </div>
+
+            <!-- CONTENU INVENTAIRE CARTES USER -->
+            <div id="mp-inventory-content" style="display:none; padding: 2rem 0;">
+                <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);">Mon Inventaire de Cartes</h2>
+                <div id="marketplace-inventory-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+                    <!-- Les cartes possédées iront ici -->
                 </div>
             </div>
 

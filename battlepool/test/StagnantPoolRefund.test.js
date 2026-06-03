@@ -22,7 +22,7 @@ describe("Battlepool - Stagnant Pool Refund", function () {
         baseBet = ethers.parseEther("0.01"); // 0.01 ETH
         const securityCoefficient = await battlepool.securityCoefficient();
         const requiredBalance = baseBet * securityCoefficient;
-        depositAmount = (requiredBalance * 10250n) / 10000n;
+        depositAmount = (requiredBalance * 10500n) / 10000n;
     });
 
     describe("Stagnant Block Limit Configuration", function () {

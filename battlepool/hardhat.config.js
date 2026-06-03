@@ -35,6 +35,11 @@ module.exports = {
       url: FUJI_RPC_URL,
       accounts: FUJI_PRIVATE_KEY ? [FUJI_PRIVATE_KEY] : [],
       chainId: 43113
+    },
+    mainnet: {
+      url: process.env.MAINNET_RPC_URL || "https://api.avax.network/ext/bc/C/rpc",
+      accounts: FUJI_PRIVATE_KEY ? [FUJI_PRIVATE_KEY] : [],
+      chainId: 43114
     }
     // ===================
   },

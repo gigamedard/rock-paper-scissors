@@ -29,7 +29,7 @@ php artisan config:clear
 
 rem 4. Deploiement des Smart Contracts
 echo [4/8] Deploiement des smart contracts sur Hardhat...
-start "Full Deployment" cmd /k "cd battlepool && npx hardhat run full_deploy.js"
+start "Full Deployment" cmd /k "cd battlepool && npx hardhat run full_deploy.js --network localhost"
 
 rem Attendre le deploiement
 timeout /t 10 /nobreak > nul

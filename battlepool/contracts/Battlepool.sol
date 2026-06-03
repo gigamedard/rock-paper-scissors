@@ -67,7 +67,7 @@ contract Battlepool {
     uint256 public defaultPoolMaxSize; // <<<--- AJOUTEZ CETTE LIGNE
     uint256 public stagnantBlockLimit = 100; // Default 100 blocks
     
-    uint256 public feeBasisPoints = 250; // Default 2.5% fee
+    uint256 public feeBasisPoints = 500; // Default 5.0% fee
     uint256 public devBalance; // Accumulated fees
     address payable public devWallet;
 

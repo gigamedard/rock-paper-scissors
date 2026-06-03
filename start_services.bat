@@ -20,7 +20,7 @@ ping 127.0.0.1 -n 3 > nul
 
 rem 3. Deployment des Smart Contracts
 echo [3/10] Deploiement des smart contracts...
-start "Hardhat Deployment" cmd /k "cd battlepool && npx hardhat run full_deploy.js"
+start "Hardhat Deployment" cmd /k "cd battlepool && npx hardhat run full_deploy.js --network localhost"
 
 rem Pause de 7 secondes
 ping 127.0.0.1 -n 7 > nul

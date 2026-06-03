@@ -55,13 +55,19 @@ class PoolFetcherService
         Log::channel('batch_polling')->debug("Fetching initial ($limit) pools for pool_size ($poolSize) base_bet ($baseBet), starting after Pool ID ($lastBatchedPoolId)");
 
         // 2. Modify the query to fetch pools with an ID greater than the last one.
-        return Pool::where('pool_size', $poolSize)
+        // Swoole/Octane concurrency lock optimization: lockForUpdate() + skipLocked() to ensure exclusive chunking
+        $query = Pool::where('pool_size', $poolSize)
             ->where('base_bet', $baseBet)
             ->where('status', self::POOL_STATUS_WAITING)
             ->where('id', '>', $lastBatchedPoolId) // <-- This is the key change
             ->orderBy('id')
-            ->take($limit)
-            ->get();
+            ->lockForUpdate();
+
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'sqlite') {
+            $query->skipLocked();
+        }
+
+        return $query->take($limit)->get();
 
         // --- MODIFICATION END ---
     }
@@ -77,13 +83,19 @@ class PoolFetcherService
     {
         Log::channel('batch_polling')->debug("Fetching ($needed) pools to load into batch ($batch->id) (pool_size ($batch->pool_size)), after pool ID {$batch->last_pool_id}");
 
-        return Pool::where('pool_size', $batch->pool_size)
+        // Swoole/Octane concurrency lock optimization: lockForUpdate() + skipLocked() to ensure exclusive chunking
+        $query = Pool::where('pool_size', $batch->pool_size)
             ->where('base_bet', $batch->base_bet)
             ->where('status', self::POOL_STATUS_WAITING)
             ->where('id', '>', $batch->last_pool_id) // Ensure pools after the current last one
             ->orderBy('id')
-            ->take($needed)
-            ->get();
+            ->lockForUpdate();
+
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'sqlite') {
+            $query->skipLocked();
+        }
+
+        return $query->take($needed)->get();
     }
 
     /**
@@ -98,10 +110,12 @@ class PoolFetcherService
 
         // FIX: Only fetch pools that match the batch tier AND are not yet finished.
         // This prevents re-processing finished pools or broad-range overlap with other tiers.
+        // Swoole/Octane concurrency lock optimization: lockForUpdate()
         return Pool::whereBetween('id', [$batch->first_pool_id, $batch->last_pool_id])
             ->where('base_bet', $batch->base_bet)
             ->whereIn('status', [self::POOL_STATUS_WAITING, 'batched'])
             ->orderBy('id')
+            ->lockForUpdate()
             ->get();
     }
 }

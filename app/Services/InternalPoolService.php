@@ -58,14 +58,19 @@ class InternalPoolService
             // [TRACE] Audit Zéro Mock - Dashboard Settings Verification
             \App\Helpers\UserTracker::info("Audit Zéro Mock: Charging tier {$tierBet}. Security Coefficient applied from DB: {$securityCoefficient}");
 
-            $users = User::with('preMove')
+            $usersQuery = User::with('preMove')
                 ->where('status', 'available')
                 ->where('bet_amount', $tierBet)
                 ->where('autoplay_active', true)
                 ->where('balance', '>=', $tierBet) // On vérifie seulement s'ils peuvent payer la mise
                 ->limit($limit)
-                ->lockForUpdate()
-                ->get();
+                ->lockForUpdate();
+
+            if (DB::connection()->getDriverName() !== 'sqlite') {
+                $usersQuery->skipLocked();
+            }
+
+            $users = $usersQuery->get();
 
             $scanCount = $users->count();
             if ($scanCount < $targetPoolSize) {

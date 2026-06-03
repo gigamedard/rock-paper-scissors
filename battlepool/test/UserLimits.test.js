@@ -106,7 +106,7 @@ describe("Battlepool - User Limits", function () {
       const cid = "QmTest";
       const securityCoef = await battlepool.securityCoefficient();
       const requiredBalance = baseBet * securityCoef;
-      const depositAmount = (requiredBalance * 10250n) / 10000n;
+      const depositAmount = (requiredBalance * 10500n) / 10000n;
 
       await expect(
         battlepool.connect(user1).submitPremoveCID(baseBet, cid, { value: depositAmount })
@@ -118,7 +118,7 @@ describe("Battlepool - User Limits", function () {
       const cid = "QmTest";
       const securityCoef = await battlepool.securityCoefficient();
       const requiredBalance = baseBet * securityCoef;
-      const depositAmount = (requiredBalance * 10250n) / 10000n;
+      const depositAmount = (requiredBalance * 10500n) / 10000n;
 
       await expect(
         battlepool.connect(user1).submitPremoveCID(baseBet, cid, { value: depositAmount })

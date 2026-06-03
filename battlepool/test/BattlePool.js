@@ -78,7 +78,7 @@ describe("Battlepool", function () {
       const baseBet = 1;
       const cid = "QmTestCID";
       const requiredBalance = baseBet * securityCoefficient;
-      const depositAmount = Math.ceil(requiredBalance * 10250 / 10000);
+      const depositAmount = Math.ceil(requiredBalance * 10500 / 10000);
 
       // Submit CID and add user
       await user1.sendTransaction({
