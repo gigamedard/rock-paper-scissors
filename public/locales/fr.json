@@ -3,7 +3,9 @@
     "arena": "Arène",
     "marketplace": "Marché",
     "referral": "Parrainage",
-    "influencer": "Influenceur"
+    "influencer": "VIP",
+    "refresh": "Rafraîchir",
+    "disconnect": "Déconnexion"
   },
   "connect": {
     "btn": "MetaMask",

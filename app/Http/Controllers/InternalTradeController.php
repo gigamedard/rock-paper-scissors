@@ -111,7 +111,7 @@ class InternalTradeController extends Controller
                 return response()->json(['status' => 'invalid_json'], 400);
             }
 
-            $buyerAddress = $data['buyer_address'];
+            $buyerAddress = strtolower($data['buyer_address']);
             $referredUser = User::where('wallet_address', $buyerAddress)->first();
 
             if (!$referredUser) {
@@ -159,7 +159,7 @@ class InternalTradeController extends Controller
         DB::transaction(function () use ($fromAddress, $toAddress, $amount) {
             // 2. Handle Sender (Decrement)
             if ($fromAddress && $fromAddress !== '0x0000000000000000000000000000000000000000') {
-                $sender = User::where('wallet_address', $fromAddress)->first();
+                $sender = User::where('wallet_address', strtolower($fromAddress))->first();
                 if ($sender) {
                     $sender->decrement('token_balance', $amount);
                     Log::info("Décrémenté $amount tokens de $fromAddress");
@@ -167,7 +167,7 @@ class InternalTradeController extends Controller
             }
 
             // 3. Handle Receiver (Increment)
-            $receiver = User::where('wallet_address', $toAddress)->first();
+            $receiver = User::where('wallet_address', strtolower($toAddress))->first();
             if ($receiver) {
                 $receiver->increment('token_balance', $amount);
                 Log::info("Incrémenté $amount tokens pour $toAddress");

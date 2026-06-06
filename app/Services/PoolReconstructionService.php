@@ -93,7 +93,7 @@ class PoolReconstructionService
 
         foreach ($blockchainUsers as $index => $walletAddress) {
             $expectedCid = $premoveCIDs[$index] ?? null;
-            $user        = User::where('wallet_address', $walletAddress)->first();
+            $user        = User::where('wallet_address', strtolower($walletAddress))->first();
 
             if (!$user || !$user->preMove || $user->preMove->cid !== $expectedCid) {
                 $foundCid = ($user && $user->preMove) ? $user->preMove->cid : 'None/Not Found';

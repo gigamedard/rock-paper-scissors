@@ -191,13 +191,14 @@ class SessionManager
 
             $signature = null;
             $payoutTriggered = false;
+            $isBot = $this->isBotUser($user);
 
-            if ($user->autoplay_active) { 
+            if ($user->autoplay_active && $isBot) { 
                 // ALL BOTS (Autoplay) get Automatic Payout
                 $this->sendPayment($user);
                 $payoutTriggered = true;
             } else {
-                // HUMANS (ID < 100) or Manual Players: Always generate Signature for MetaMask
+                // HUMANS (including human autoplay) or Manual Players: Always generate Signature for MetaMask
                 $signature = $this->generateHumanSignature($user);
                 $user->payout_signature = $signature;
                 $user->save();
@@ -205,7 +206,7 @@ class SessionManager
             
             event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature));
             
-        } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount) || $q <= 0.95) {
+        } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount) || $q <= 0.999) {
             // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet, OR fast defeat threshold for testing)
             $type = ($q < 1) ? "RUIN" : "STRATEGIC_LIMIT";
             UserTracker::info("[SESSION_{$type}] ⚠️ User {$user->wallet_address} (q=$q) cannot cover next bet ({$user->balance} < {$user->bet_amount}). Session ended.", ['wallet' => $user->wallet_address, 'q' => $q]);
@@ -216,8 +217,9 @@ class SessionManager
             // DIVERGENCE: Bots get auto-payout for tests, Humans must manually withdraw
             $payoutTriggered = false;
             $signature = null;
+            $isBot = $this->isBotUser($user);
 
-            if ($user->autoplay_active) {
+            if ($user->autoplay_active && $isBot) {
                 UserTracker::info("[BOT_AUTO_WITHDRAW] 🤖 Bot {$user->wallet_address} ruined. Forcing payout to clear balance for next run.", ['wallet' => $user->wallet_address]);
                 $this->sendPayment($user); // Forces sending whatever is left (e.g. 0.45 ETH)
                 $payoutTriggered = true;
@@ -336,7 +338,7 @@ class SessionManager
     {
         try {
             $nodeUrl = config('app.NODE_WORKER_URL');
-            $contractAddress = env('BATTLEPOOL_ADDRESS');
+            $contractAddress = config('app.BATTLEPOOL_ADDRESS');
             $nonce = $this->web3Helper->getUserNonce($nodeUrl, $user->wallet_address);
             $amountWei = $this->web3Helper->etherToWei($user->balance);
 
@@ -350,5 +352,22 @@ class SessionManager
             Log::error("Failed to generate signature for {$user->wallet_address}: " . $e->getMessage());
             return null;
         }
+    }
+
+    private function isBotUser(User $user): bool
+    {
+        $jsonPath = base_path('smart_contracts/simulation_accounts.json');
+        if (file_exists($jsonPath)) {
+            $accounts = json_decode(file_get_contents($jsonPath), true);
+            if (is_array($accounts)) {
+                $address = strtolower($user->wallet_address);
+                foreach ($accounts as $acc) {
+                    if (isset($acc['address']) && strtolower($acc['address']) === $address) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

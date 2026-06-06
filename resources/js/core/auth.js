@@ -86,3 +86,11 @@ export async function connectWallet(providerType = 'injected') {
         return false;
     }
 }
+
+export function logout() {
+    console.log("[Auth] Déconnexion demandée.");
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
+    window.location.reload();
+}
+

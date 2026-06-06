@@ -41,6 +41,7 @@ class User extends Authenticatable
         'is_eligible_to_refer',
         'target_q',
         'cooldown_time',
+        'payout_signature',
     ];
 
     protected $appends = [

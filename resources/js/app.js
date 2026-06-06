@@ -2,7 +2,7 @@ import '../css/app.css';
 
 import { initRouter, navigateTo } from './core/router.js';
 import { getAuthToken } from './core/api.js';
-import { connectWallet } from './core/auth.js';
+import { connectWallet, logout } from './core/auth.js';
 import { initEcho } from './core/echo.js';
 import { initGame } from './modules/game.js';
 import { initI18n } from './modules/i18n.js';
@@ -51,6 +51,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const connectWcBtn = document.getElementById('connect-wc-btn');
     if (connectWcBtn) {
         connectWcBtn.addEventListener('click', () => connectWallet('walletconnect'));
+    }
+
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            window.dispatchEvent(new CustomEvent('app:refresh'));
+        });
+    }
+
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    if (disconnectBtn) {
+        disconnectBtn.addEventListener('click', () => logout());
     }
 
     // 6. Écouteurs globaux

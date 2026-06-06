@@ -40,6 +40,14 @@
                 <span id="user-wallet" class="wallet-badge">0x...</span>
                 <span class="network-status-text wallet-badge" style="font-size: 0.75rem; border-color: rgba(0, 242, 255, 0.2);">Live Sync</span>
                 <div class="live-indicator"></div>
+                <button id="refresh-btn" class="wallet-btn" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 0.8rem; background: rgba(0, 242, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); color: #00f2ff; cursor: pointer; border-radius: 6px; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 242, 255, 0.15)'" onmouseout="this.style.background='rgba(0, 242, 255, 0.05)'">
+                    <span class="refresh-icon" style="transition: transform 0.5s ease; display: inline-block;">🔄</span>
+                    <span data-i18n="nav.refresh">Rafraîchir</span>
+                </button>
+                <button id="disconnect-btn" class="wallet-btn" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 0.8rem; background: rgba(255, 0, 128, 0.05); border: 1px solid rgba(255, 0, 128, 0.3); color: #ff0080; cursor: pointer; border-radius: 6px; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 0, 128, 0.15)'" onmouseout="this.style.background='rgba(255, 0, 128, 0.05)'">
+                    <span>🔌</span>
+                    <span data-i18n="nav.disconnect">Déconnexion</span>
+                </button>
             </div>
             <div id="connection-buttons" style="display: flex; gap: 10px;">
                 <button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">MetaMask</button>

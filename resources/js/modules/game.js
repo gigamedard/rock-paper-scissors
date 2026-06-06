@@ -60,20 +60,46 @@ export function initGame() {
     if (!window.gameListenersInitialized) {
         window.gameListenersInitialized = true;
 
+        // Fonction centralisée : applique le solde depuis n'importe quel objet user du payload
+        function applyBalance(userObj) {
+            if (!userObj) return;
+            const b  = parseFloat(userObj.balance)        || 0;
+            const bb = parseFloat(userObj.battle_balance)  || 0;
+            const total = b + bb;
+            const prev = parseFloat(window.userState._displayBalance) || 0;
+            window.userState.balance         = b;
+            window.userState.battle_balance  = bb;
+            window.userState._displayBalance = total;
+            if (userObj.bet_amount !== undefined) {
+                window.userState.bet_amount = parseFloat(userObj.bet_amount) || 0;
+            }
+            // Ne pas écraser 'setup' local avec le status serveur (même logique que fetchUserStatus)
+            if (userObj.status !== undefined && window.userState.status !== 'setup') {
+                window.userState.status = userObj.status;
+            }
+            // Anime si la valeur a changé, sinon met à jour directement
+            if (Math.abs(total - prev) > 0.0001) {
+                animateValue('balance-val', prev, total, 4);
+            } else {
+                const el = document.getElementById('balance-val');
+                if (el && !el.classList.contains('animating')) {
+                    el.innerHTML = total.toFixed(4) + ' <span class="unit">ETH</span>';
+                }
+            }
+            updateUI();
+        }
+
         window.addEventListener('game:balanceUpdated', (e) => {
-            const newBalance = parseFloat(e.detail.balance || e.detail.user?.balance) || 0;
-            animateValue('balance-val', window.userState.balance || 0, newBalance, 4);
-            window.userState.balance = newBalance;
+            applyBalance(e.detail.user || { balance: e.detail.balance, battle_balance: e.detail.battle_balance });
         });
 
         window.addEventListener('game:userBalanceUpdated', (e) => {
-            const newBalance = parseFloat(e.detail.user?.balance) || 0;
-            animateValue('balance-val', window.userState.balance || 0, newBalance, 4);
-            window.userState.balance = newBalance;
+            applyBalance(e.detail.user);
         });
 
         window.addEventListener('game:sessionStarted', (e) => {
             window.userState.balance = parseFloat(e.detail.initial_balance) || 0;
+            window.userState._displayBalance = window.userState.balance;
             window.userState.status = 'in_pool';
             showCombatOverlay("RECHERCHE D'ADVERSAIRES...");
             updateUI();
@@ -106,14 +132,20 @@ export function initGame() {
 
         window.addEventListener('game:fightResult', (e) => {
             triggerClash(e.detail.my_move, e.detail.opponent_move, e.detail.result, e.detail.delta);
-            animateValue('balance-val', window.userState.balance || 0, e.detail.current_balance, 4);
-            window.userState.balance = e.detail.current_balance;
+            // Utilise user.balance + user.battle_balance (valeurs correctes après transfert en DB)
+            applyBalance(e.detail.user);
         });
 
         window.addEventListener('game:martingaleUpdated', (e) => {
-            window.userState.bet_amount = parseFloat(e.detail.next_bet) || 0;
-            addToFeed(`📈 Martingale : Prochaine mise à ${window.userState.bet_amount.toFixed(4)} ETH`, "var(--primary)");
-            updateUI();
+            const nextBet = parseFloat(e.detail.next_bet) || 0;
+            addToFeed(`📈 Martingale : Prochaine mise à ${nextBet.toFixed(4)} ETH`, "var(--primary)");
+            // L'event contient aussi l'objet user complet → synchro balance + bet en même temps
+            if (e.detail.user) {
+                applyBalance(e.detail.user);
+            } else {
+                window.userState.bet_amount = nextBet;
+                updateUI();
+            }
         });
 
         window.addEventListener('game:poolEmitted', (e) => {
@@ -126,6 +158,19 @@ export function initGame() {
         window.addEventListener('auth:success', () => {
             fetchUserStatus();
         });
+
+        window.addEventListener('app:refresh', async () => {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const icon = refreshBtn?.querySelector('.refresh-icon');
+            if (icon) {
+                const currentRotation = parseInt(icon.dataset.rotation || '0') + 360;
+                icon.dataset.rotation = currentRotation;
+                icon.style.transform = `rotate(${currentRotation}deg)`;
+            }
+            addToFeed("🔄 Refreshing account status...", "var(--primary)");
+            await fetchUserStatus();
+            addToFeed("✅ Status updated!", "var(--success)");
+        });
     }
 
     // Make functions globally available for inline HTML onclick handlers (temporary until HTML is cleaned)
@@ -135,6 +180,15 @@ export function initGame() {
     fetchConfig();
     fetchUserStatus();
     renderSlots();
+    updateUI();
+
+    // Polling de secours toutes les 30s pour maintenir la balance synchronisée
+    // (en complément des événements WebSocket temps réel)
+    if (!window._balancePollInterval) {
+        window._balancePollInterval = setInterval(() => {
+            if (window.userState?.id) fetchUserStatus();
+        }, 30000);
+    }
 }
 
 async function fetchUserStatus() {
@@ -143,7 +197,12 @@ async function fetchUserStatus() {
         const res = await secureFetch('/user/status');
         if (res.ok) {
             const data = await res.json();
-            window.userState.balance = data.balance;
+            // Main balance = balance + battle_balance (total funds in the system)
+            const b = parseFloat(data.balance) || 0;
+            const bb = parseFloat(data.battle_balance) || 0;
+            window.userState.balance = b;
+            window.userState.battle_balance = bb;
+            window.userState._displayBalance = b + bb;
             window.userState.bet_amount = data.bet_amount;
             // Ne pas écraser l'état 'setup' local si le serveur dit 'available'
             if (window.userState.status !== 'setup' || data.status !== 'available') {
@@ -151,7 +210,7 @@ async function fetchUserStatus() {
             }
             
             if (data.payout_signature) {
-                gameState.pendingClaim = { amount: data.balance, signature: data.payout_signature };
+                gameState.pendingClaim = { amount: b + bb, signature: data.payout_signature };
             } else {
                 gameState.pendingClaim = null;
             }
@@ -160,7 +219,7 @@ async function fetchUserStatus() {
             if (claimSection) {
                 if (gameState.pendingClaim && window.userState.status === 'stopped') {
                     claimSection.style.display = 'block';
-                    document.getElementById('claim-amount-display').innerText = parseFloat(data.balance).toFixed(4);
+                    document.getElementById('claim-amount-display').innerText = (b + bb).toFixed(4);
                 } else {
                     claimSection.style.display = 'none';
                 }
@@ -345,6 +404,16 @@ async function claim() {
         document.getElementById('claim-section').style.display = 'none';
         gameState.pendingClaim = null;
 
+        // Fast poll for 10 seconds to wait for bridge sync and hide button automatically
+        let attempts = 0;
+        const syncInterval = setInterval(async () => {
+            attempts++;
+            await fetchUserStatus();
+            if (!gameState.pendingClaim || attempts >= 5) {
+                clearInterval(syncInterval);
+            }
+        }, 2000);
+
     } catch (error) {
         console.error(error);
         alert("Claim failed: " + parseRpcError(error));
@@ -382,14 +451,14 @@ export function updateUI() {
         }
     }
 
-    const connectBtn = document.getElementById('connect-btn');
+    const connectionButtons = document.getElementById('connection-buttons');
     const connectedUser = document.getElementById('connected-user');
 
     if (!window.userState.id) {
-        if(connectBtn) connectBtn.style.display = 'block';
+        if(connectionButtons) connectionButtons.style.display = 'flex';
         if(connectedUser) connectedUser.style.display = 'none';
     } else {
-        if(connectBtn) connectBtn.style.display = 'none';
+        if(connectionButtons) connectionButtons.style.display = 'none';
         if(connectedUser) connectedUser.style.display = 'flex';
         
         const walletDisplay = document.getElementById('user-wallet');
@@ -398,12 +467,13 @@ export function updateUI() {
             walletDisplay.innerText = w.substring(0, 6) + "..." + w.substring(w.length - 4);
         }
         
-        const balance = parseFloat(window.userState.balance) || 0;
+        // Display total balance = balance + battle_balance
+        const displayBalance = parseFloat(window.userState._displayBalance ?? (window.userState.balance + (window.userState.battle_balance || 0))) || 0;
         const bet = parseFloat(window.userState.bet_amount) || 0;
         
         const balanceEl = document.getElementById('balance-val');
         if(balanceEl && !balanceEl.classList.contains('animating')) {
-            balanceEl.innerHTML = balance.toFixed(4) + ' <span class="unit">ETH</span>';
+            balanceEl.innerHTML = displayBalance.toFixed(4) + ' <span class="unit">ETH</span>';
         }
         
         const betEl = document.getElementById('bet-val');

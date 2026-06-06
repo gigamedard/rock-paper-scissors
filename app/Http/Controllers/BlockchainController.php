@@ -108,11 +108,10 @@ class BlockchainController extends Controller
             $user = User::where('wallet_address', $walletAddress)->first();
 
             if ($user) {
-                $user->update([
-                    'balance' => 0,
-                    'payout_signature' => null,
-                    'status' => 'stopped'
-                ]);
+                $user->balance = 0;
+                $user->payout_signature = null;
+                $user->status = 'stopped';
+                $user->save();
 
                 Log::info("✅ [Internal API] User {$user->wallet_address} state fully reset after claim.");
                 return response()->json(['success' => true, 'message' => 'User state reset.']);

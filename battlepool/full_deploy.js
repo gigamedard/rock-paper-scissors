@@ -19,6 +19,11 @@ async function main() {
     await txCoeff.wait();
     console.log("✅ Security Coefficient set to 100.");
     
+    console.log("Setting Fee Basis Points to 250...");
+    const txFee = await battlepool.setFeeBasisPoints(250);
+    await txFee.wait();
+    console.log("✅ Fee Basis Points set to 250.");
+    
     console.log("Setting Default Min Cooldown to 10 seconds...");
     const txCooldown = await battlepool.setDefaultMinCooldown(10);
     await txCooldown.wait();
@@ -66,9 +71,9 @@ async function main() {
     const configPath = path.join(__dirname, "..", "smart_contracts", "config.js");
     if (fs.existsSync(configPath)) {
         let configContent = fs.readFileSync(configPath, "utf8");
-        configContent = configContent.replace(/game:\s*\{\s*address:\s*"0x[a-fA-F0-9]+"/g, `game: {\n    address: "${gameAddr}"`);
-        configContent = configContent.replace(/snt:\s*\{\s*address:\s*"0x[a-fA-F0-9]+"/g, `snt: {\n    address: "${sntAddr}"`);
-        configContent = configContent.replace(/marketplace:\s*\{\s*address:\s*"0x[a-fA-F0-9]+"/g, `marketplace: {\n    address: "${marketplaceAddr}"`);
+        configContent = configContent.replace(/game:\s*\{\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `game: {\n    address: "${gameAddr}"`);
+        configContent = configContent.replace(/snt:\s*\{\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `snt: {\n    address: "${sntAddr}"`);
+        configContent = configContent.replace(/marketplace:\s*\{\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `marketplace: {\n    address: "${marketplaceAddr}"`);
         fs.writeFileSync(configPath, configContent);
         console.log("✅ Updated smart_contracts/config.js with new addresses.");
     }
