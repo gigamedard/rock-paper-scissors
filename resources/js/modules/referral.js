@@ -102,7 +102,7 @@ async function loadMyStats() {
         if (elTotal) elTotal.textContent = data.totalReferrals || 0;
         if (elValidated) elValidated.textContent = data.validatedReferrals || 0;
         if (elPending) elPending.textContent = data.pendingReferrals || 0;
-        if (elRewards) elRewards.textContent = (data.totalRewards || 0) + ' SNT';
+        if (elRewards) elRewards.textContent = t('referral.rewards_amount', { amount: data.totalRewards || 0 });
     } catch (e) {
         console.error('[Referral] Erreur chargement stats:', e);
     }
@@ -125,7 +125,7 @@ function renderLeaderboard(entries) {
     if (!container) return;
 
     if (!entries || entries.length === 0) {
-        container.innerHTML = '<p class="ref-empty">Aucun classement disponible.</p>';
+        container.innerHTML = `<p class="ref-empty">${t('referral.no_leaderboard')}</p>`;
         return;
     }
 
@@ -135,8 +135,8 @@ function renderLeaderboard(entries) {
         <div class="ref-leaderboard-row ${index < 3 ? 'top-three' : ''}">
             <span class="ref-rank">${medals[index] || `#${index + 1}`}</span>
             <span class="ref-wallet">${entry.wallet_address}</span>
-            <span class="ref-count">${entry.referral_count} parrainages</span>
-            <span class="ref-rewards">${entry.rewards_earned} SNT</span>
+            <span class="ref-count">${t('referral.referrals_count', { count: entry.referral_count })}</span>
+            <span class="ref-rewards">${t('referral.rewards_amount', { amount: entry.rewards_earned })}</span>
         </div>
     `).join('');
 }
@@ -153,7 +153,7 @@ function copyReferralLink() {
         const btn = document.getElementById('referral-copy-btn');
         if (btn) {
             const original = btn.textContent;
-            btn.textContent = '✅ Copié !';
+            btn.textContent = '✅ ' + t('referral.copied');
             setTimeout(() => btn.textContent = original, 2000);
         }
     });

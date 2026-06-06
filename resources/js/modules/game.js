@@ -3,6 +3,7 @@ import { Contract, parseUnits, parseEther } from 'ethers';
 import { getProvider } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
 import { parseRpcError } from '../core/auth.js';
+import { t } from './i18n.js';
 
 const gameState = {
     preMoves: [],
@@ -123,9 +124,9 @@ export function initGame() {
 
             if (e.detail.reason === 'SUCCESS') {
                 const profit = (parseFloat(e.detail.user.balance) - parseFloat(window.userState.session_start_balance || 0)).toFixed(4);
-                addToFeed(`🏆 VICTORY! Final Balance: ${parseFloat(e.detail.user.balance).toFixed(4)} ETH (Profit: ${profit})`, "var(--success)");
+                addToFeed(t('feed.victory', { balance: parseFloat(e.detail.user.balance).toFixed(4), profit: profit }), "var(--success)");
             } else {
-                addToFeed(`💀 SESSION ENDED: ${e.detail.reason}`, "var(--accent)");
+                addToFeed(t('feed.session_ended', { reason: e.detail.reason }), "var(--accent)");
             }
             updateUI();
         });
@@ -138,7 +139,7 @@ export function initGame() {
 
         window.addEventListener('game:martingaleUpdated', (e) => {
             const nextBet = parseFloat(e.detail.next_bet) || 0;
-            addToFeed(`📈 Martingale : Prochaine mise à ${nextBet.toFixed(4)} ETH`, "var(--primary)");
+            addToFeed(t('feed.martingale', { nextBet: nextBet.toFixed(4) }), "var(--primary)");
             // L'event contient aussi l'objet user complet → synchro balance + bet en même temps
             if (e.detail.user) {
                 applyBalance(e.detail.user);
@@ -151,7 +152,7 @@ export function initGame() {
         window.addEventListener('game:poolEmitted', (e) => {
             if (window.userState?.walletAddress && e.detail.users.includes(window.userState.walletAddress.toLowerCase())) {
                 showCombatOverlay(`POOL FOUND`);
-                addToFeed(`⚔️ Match Found! Entering Pool`, "var(--primary)");
+                addToFeed(t('feed.match_found'), "var(--primary)");
             }
         });
 
@@ -167,9 +168,9 @@ export function initGame() {
                 icon.dataset.rotation = currentRotation;
                 icon.style.transform = `rotate(${currentRotation}deg)`;
             }
-            addToFeed("🔄 Refreshing account status...", "var(--primary)");
+            addToFeed(t('feed.refreshing'), "var(--primary)");
             await fetchUserStatus();
-            addToFeed("✅ Status updated!", "var(--success)");
+            addToFeed(t('feed.status_updated'), "var(--success)");
         });
     }
 
@@ -322,7 +323,7 @@ async function startSession() {
         });
         const ipfsData = await ipfsRes.json();
         const cid = ipfsData.IpfsHash;
-        addToFeed("⛓️ Requesting Blockchain Stake...", "var(--primary)");
+        addToFeed(t('feed.staking'), "var(--primary)");
 
         // 2. Blockchain Transaction
         const provider = await getProvider();
@@ -344,9 +345,9 @@ async function startSession() {
             gasLimit: 500000
         });
         
-        addToFeed("⏳ Transaction pending: " + tx.hash.substring(0,10) + "...", "var(--primary)");
+        addToFeed(t('feed.pending_tx', { hash: tx.hash.substring(0,10) }), "var(--primary)");
         await tx.wait();
-        addToFeed("✅ Stake confirmed on-chain!", "var(--success)");
+        addToFeed(t('feed.stake_confirmed'), "var(--success)");
 
         // 3. Store Pre-moves
         const joinRes = await secureFetch('/user/pre-moves', {
@@ -366,14 +367,14 @@ async function startSession() {
             window.userState.bet_amount = parseFloat(bet) || 0;
             window.userState.session_start_balance = parseFloat(window.userState.balance) || 0;
             updateUI();
-            addToFeed("🚀 Session Initialized. Waiting for pool...", "var(--primary)");
+            addToFeed(t('feed.session_initialized'), "var(--primary)");
         } else {
             throw new Error("Failed to join pool");
         }
     } catch (error) {
         console.error(error);
         alert("Error: " + parseRpcError(error));
-        addToFeed("❌ Error: " + parseRpcError(error), "var(--accent)");
+        addToFeed(t('feed.error', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
         btn.innerText = "INITIALIZE BATTLE SEQUENCE";
         btn.disabled = false;
@@ -397,10 +398,10 @@ async function claim() {
         const amountWei = parseEther(gameState.pendingClaim.amount.toString());
         
         const tx = await contract.claimAndExit(amountWei, gameState.pendingClaim.signature);
-        addToFeed("⏳ Transaction sent: " + tx.hash.substring(0,10) + "...", "var(--primary)");
+        addToFeed(t('feed.tx_sent', { hash: tx.hash.substring(0,10) }), "var(--primary)");
         
         await tx.wait();
-        addToFeed("✅ Funds claimed successfully!", "var(--success)");
+        addToFeed(t('feed.claim_success'), "var(--success)");
         document.getElementById('claim-section').style.display = 'none';
         gameState.pendingClaim = null;
 
@@ -417,7 +418,7 @@ async function claim() {
     } catch (error) {
         console.error(error);
         alert("Claim failed: " + parseRpcError(error));
-        addToFeed("❌ Claim Failed: " + parseRpcError(error), "var(--accent)");
+        addToFeed(t('feed.claim_failed', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
         btn.innerText = "CLAIM & EXIT ARENA";
         btn.disabled = false;

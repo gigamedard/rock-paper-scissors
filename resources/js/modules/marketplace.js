@@ -157,17 +157,23 @@ function renderShopCards(cards) {
     if (!container) return;
     
     if (cards.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color: var(--text-dim); grid-column: 1 / -1;">Aucune carte disponible pour le moment.</p>';
+        container.innerHTML = `<p style="text-align:center; color: var(--text-dim); grid-column: 1 / -1;">${t('marketplace.no_cards')}</p>`;
         return;
     }
 
     container.innerHTML = '';
     cards.forEach(card => {
         let effectDisplay = '';
-        if (card.effect_type === 'cooldown_reduction') effectDisplay = `⏳ Cooldown -${card.effect_value < 1 ? (card.effect_value * 100) + '%' : card.effect_value + ' mins'}`;
-        else if (card.effect_type === 'ceiling_increase') effectDisplay = `🚀 Plafond +${card.effect_value}x`;
-        else if (card.effect_type === 'base_bet_modifier') effectDisplay = `💰 Base Bet +${card.effect_value}`;
-        else effectDisplay = `⚡ ${card.effect_type} (${card.effect_value})`;
+        if (card.effect_type === 'cooldown_reduction') {
+            const val = card.effect_value < 1 ? (card.effect_value * 100) + '%' : card.effect_value + ' mins';
+            effectDisplay = t('marketplace.cooldown_effect', { val });
+        } else if (card.effect_type === 'ceiling_increase') {
+            effectDisplay = t('marketplace.ceiling_effect', { val: card.effect_value });
+        } else if (card.effect_type === 'base_bet_modifier') {
+            effectDisplay = t('marketplace.base_bet_effect', { val: card.effect_value });
+        } else {
+            effectDisplay = `⚡ ${card.effect_type} (${card.effect_value})`;
+        }
 
         const cardEl = document.createElement('div');
         cardEl.className = 'holo-card';
@@ -175,10 +181,10 @@ function renderShopCards(cards) {
             <div class="holo-card-content">
                 <div class="holo-card-title">${card.name}</div>
                 <div class="holo-card-effect">${effectDisplay}</div>
-                <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem; min-height: 40px;">${card.description || 'Une carte mystérieuse offrant des avantages uniques.'}</p>
-                <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">Durée: ${card.duration_value} ${card.duration_type === 'sessions' ? 'Sessions' : 'Heures'}</div>
+                <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem; min-height: 40px;">${card.description || ''}</p>
+                <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">${t('marketplace.duration_label', { value: card.duration_value, type: t(card.duration_type === 'sessions' ? 'marketplace.sessions' : 'marketplace.hours') })}</div>
                 <div class="holo-card-price">${card.price} SNT</div>
-                <button class="btn-buy-card" onclick="window.marketplaceBuyCard(${card.id}, ${card.price})">Acheter</button>
+                <button class="btn-buy-card" onclick="window.marketplaceBuyCard(${card.id}, ${card.price})">${t('marketplace.buy_btn')}</button>
             </div>
         `;
         container.appendChild(cardEl);
@@ -187,11 +193,10 @@ function renderShopCards(cards) {
 
 window.marketplaceBuyCard = async function(cardId, cardPrice) {
     if (!window.userState || !window.userState.walletAddress) {
-        _showMpNotification('⚠️ Connectez votre portefeuille pour acheter.', 'error');
+        _showMpNotification(t('marketplace.sign_buy_wallet'), 'error');
         return;
     }
     
-    // Définir l'adresse de réception (Owner du projet)
     const OWNER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
     
     try {
@@ -204,32 +209,28 @@ window.marketplaceBuyCard = async function(cardId, cardPrice) {
             "function balanceOf(address owner) view returns (uint256)"
         ]);
         
-        // 0. Vérification du solde SNT de l'utilisateur
         const signer = await getSigner();
         const signerAddr = await signer.getAddress();
         const userBalance = await sntContract.balanceOf(signerAddr);
         const amountInWei = parseEther(cardPrice.toString());
 
         if (userBalance < amountInWei) {
-            _showMpNotification(`❌ Solde SNT insuffisant. Requis : ${cardPrice} SNT, Votre solde : ${formatEther(userBalance)} SNT.`, 'error');
+            _showMpNotification(t('marketplace.insufficient_snt', { req: cardPrice, bal: formatEther(userBalance) }), 'error');
             return;
         }
 
-        addToFeed('⏳ Validation de la transaction Web3 (transfert SNT)...', 'var(--primary)');
-        _showMpNotification('Veuillez signer la transaction dans votre portefeuille...', 'info');
+        addToFeed(t('feed.verify_snt'), 'var(--primary)');
+        _showMpNotification(t('marketplace.sign_tx_info'), 'info');
         
-        // 1. Transaction On-Chain
         const tx = await sntContract.transfer(OWNER_ADDRESS, amountInWei);
-        addToFeed(`⏳ Envoi de ${cardPrice} SNT en cours... (${tx.hash.substring(0,10)}...)`, 'var(--primary)');
-        _showMpNotification('⏳ Transaction envoyée. En attente de confirmation sur la blockchain...', 'info');
+        addToFeed(t('feed.sending_snt', { amount: cardPrice, hash: tx.hash.substring(0,10) }), 'var(--primary)');
+        _showMpNotification(t('marketplace.tx_pending_info'), 'info');
         
-        // Attendre la confirmation
         await tx.wait();
-        addToFeed('✅ SNT transférés avec succès !', 'var(--success)');
-        _showMpNotification('✅ Transaction confirmée sur la blockchain ! Attribution de la carte...', 'info');
+        addToFeed(t('feed.snt_transferred'), 'var(--success)');
+        _showMpNotification(t('marketplace.tx_confirmed_info'), 'info');
         
-        // 2. Notification au Backend
-        addToFeed('⏳ Attribution de la carte...', 'var(--primary)');
+        addToFeed(t('feed.allocating_card'), 'var(--primary)');
         const res = await secureFetch('/shop/buy', {
             method: 'POST',
             body: JSON.stringify({ 
@@ -241,14 +242,13 @@ window.marketplaceBuyCard = async function(cardId, cardPrice) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Erreur inconnue');
         
-        _showMpNotification('🎉 Carte achetée avec succès !', 'success');
-        addToFeed('✅ Carte ajoutée à votre inventaire.', 'var(--success)');
+        _showMpNotification(t('marketplace.buy_success'), 'success');
+        addToFeed(t('feed.card_allocated'), 'var(--success)');
         
-        // Basculer vers l'onglet inventaire
         switchMarketplaceTab('inventory');
     } catch (e) {
         console.error('[Marketplace] Erreur achat carte:', e);
-        _showMpNotification('❌ Achat échoué : ' + e.message, 'error');
+        _showMpNotification(t('marketplace.buy_error', { error: e.message }), 'error');
     }
 };
 
@@ -257,13 +257,13 @@ export async function loadUserInventory() {
     if (!container) return;
 
     try {
-        container.innerHTML = '<p style="text-align:center; color: var(--text-dim); grid-column: 1 / -1;">Chargement de votre inventaire...</p>';
+        container.innerHTML = `<p style="text-align:center; color: var(--text-dim); grid-column: 1 / -1;">${t('marketplace.loading_inventory')}</p>`;
         const res = await secureFetch('/shop/inventory');
         if (!res.ok) throw new Error("Impossible de charger l'inventaire");
         const userCards = await res.json();
 
         if (userCards.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color: var(--text-dim); grid-column: 1 / -1;">Vous ne possédez aucune carte pour le moment.</p>';
+            container.innerHTML = `<p style="text-align:center; color: var(--text-dim); grid-column: 1 / -1;">${t('marketplace.no_inventory')}</p>`;
             return;
         }
 
@@ -273,10 +273,16 @@ export async function loadUserInventory() {
             if (!card) return;
 
             let effectDisplay = '';
-            if (card.effect_type === 'cooldown_reduction') effectDisplay = `⏳ Cooldown -${card.effect_value < 1 ? (card.effect_value * 100) + '%' : card.effect_value + ' mins'}`;
-            else if (card.effect_type === 'ceiling_increase') effectDisplay = `🚀 Plafond +${card.effect_value}x`;
-            else if (card.effect_type === 'base_bet_modifier') effectDisplay = `💰 Base Bet +${card.effect_value}`;
-            else effectDisplay = `⚡ ${card.effect_type} (${card.effect_value})`;
+            if (card.effect_type === 'cooldown_reduction') {
+                const val = card.effect_value < 1 ? (card.effect_value * 100) + '%' : card.effect_value + ' mins';
+                effectDisplay = t('marketplace.cooldown_effect', { val });
+            } else if (card.effect_type === 'ceiling_increase') {
+                effectDisplay = t('marketplace.ceiling_effect', { val: card.effect_value });
+            } else if (card.effect_type === 'base_bet_modifier') {
+                effectDisplay = t('marketplace.base_bet_effect', { val: card.effect_value });
+            } else {
+                effectDisplay = `⚡ ${card.effect_type} (${card.effect_value})`;
+            }
 
             let isExpired = false;
             if (uc.status === 'consumed' || uc.status === 'expired' || uc.status === 'failed') {
@@ -294,13 +300,13 @@ export async function loadUserInventory() {
             let statusDisplay = '';
             let statusColor = '';
             if (uc.status === 'pending') {
-                statusDisplay = '⏳ Validation en cours';
+                statusDisplay = t('marketplace.pending_validation');
                 statusColor = '#f59e0b';
             } else if (isExpired) {
-                statusDisplay = '🔴 Expirée';
+                statusDisplay = t('marketplace.expired');
                 statusColor = '#ef4444';
             } else if (uc.status === 'available' || uc.status === 'active') {
-                statusDisplay = '🟢 Active';
+                statusDisplay = t('marketplace.active');
                 statusColor = '#10b981';
             } else {
                 statusDisplay = `⚡ ${uc.status}`;
@@ -309,10 +315,11 @@ export async function loadUserInventory() {
 
             let validityDisplay = '';
             if (card.duration_type === 'sessions') {
-                validityDisplay = `${uc.remaining_sessions !== null ? uc.remaining_sessions : card.duration_value} sessions restantes`;
+                const count = uc.remaining_sessions !== null ? uc.remaining_sessions : card.duration_value;
+                validityDisplay = t('marketplace.remaining_sessions', { count });
             } else {
                 const expDate = uc.expires_at ? new Date(uc.expires_at).toLocaleString() : 'N/A';
-                validityDisplay = `Expire le: ${expDate}`;
+                validityDisplay = t('marketplace.expires_at', { date: expDate });
             }
 
             const cardEl = document.createElement('div');
@@ -331,7 +338,7 @@ export async function loadUserInventory() {
         });
     } catch (e) {
         console.error('[Marketplace] Erreur chargement inventaire:', e);
-        container.innerHTML = '<p style="text-align:center; color: #ef4444; grid-column: 1 / -1;">Erreur lors du chargement de l\'inventaire.</p>';
+        container.innerHTML = `<p style="text-align:center; color: #ef4444; grid-column: 1 / -1;">${t('marketplace.error_loading')}</p>`;
     }
 }
 
@@ -476,51 +483,50 @@ async function handleApprove() {
 
     const sntAmount   = document.getElementById('mp-snt-amount')?.value;
     if (!sntAmount || parseFloat(sntAmount) <= 0) {
-        _showMpNotification('Veuillez renseigner un montant SNT valide avant d\'approuver.', 'error');
+        _showMpNotification(t('marketplace.approve_valid_snt'), 'error');
         return;
     }
 
     if (!CONTRACT_ADDRESSES.sntToken || !CONTRACT_ADDRESSES.marketplace) {
-        _showMpNotification('⚠️ Service blockchain indisponible. Impossible d\'approuver.', 'error');
+        _showMpNotification(t('marketplace.contract_unavailable'), 'error');
         return;
     }
 
     const btn = document.getElementById('marketplace-approve-btn');
     const createBtn = document.getElementById('marketplace-create-btn');
     btn.disabled = true;
-    btn.textContent = '⏳ Approbation en cours...';
+    btn.textContent = t('marketplace.creating_btn_label');
 
     try {
         const sntAmountWei = _safeParseEther(sntAmount);
         const sntContract  = await getContract(CONTRACT_ADDRESSES.sntToken, SNT_ABI);
 
-        // FIX #6 : Vérifier l'allowance existante avant de re-approuver
         const signer    = await getSigner();
         const signerAddr = await signer.getAddress();
         const allowance  = await sntContract.allowance(signerAddr, CONTRACT_ADDRESSES.marketplace);
 
         if (allowance >= sntAmountWei) {
-            _showMpNotification('✅ Approbation déjà suffisante. Vous pouvez créer l\'offre.', 'success');
+            _showMpNotification(t('marketplace.approve_success_sufficient'), 'success');
             _approvalDone = true;
             createBtn.disabled = false;
-            btn.textContent = '✅ Approuvé';
+            btn.textContent = t('marketplace.approved_btn_label');
             return;
         }
 
-        btn.textContent = '⏳ Confirmation dans MetaMask...';
+        btn.textContent = t('marketplace.approve_confirm_wallet');
         const approveTx = await sntContract.approve(CONTRACT_ADDRESSES.marketplace, sntAmountWei);
         await approveTx.wait();
 
         _approvalDone = true;
         createBtn.disabled = false;
-        btn.textContent = '✅ Approuvé';
-        _showMpNotification('✅ Approbation réussie ! Vous pouvez maintenant créer votre offre.', 'success');
+        btn.textContent = t('marketplace.approved_btn_label');
+        _showMpNotification(t('marketplace.approve_success'), 'success');
 
     } catch (e) {
         console.error('[Marketplace] Erreur approbation:', e);
-        _showMpNotification('❌ Approbation échouée : ' + (e.reason || e.message), 'error');
+        _showMpNotification(t('marketplace.approve_failed', { error: e.reason || e.message }), 'error');
         btn.disabled = false;
-        btn.textContent = '1. Approuver les SNT';
+        btn.textContent = t('marketplace.approve_btn_label');
     }
 }
 
@@ -528,7 +534,7 @@ async function handleApprove() {
 async function handleCreateOffer() {
     if (!_assertWalletConnected()) return;
     if (!_approvalDone) {
-        _showMpNotification('⚠️ Veuillez d\'abord approuver vos SNT (Étape 1).', 'error');
+        _showMpNotification(t('marketplace.create_offer_approve_first'), 'error');
         return;
     }
 
@@ -537,13 +543,13 @@ async function handleCreateOffer() {
     const durationHours = document.getElementById('mp-duration')?.value || 24;
 
     if (!sntAmount || !avaxAmount || parseFloat(sntAmount) <= 0 || parseFloat(avaxAmount) <= 0) {
-        _showMpNotification('Veuillez renseigner des montants valides.', 'error');
+        _showMpNotification(t('marketplace.create_offer_valid_amounts'), 'error');
         return;
     }
 
     const btn = document.getElementById('marketplace-create-btn');
     btn.disabled  = true;
-    btn.textContent = '⏳ Création de l\'offre...';
+    btn.textContent = t('marketplace.create_offer_pending');
 
     try {
         const sntAmountWei  = _safeParseEther(sntAmount);
@@ -551,25 +557,23 @@ async function handleCreateOffer() {
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
 
         const createTx = await escrowContract.createOffer(sntAmountWei, avaxAmountWei, parseInt(durationHours));
-        btn.textContent = '⏳ Transaction en cours...';
+        btn.textContent = t('marketplace.create_offer_tx_pending');
         await createTx.wait();
 
         _approvalDone = false;
-        _showMpNotification(`✅ Offre créée : ${sntAmount} SNT → ${avaxAmount} AVAX`, 'success');
-        addToFeed(`✅ Offre Marketplace créée : ${sntAmount} SNT → ${avaxAmount} AVAX`, 'var(--success)');
+        _showMpNotification(t('marketplace.create_offer_success', { snt: sntAmount, avax: avaxAmount }), 'success');
+        addToFeed(t('feed.offer_created', { snt: sntAmount, avax: avaxAmount }), 'var(--success)');
 
-        // Reset formulaire
         document.getElementById('mp-snt-amount').value  = '';
         document.getElementById('mp-avax-amount').value = '';
         const approveBtn = document.getElementById('marketplace-approve-btn');
-        if (approveBtn) { approveBtn.textContent = '1. Approuver les SNT'; approveBtn.disabled = false; }
+        if (approveBtn) { approveBtn.textContent = t('marketplace.approve_btn_label'); approveBtn.disabled = false; }
 
-        // Attendre 4s avant refresh (temps que le listener Node.js sync la DB)
         setTimeout(() => loadMarketplaceData(), 4000);
 
     } catch (e) {
         console.error('[Marketplace] Erreur création offre:', e);
-        _showMpNotification('❌ Création échouée : ' + (e.reason || e.message), 'error');
+        _showMpNotification(t('marketplace.create_offer_failed', { error: e.reason || e.message }), 'error');
     } finally {
         btn.disabled  = false;
         btn.textContent = t('marketplace.create_offer') || 'Créer l\'Offre';
@@ -580,20 +584,20 @@ async function handleCreateOffer() {
 window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
     if (!_assertWalletConnected()) return;
     if (!CONTRACT_ADDRESSES.marketplace) {
-        _showMpNotification('⚠️ Service blockchain indisponible.', 'error');
+        _showMpNotification(t('marketplace.contract_unavailable'), 'error');
         return;
     }
     try {
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
         const avaxWei = _safeParseEther(avaxAmount.toString());
-        addToFeed(`⏳ Achat en cours (offre #${offerId})...`, 'var(--primary)');
+        addToFeed(t('feed.buying_offer', { id: offerId }), 'var(--primary)');
         const tx = await escrowContract.fulfillOffer(offerId, { value: avaxWei });
         await tx.wait();
-        _showMpNotification(`✅ Achat réussi ! Vous avez reçu des SNT.`, 'success');
+        _showMpNotification(t('marketplace.buy_offer_success'), 'success');
         setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {
         console.error('[Marketplace] Erreur achat:', e);
-        _showMpNotification('❌ Achat échoué : ' + (e.reason || e.message), 'error');
+        _showMpNotification(t('marketplace.buy_offer_failed', { error: e.reason || e.message }), 'error');
     }
 };
 
@@ -601,18 +605,18 @@ window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
 window.marketplaceCancelOffer = async function(offerId) {
     if (!_assertWalletConnected()) return;
     if (!CONTRACT_ADDRESSES.marketplace) {
-        _showMpNotification('⚠️ Service blockchain indisponible.', 'error');
+        _showMpNotification(t('marketplace.contract_unavailable'), 'error');
         return;
     }
     try {
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
-        addToFeed(`⏳ Annulation de l'offre #${offerId}...`, 'var(--text-dim)');
+        addToFeed(t('feed.canceling_offer', { id: offerId }), 'var(--text-dim)');
         const tx = await escrowContract.cancelOffer(offerId);
         await tx.wait();
-        _showMpNotification(`✅ Offre #${offerId} annulée. SNT restitués.`, 'success');
+        _showMpNotification(t('marketplace.cancel_offer_success', { id: offerId }), 'success');
         setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {
         console.error('[Marketplace] Erreur annulation:', e);
-        _showMpNotification('❌ Annulation échouée : ' + (e.reason || e.message), 'error');
+        _showMpNotification(t('marketplace.cancel_offer_failed', { error: e.reason || e.message }), 'error');
     }
 };

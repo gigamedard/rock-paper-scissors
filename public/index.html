@@ -75,8 +75,8 @@
     <div id="combat-overlay" style="display: none;">
         <div class="scanner-line"></div>
         <div class="hud-container fade-in" style="text-align: center;">
-            <div class="battle-status-tag status-busy" style="margin-bottom: 2rem;">COMBAT IN PROGRESS</div>
-            <h2 id="combat-text" style="color: var(--primary); font-size: 3.5rem; text-shadow: 0 0 30px var(--primary); font-weight: 800;">SCANNING...</h2>
+            <div class="battle-status-tag status-busy" style="margin-bottom: 2rem;" data-i18n="combat.in_progress">COMBAT IN PROGRESS</div>
+            <h2 id="combat-text" style="color: var(--primary); font-size: 3.5rem; text-shadow: 0 0 30px var(--primary); font-weight: 800;" data-i18n="combat.scanning">SCANNING...</h2>
             <div class="combat-icons" style="font-size: 4rem; margin-top: 2rem;">
                 <span class="clash-icon">🥊</span>
                 <span class="clash-icon">⚡</span>
@@ -92,24 +92,21 @@
             <div id="view-disconnected" class="card" style="text-align: center; margin-top: 5rem;">
                 <h1 style="font-size: 3rem; margin-bottom: 1rem;" data-i18n="connect.title">Ready to Fight?</h1>
                 <p style="color: var(--text-dim); margin-bottom: 2rem;" data-i18n="connect.subtitle">Connect your wallet to enter the arena and start your session.</p>
-                <button class="btn-primary" id="enter-arena-btn" style="padding: 1.5rem 3rem; font-size: 1.2rem;" data-i18n="connect.enter">ENTER THE ARENA</button>
-            </div>
-
-            <div id="view-setup" class="card fade-in" style="display: none; max-width: 1000px; margin: 2rem auto;">
-                <h2 style="margin-bottom: 1rem; color: var(--primary);">SYSTEM INITIALIZATION</h2>
+                <button class="btn-primary" id="enter-arena-btn" style="padding: 1.5rem 3rem; font-size: 1.2rem;" data-i18n="connect.enter">ENTER THE ARENA<            <div id="view-setup" class="card fade-in" style="display: none; max-width: 1000px; margin: 2rem auto;">
+                <h2 style="margin-bottom: 1rem; color: var(--primary);" data-i18n="setup.title">SYSTEM INITIALIZATION</h2>
                 <div class="setup-container">
                     <div>
-                        <label class="label">PRE-MOVE SEQUENCE (10 ROUNDS)</label>
+                        <label class="label" data-i18n="setup.premove_sequence">PRE-MOVE SEQUENCE (10 ROUNDS)</label>
                         <div id="premove-slots" class="premove-grid"></div>
                         <div class="move-selector">
                             <button class="move-btn" id="move-rock">✊</button>
                             <button class="move-btn" id="move-paper">🖐️</button>
                             <button class="move-btn" id="move-scissors">✌️</button>
-                            <button class="move-btn" id="move-reset" style="font-size: 1.2rem; color: var(--accent);">RESET</button>
+                            <button class="move-btn" id="move-reset" style="font-size: 1.2rem; color: var(--accent);" data-i18n="setup.reset">RESET</button>
                         </div>
                     </div>
                     <div>
-                        <label class="label">BASE BET AMOUNT (ETH)</label>
+                        <label class="label" data-i18n="setup.base_bet">BASE BET AMOUNT (ETH)</label>
                         <div class="bet-input-container">
                             <span style="font-size: 1.5rem; color: var(--primary);">Ξ</span>
                             <select id="base-bet-input" class="bet-input" style="font-size: 1.5rem;">
@@ -120,7 +117,7 @@
                             </select>
                         </div>
 
-                        <label class="label" style="margin-top: 1rem; display: block;">TARGET MULTIPLIER (Q)</label>
+                        <label class="label" style="margin-top: 1rem; display: block;" data-i18n="setup.target_q">TARGET MULTIPLIER (Q)</label>
                         <div class="bet-input-container">
                             <span style="font-size: 1.5rem; color: var(--primary);">q</span>
                             <select id="target-q-input" class="bet-input" style="font-size: 1.5rem;">
@@ -131,25 +128,28 @@
                             </select>
                         </div>
 
-                        <label class="label" style="margin-top: 1rem; display: block;">MIN COOLDOWN TIME</label>
+                        <label class="label" style="margin-top: 1rem; display: block;" data-i18n="setup.min_cooldown">MIN COOLDOWN TIME</label>
                         <div class="bet-input-container">
                             <span style="font-size: 1.5rem; color: var(--primary);">⏱</span>
                             <select id="cooldown-input" class="bet-input" style="font-size: 1.5rem;">
-                                <option value="1440" selected>24 Hours</option>
-                                <option value="720">12 Hours</option>
-                                <option value="360">6 Hours</option>
-                                <option value="60">1 Hour</option>
+                                <option value="1440" selected data-i18n="setup.cooldown_24h">24 Hours</option>
+                                <option value="720" data-i18n="setup.cooldown_12h">12 Hours</option>
+                                <option value="360" data-i18n="setup.cooldown_6h">6 Hours</option>
+                                <option value="60" data-i18n="setup.cooldown_1h">1 Hour</option>
                             </select>
                         </div>
 
                         <div id="fee-breakdown" style="margin-top:1rem; font-size:0.85rem; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span>Required Stake (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 ETH</span></div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span>Matchmaking Fee (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 ETH</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span data-i18n="setup.required_stake">Required Stake (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 ETH</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span data-i18n="setup.fee">Matchmaking Fee (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 ETH</span></div>
                             <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:0.5rem 0;">
-                            <div style="display:flex; justify-content:space-between; font-weight:800; color:var(--primary);"><span>TOTAL DEPOSIT:</span><span id="display-total-deposit">0.0000 ETH</span></div>
+                            <div style="display:flex; justify-content:space-between; font-weight:800; color:var(--primary);"><span data-i18n="setup.total_deposit">TOTAL DEPOSIT:</span><span id="display-total-deposit">0.0000 ETH</span></div>
                         </div>
-                        <button class="btn-primary" id="start-session-btn" style="margin-top: 1rem; width: 100%;">INITIALIZE BATTLE SEQUENCE</button>
+
+                        <button class="btn-primary" id="start-session-btn" style="margin-top: 1rem; width: 100%;" data-i18n="setup.btn">INITIALIZE BATTLE SEQUENCE</button>
                     </div>
+                </div>
+            </div>>
                 </div>
             </div>
 
@@ -184,9 +184,9 @@
 
                 <!-- Activity Feed & Logs -->
                 <aside class="activity-log">
-                    <h3 style="font-size: 0.8rem; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 1rem;">BATTLE FEED</h3>
+                    <h3 style="font-size: 0.8rem; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 1rem;" data-i18n="feed.title">BATTLE FEED</h3>
                     <div id="feed" class="feed-container">
-                        <div class="feed-entry"><span class="feed-time">System Initialized</span> Waiting for signals...</div>
+                        <div class="feed-entry"><span class="feed-time" data-i18n="feed.waiting_signals">Waiting for signals...</span></div>
                     </div>
                 </aside>
                 </div>
@@ -199,9 +199,9 @@
             <div class="mp-header">
                 <h1 data-i18n="marketplace.title">Marketplace</h1>
                 <div class="mp-tabs" style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: center;">
-                    <button id="tab-p2p" class="mp-tab active" style="padding: 0.5rem 2rem; background: var(--primary); border: none; border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;">P2P Trading</button>
-                    <button id="tab-cards" class="mp-tab" style="padding: 0.5rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;">Boutique Cartes</button>
-                    <button id="tab-inventory" class="mp-tab" style="padding: 0.5rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;">Mes Cartes</button>
+                    <button id="tab-p2p" class="mp-tab active" style="padding: 0.5rem 2rem; background: var(--primary); border: none; border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;" data-i18n="marketplace.tab_p2p">P2P Trading</button>
+                    <button id="tab-cards" class="mp-tab" style="padding: 0.5rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;" data-i18n="marketplace.tab_cards">Boutique Cartes</button>
+                    <button id="tab-inventory" class="mp-tab" style="padding: 0.5rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;" data-i18n="marketplace.tab_inventory">Mes Cartes</button>
                 </div>
             </div>
 
@@ -223,7 +223,7 @@
                 </div>
 
             <!-- Bannière indisponibilité contrat (cachée par défaut) -->
-            <div id="mp-contract-error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.5); color:#fca5a5; padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;">
+            <div id="mp-contract-error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.5); color:#fca5a5; padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;" data-i18n="marketplace.contract_error">
                 ⚠️ Service blockchain indisponible. Assurez-vous que le Node.js Bridge est démarré. La création d'offres est désactivée.
             </div>
 
@@ -331,7 +331,7 @@
         <div id="influencer-dashboard-page" class="page" style="display:none;">
             <div style="text-align: center; padding: 4rem;">
                 <h1 data-i18n="influencer.title">Influencer Dashboard</h1>
-                <p>Loading VIP assets...</p>
+                <p data-i18n="influencer.loading_vip">Loading VIP assets...</p>
             </div>
         </div>
 

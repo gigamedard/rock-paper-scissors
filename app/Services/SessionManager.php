@@ -85,7 +85,6 @@ class SessionManager
 
         foreach ($activeBaseBetCards as $userCard) {
             $baseBet += $userCard->card->effect_value; // ex: +0.01 au base bet
-            $this->consumeCard($userCard);
         }
 
         // 1. Martingale Logic — 3 cases based on the pool outcome:
@@ -173,7 +172,6 @@ class SessionManager
 
         foreach ($activeCeilingCards as $userCard) {
             $multiplier += $userCard->card->effect_value; // ex: +0.5 au plafond
-            $this->consumeCard($userCard);
         }
 
         if ($q >= $multiplier) {
@@ -258,6 +256,8 @@ class SessionManager
 
     private function closeSession(User $user, string $newStatus): void
     {
+        $this->consumeActiveSessionCards($user);
+
         $user->status = $newStatus;
         // Reset bet_amount to the base bet (0.01) so the bot can re-enter the arena
         // on its next session after a payout, ruin, or strategic limit.
@@ -271,6 +271,24 @@ class SessionManager
         $user->session_start_balance = 0;
         $user->session_start_battle_balance = 0;
         $user->save();
+    }
+
+    private function consumeActiveSessionCards(User $user): void
+    {
+        $activeSessionCards = \App\Models\UserCard::with('card')
+            ->where('user_id', $user->id)
+            ->where('status', 'available')
+            ->where(function($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->whereHas('card', function ($q) {
+                $q->whereIn('effect_type', ['base_bet_modifier', 'ceiling_increase']);
+            })
+            ->get();
+
+        foreach ($activeSessionCards as $userCard) {
+            $this->consumeCard($userCard);
+        }
     }
 
     private function sendPayment(User $user): void

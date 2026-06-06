@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             balance: 0, bet_amount: 0.01, status: 'disconnected'
         };
         if (window.echoInstance) window.echoInstance.disconnect();
-        alert("Session expirée. Veuillez vous reconnecter.");
+        alert(window.t ? window.t('connect.session_expired') : "Session expirée. Veuillez vous reconnecter.");
         window.location.reload();
     });
 });

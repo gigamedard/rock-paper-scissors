@@ -52,14 +52,22 @@ async function loadTranslations(locale) {
 /**
  * Traduit une clé (ex: "marketplace.title")
  */
-export function t(key) {
+export function t(key, params = {}) {
     const parts = key.split('.');
     let result = translations;
     for (const part of parts) {
         result = result?.[part];
-        if (result === undefined) return key; // Retourne la clé si non trouvée
+        if (result === undefined) {
+            result = key;
+            break;
+        }
     }
-    return result || key;
+    let text = result || key;
+    Object.keys(params).forEach(p => {
+        text = text.replace(new RegExp(`:${p}`, 'g'), params[p]);
+        text = text.replace(new RegExp(`{${p}}`, 'g'), params[p]);
+    });
+    return text;
 }
 
 /**
