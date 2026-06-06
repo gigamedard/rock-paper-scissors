@@ -45,14 +45,23 @@ class InternalTradeController extends Controller
 
         $validatedData = $validator->validated();
 
-        Trade::create([
-            'blockchain_trade_id' => $validatedData['offerId'],
-            'seller_wallet_address' => $validatedData['seller'],
-            'snt_amount' => $validatedData['sntAmount'],
-            'avax_amount' => $validatedData['avaxAmount'],
-            'status' => 'open',
-            'expires_at' => Carbon::createFromTimestamp($validatedData['expiresAt']),
-        ]);
+        DB::transaction(function () use ($validatedData) {
+            Trade::create([
+                'blockchain_trade_id' => $validatedData['offerId'],
+                'seller_wallet_address' => $validatedData['seller'],
+                'snt_amount' => $validatedData['sntAmount'],
+                'avax_amount' => $validatedData['avaxAmount'],
+                'status' => 'open',
+                'expires_at' => Carbon::createFromTimestamp($validatedData['expiresAt']),
+            ]);
+
+            // Décrémenter le solde SNT du vendeur
+            $seller = User::where('wallet_address', strtolower($validatedData['seller']))->first();
+            if ($seller) {
+                $seller->decrement('token_balance', $validatedData['sntAmount']);
+                Log::info("Decremented {$validatedData['sntAmount']} SNT from seller {$seller->wallet_address} due to offer creation.");
+            }
+        });
         Log::info('==> [LISTENER] Trade créé avec succès dans la BDD.', ['id' => $validatedData['offerId']]);
 
         return response()->json(['status' => 'success'], 201);
@@ -82,10 +91,29 @@ class InternalTradeController extends Controller
                         $trade->buyer_wallet_address = $data['buyerAddress'];
                         $trade->save(); // Save buyer address
                         
-                        // NOTE: Balance update is now handled by the SNT Transfer Listener (app.js)
-                        // This prevents double-counting tokens if we listen to both Marketplace and Token events.
-                        // We still log the event for debugging.
-                        Log::info('==> [LISTENER] Trade fulfilled. Buyer: ' . $data['buyerAddress'] . '. Balance update delegated to Transfer event.');
+                        // Créditer le solde SNT de l'acheteur
+                        $buyer = User::where('wallet_address', strtolower($data['buyerAddress']))->first();
+                        if ($buyer) {
+                            $buyer->increment('token_balance', $trade->snt_amount);
+                            Log::info("Incremented {$trade->snt_amount} SNT for buyer {$buyer->wallet_address} from trade fulfillment.");
+                            
+                            // Déclencher la validation du parrainage si éligible (solde >= 5)
+                            $minimumBalance = 5;
+                            $pendingReferral = Referral::where('referred_id', $buyer->id)->where('status', 'pending')->exists();
+                            if ($pendingReferral && $buyer->fresh()->token_balance >= $minimumBalance) {
+                                Log::info("Validation parrainage déclenchée pour User {$buyer->id} suite à l'achat sur le marketplace.");
+                                $this->referralService->processReferralValidation($buyer);
+                            }
+                        }
+                    }
+
+                    if ($data['newStatus'] === 'cancelled') {
+                        // Restituer le solde SNT au vendeur
+                        $seller = User::where('wallet_address', strtolower($trade->seller_wallet_address))->first();
+                        if ($seller) {
+                            $seller->increment('token_balance', $trade->snt_amount);
+                            Log::info("Refunded {$trade->snt_amount} SNT to seller {$seller->wallet_address} due to trade cancellation.");
+                        }
                     }
                     
                     $trade->save();
