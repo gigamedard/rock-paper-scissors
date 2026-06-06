@@ -26,8 +26,8 @@
     "cooldown_12h": "12 Heures",
     "cooldown_6h": "6 Heures",
     "cooldown_1h": "1 Heure",
-    "required_stake": "Mise Requise (x:coeff) :",
-    "fee": "Frais de Matchmaking (:percent%) :",
+    "required_stake": "Mise Requise",
+    "fee": "Frais de Matchmaking",
     "total_deposit": "DÉPÔT TOTAL :",
     "btn": "INITIALISER LA SÉQUENCE DE COMBAT"
   },

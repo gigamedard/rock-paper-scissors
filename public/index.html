@@ -92,7 +92,10 @@
             <div id="view-disconnected" class="card" style="text-align: center; margin-top: 5rem;">
                 <h1 style="font-size: 3rem; margin-bottom: 1rem;" data-i18n="connect.title">Ready to Fight?</h1>
                 <p style="color: var(--text-dim); margin-bottom: 2rem;" data-i18n="connect.subtitle">Connect your wallet to enter the arena and start your session.</p>
-                <button class="btn-primary" id="enter-arena-btn" style="padding: 1.5rem 3rem; font-size: 1.2rem;" data-i18n="connect.enter">ENTER THE ARENA<            <div id="view-setup" class="card fade-in" style="display: none; max-width: 1000px; margin: 2rem auto;">
+                <button class="btn-primary" id="enter-arena-btn" style="padding: 1.5rem 3rem; font-size: 1.2rem;" data-i18n="connect.enter">ENTER THE ARENA</button>
+            </div>
+
+            <div id="view-setup" class="card fade-in" style="display: none; max-width: 1000px; margin: 2rem auto;">
                 <h2 style="margin-bottom: 1rem; color: var(--primary);" data-i18n="setup.title">SYSTEM INITIALIZATION</h2>
                 <div class="setup-container">
                     <div>
@@ -140,16 +143,14 @@
                         </div>
 
                         <div id="fee-breakdown" style="margin-top:1rem; font-size:0.85rem; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span data-i18n="setup.required_stake">Required Stake (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 ETH</span></div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span data-i18n="setup.fee">Matchmaking Fee (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 ETH</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.required_stake">Required Stake</span> (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 ETH</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.fee">Matchmaking Fee</span> (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 ETH</span></div>
                             <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:0.5rem 0;">
                             <div style="display:flex; justify-content:space-between; font-weight:800; color:var(--primary);"><span data-i18n="setup.total_deposit">TOTAL DEPOSIT:</span><span id="display-total-deposit">0.0000 ETH</span></div>
                         </div>
 
                         <button class="btn-primary" id="start-session-btn" style="margin-top: 1rem; width: 100%;" data-i18n="setup.btn">INITIALIZE BATTLE SEQUENCE</button>
                     </div>
-                </div>
-            </div>>
                 </div>
             </div>
 

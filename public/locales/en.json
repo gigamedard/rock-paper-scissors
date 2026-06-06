@@ -26,8 +26,8 @@
     "cooldown_12h": "12 Hours",
     "cooldown_6h": "6 Hours",
     "cooldown_1h": "1 Hour",
-    "required_stake": "Required Stake (x:coeff):",
-    "fee": "Matchmaking Fee (:percent%):",
+    "required_stake": "Required Stake",
+    "fee": "Matchmaking Fee",
     "total_deposit": "TOTAL DEPOSIT:",
     "btn": "INITIALIZE BATTLE SEQUENCE"
   },
