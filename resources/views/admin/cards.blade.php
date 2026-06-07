@@ -88,14 +88,50 @@
                 const res = await fetch(API_BASE, {
                     headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
                 });
+                if (!res.ok) {
+                    if (res.status === 401 || res.status === 403) {
+                        renderError('You must be logged in as an Administrator to view and manage cards.');
+                    } else {
+                        renderError('Error loading cards: ' + res.statusText);
+                    }
+                    return;
+                }
                 const cards = await res.json();
-                renderCards(cards);
-            } catch (e) { console.error('Error fetching cards', e); }
+                if (Array.isArray(cards)) {
+                    renderCards(cards);
+                } else {
+                    renderError('Invalid cards data received.');
+                }
+            } catch (e) {
+                console.error('Error fetching cards', e);
+                renderError('Connection error occurred while fetching cards.');
+            }
+        }
+
+        function renderError(message) {
+            const tbody = document.getElementById('cards-tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-8 text-center text-sm font-medium text-red-500 bg-red-50">
+                        ⚠️ ${message}
+                    </td>
+                </tr>
+            `;
         }
 
         function renderCards(cards) {
             const tbody = document.getElementById('cards-tbody');
             tbody.innerHTML = '';
+            if (cards.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">
+                            No cards available.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
             cards.forEach(card => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
