@@ -391,6 +391,12 @@ function _updateContractStatusBanner() {
 
 async function loadMarketplaceData() {
     await Promise.all([loadStats(), loadOffers()]);
+    
+    // Auto-refresh inventory if the inventory tab is active
+    const tabInventory = document.getElementById('tab-inventory');
+    if (tabInventory && tabInventory.classList.contains('active')) {
+        loadUserInventory();
+    }
 }
 
 async function loadStats() {
