@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Console\Scheduling\Schedule;
 use App\Providers\EventServiceProvider;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -13,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
+    ->withSchedule(function (Schedule $schedule) {
+        // Re-sync blockchain limits when time-based cards expire (prevents on-chain expiry bypass)
+        $schedule->command('cards:sync-expired-limits')->everyFiveMinutes();
+    })
+
     ->withMiddleware(function (Middleware $middleware) {
         // Registered a custom middleware alias: 'token.auth'
         // This is a clearer name and avoids conflicts with Laravel's internal 'auth:api'.

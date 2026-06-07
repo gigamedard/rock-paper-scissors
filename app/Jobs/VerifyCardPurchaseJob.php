@@ -50,7 +50,11 @@ class VerifyCardPurchaseJob implements ShouldQueue
         );
 
         if (isset($verifyResponse['success']) && $verifyResponse['success']) {
-            $this->userCard->update(['status' => 'available']);
+            $updateData = ['status' => 'available'];
+            if ($card->duration_type === 'time') {
+                $updateData['expires_at'] = now()->addHours($card->duration_value);
+            }
+            $this->userCard->update($updateData);
             Log::info("Card purchase verified and activated", ['user_card_id' => $this->userCard->id]);
             SyncUserLimitsJob::dispatch($user);
         } else {

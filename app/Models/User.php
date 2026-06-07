@@ -176,7 +176,11 @@ class User extends Authenticatable
             ->where(function ($q) {
                 $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
-            ->get();
+            ->get()
+            ->sortBy(function ($userCard) {
+                // Apply percentage reductions first (effect_value < 1), then fixed values
+                return $userCard->card && $userCard->card->effect_value < 1 ? 0 : 1;
+            });
 
         foreach ($activeCards as $userCard) {
             $card = $userCard->card;
@@ -256,7 +260,9 @@ class User extends Authenticatable
 
         // min_cooldown in active limits is in minutes, contract expects seconds
         // Subtract 20 seconds as safety margin for transaction processing time
-        $minCooldownSeconds = max(0, ($limits['min_cooldown'] * 60) - 20);
+        // Safety margin for blockchain transaction processing time (configurable)
+        $safetyMarginSeconds = (int) config('game.cooldown_safety_margin_seconds', 20);
+        $minCooldownSeconds = max(0, ($limits['min_cooldown'] * 60) - $safetyMarginSeconds);
 
         return app(\App\Helpers\Web3Helper::class)->setUserLimits(
             $nodeUrl,

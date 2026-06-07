@@ -308,6 +308,12 @@ app.post("/create-offer", async (req, res) => {
 });
 
 app.post("/verify-snt-transfer", async (req, res) => {
+    // Authentication: verify internal API secret
+    const secret = req.headers['x-internal-secret'];
+    if (!secret || secret !== INTERNAL_API_SECRET) {
+        return res.status(403).json({ error: "Accès non autorisé." });
+    }
+
     try {
         const { txHash, expectedAmount, sender } = req.body;
 
@@ -334,9 +340,12 @@ app.post("/verify-snt-transfer", async (req, res) => {
                     const parsedLog = sntContract.interface.parseLog({ topics: [...log.topics], data: log.data });
                     if (parsedLog && parsedLog.name === "Transfer") {
                         const from = parsedLog.args[0].toLowerCase();
+                        const to = parsedLog.args[1].toLowerCase();
                         const amount = formatEther(parsedLog.args[2]);
 
-                        if (from === sender.toLowerCase() && parseFloat(amount) >= parseFloat(expectedAmount)) {
+                        // Verify sender, recipient (must be platform wallet), and amount
+                        const platformWallet = (process.env.SNT_RECEIVER_WALLET || gameWallet.address).toLowerCase();
+                        if (from === sender.toLowerCase() && to === platformWallet && parseFloat(amount) >= parseFloat(expectedAmount)) {
                             validTransferFound = true;
                             break;
                         }

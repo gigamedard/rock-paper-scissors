@@ -8,6 +8,7 @@ use App\Models\Fight;
 use App\Models\Pool;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Bus;
 
 class SessionManager
 {
@@ -184,8 +185,14 @@ class SessionManager
             // CRITICAL: Sync limits to blockchain BEFORE setting cooldown.
             // The smart contract validates nextTime >= block.timestamp + getUserMinCooldown(user).
             // If we set the cooldown first, the contract still has stale limits and may reject.
-            \App\Jobs\SyncUserLimitsJob::dispatch($user);
-            $this->setNextSessionCooldown($user);
+            // Chain jobs to guarantee sequential execution:
+            // SyncUserLimitsJob MUST complete before SetCooldownJob runs,
+            // because the smart contract validates cooldown against current on-chain limits.
+            $cooldownData = $this->calculateCooldownData($user);
+            Bus::chain([
+                new \App\Jobs\SyncUserLimitsJob($user),
+                new \App\Jobs\SetCooldownJob($cooldownData['wallet'], $cooldownData['nextTime']),
+            ])->dispatch();
 
             $signature = null;
             $payoutTriggered = false;
@@ -282,7 +289,7 @@ class SessionManager
                 $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
             ->whereHas('card', function ($q) {
-                $q->whereIn('effect_type', ['base_bet_modifier', 'ceiling_increase']);
+                $q->whereIn('effect_type', ['base_bet_modifier', 'ceiling_increase', 'cooldown_reduction']);
             })
             ->get();
 
@@ -296,6 +303,41 @@ class SessionManager
         if (!empty($user->wallet_address)) {
             \App\Jobs\ProcessPayoutJob::dispatch($user->wallet_address, (float) $user->balance);
         }
+    }
+
+    /**
+     * Calculate cooldown data without dispatching any jobs.
+     * Used to prepare data for Bus::chain().
+     */
+    private function calculateCooldownData(User $user): array
+    {
+        $recoveryLevel = $user->recovery_level ?? 1;
+        $minutes = config("game_levels.recovery_time.{$recoveryLevel}", 1440);
+
+        $activeCooldownCards = \App\Models\UserCard::with('card')
+            ->where('user_id', $user->id)
+            ->where('status', 'available')
+            ->where(function($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->whereHas('card', function ($q) {
+                $q->where('effect_type', 'cooldown_reduction');
+            })
+            ->get();
+
+        foreach ($activeCooldownCards as $userCard) {
+            $effectValue = $userCard->card->effect_value;
+            if ($effectValue < 1) {
+                $minutes = $minutes * (1 - $effectValue);
+            } else {
+                $minutes = max(0, $minutes - $effectValue);
+            }
+        }
+
+        return [
+            'wallet' => $user->wallet_address,
+            'nextTime' => now()->addMinutes($minutes)->timestamp,
+        ];
     }
 
     private function setNextSessionCooldown(User $user): void
@@ -313,7 +355,11 @@ class SessionManager
             ->whereHas('card', function ($q) {
                 $q->where('effect_type', 'cooldown_reduction');
             })
-            ->get();
+            ->get()
+            ->sortBy(function ($userCard) {
+                // Apply percentage reductions first, then fixed values for determinism
+                return $userCard->card && $userCard->card->effect_value < 1 ? 0 : 1;
+            });
 
         foreach ($activeCooldownCards as $userCard) {
             $effectValue = $userCard->card->effect_value; // ex: 0.5 (50%) ou 60 (60 minutes)

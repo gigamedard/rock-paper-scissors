@@ -165,7 +165,7 @@ Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function (
 // ===============================================
 // == Routes Boutique (Cards)
 // ===============================================
-Route::prefix('shop')->middleware(['token.auth'])->group(function () {
+Route::prefix('shop')->middleware(['token.auth', 'throttle:10,1'])->group(function () {
     Route::get('/cards', [\App\Http\Controllers\ShopController::class, 'index']);
     Route::get('/inventory', [\App\Http\Controllers\ShopController::class, 'inventory']);
     Route::post('/buy', [\App\Http\Controllers\ShopController::class, 'buy']);

@@ -252,7 +252,9 @@ class Web3Helper
     public static function verifySntTransfer($nodeUrl, $txHash, $expectedAmount, $sender)
     {
         try {
-            $response = Http::post("{$nodeUrl}/verify-snt-transfer", [
+            $response = Http::withHeaders([
+                'X-Internal-Secret' => config('app.INTERNAL_API_SECRET'),
+            ])->post("{$nodeUrl}/verify-snt-transfer", [
                 'txHash' => $txHash,
                 'expectedAmount' => $expectedAmount,
                 'sender' => $sender

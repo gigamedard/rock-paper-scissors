@@ -41,13 +41,25 @@ class ShopController extends Controller
 
         $card = \App\Models\Card::where('id', $validated['card_id'])->where('is_active', true)->firstOrFail();
 
+        // Prevent stacking: check if user already has an active card with the same effect_type
+        $existingActiveCard = \App\Models\UserCard::where('user_id', $user->id)
+            ->where('status', 'available')
+            ->where(function($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->whereHas('card', function ($q) use ($card) {
+                $q->where('effect_type', $card->effect_type);
+            })
+            ->exists();
+
+        if ($existingActiveCard) {
+            return response()->json(['error' => 'Vous possédez déjà une carte active de ce type.'], 422);
+        }
+
         $txHash = $validated['tx_hash'];
 
         // Ajouter la carte à l'inventaire avec un statut 'pending'
-        $expiresAt = null;
-        if ($card->duration_type === 'time') {
-            $expiresAt = now()->addHours($card->duration_value);
-        }
+        $expiresAt = null; // Calculated upon verification for accuracy
 
         $userCard = \App\Models\UserCard::create([
             'user_id' => $user->id,
