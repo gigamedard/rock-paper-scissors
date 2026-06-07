@@ -36,49 +36,40 @@ class ShopController extends Controller
 
         $validated = $request->validate([
             'card_id' => 'required|exists:cards,id',
-            'tx_hash' => 'required|string|unique:user_cards,tx_hash'
+            'tx_hash' => 'required|string|unique:user_cards,tx_hash',
+            'quantity' => 'nullable|integer|min:1'
         ]);
 
         $card = \App\Models\Card::where('id', $validated['card_id'])->where('is_active', true)->firstOrFail();
 
-        // Prevent stacking: check if user already has an active card with the same effect_type
-        $existingActiveCard = \App\Models\UserCard::where('user_id', $user->id)
-            ->where('status', 'available')
-            ->where(function($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
-            ->whereHas('card', function ($q) use ($card) {
-                $q->where('effect_type', $card->effect_type);
-            })
-            ->exists();
+        $txHash = $validated['tx_hash'];
+        $quantity = $validated['quantity'] ?? 1;
 
-        if ($existingActiveCard) {
-            return response()->json(['error' => 'Vous possédez déjà une carte active de ce type.'], 422);
+        $createdCards = [];
+        for ($i = 0; $i < $quantity; $i++) {
+            $createdCards[] = \App\Models\UserCard::create([
+                'user_id' => $user->id,
+                'card_id' => $card->id,
+                'status' => 'pending',
+                'remaining_sessions' => $card->duration_type === 'sessions' ? $card->duration_value : null,
+                'expires_at' => null, // Calculated upon verification for accuracy
+                'tx_hash' => $txHash,
+            ]);
         }
 
-        $txHash = $validated['tx_hash'];
+        // Lancer la vérification et la synchronisation de façon asynchrone (une seule fois pour le lot)
+        \App\Jobs\VerifyCardPurchaseJob::dispatch($createdCards[0]);
 
-        // Ajouter la carte à l'inventaire avec un statut 'pending'
-        $expiresAt = null; // Calculated upon verification for accuracy
-
-        $userCard = \App\Models\UserCard::create([
-            'user_id' => $user->id,
-            'card_id' => $card->id,
-            'status' => 'pending',
-            'remaining_sessions' => $card->duration_type === 'sessions' ? $card->duration_value : null,
-            'expires_at' => $expiresAt,
-            'tx_hash' => $txHash,
-        ]);
-
-        // Lancer la vérification et la synchronisation de façon asynchrone
-        \App\Jobs\VerifyCardPurchaseJob::dispatch($userCard);
-
-        // Rafraîchir pour avoir le statut final si le queue driver est 'sync' (comme en test)
-        $userCard->refresh();
+        // Rafraîchir les cartes pour avoir le statut final si le queue driver est 'sync' (comme en test)
+        foreach ($createdCards as $uCard) {
+            $uCard->refresh();
+            $uCard->load('card');
+        }
 
         return response()->json([
-            'message' => 'L\'achat de la carte a été initié et est en cours de traitement.',
-            'user_card' => $userCard->load('card'),
+            'message' => 'L\'achat a été initié et est en cours de traitement.',
+            'user_cards' => $createdCards,
+            'user_card' => $createdCards[0],
             'new_balance' => $user->token_balance
         ]);
 
