@@ -648,22 +648,18 @@ async function applyActiveLimits() {
                 }
             }
 
-            const cooldownSelect = document.getElementById('cooldown-input');
-            if (cooldownSelect) {
-                let firstValid = null;
-                let currentValValid = false;
-                Array.from(cooldownSelect.options).forEach(opt => {
-                    const val = parseInt(opt.value, 10);
-                    if (val < limits.min_cooldown) {
-                        opt.disabled = true;
-                    } else {
-                        opt.disabled = false;
-                        if (firstValid === null) firstValid = opt.value;
-                        if (cooldownSelect.value === opt.value) currentValValid = true;
-                    }
-                });
-                if (!currentValValid && firstValid !== null) {
-                    cooldownSelect.value = firstValid;
+            const cooldownInput = document.getElementById('cooldown-input');
+            const cooldownDisplay = document.getElementById('cooldown-display');
+            if (cooldownInput) {
+                cooldownInput.value = limits.min_cooldown;
+            }
+            if (cooldownDisplay) {
+                const mins = limits.min_cooldown;
+                if (mins < 60) {
+                    cooldownDisplay.innerText = `${mins.toFixed(0)} min${mins > 1 ? 's' : ''}`;
+                } else {
+                    const hrs = mins / 60;
+                    cooldownDisplay.innerText = `${hrs.toFixed(1)} Hour${hrs > 1 ? 's' : ''}`;
                 }
             }
         }

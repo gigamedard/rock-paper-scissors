@@ -134,12 +134,8 @@
                         <label class="label" style="margin-top: 1rem; display: block;" data-i18n="setup.min_cooldown">MIN COOLDOWN TIME</label>
                         <div class="bet-input-container">
                             <span style="font-size: 1.5rem; color: var(--primary);">⏱</span>
-                            <select id="cooldown-input" class="bet-input" style="font-size: 1.5rem;">
-                                <option value="1440" selected data-i18n="setup.cooldown_24h">24 Hours</option>
-                                <option value="720" data-i18n="setup.cooldown_12h">12 Hours</option>
-                                <option value="360" data-i18n="setup.cooldown_6h">6 Hours</option>
-                                <option value="60" data-i18n="setup.cooldown_1h">1 Hour</option>
-                            </select>
+                            <span id="cooldown-display" style="font-size: 1.5rem; font-weight: bold; color: #fff; margin-left: 10px;">--</span>
+                            <input type="hidden" id="cooldown-input" value="1440">
                         </div>
 
                         <div id="fee-breakdown" style="margin-top:1rem; font-size:0.85rem; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
