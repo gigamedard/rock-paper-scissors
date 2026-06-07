@@ -184,20 +184,28 @@ function renderShopCards(cards) {
                 <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem; min-height: 40px;">${card.description || ''}</p>
                 <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">${t('marketplace.duration_label', { value: card.duration_value, type: t(card.duration_type === 'sessions' ? 'marketplace.sessions' : 'marketplace.hours') })}</div>
                 <div class="holo-card-price">${card.price} SNT</div>
-                <button class="btn-buy-card" onclick="window.marketplaceBuyCard(${card.id}, ${card.price})">${t('marketplace.buy_btn')}</button>
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
+                    <input type="number" id="card-qty-${card.id}" min="1" value="1" style="width: 60px; padding: 0.3rem; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid var(--primary); border-radius: 4px; text-align: center;">
+                    <button class="btn-buy-card" style="flex: 1;" onclick="window.marketplaceBuyCard(${card.id}, ${card.price}, parseInt(document.getElementById('card-qty-${card.id}').value || 1))">${t('marketplace.buy_btn')}</button>
+                </div>
             </div>
         `;
         container.appendChild(cardEl);
     });
 }
 
-window.marketplaceBuyCard = async function(cardId, cardPrice) {
+window.marketplaceBuyCard = async function(cardId, cardPrice, quantity = 1) {
+    if (isNaN(quantity) || quantity < 1) {
+        quantity = 1;
+    }
+
     if (!window.userState || !window.userState.walletAddress) {
         _showMpNotification(t('marketplace.sign_buy_wallet'), 'error');
         return;
     }
     
     const OWNER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
+    const totalSntPrice = cardPrice * quantity;
     
     try {
         if (!CONTRACT_ADDRESSES.sntToken) {
@@ -212,10 +220,10 @@ window.marketplaceBuyCard = async function(cardId, cardPrice) {
         const signer = await getSigner();
         const signerAddr = await signer.getAddress();
         const userBalance = await sntContract.balanceOf(signerAddr);
-        const amountInWei = parseEther(cardPrice.toString());
+        const amountInWei = parseEther(totalSntPrice.toString());
 
         if (userBalance < amountInWei) {
-            _showMpNotification(t('marketplace.insufficient_snt', { req: cardPrice, bal: formatEther(userBalance) }), 'error');
+            _showMpNotification(t('marketplace.insufficient_snt', { req: totalSntPrice, bal: formatEther(userBalance) }), 'error');
             return;
         }
 
@@ -223,7 +231,7 @@ window.marketplaceBuyCard = async function(cardId, cardPrice) {
         _showMpNotification(t('marketplace.sign_tx_info'), 'info');
         
         const tx = await sntContract.transfer(OWNER_ADDRESS, amountInWei);
-        addToFeed(t('feed.sending_snt', { amount: cardPrice, hash: tx.hash.substring(0,10) }), 'var(--primary)');
+        addToFeed(t('feed.sending_snt', { amount: totalSntPrice, hash: tx.hash.substring(0,10) }), 'var(--primary)');
         _showMpNotification(t('marketplace.tx_pending_info'), 'info');
         
         await tx.wait();
@@ -235,7 +243,8 @@ window.marketplaceBuyCard = async function(cardId, cardPrice) {
             method: 'POST',
             body: JSON.stringify({ 
                 card_id: cardId,
-                tx_hash: tx.hash
+                tx_hash: tx.hash,
+                quantity: quantity
             })
         });
         
