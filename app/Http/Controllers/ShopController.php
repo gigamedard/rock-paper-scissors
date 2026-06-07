@@ -47,13 +47,14 @@ class ShopController extends Controller
 
         $createdCards = [];
         for ($i = 0; $i < $quantity; $i++) {
+            $cardTxHash = ($i === 0) ? $txHash : $txHash . '_qty_' . $i;
             $createdCards[] = \App\Models\UserCard::create([
                 'user_id' => $user->id,
                 'card_id' => $card->id,
                 'status' => 'pending',
                 'remaining_sessions' => $card->duration_type === 'sessions' ? $card->duration_value : null,
                 'expires_at' => null, // Calculated upon verification for accuracy
-                'tx_hash' => $txHash,
+                'tx_hash' => $cardTxHash,
             ]);
         }
 
