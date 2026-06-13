@@ -119,6 +119,13 @@ export function initGame() {
             window.userState.status = 'stopped';
             hideCombatOverlay();
             
+            if (e.detail.user) {
+                window.userState.cooldown_until = e.detail.user.cooldown_until;
+                window.userState.balance = parseFloat(e.detail.user.balance) || 0;
+                window.userState.battle_balance = parseFloat(e.detail.user.battle_balance) || 0;
+                window.userState._displayBalance = window.userState.balance + window.userState.battle_balance;
+            }
+
             if (e.detail.signature) {
                 gameState.pendingClaim = {
                     amount: e.detail.user.balance,
@@ -704,8 +711,11 @@ async function applyActiveLimits() {
             }
             if (cooldownDisplay) {
                 const mins = limits.min_cooldown;
-                if (mins < 60) {
-                    cooldownDisplay.innerText = `${mins.toFixed(0)} min${mins > 1 ? 's' : ''}`;
+                if (mins < 1) {
+                    const secs = mins * 60;
+                    cooldownDisplay.innerText = `${secs.toFixed(0)} sec${secs > 1 ? 's' : ''}`;
+                } else if (mins < 60) {
+                    cooldownDisplay.innerText = `${mins.toFixed(mins % 1 === 0 ? 0 : 1)} min${mins > 1 ? 's' : ''}`;
                 } else {
                     const hrs = mins / 60;
                     cooldownDisplay.innerText = `${hrs.toFixed(1)} Hour${hrs > 1 ? 's' : ''}`;

@@ -181,6 +181,9 @@ class SessionManager
             // CASE 1: Session Goal Reached (PAYOUT)
             Log::info("[SESSION_PAYOUT] 🏆 User {$user->id} (Wallet: {$user->wallet_address}) reached multiplier ($q >= $multiplier). Processing withdrawal!");
             
+            // Calculate cooldown data first while the cards are still marked 'available'
+            $cooldownData = $this->calculateCooldownData($user);
+
             $this->closeSession($user, 'stopped');
             $this->historyService->archiveSessionHistory($user);
 
@@ -190,7 +193,6 @@ class SessionManager
             // Chain jobs to guarantee sequential execution:
             // SyncUserLimitsJob MUST complete before SetCooldownJob runs,
             // because the smart contract validates cooldown against current on-chain limits.
-            $cooldownData = $this->calculateCooldownData($user);
             $user->cooldown_until = \Carbon\Carbon::createFromTimestamp($cooldownData['nextTime']);
             $user->save();
 
