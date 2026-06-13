@@ -173,13 +173,19 @@ class PoolReconstructionService
             }
 
             // B. Safety check (Security Coefficient)
-            if ($user->balance < $requiredCapital) {
-                UserTracker::error("User {$user->wallet_address} rejected from Pool {$pool->id}: Insufficient security margin.", ['wallet' => $user->wallet_address]);
+            $requiredBalance = !$user->session_started ? $requiredCapital : $baseBetEther;
+            if ($user->balance < $requiredBalance) {
+                UserTracker::error(
+                    "User {$user->wallet_address} rejected from Pool {$pool->id}: Insufficient " . 
+                    (!$user->session_started ? "security margin" : "balance") . ".", 
+                    ['wallet' => $user->wallet_address]
+                );
                 $user->status  = 'stopped';
                 $user->pool_id = null;
                 $user->save();
                 continue;
             }
+
 
             // C. Session initialization — first pool of a new session only
             if (!$user->session_started) {

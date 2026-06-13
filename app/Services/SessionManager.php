@@ -157,7 +157,9 @@ class SessionManager
     private function evaluateUserSession(User $user, float $q): void
     {
         $multiplierLevel = $user->multiplier_level ?? 1;
-        $multiplier = config("game_levels.multiplier.{$multiplierLevel}", 2.0);
+        $multiplier = ($user->target_q && $user->target_q > 1.0) 
+            ? $user->target_q 
+            : config("game_levels.multiplier.{$multiplierLevel}", 2.0);
 
         // --- CARD EFFECT: CEILING INCREASE ---
         $activeCeilingCards = \App\Models\UserCard::with('card')
@@ -189,6 +191,9 @@ class SessionManager
             // SyncUserLimitsJob MUST complete before SetCooldownJob runs,
             // because the smart contract validates cooldown against current on-chain limits.
             $cooldownData = $this->calculateCooldownData($user);
+            $user->cooldown_until = \Carbon\Carbon::createFromTimestamp($cooldownData['nextTime']);
+            $user->save();
+
             Bus::chain([
                 new \App\Jobs\SyncUserLimitsJob($user),
                 new \App\Jobs\SetCooldownJob($cooldownData['wallet'], $cooldownData['nextTime']),
@@ -211,8 +216,8 @@ class SessionManager
             
             event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature));
             
-        } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount) || $q <= 0.999) {
-            // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet, OR fast defeat threshold for testing)
+        } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount)) {
+            // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet)
             $type = ($q < 1) ? "RUIN" : "STRATEGIC_LIMIT";
             UserTracker::info("[SESSION_{$type}] ⚠️ User {$user->wallet_address} (q=$q) cannot cover next bet ({$user->balance} < {$user->bet_amount}). Session ended.", ['wallet' => $user->wallet_address, 'q' => $q]);
             
@@ -374,6 +379,9 @@ class SessionManager
         }
 
         $nextTime = now()->addMinutes($minutes)->timestamp;
+
+        $user->cooldown_until = \Carbon\Carbon::createFromTimestamp($nextTime);
+        $user->save();
 
         if (!empty($user->wallet_address)) {
             \App\Jobs\SetCooldownJob::dispatch($user->wallet_address, $nextTime);

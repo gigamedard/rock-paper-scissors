@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->decimal('target_q', 8, 4)->nullable()->after('session_started');
-            $table->integer('cooldown_time')->nullable()->after('target_q');
+            $table->timestamp('cooldown_until')->nullable()->after('cooldown_time');
         });
     }
 
@@ -23,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['target_q', 'cooldown_time']);
+            $table->dropColumn('cooldown_until');
         });
     }
 };

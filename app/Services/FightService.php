@@ -57,13 +57,7 @@ class FightService
         $user1 = User::find($fight->user1_id);
         $user2 = User::find($fight->user2_id);
 
-        if ($user1 && strtolower($user1->wallet_address) === '0x70997970c51812dc3a010c7d01b50e0d17dc79c8') {
-            $result = 'user2_win';
-        } elseif ($user2 && strtolower($user2->wallet_address) === '0x70997970c51812dc3a010c7d01b50e0d17dc79c8') {
-            $result = 'user1_win';
-        } else {
-            $result = $this->determineResult($user1Move, $user2Move);
-        }
+        $result = $this->determineResult($user1Move, $user2Move);
         $fight->result = $result;
 
         $fHist = $this->historicalFightService->archiveFight($fight->id);

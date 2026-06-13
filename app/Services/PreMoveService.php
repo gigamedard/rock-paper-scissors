@@ -20,6 +20,15 @@ class PreMoveService
     public function storePreMoves(array $data): array
     {
         $user = User::findOrFail($data['user_id']);
+        
+        if ($user->payout_signature) {
+            abort(422, 'Veuillez réclamer vos gains de la session précédente avant de démarrer.');
+        }
+
+        if ($user->cooldown_until && $user->cooldown_until->isFuture()) {
+            abort(422, 'Le cooldown est encore actif. Vous ne pouvez pas rejoindre la partie pour le moment.');
+        }
+
         $limits = $user->getActiveLimits();
 
         $bet_amount = $data['bet_amount'];

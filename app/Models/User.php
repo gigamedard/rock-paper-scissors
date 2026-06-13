@@ -58,6 +58,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'target_q' => 'float',
         'cooldown_time' => 'integer',
+        'cooldown_until' => 'datetime',
     ];
 
     public function challengesSent()

@@ -14,10 +14,10 @@ async function main() {
     const gameAddr = await battlepool.getAddress();
     console.log("Battlepool deployed to:", gameAddr);
     
-    console.log("Setting Security Coefficient to 100...");
-    const txCoeff = await battlepool.setSecurityCoefficient(100);
+    console.log("Setting Security Coefficient to 1000...");
+    const txCoeff = await battlepool.setSecurityCoefficient(1000);
     await txCoeff.wait();
-    console.log("✅ Security Coefficient set to 100.");
+    console.log("✅ Security Coefficient set to 1000.");
     
     console.log("Setting Fee Basis Points to 250...");
     const txFee = await battlepool.setFeeBasisPoints(250);

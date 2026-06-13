@@ -114,6 +114,7 @@ class PoolAutoMatchController extends Controller
             'battle_balance' => $user->battle_balance,
             'session_start_battle_balance' => $user->session_start_battle_balance,
             'payout_signature' => $user->payout_signature,
+            'cooldown_until' => $user->cooldown_until ? $user->cooldown_until->toIso8601String() : null,
         ]);
     }
 

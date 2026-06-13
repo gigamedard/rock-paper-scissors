@@ -34,6 +34,15 @@ export function initGame() {
     const joinBtn = document.getElementById('join-btn');
     if (joinBtn) {
         joinBtn.onclick = () => {
+            if (gameState.pendingClaim) {
+                alert("Veuillez réclamer vos gains de la session précédente avant de démarrer une nouvelle session.");
+                return;
+            }
+            if (isUserInCooldown()) {
+                const remaining = Math.ceil((new Date(window.userState.cooldown_until).getTime() - Date.now()) / 1000);
+                alert(`Cooldown actif. Veuillez patienter encore ${remaining} secondes.`);
+                return;
+            }
             window.userState.status = 'setup';
             updateUI();
         };
@@ -190,6 +199,14 @@ export function initGame() {
             if (window.userState?.id) fetchUserStatus();
         }, 30000);
     }
+
+    if (!window._cooldownTickerInterval) {
+        window._cooldownTickerInterval = setInterval(() => {
+            if (isUserInCooldown()) {
+                updateUI();
+            }
+        }, 1000);
+    }
 }
 
 async function fetchUserStatus() {
@@ -205,6 +222,7 @@ async function fetchUserStatus() {
             window.userState.battle_balance = bb;
             window.userState._displayBalance = b + bb;
             window.userState.bet_amount = data.bet_amount;
+            window.userState.cooldown_until = data.cooldown_until;
             // Ne pas écraser l'état 'setup' local si le serveur dit 'available'
             if (window.userState.status !== 'setup' || data.status !== 'available') {
                 window.userState.status = data.status;
@@ -492,11 +510,42 @@ export function updateUI() {
                 }
                 hideCombatOverlay();
             } else if (window.userState.status === 'stopped') {
-                if (joinBtn) joinBtn.style.display = 'block';
-                if (statusText) {
-                    statusText.innerText = "Session terminée — Relancer ?";
-                    statusText.className = "battle-status-tag status-busy";
+                if (gameState.pendingClaim) {
+                    if (statusText) {
+                        statusText.innerText = "Gains en attente de réclamation";
+                        statusText.className = "battle-status-tag status-busy";
+                    }
+                    if (joinBtn) {
+                        joinBtn.innerText = "RÉCLAMER VOS GAINS D'ABORD";
+                        joinBtn.disabled = true;
+                        joinBtn.style.opacity = '0.5';
+                        joinBtn.style.cursor = 'not-allowed';
+                    }
+                } else if (isUserInCooldown()) {
+                    const remaining = Math.ceil((new Date(window.userState.cooldown_until).getTime() - Date.now()) / 1000);
+                    if (statusText) {
+                        statusText.innerText = `Cooldown actif (${remaining}s)`;
+                        statusText.className = "battle-status-tag status-busy";
+                    }
+                    if (joinBtn) {
+                        joinBtn.innerText = `COOLDOWN (${remaining}s)`;
+                        joinBtn.disabled = true;
+                        joinBtn.style.opacity = '0.5';
+                        joinBtn.style.cursor = 'not-allowed';
+                    }
+                } else {
+                    if (statusText) {
+                        statusText.innerText = "Session terminée — Relancer ?";
+                        statusText.className = "battle-status-tag status-busy";
+                    }
+                    if (joinBtn) {
+                        joinBtn.innerText = "REJOINDRE LA POOL";
+                        joinBtn.disabled = false;
+                        joinBtn.style.opacity = '1';
+                        joinBtn.style.cursor = 'pointer';
+                    }
                 }
+                if (joinBtn) joinBtn.style.display = 'block';
                 hideCombatOverlay();
             } else if (window.userState.status === 'waiting' || window.userState.status === 'in_pool') {
                 if (joinBtn) joinBtn.style.display = 'none';
@@ -666,4 +715,10 @@ async function applyActiveLimits() {
     } catch (e) {
         console.error("Failed to fetch and apply active user limits", e);
     }
+}
+
+export function isUserInCooldown() {
+    if (!window.userState || !window.userState.cooldown_until) return false;
+    const cooldownTime = new Date(window.userState.cooldown_until).getTime();
+    return cooldownTime > Date.now();
 }
