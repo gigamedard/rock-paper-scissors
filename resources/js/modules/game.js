@@ -357,10 +357,10 @@ async function startSession() {
         const securityCoefficient = gameState.config.security_coefficient; 
         const feePercentage = gameState.config.smart_contract_fee_percentage;
         
-        const stakeWei = parseUnits((parseFloat(bet) * securityCoefficient).toFixed(18), 18);
+        const baseBetWei = parseUnits(bet, 18);
+        const stakeWei = baseBetWei * BigInt(securityCoefficient);
         const feeWei = (stakeWei * BigInt(Math.round(feePercentage * 100))) / BigInt(10000);
         const amountToSendWei = stakeWei + feeWei;
-        const baseBetWei = parseUnits(parseFloat(bet).toFixed(18), 18);
         
         const abi = ["function submitPremoveCID(uint256 baseBet, string cid) external payable"];
         const contract = new Contract(gameState.contractAddress, abi, signer);

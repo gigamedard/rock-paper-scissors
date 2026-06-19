@@ -166,32 +166,34 @@ class InfluencerController extends Controller
      */
     public function claimReward()
     {
-        $user = Auth::user();
-        $influencer = $user->influencer;
+        return DB::transaction(function () {
+            $user = Auth::user();
+            if (!$user || !$user->influencer) {
+                return response()->json(['error' => 'User is not an influencer'], 404);
+            }
 
-        if (!$influencer) {
-            return response()->json(['error' => 'User is not an influencer'], 404);
-        }
+            $influencer = Influencer::where('id', $user->influencer->id)->lockForUpdate()->first();
 
-        if (!$influencer->canClaimReward()) {
-            return response()->json(['error' => 'Not eligible to claim reward'], 400);
-        }
+            if (!$influencer || !$influencer->canClaimReward()) {
+                return response()->json(['error' => 'Not eligible to claim reward'], 400);
+            }
 
-        // Mark as claimed
-        $influencer->update(['has_claimed' => true]);
+            // Mark as claimed
+            $influencer->update(['has_claimed' => true]);
 
-        // Calculate reward amount
-        $pool = $influencer->pool;
-        $eligibleCount = $pool->getEligibleInfluencers()->count();
-        $rewardAmount = $eligibleCount > 0 ? $pool->reward_amount / $eligibleCount : 0;
+            // Calculate reward amount
+            $pool = $influencer->pool;
+            $eligibleCount = $pool->getEligibleInfluencers()->count();
+            $rewardAmount = $eligibleCount > 0 ? $pool->reward_amount / $eligibleCount : 0;
 
-        // This would trigger a smart contract interaction to transfer the reward
-        event(new \App\Events\InfluencerRewardClaimed($influencer, $rewardAmount));
+            // This would trigger a smart contract interaction to transfer the reward
+            event(new \App\Events\InfluencerRewardClaimed($influencer, $rewardAmount));
 
-        return response()->json([
-            'message' => 'Reward claimed successfully',
-            'amount' => $rewardAmount
-        ]);
+            return response()->json([
+                'message' => 'Reward claimed successfully',
+                'amount' => $rewardAmount
+            ]);
+        });
     }
 
     /**
@@ -293,10 +295,13 @@ class InfluencerController extends Controller
      */
     private function getLeaderboard()
     {
-        return Influencer::with(['user', 'stats', 'pool'])
+        return Influencer::select('influencers.*')
+            ->leftJoin('influencer_stats', 'influencers.id', '=', 'influencer_stats.influencer_id')
+            ->with(['user', 'stats', 'pool'])
             ->where('is_eligible', true)
+            ->orderByRaw('COALESCE(influencer_stats.referral_count, 0) DESC')
             ->get()
-            ->map(function ($influencer) {
+            ->map(function ($influencer, $index) {
                 return [
                     'user_id' => $influencer->user_id,
                     'name' => $influencer->user->name,
@@ -304,13 +309,8 @@ class InfluencerController extends Controller
                     'referral_count' => $influencer->stats->referral_count ?? 0,
                     'conversion_rate' => 0, // Placeholder
                     'has_claimed_reward' => $influencer->has_claimed,
+                    'rank' => $index + 1,
                 ];
-            })
-            ->sortByDesc('referral_count')
-            ->values() // Ré-indexer la collection
-            ->map(function ($item, $index) {
-                $item['rank'] = $index + 1;
-                return $item;
             });
     }
     /**

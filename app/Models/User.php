@@ -166,9 +166,9 @@ class User extends Authenticatable
 
     public function getActiveLimits()
     {
-        $maxBaseBet = 0.01;
+        $maxBaseBet = 0.05;
         $maxQ = 2.0;
-        $recoveryLevel = $this->recovery_level ?? 1;
+        $recoveryLevel = $this->recovery_level ?? 0;
         $minCooldown = config("game_levels.recovery_time.{$recoveryLevel}", 1440); // in minutes (from configuration)
 
         $activeCards = $this->userCards()

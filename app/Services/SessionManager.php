@@ -156,7 +156,7 @@ class SessionManager
 
     private function evaluateUserSession(User $user, float $q): void
     {
-        $multiplierLevel = $user->multiplier_level ?? 1;
+        $multiplierLevel = $user->multiplier_level ?? 0;
         $multiplier = ($user->target_q && $user->target_q > 1.0) 
             ? $user->target_q 
             : config("game_levels.multiplier.{$multiplierLevel}", 2.0);
@@ -318,7 +318,7 @@ class SessionManager
      */
     private function calculateCooldownData(User $user): array
     {
-        $recoveryLevel = $user->recovery_level ?? 1;
+        $recoveryLevel = $user->recovery_level ?? 0;
         $minutes = config("game_levels.recovery_time.{$recoveryLevel}", 1440);
 
         $activeCooldownCards = \App\Models\UserCard::with('card')
@@ -349,7 +349,7 @@ class SessionManager
 
     private function setNextSessionCooldown(User $user): void
     {
-        $recoveryLevel = $user->recovery_level ?? 1;
+        $recoveryLevel = $user->recovery_level ?? 0;
         $minutes = config("game_levels.recovery_time.{$recoveryLevel}", 1440);
 
         // --- CARD EFFECT: COOLDOWN REDUCTION ---
