@@ -129,7 +129,8 @@
     "cancel_offer_failed": "❌ Annulation échouée : :error",
     "approve_btn_label": "1. Approuver les SNT",
     "approved_btn_label": "✅ Approuvé",
-    "creating_btn_label": "⏳ Approbation en cours..."
+    "creating_btn_label": "⏳ Approbation en cours...",
+    "error_loading": "Erreur lors du chargement du marché."
   },
   "referral": {
     "title": "Tableau de Parrainage",
@@ -187,5 +188,20 @@
     "install_title": "Installer BATTLEPOOL",
     "install_desc": "Ajoutez l'arène de combat sur votre écran d'accueil pour jouer en plein écran.",
     "install_btn": "Installer"
+  },
+  "errors": {
+    "metamask_required": "MetaMask est requis !",
+    "auth_failed": "Échec de l'authentification : ",
+    "claim_previous": "Veuillez réclamer vos gains de la session précédente avant d'en démarrer une nouvelle.",
+    "cooldown_active": "Temps de recharge actif. Veuillez patienter encore :remaining secondes.",
+    "select_premoves": "Veuillez sélectionner 10 pré-mouvements !",
+    "error_prefix": "Erreur : ",
+    "claim_failed": "Échec de la réclamation : ",
+    "user_rejected": "Action annulée par l'utilisateur.",
+    "insufficient_funds": "Fonds insuffisants. Veuillez recharger votre portefeuille.",
+    "nonce_too_low": "Conflit de transaction. Essayez de réinitialiser votre portefeuille MetaMask.",
+    "network_issue": "Problème de réseau détecté. Une simple nouvelle tentative règle souvent le problème !",
+    "generic_error": "Une erreur inattendue est survenue. Veuillez réessayer ou rafraîchir la page.",
+    "auth_missing": "Non connecté. Veuillez lier votre portefeuille d'abord."
   }
 }

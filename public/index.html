@@ -30,10 +30,7 @@
             <a href="#/referral" class="nav-link" data-i18n="nav.referral">Parrainage</a>
             <a href="#/influencer" class="nav-link" data-i18n="nav.influencer" style="color: #f59e0b;">VIP</a>
             
-            <div class="lang-switcher" style="margin-left: 20px; display: flex; gap: 5px;">
-                <button onclick="setLocale('fr')" class="lang-btn" id="lang-fr">FR</button>
-                <button onclick="setLocale('en')" class="lang-btn" id="lang-en">EN</button>
-            </div>
+
         </nav>
         <div id="wallet-section">
             <div id="connected-user" style="display: none; align-items: center; gap: 10px;">
@@ -242,13 +239,13 @@
                     </div>
                 </div>
                 <div style="display:flex; gap:1rem; margin-top:1rem;">
-                    <button class="mp-btn-approve" id="marketplace-approve-btn" style="flex:1;">1. Approuver les SNT</button>
-                    <button class="mp-btn-create" id="marketplace-create-btn" style="flex:1;" disabled data-i18n="marketplace.create_offer">2. Créer l'Offre</button>
+                    <button class="mp-btn-approve" id="marketplace-approve-btn" style="flex:1;" data-i18n="marketplace.approve_btn_label">1. Approve SNT</button>
+                    <button class="mp-btn-create" id="marketplace-create-btn" style="flex:1;" disabled data-i18n="marketplace.create_offer">2. Create Offer</button>
                 </div>
             </div>
 
             <div class="mp-offers-section">
-                <h2 data-i18n="marketplace.active_offers">Offres Actives</h2>
+                <h2 data-i18n="marketplace.active_offers">Active Offers</h2>
                 <div id="marketplace-offers-list" class="mp-offers-list">
                     <!-- Dynamic content -->
                 </div>
@@ -258,7 +255,7 @@
 
             <!-- CONTENU BOUTIQUE CARTES -->
             <div id="mp-cards-content" style="display:none; padding: 2rem 0;">
-                <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);">Boutique Officielle</h2>
+                <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);" data-i18n="marketplace.tab_cards">Official Shop</h2>
                 <div id="marketplace-cards-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
                     <!-- Les cartes générées par JS iront ici -->
                 </div>
@@ -266,7 +263,7 @@
 
             <!-- CONTENU INVENTAIRE CARTES USER -->
             <div id="mp-inventory-content" style="display:none; padding: 2rem 0;">
-                <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);">Mon Inventaire de Cartes</h2>
+                <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);" data-i18n="marketplace.tab_inventory">My Card Inventory</h2>
                 <div id="marketplace-inventory-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
                     <!-- Les cartes possédées iront ici -->
                 </div>
@@ -277,7 +274,7 @@
         <!-- ===== PAGE: REFERRAL ===== -->
         <div id="referral-dashboard-page" class="page" style="display:none;">
             <div class="ref-header">
-                <h1 data-i18n="referral.title">Tableau de Parrainage</h1>
+                <h1 data-i18n="referral.title">Referral Dashboard</h1>
             </div>
 
             <div class="ref-grid">

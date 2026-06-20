@@ -125,9 +125,8 @@ async function simulateBot(botIndex) {
     });
 
     if (!movesRes.ok) {
-        const errData = await movesRes.json();
-        console.error(`   [Bot ${botIndex + 1}] Backend validation error:`, errData);
-        throw new Error(`Failed to store pre-moves for bot ${botIndex + 1}`);
+        const errText = await movesRes.text();
+        throw new Error(`Failed to store pre-moves for bot ${botIndex + 1}. Status: ${movesRes.status}. Body: ${errText}`);
     }
     console.log(`   [Bot ${botIndex + 1}] Backend stored pre-moves correctly!`);
 

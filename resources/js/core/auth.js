@@ -1,19 +1,26 @@
 // resources/js/core/auth.js
 import { getProvider, getSigner } from '../web3/web3-core.js';
 import { secureFetch } from './api.js';
+import { t } from '../modules/i18n.js';
 
 export function parseRpcError(error) {
-    const msg = error.message || error.toString();
-    if (msg.includes("user rejected transaction") || msg.includes("User rejected")) return "Transaction refusée par l'utilisateur.";
-    if (msg.includes("insufficient funds")) return "Fonds insuffisants pour couvrir la transaction + gaz.";
-    if (msg.includes("nonce too low")) return "Erreur de synchronisation réseau (Nonce). Réessayez.";
+    const msg = error?.message || error?.toString() || "Unknown error";
+    
+    // Attempt translation via global t function, fallback to French for safety
+    const gt = window.t || ((key) => key);
+    
+    if (msg.includes("user rejected transaction") || msg.includes("User rejected")) return gt('errors.user_rejected');
+    if (msg.includes("insufficient funds")) return gt('errors.insufficient_funds');
+    if (msg.includes("nonce too low")) return gt('errors.nonce_too_low');
     if (msg.includes("execution reverted")) {
         const match = msg.match(/reason="([^"]+)"/);
         if (match && match[1]) return `Action refusée par le contrat : ${match[1]}`;
         return "Transaction rejetée par le Smart Contract (conditions non remplies).";
     }
-    if (msg.includes("User not found") || msg.includes("Signature invalid")) return "Erreur d'authentification. Veuillez vous reconnecter.";
-    return "Erreur technique : " + (msg.length > 100 ? msg.substring(0, 100) + "..." : msg);
+    if (msg.includes("User not found") || msg.includes("Signature invalid")) return gt('errors.auth_failed');
+    if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) return gt('errors.network_issue');
+    
+    return gt('errors.generic_error') + " (" + (msg.length > 100 ? msg.substring(0, 100) + "..." : msg) + ")";
 }
 
 export async function connectWallet(providerType = 'injected') {
@@ -27,7 +34,7 @@ export async function connectWallet(providerType = 'injected') {
             window.open(metamaskDeepLink, '_blank');
             return false;
         }
-        alert("MetaMask is required!");
+        alert(t('errors.metamask_required'));
         return false;
     }
 
@@ -55,7 +62,8 @@ export async function connectWallet(providerType = 'injected') {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify({
                 wallet_address: walletAddress,
-                signature: signature
+                signature: signature,
+                locale: localStorage.getItem('user_locale') || 'en'
             })
         });
         
@@ -82,7 +90,7 @@ export async function connectWallet(providerType = 'injected') {
         return true;
     } catch (error) {
         console.error("[Auth] Échec :", error);
-        alert("Authentication failed: " + parseRpcError(error));
+        alert(t('errors.auth_failed') + parseRpcError(error));
         return false;
     }
 }

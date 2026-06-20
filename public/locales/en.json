@@ -129,7 +129,8 @@
     "cancel_offer_failed": "❌ Cancellation failed: :error",
     "approve_btn_label": "1. Approve SNT",
     "approved_btn_label": "✅ Approved",
-    "creating_btn_label": "⏳ Approval in progress..."
+    "creating_btn_label": "⏳ Approval in progress...",
+    "error_loading": "Error loading marketplace."
   },
   "referral": {
     "title": "Referral Dashboard",
@@ -187,5 +188,20 @@
     "install_title": "Install BATTLEPOOL",
     "install_desc": "Add the battle arena to your home screen for full-screen gameplay.",
     "install_btn": "Install"
+  },
+  "errors": {
+    "metamask_required": "MetaMask is required!",
+    "auth_failed": "Authentication failed: ",
+    "claim_previous": "Please claim your winnings from the previous session before starting a new one.",
+    "cooldown_active": "Cooldown active. Please wait another :remaining seconds.",
+    "select_premoves": "Please select 10 pre-moves!",
+    "error_prefix": "Error: ",
+    "claim_failed": "Claim failed: ",
+    "user_rejected": "Action canceled by user.",
+    "insufficient_funds": "Insufficient funds. Please top up your wallet.",
+    "nonce_too_low": "Transaction conflict. Try resetting your MetaMask wallet.",
+    "network_issue": "Network issue detected. A simple retry often fixes the problem!",
+    "generic_error": "An unexpected error occurred. Please try again or refresh the page.",
+    "auth_missing": "Not logged in. Please connect your wallet first."
   }
 }

@@ -65,6 +65,9 @@ class VerifyCardPurchaseJob implements ShouldQueue
         );
 
         if (isset($verifyResponse['success']) && $verifyResponse['success']) {
+            // Store old limits to check for retroactive cooldown reduction
+            $oldLimits = $user->getActiveLimits();
+
             foreach ($allCardsWithSameTx as $uCard) {
                 $updateData = ['status' => 'available'];
                 if ($card->duration_type === 'time') {
@@ -72,6 +75,42 @@ class VerifyCardPurchaseJob implements ShouldQueue
                 }
                 $uCard->update($updateData);
             }
+
+            // Calculate new limits after cards are active
+            $user->refresh();
+            $newLimits = $user->getActiveLimits();
+            $deltaMinutes = $oldLimits['min_cooldown'] - $newLimits['min_cooldown'];
+
+            if ($deltaMinutes > 0 && $user->cooldown_until && \Carbon\Carbon::parse($user->cooldown_until)->isFuture()) {
+                $user->cooldown_until = \Carbon\Carbon::parse($user->cooldown_until)->subMinutes($deltaMinutes);
+                
+                // Si le cooldown est maintenant dans le passé, on peut carrément nettoyer le champ
+                if ($user->cooldown_until->isPast()) {
+                    $user->cooldown_until = null;
+                }
+                $user->save();
+
+                Log::info("Retroactive cooldown applied", [
+                    'user_id' => $user->id,
+                    'reduced_by_minutes' => $deltaMinutes,
+                    'new_cooldown_until' => $user->cooldown_until
+                ]);
+
+                // Sync the retroactive cooldown directly to the blockchain
+                try {
+                    app(Web3Helper::class)->setUserNextSessionTime(
+                        $nodeUrl,
+                        $user->wallet_address,
+                        $user->cooldown_until ? \Carbon\Carbon::parse($user->cooldown_until)->timestamp : 0
+                    );
+                } catch (\Exception $e) {
+                    Log::error("Failed to sync retroactive cooldown to blockchain", [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
             Log::info("Card purchase verified and activated for all quantity", [
                 'tx_hash' => $baseTxHash,
                 'quantity' => $quantity

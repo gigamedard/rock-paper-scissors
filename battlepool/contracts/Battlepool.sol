@@ -549,7 +549,6 @@ contract Battlepool {
     }
 
     function setUserNextSessionTime(address user, uint256 nextTime) external onlyOwner {
-        require(nextTime == 0 || nextTime + 300 >= block.timestamp + getUserMinCooldown(user), "Cooldown is too short");
         nextSessionAllowedTime[user] = nextTime;
         emit NextSessionTimeUpdated(user, nextTime);
     }

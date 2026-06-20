@@ -32,6 +32,7 @@
         "ethers": "^6.13.5",
         "express": "^4.21.2",
         "node-fetch": "^3.3.2",
+        "puppeteer-core": "^25.1.0",
         "web3": "^4.16.0"
     },
     "name": "rock-paper-scissors",

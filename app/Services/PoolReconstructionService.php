@@ -189,7 +189,9 @@ class PoolReconstructionService
 
             // C. Session initialization — first pool of a new session only
             if (!$user->session_started) {
-                $user->session_start_balance        = $user->balance;
+                // Fix race condition where balance sync from smart contract hasn't arrived yet.
+                // If they are in the pool, they must have at least the baseBetEther in their contract balance.
+                $user->session_start_balance        = max((float)$user->balance, $baseBetEther);
                 $user->session_start_battle_balance = 0;
                 $user->session_started              = true;
 

@@ -369,12 +369,10 @@ const app = {
             const securityCoefficient = this.config.security_coefficient; 
             const feePercentage = this.config.smart_contract_fee_percentage;
             
-            const stakeWei = ethers.parseUnits((parseFloat(bet) * securityCoefficient).toFixed(18), 18);
+            const baseBetWei = ethers.parseUnits(bet, 18);
+            const stakeWei = baseBetWei * BigInt(securityCoefficient);
             const feeWei = (stakeWei * BigInt(Math.round(feePercentage * 100))) / BigInt(10000);
-            const amountToSendWei = stakeWei + feeWei;
-
-            const baseBetWei = ethers.parseUnits(parseFloat(bet).toFixed(18), 18);
-            
+            const amountToSendWei = stakeWei + feeWei;            
             const abi = ["function submitPremoveCID(uint256 baseBet, string cid) external payable"];
             const contract = new ethers.Contract(this.contractAddress, abi, signer);
             

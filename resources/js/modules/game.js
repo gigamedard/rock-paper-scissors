@@ -35,12 +35,12 @@ export function initGame() {
     if (joinBtn) {
         joinBtn.onclick = () => {
             if (gameState.pendingClaim) {
-                alert("Veuillez réclamer vos gains de la session précédente avant de démarrer une nouvelle session.");
+                alert(t('errors.claim_previous'));
                 return;
             }
             if (isUserInCooldown()) {
                 const remaining = Math.ceil((new Date(window.userState.cooldown_until).getTime() - Date.now()) / 1000);
-                alert(`Cooldown actif. Veuillez patienter encore ${remaining} secondes.`);
+                alert(t('errors.cooldown_active').replace(':remaining', remaining));
                 return;
             }
             window.userState.status = 'setup';
@@ -232,10 +232,15 @@ async function fetchUserStatus() {
             window.userState.cooldown_until = data.cooldown_until;
             // Ne pas écraser l'état 'setup' local si le serveur dit 'available'
             if (window.userState.status !== 'setup' || data.status !== 'available') {
+                if (window.userState.status !== data.status) {
+                    if (data.status === 'in_pool' || data.status === 'setup') {
+                        gameState.hasClaimed = false; // Reset claim flag on new session
+                    }
+                }
                 window.userState.status = data.status;
             }
             
-            if (data.payout_signature) {
+            if (data.payout_signature && !gameState.hasClaimed) {
                 gameState.pendingClaim = { amount: b + bb, signature: data.payout_signature };
             } else {
                 gameState.pendingClaim = null;
@@ -329,7 +334,7 @@ function renderSlots() {
 
 async function startSession() {
     if (gameState.preMoves.length < 10) {
-        alert("Please select 10 pre-moves!");
+        alert(t('errors.select_premoves'));
         return;
     }
 
@@ -398,7 +403,7 @@ async function startSession() {
         }
     } catch (error) {
         console.error(error);
-        alert("Error: " + parseRpcError(error));
+        alert(t('errors.error_prefix') + parseRpcError(error));
         addToFeed(t('feed.error', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
         btn.innerText = "INITIALIZE BATTLE SEQUENCE";
@@ -427,6 +432,7 @@ async function claim() {
         
         await tx.wait();
         addToFeed(t('feed.claim_success'), "var(--success)");
+        gameState.hasClaimed = true;
         document.getElementById('claim-section').style.display = 'none';
         gameState.pendingClaim = null;
 
@@ -442,7 +448,7 @@ async function claim() {
 
     } catch (error) {
         console.error(error);
-        alert("Claim failed: " + parseRpcError(error));
+        alert(t('errors.claim_failed') + parseRpcError(error));
         addToFeed(t('feed.claim_failed', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
         btn.innerText = "CLAIM & EXIT ARENA";

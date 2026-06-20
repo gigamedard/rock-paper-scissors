@@ -7,34 +7,105 @@
  * - Lit le paramètre ?lang= dans l'URL (lien de parrainage)
  */
 
-let currentLocale = 'fr';
+let currentLocale = 'en';
 let translations = {};
-const SUPPORTED_LOCALES = ['fr', 'en'];
+export const SUPPORTED_LOCALES = ['fr', 'en', 'es', 'de', 'pt', 'zh'];
+
+const FLAGS = {
+    'fr': '🇫🇷 Français',
+    'en': '🇬🇧 English',
+    'es': '🇪🇸 Español',
+    'de': '🇩🇪 Deutsch',
+    'pt': '🇵🇹 Português',
+    'zh': '🇨🇳 中文'
+};
 
 export async function initI18n() {
-    // 1. Priorité : paramètre URL (lien de parrainage avec ?lang=en)
     const urlParams = new URLSearchParams(window.location.search);
     const urlLang = urlParams.get('lang');
 
-    // 2. Fallback : localStorage
-    const savedLang = localStorage.getItem('user_locale');
+    let savedLang = localStorage.getItem('user_locale');
 
-    // 3. Fallback : langue du navigateur
-    const browserLang = navigator.language?.split('-')[0];
-
-    // Résolution finale
-    const resolved = urlLang || savedLang || browserLang || 'fr';
-    currentLocale = SUPPORTED_LOCALES.includes(resolved) ? resolved : 'fr';
-
-    // Persiste le choix
+    // Résolution initiale silencieuse
     if (urlLang && SUPPORTED_LOCALES.includes(urlLang)) {
+        savedLang = urlLang;
         localStorage.setItem('user_locale', urlLang);
     }
 
+    if (!savedLang || !SUPPORTED_LOCALES.includes(savedLang)) {
+        savedLang = await promptLanguageSelection();
+        localStorage.setItem('user_locale', savedLang);
+    }
+
+    currentLocale = savedLang;
     await loadTranslations(currentLocale);
     applyTranslations();
 
     console.log(`[i18n] Langue active : ${currentLocale}`);
+}
+
+function promptLanguageSelection() {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100vw';
+        overlay.style.height = '100vh';
+        overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
+        overlay.style.backdropFilter = 'blur(10px)';
+        overlay.style.zIndex = '999999';
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.color = 'white';
+
+        const title = document.createElement('h1');
+        title.textContent = 'Select your Language';
+        title.style.marginBottom = '30px';
+        title.style.fontFamily = 'Inter, sans-serif';
+        title.style.fontSize = '2rem';
+        overlay.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+        grid.style.gap = '15px';
+        grid.style.maxWidth = '500px';
+        grid.style.width = '90%';
+
+        SUPPORTED_LOCALES.forEach(lang => {
+            const btn = document.createElement('button');
+            btn.textContent = FLAGS[lang];
+            btn.style.padding = '15px 20px';
+            btn.style.fontSize = '1.2rem';
+            btn.style.borderRadius = '12px';
+            btn.style.border = '1px solid rgba(255,255,255,0.2)';
+            btn.style.background = 'rgba(255,255,255,0.05)';
+            btn.style.color = 'white';
+            btn.style.cursor = 'pointer';
+            btn.style.transition = 'all 0.2s';
+            
+            btn.onmouseover = () => {
+                btn.style.background = 'rgba(255,255,255,0.15)';
+                btn.style.borderColor = 'rgba(255,255,255,0.5)';
+            };
+            btn.onmouseout = () => {
+                btn.style.background = 'rgba(255,255,255,0.05)';
+                btn.style.borderColor = 'rgba(255,255,255,0.2)';
+            };
+
+            btn.onclick = () => {
+                document.body.removeChild(overlay);
+                resolve(lang);
+            };
+            grid.appendChild(btn);
+        });
+
+        overlay.appendChild(grid);
+        document.body.appendChild(overlay);
+    });
 }
 
 async function loadTranslations(locale) {

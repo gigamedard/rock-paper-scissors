@@ -56,6 +56,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         connectBtn.addEventListener('click', () => connectWallet('injected'));
     }
 
+    const enterArenaBtn = document.getElementById('enter-arena-btn');
+    if (enterArenaBtn) {
+        enterArenaBtn.addEventListener('click', () => connectWallet('injected'));
+    }
+
     const connectWcBtn = document.getElementById('connect-wc-btn');
     if (connectWcBtn) {
         connectWcBtn.addEventListener('click', () => connectWallet('walletconnect'));

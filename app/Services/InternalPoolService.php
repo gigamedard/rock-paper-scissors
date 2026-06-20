@@ -128,7 +128,7 @@ class InternalPoolService
                 foreach ($chunk as $user) {
                     // INITIALIZE SESSION FOR NEW ENTRANTS
                     if (!$user->session_started) {
-                        $user->session_start_balance = $user->balance;
+                        $user->session_start_balance = max((float)$user->balance, $tierBet);
                         $user->session_start_battle_balance = 0;
                         $user->bet_amount = $tierBet; // Set Martingale baseline
                         // $user->session_started is set to true below

@@ -319,12 +319,13 @@ class InfluencerController extends Controller
     public function joinTestProgram(Request $request)
     {
         $user = $request->user();
+        $lang = $user->language ?? 'en'; // Fallback to english if not set
 
-        // 1. Créer un pool par défaut s'il n'existe pas
+        // 1. Find or create a language-specific pool
         $pool = InfluencerPool::firstOrCreate(
-            ['name' => 'Global Influencers'],
+            ['language' => $lang],
             [
-                'language' => 'en',
+                'name' => 'Influencers (' . strtoupper($lang) . ')',
                 'milestone' => 5,          // Objectif perso : 5 parrainages
                 'pool_milestone' => 50,    // Objectif global : 50 parrainages
                 'reward_amount' => 100,    // 100 AVAX à partager

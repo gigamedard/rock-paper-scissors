@@ -52,7 +52,7 @@ echo [8/8] Demarrage de App Bridge Node.js (port 3000)...
 start "Bridge Node.js (Ecouteur + IPFS)" cmd /k "cd smart_contracts && node app.js"
 
 rem 9. Batch Processor (matchmaking)
-rem start "Moteur Matchmaking Round-Robin" cmd /k "cd smart_contracts && node run_batch_processor.js"
+start "Moteur Matchmaking Round-Robin" cmd /k "cd smart_contracts && node run_batch_processor.js"
 
 echo.
 echo ===========================================
