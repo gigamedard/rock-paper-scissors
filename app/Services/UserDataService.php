@@ -15,6 +15,7 @@ class UserDataService
         $user->update([
             'autoplay_active' => true,
             'bet_amount' => $bet_amount,
+            'initial_base_bet' => $bet_amount,
             'status' => 'available',
             'target_q' => $target_q,
             'cooldown_time' => $cooldown_time,

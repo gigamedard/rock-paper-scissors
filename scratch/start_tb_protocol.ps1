@@ -44,6 +44,10 @@ Set-Location $ProjectRoot
 php artisan migrate:fresh --seed
 php artisan cache:clear
 
+Write-Host "Updating bots base bet to 0.05 before they join the pool..." -ForegroundColor Yellow
+$env:BASE_BET="0.05"
+php artisan tinker scratch\update_bots_bet.php
+
 # 4. Start Laravel serve
 Start-BGProcess -Name "Laravel_Serve" -Command "php" -Arguments "artisan serve --port=8001" -WorkDir $ProjectRoot -LogFile "laravel_server.log"
 
@@ -85,8 +89,8 @@ Start-BGProcess -Name "Batch_Processor" -Command "node" -Arguments "run_batch_pr
 
 Start-Sleep -Seconds 2
 
-# 10. Start Simulation Bots (90 bots starting from index 2)
-Start-BGProcess -Name "Simulation_Bots" -Command "node" -Arguments "simulation_bots.js 90 2" -WorkDir "$ProjectRoot\smart_contracts" -LogFile "simulation.log"
+# 10. Start Simulation Bots (41 bots starting from index 2 to leave 1 bot waiting for the human)
+Start-BGProcess -Name "Simulation_Bots" -Command "node" -Arguments "simulation_bots.js 41 2" -WorkDir "$ProjectRoot\smart_contracts" -LogFile "simulation.log"
 
 Write-Host "`n===============================================" -ForegroundColor Green
 Write-Host "TB Protocol initiated successfully!" -ForegroundColor Green

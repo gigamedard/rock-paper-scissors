@@ -26,6 +26,7 @@ class User extends Authenticatable
         'autoplay_active',
         'status',
         'bet_amount',
+        'initial_base_bet',
         'wallet_address',
         'referral_code',
         'token_balance',
@@ -166,7 +167,7 @@ class User extends Authenticatable
 
     public function getActiveLimits()
     {
-        $maxBaseBet = 0.05;
+        $maxBaseBet = 100.0;
         $maxQ = 2.0;
         $recoveryLevel = $this->recovery_level ?? 0;
         $minCooldown = config("game_levels.recovery_time.{$recoveryLevel}", 1440); // in minutes (from configuration)

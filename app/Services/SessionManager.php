@@ -70,7 +70,7 @@ class SessionManager
 
     private function processFoughtUser(User $user, Pool $pool): void
     {
-        $baseBet = (float) \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min());
+        $baseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min()));
 
         // --- CARD EFFECT: BASE BET MODIFIER ---
         $activeBaseBetCards = \App\Models\UserCard::with('card')
@@ -273,9 +273,9 @@ class SessionManager
         $this->consumeActiveSessionCards($user);
 
         $user->status = $newStatus;
-        // Reset bet_amount to the base bet (0.01) so the bot can re-enter the arena
+        // Reset bet_amount to the initial base bet so the bot can re-enter the arena
         // on its next session after a payout, ruin, or strategic limit.
-        $baseBet = (float) \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min());
+        $baseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min()));
         $user->bet_amount = $baseBet;
         if ($user->preMove) {
             $user->preMove->current_index = 0;
