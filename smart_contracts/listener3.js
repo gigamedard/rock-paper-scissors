@@ -160,6 +160,31 @@ async function main() {
       await handleStagnantRefund(poolId, refundedCount, timestamp);
     });
 
+    contract.on("PlayerClaimed", async (wallet, amount, nonce) => {
+      console.log(`🔔 PlayerClaimed Event Detected:`);
+      console.log(`- wallet: ${wallet}`);
+      console.log(`- amount: ${formatEther(amount)} ETH`);
+      console.log(`- nonce: ${nonce}`);
+
+      try {
+        const url = `${LARAVEL_API_URL}/handle-claim`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ wallet_address: wallet })
+        });
+        if (response.ok) {
+          console.log(`✅ Claim handled successfully for wallet: ${wallet}`);
+        } else {
+          console.error(`❌ Failed to handle claim. Response: ${await response.text()}`);
+        }
+      } catch (error) {
+        console.error(`🚨 Error handling claim event:`, error.message);
+      }
+    });
+
   } catch (error) {
     console.error("🚨 Error in main function:", error.message);
   }

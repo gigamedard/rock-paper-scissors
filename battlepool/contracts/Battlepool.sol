@@ -82,7 +82,7 @@ contract Battlepool {
         owner = msg.sender;
         devWallet = payable(msg.sender); // Default to deployer
         defaultPoolMaxSize = 5; // <<<--- AJOUTEZ CETTE LIGNE
-        defaultMaxBaseBet = 0.01 ether;
+        defaultMaxBaseBet = 100 ether;
         defaultMaxQ = 2.0 * 1e18;
         defaultMinCooldown = 86400;
     }

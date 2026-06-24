@@ -70,6 +70,10 @@ class SessionManager
 
     private function processFoughtUser(User $user, Pool $pool): void
     {
+        // Valider le parrainage si c'est le premier combat de l'utilisateur
+        $referralService = app(\App\Services\ReferralService::class);
+        $referralService->processReferralValidation($user);
+
         $baseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min()));
 
         // --- CARD EFFECT: BASE BET MODIFIER ---

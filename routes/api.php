@@ -276,4 +276,3 @@ Route::middleware('api')->group(function () {
 
 // Public referral routes
 Route::get('/referrals/leaderboard', [ReferralController::class, 'getLeaderboard']);
-Route::post('/referrals/validate', [ReferralController::class, 'validateReferral']);

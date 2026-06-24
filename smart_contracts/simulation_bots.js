@@ -7,7 +7,7 @@ import {
 } from "./config.js";
 
 // --- Configuration ---
-const BASE_BET = "0.01"; // ETH
+const BASE_BET = process.env.BASE_BET || "0.05"; // ETH
 const BOT_INTERVAL_MS = 1000; // 0.5 second delay between bots
 const MAX_RETRIES = 3;
 

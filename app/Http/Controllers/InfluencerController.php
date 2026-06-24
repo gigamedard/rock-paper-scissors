@@ -362,13 +362,19 @@ class InfluencerController extends Controller
     {
         $user = $request->user();
 
-        // Check if already applied
+        // Check if already applied and pending/approved
         $existing = \App\Models\InfluencerApplication::where('user_id', $user->id)
             ->whereIn('status', ['pending', 'approved'])
             ->first();
 
         if ($existing) {
             return response()->json(['error' => 'You have already applied or are already an influencer.'], 400);
+        }
+
+        // Limit spam: max 3 total applications
+        $totalApplications = \App\Models\InfluencerApplication::where('user_id', $user->id)->count();
+        if ($totalApplications >= 3) {
+            return response()->json(['error' => 'Vous avez atteint la limite maximale de 3 candidatures.'], 403);
         }
 
         $validated = $request->validate([
@@ -395,12 +401,20 @@ class InfluencerController extends Controller
     {
         $user = $request->user();
         $application = \App\Models\InfluencerApplication::where('user_id', $user->id)->latest()->first();
+        $totalApplications = \App\Models\InfluencerApplication::where('user_id', $user->id)->count();
 
         if (!$application) {
-            return response()->json(['status' => 'none']);
+            return response()->json(['status' => 'none', 'attempts_left' => 3]);
         }
 
-        return response()->json(['status' => $application->status, 'application' => $application]);
+        $attemptsLeft = max(0, 3 - $totalApplications);
+
+        return response()->json([
+            'status' => $application->status, 
+            'application' => $application,
+            'can_retry' => $attemptsLeft > 0,
+            'attempts_left' => $attemptsLeft
+        ]);
     }
 }
 

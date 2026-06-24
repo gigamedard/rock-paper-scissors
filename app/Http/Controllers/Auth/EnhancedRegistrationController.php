@@ -123,7 +123,7 @@ class EnhancedRegistrationController extends Controller
             throw new \Exception('Vous ne pouvez pas utiliser votre propre code de parrainage');
         }
 
-        $bonusAmount = 100;
+        $bonusAmount = 1;
 
         // Créer l'enregistrement de parrainage
         Referral::create([
@@ -131,8 +131,6 @@ class EnhancedRegistrationController extends Controller
             'referred_id' => $user->id,
             'referral_code' => $referralCode,
             'status' => 'pending', // Sera validé après la première transaction
-            'reward_amount' => $bonusAmount,
-            'validated_at' => null,
         ]);
 
         // Ajouter le bonus immédiat au nouvel utilisateur (SNT)
@@ -167,14 +165,18 @@ class EnhancedRegistrationController extends Controller
         
         if ($pool) {
             // Créer l'enregistrement influenceur
-            Influencer::create([
+            $influencer = Influencer::create([
                 'user_id' => $user->id,
                 'pool_id' => $poolId,
-                'milestone' => 5000, // Objectif par défaut
-                'current_referrals' => 0,
+                'is_eligible' => false, // Doit être validé manuellement ou selon la logique admin
+                'has_claimed' => false,
+            ]);
+
+            // Initialiser les statistiques de l'influenceur
+            \App\Models\InfluencerStat::create([
+                'influencer_id' => $influencer->id,
+                'referral_count' => 0,
                 'total_avax_spent' => 0,
-                'conversion_rate' => 0,
-                'has_claimed_reward' => false,
             ]);
 
             Log::info("Utilisateur {$user->name} assigné au pool d'influenceurs {$pool->name}");

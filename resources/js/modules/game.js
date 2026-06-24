@@ -344,6 +344,7 @@ async function startSession() {
     const btn = document.getElementById('start-session-btn');
     btn.innerText = "UPLOADING TO IPFS...";
     btn.disabled = true;
+    gameState.isStartingSession = true;
 
     try {
         // 1. IPFS Upload
@@ -406,6 +407,7 @@ async function startSession() {
         alert(t('errors.error_prefix') + parseRpcError(error));
         addToFeed(t('feed.error', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
+        gameState.isStartingSession = false;
         btn.innerText = "INITIALIZE BATTLE SEQUENCE";
         btn.disabled = false;
     }
@@ -546,16 +548,17 @@ export function updateUI() {
                         joinBtn.style.opacity = '0.5';
                         joinBtn.style.cursor = 'not-allowed';
                     }
-                } else {
-                    if (statusText) {
+                } else if (!isUserInCooldown()) {
+                    if (statusText && !gameState.isStartingSession) {
                         statusText.innerText = "Session terminée — Relancer ?";
-                        statusText.className = "battle-status-tag status-busy";
+                        statusText.className = "battle-status-tag status-offline";
                     }
-                    if (joinBtn) {
+                    if (joinBtn && !gameState.isStartingSession) {
                         joinBtn.innerText = "REJOINDRE LA POOL";
                         joinBtn.disabled = false;
                         joinBtn.style.opacity = '1';
                         joinBtn.style.cursor = 'pointer';
+                        joinBtn.style.display = 'block';
                     }
                 }
                 if (joinBtn) joinBtn.style.display = 'block';

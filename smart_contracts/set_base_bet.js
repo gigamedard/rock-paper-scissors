@@ -8,8 +8,8 @@ async function main() {
     const wallet = new Wallet(LOCAL_OWNER_PK, provider);
     const gameContract = new Contract(contracts.game.address, contracts.game.abi, wallet);
 
-    console.log("Setting default max base bet to 0.05 ether...");
-    const tx = await gameContract.setDefaultMaxBaseBet(parseEther("0.05"));
+    console.log("Setting default max base bet to 100 ether...");
+    const tx = await gameContract.setDefaultMaxBaseBet(parseEther("100"));
     await tx.wait();
     console.log("Tx hash:", tx.hash);
 

@@ -475,7 +475,7 @@
                             <div>
                                 <h3 style="margin-bottom: 0.5rem;">${app.pseudo} <small style="color: var(--text-secondary)">(${app.user.name})</small></h3>
                                 <div style="display: flex; gap: 5px;">
-                                    ${app.social_links.map(l => `<span class="badge" style="background: rgba(255,255,255,0.05);">${l.platform}</span>`).join('')}
+                                    ${app.social_links.map(l => `<a href="${l.url}" target="_blank" class="badge" style="background: rgba(255,255,255,0.05); text-decoration: none; color: inherit; cursor: pointer;" title="${l.url}">${l.platform}</a>`).join('')}
                                 </div>
                             </div>
                             <div style="display: flex; gap: 10px;">

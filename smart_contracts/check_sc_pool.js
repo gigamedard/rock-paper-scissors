@@ -5,7 +5,7 @@ async function main() {
     const provider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
     const gameContract = new Contract(contracts.game.address, contracts.game.abi, provider);
     
-    const baseBet = parseEther("0.01");
+    const baseBet = parseEther("0.05");
     const [poolId, maxSize, userCount, isLocked] = await gameContract.getPoolInfo(baseBet);
     const users = await gameContract.getPoolUsers(baseBet);
     

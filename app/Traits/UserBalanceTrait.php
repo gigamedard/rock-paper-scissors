@@ -29,7 +29,11 @@ trait UserBalanceTrait
      */
     protected function updateUserBalanceInDb(User $user, $balance)
     {
-        $user->update(['balance' => $balance]);
+        // Prevent race condition: if the user is in a session or has a pending claim,
+        // do not overwrite their balance with the delayed on-chain deposit event.
+        if (!$user->session_started && $user->payout_signature === null) {
+            $user->update(['balance' => $balance]);
+        }
     }
 
     /**

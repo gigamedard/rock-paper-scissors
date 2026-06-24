@@ -55,6 +55,7 @@ class ReferralService
 
             // 4. Gérer la validation et la récompense pour le PARRAIN
             $referral->update(['status' => 'validated']);
+            event(new \App\Events\ReferralValidated($referral));
             
             // Lock the referrer
             $referrer = User::where('id', $referral->referrer_id)->lockForUpdate()->first();

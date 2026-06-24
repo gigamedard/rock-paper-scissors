@@ -14,5 +14,6 @@ class EventServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(BasicEvent::class, BasicEventListener::class);
+        Event::listen(\App\Events\InfluencerRewardClaimed::class, \App\Listeners\ProcessInfluencerRewardPayment::class);
     }
 }
