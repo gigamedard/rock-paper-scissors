@@ -50,16 +50,26 @@ class InfluencerPool extends Model
     }
 
     /**
-     * Get eligible influencers for rewards.
+     * Get eligible influencers for rewards (excluding those who already claimed).
+     * Used for pending claim calculations.
      */
     public function getEligibleInfluencers()
+    {
+        return $this->getTotalEligibleInfluencers()
+            ->where('has_claimed', false);
+    }
+
+    /**
+     * Get ALL eligible influencers (including those who claimed).
+     * Used for calculating the correct reward split.
+     */
+    public function getTotalEligibleInfluencers()
     {
         return $this->influencers()
             ->where('is_eligible', true)
             ->whereHas('stats', function ($query) {
                 $query->where('referral_count', '>=', $this->milestone);
-            })
-            ->where('has_claimed', false);
+            });
     }
 }
 

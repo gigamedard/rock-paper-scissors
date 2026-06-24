@@ -16,9 +16,9 @@ class InfluencerController extends Controller
     /**
      * Get influencer stats for the authenticated user.
      */
-    public function getStats()
+    public function getStats(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user();
         $influencer = $user->influencer;
 
         if (!$influencer) {
@@ -164,10 +164,10 @@ class InfluencerController extends Controller
     /**
      * Claim influencer reward.
      */
-    public function claimReward()
+    public function claimReward(Request $request)
     {
-        return DB::transaction(function () {
-            $user = Auth::user();
+        return DB::transaction(function () use ($request) {
+            $user = $request->user();
             if (!$user || !$user->influencer) {
                 return response()->json(['error' => 'User is not an influencer'], 404);
             }
@@ -183,7 +183,7 @@ class InfluencerController extends Controller
 
             // Calculate reward amount
             $pool = $influencer->pool;
-            $eligibleCount = $pool->getEligibleInfluencers()->count();
+            $eligibleCount = $pool->getTotalEligibleInfluencers()->count();
             $rewardAmount = $eligibleCount > 0 ? $pool->reward_amount / $eligibleCount : 0;
 
             // This would trigger a smart contract interaction to transfer the reward
