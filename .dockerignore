@@ -1,0 +1,10 @@
+node_modules/
+smart_contracts/node_modules/
+battlepool/node_modules/
+vendor/
+.git/
+.phpunit.result.cache
+storage/logs/*
+!storage/logs/.gitignore
+public/build/
+public/hot

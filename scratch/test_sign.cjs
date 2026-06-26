@@ -1,0 +1,1 @@
+const { ethers } = require('ethers'); const pk = '***REMOVED***'; const wallet = new ethers.Wallet(pk); const messageHash = '0x8bae272da06e35dadbc0de5ea083fcf07eb36afa02fe57d79816eb5a5274ec34'; wallet.signMessage(ethers.getBytes(messageHash)).then(sig => console.log('Ethers Sig:', sig));

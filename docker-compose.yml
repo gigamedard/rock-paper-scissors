@@ -1,32 +1,88 @@
 services:
+  # 1. Le Backend Web (PHP/Nginx + Frontend compilé)
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    restart: always
+    restart: unless-stopped
     ports:
-      - "80:8080"
-      - "8000:8080"
-    environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-    env_file: .env
+      - "8000:8080" # Redirige le port 80 de votre serveur vers le port 8080 du conteneur Nginx
+    env_file: .env.staging # Nous allons créer ce fichier juste après
     depends_on:
       - db
       - redis
 
+  # 2. Le Worker en arrière-plan (Node.js)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    env_file: .env.staging
+    depends_on:
+      - db
+      - redis
+
+  # 3. La Base de données (MySQL)
   db:
-    image: mysql:8
-    restart: always
+    image: mysql:8.0
+    restart: unless-stopped
+    # On force l'encodage natif pour éviter les erreurs avec les emojis ou les langues
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
+      # Ces variables sont lues lors du TOUT PREMIER lancement du conteneur
       MYSQL_DATABASE: ${DB_DATABASE:-laravel}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+
     volumes:
+      # TRES IMPORTANT : Persistance des données !
+      # Sans ça, un redémarrage du conteneur effacerait toutes vos tables MySQL.
       - db_data:/var/lib/mysql
 
+  # 4. Le Cache et Système de Queue (Redis)
   redis:
     image: redis:alpine
-    restart: always
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
 
+  # 5. Le Nœud Blockchain Local (Hardhat)
+  blockchain:
+    build:
+      context: .
+      dockerfile: Dockerfile.blockchain
+    restart: unless-stopped
+    ports:
+      - "8545:8545"
+
+  # 6. Le Bridge (smart_contracts/app.js)
+  bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: ["node", "smart_contracts/app.js"]
+    restart: unless-stopped
+    env_file: .env.staging
+    depends_on:
+      - blockchain
+      - db
+      - redis
+
+  # 7. Serveur WebSocket (Laravel Reverb)
+  reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8008"]
+    restart: unless-stopped
+    ports:
+      - "8008:8008"
+    env_file: .env.staging
+    depends_on:
+      - db
+      - redis
+
+# Déclaration des volumes persistants stockés sur votre machine hôte
 volumes:
   db_data:
+  redis_data:

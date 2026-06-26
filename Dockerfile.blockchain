@@ -1,0 +1,19 @@
+# Utilisation d'une image Node.js ultra-légère
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copier les fichiers de dépendances de battlepool
+COPY battlepool/package.json battlepool/package-lock.json* ./
+
+# Installer les dépendances (hardhat, ethers, etc.)
+RUN npm ci
+
+# Copier le reste du dossier battlepool
+COPY battlepool/ .
+
+# Exposer le port par défaut de Hardhat
+EXPOSE 8545
+
+# Lancer le nœud local accessible depuis les autres conteneurs
+CMD ["npx", "hardhat", "node", "--hostname", "0.0.0.0"]

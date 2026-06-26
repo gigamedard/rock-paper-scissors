@@ -1,16 +1,16 @@
-# Graph Report - rock-paper-scissors  (2026-06-20)
+# Graph Report - rock-paper-scissors  (2026-06-24)
 
 ## Corpus Check
-- 735 files · ~1,629,900 words
+- 748 files · ~1,652,654 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 5868 nodes · 7344 edges · 786 communities (541 shown, 245 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 339 edges (avg confidence: 0.8)
+- 5893 nodes · 7367 edges · 796 communities (554 shown, 242 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 341 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `26a4f77d`
+- Built from commit: `eccafa77`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -485,11 +485,9 @@
 - [[_COMMUNITY_Community 768|Community 768]]
 - [[_COMMUNITY_Community 769|Community 769]]
 - [[_COMMUNITY_Community 770|Community 770]]
-- [[_COMMUNITY_Community 771|Community 771]]
 - [[_COMMUNITY_Community 772|Community 772]]
 - [[_COMMUNITY_Community 773|Community 773]]
 - [[_COMMUNITY_Community 774|Community 774]]
-- [[_COMMUNITY_Community 776|Community 776]]
 - [[_COMMUNITY_Community 777|Community 777]]
 - [[_COMMUNITY_Community 778|Community 778]]
 
@@ -517,7 +515,7 @@
 - `r()` --calls--> `O()`  [INFERRED]
   standalone_app/js/util.js → smart_contracts/metamask.js
 
-## Communities (786 total, 245 thin omitted)
+## Communities (796 total, 242 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.01
@@ -525,35 +523,35 @@ Nodes (103): _0n, _0x71n, _16n, _1n, _256n, _2n, _32n, _3n (+95 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.01
-Nodes (97): _0n, _0x71n, _16n, _1n, _256n, _2n, _32n, _3n (+89 more)
+Nodes (103): _0n, _0x71n, _16n, _1n, _256n, _2n, _32n, _3n (+95 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.03
-Nodes (72): {beforeBreadcrumb: a=null, maxBreadcrumbs: c=o}, bn(), captureSession(), {circleci: e}, _clearOutcomes(), Cn(), coercer(), {compareIdentifiers: u} (+64 more)
+Nodes (70): {beforeBreadcrumb: a=null, maxBreadcrumbs: c=o}, bn(), captureSession(), {circleci: e}, _clearOutcomes(), Cn(), coercer(), {compareIdentifiers: u} (+62 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.11
-Nodes (4): CleanupSystemCommand, UserTracker, InternalPoolService, SessionManager
+Cohesion: 0.07
+Nodes (6): CleanupSystemCommand, UserTracker, BatchProcessingService, FightService, InternalPoolService, SessionManager
 
 ### Community 4 - "Community 4"
 Cohesion: 0.04
 Nodes (6): contracts, __dirname, __filename, testUser, testUser, testUser
 
 ### Community 5 - "Community 5"
-Cohesion: 0.05
-Nodes (6): assert(), clear(), clone(), O(), pt(), s()
+Cohesion: 0.07
+Nodes (10): _(), assert(), clear(), De(), he(), ie(), M(), O() (+2 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.05
-Nodes (13): BatchCriteriaService, BatchFinderService, BatchManagerService, PoolFetcherService, BlockchainController, InternalApiAuth, PreMove, NotificationService (+5 more)
+Cohesion: 0.07
+Nodes (10): BatchFinderService, BatchManagerService, PoolFetcherService, BlockchainController, BasicEventListener, NotificationService, Web3Service, retrieveJsonFromPinata() (+2 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.08
 Nodes (47): alloc(), allocUnsafe(), arrayIndexOf(), asciiSlice(), asciiToBytes(), asciiWrite(), assertSize(), base64clean() (+39 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.07
-Nodes (30): afterAllSetup(), an(), captureEvent(), captureException(), captureMessage(), close(), emit(), getDsn() (+22 more)
+Cohesion: 0.10
+Nodes (25): afterAllSetup(), an(), captureEvent(), captureException(), captureMessage(), close(), getDsn(), getOptions() (+17 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.08
@@ -565,10 +563,10 @@ Nodes (46): 1. `setStagnantBlockLimit(uint256 _limit)` - Owner uniquement, 2. `c
 
 ### Community 11 - "Community 11"
 Cohesion: 0.10
-Nodes (12): add(), addIntegration(), _captureMetrics(), delete(), dt, flush(), get(), getSessionAggregates() (+4 more)
+Nodes (12): add(), _captureMetrics(), delete(), dt, flush(), get(), getSessionAggregates(), ht (+4 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.06
+Cohesion: 0.05
 Nodes (6): ar(), create(), f, i(), incrementSessionStatusCount(), Wt()
 
 ### Community 13 - "Community 13"
@@ -592,8 +590,8 @@ Cohesion: 0.08
 Nodes (26): feed, allocating_card, buying_offer, canceling_offer, card_allocated, claim_failed, claim_success, error (+18 more)
 
 ### Community 18 - "Community 18"
-Cohesion: 0.07
-Nodes (3): PoolProcessorService, InternalPayoutController, Web3Helper
+Cohesion: 0.06
+Nodes (4): PoolProcessorService, InternalPayoutController, Web3Helper, ProcessInfluencerRewardPayment
 
 ### Community 19 - "Community 19"
 Cohesion: 0.09
@@ -603,9 +601,13 @@ Nodes (11): addErrorHandlerIfEventEmitter(), _addListener(), AsyncEventEmitter, 
 Cohesion: 0.09
 Nodes (11): addErrorHandlerIfEventEmitter(), _addListener(), AsyncEventEmitter, checkListener(), eventTargetAgnosticAddListener(), _getMaxListeners(), listenerCount(), once() (+3 more)
 
+### Community 21 - "Community 21"
+Cohesion: 0.14
+Nodes (5): clone(), er(), jn(), s(), un
+
 ### Community 23 - "Community 23"
-Cohesion: 0.07
-Nodes (16): accountBodyFromSlim(), accountBodyToRLP(), bytesToUtf8(), CLRequestFactory, ConsolidationRequest, decode(), DepositRequest, encode() (+8 more)
+Cohesion: 0.05
+Nodes (13): Account, accountBodyFromSlim(), accountBodyToRLP(), bytesToUtf8(), CLRequestFactory, ConsolidationRequest, decode(), DepositRequest (+5 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.05
@@ -632,8 +634,8 @@ Cohesion: 0.03
 Nodes (60): marketplace, active, active_offers, approve_btn_label, approve_confirm_wallet, approve_failed, approve_success, approve_success_sufficient (+52 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.06
-Nodes (21): Ae(), at(), be(), Ce(), ct(), De(), et(), Fe (+13 more)
+Cohesion: 0.11
+Nodes (20): Ae(), at(), be(), Ce(), ct(), et(), gt, init() (+12 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.11
@@ -659,6 +661,10 @@ Nodes (13): anum(), expand_message_xmd(), expand_message_xof(), hash, hash_to_fi
 Cohesion: 0.15
 Nodes (16): abytes(), bitMask(), bytesToHex(), bytesToNumberBE(), bytesToNumberLE(), concatBytes(), decodeLength(), hexToNumber() (+8 more)
 
+### Community 39 - "Community 39"
+Cohesion: 0.11
+Nodes (13): anum(), expand_message_xmd(), expand_message_xof(), hash, hash_to_field(), HMAC, i2osp(), Keccak (+5 more)
+
 ### Community 40 - "Community 40"
 Cohesion: 0.10
 Nodes (19): **Après :**, 🔍 **Autres Migrations à Vérifier :**, **Avant :**, code:php ($table->string('referral_code')->unique()->nullable()->after), code:php ($table->string('referral_code')->unique()->nullable();), code:bash (php artisan migrate:refresh), code:php (// Remplacez ceci :), code:bash (php artisan migrate:reset) (+11 more)
@@ -672,12 +678,12 @@ Cohesion: 0.13
 Nodes (15): setup, base_bet, btn, cooldown_12h, cooldown_1h, cooldown_24h, cooldown_6h, fee (+7 more)
 
 ### Community 44 - "Community 44"
-Cohesion: 0.12
-Nodes (18): asciiToBase16(), bytes, encodeLength(), ensureBytes(), fromUtf8(), hexToBytes(), isBytes(), isHexPrefixed() (+10 more)
-
-### Community 45 - "Community 45"
 Cohesion: 0.07
 Nodes (27): asciiToBase16(), bigIntToBytes(), bigIntToHex(), bytes, encodeLength(), ensureBytes(), fromAscii(), fromUtf8() (+19 more)
+
+### Community 45 - "Community 45"
+Cohesion: 0.08
+Nodes (26): asciiToBase16(), bigIntToBytes(), bigIntToHex(), decodeLength(), encodeLength(), fromAscii(), fromUtf8(), hexToBytes() (+18 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.12
@@ -700,12 +706,12 @@ Cohesion: 0.22
 Nodes (16): addMove(), applyActiveLimits(), clearMoves(), fetchConfig(), fetchUserStatus(), gameState, getIcon(), hideCombatOverlay() (+8 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.19
-Nodes (4): dr(), getIntegrationByName(), gr(), mr
+Cohesion: 0.21
+Nodes (3): dr(), gr(), mr
 
 ### Community 52 - "Community 52"
-Cohesion: 0.15
-Nodes (16): abytes(), bitMask(), bytesToHex(), bytesToNumberBE(), bytesToNumberLE(), concatBytes(), decodeLength(), hexToNumber() (+8 more)
+Cohesion: 0.14
+Nodes (17): abytes(), bitMask(), bytes, bytesToHex(), bytesToNumberBE(), bytesToNumberLE(), concatBytes(), ensureBytes() (+9 more)
 
 ### Community 53 - "Community 53"
 Cohesion: 0.12
@@ -772,16 +778,16 @@ Cohesion: 0.29
 Nodes (11): authenticateBot(), buyCard(), fundAccountWithSnt(), getWalletForIndex(), main(), provider, registerBotMoves(), runDbHelper() (+3 more)
 
 ### Community 72 - "Community 72"
-Cohesion: 0.14
+Cohesion: 0.16
 Nodes (4): CreateInfluencerPool, EndToEndReferralTest, InfluencerStatsTest, InfluencerPool
 
 ### Community 76 - "Community 76"
 Cohesion: 0.11
-Nodes (35): _(), apply(), B(), C(), createWidget(), d(), e, ee() (+27 more)
+Nodes (29): apply(), B(), C(), createWidget(), d(), e, ee(), emit() (+21 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.25
-Nodes (17): secureFetch(), getCurrentLocale(), t(), claimReward(), joinInfluencerProgram(), loadInfluencerDashboard(), renderDashboardView(), renderJoinView() (+9 more)
+Cohesion: 0.21
+Nodes (21): secureFetch(), getCurrentLocale(), t(), checkApplicationStatus(), claimReward(), joinInfluencerProgram(), loadInfluencerDashboard(), renderDashboardView() (+13 more)
 
 ### Community 78 - "Community 78"
 Cohesion: 0.17
@@ -831,9 +837,17 @@ Nodes (10): addressHashes, args, bots, hash, noPrefix, saltHash, saltStr, sorted
 Cohesion: 0.25
 Nodes (9): addUserToPool(), associateAccounts(), contract, generateTestAccounts(), main(), predefinedAccounts, provider, sendToServer() (+1 more)
 
+### Community 96 - "Community 96"
+Cohesion: 0.25
+Nodes (8): dashboard, balance, bet, status_available, status_fighting, status_stopped, status_waiting, strategy
+
 ### Community 99 - "Community 99"
 Cohesion: 0.33
 Nodes (8): hideInstallBanner(), initPWA(), installApp(), isInStandaloneMode(), isIOS(), showIOSInstallBanner(), updateNetworkStatus(), wasBannerDismissed()
+
+### Community 100 - "Community 100"
+Cohesion: 0.14
+Nodes (6): address, getVerkleStem(), getVerkleTreeIndexesForStorageSlot(), getVerkleTreeIndicesForCodeChunk(), getVerkleTreeKeyForCodeChunk(), getVerkleTreeKeyForStorageSlot()
 
 ### Community 101 - "Community 101"
 Cohesion: 0.20
@@ -1044,16 +1058,16 @@ Cohesion: 0.17
 Nodes (4): bigInt64ToBytes(), HashMD, setBigUint64(), SHA256
 
 ### Community 161 - "Community 161"
-Cohesion: 0.18
-Nodes (10): claim, btn, title, combat, in_progress, scanning, pwa, install_btn (+2 more)
+Cohesion: 0.11
+Nodes (17): claim, btn, title, combat, in_progress, scanning, nav, arena (+9 more)
 
 ### Community 162 - "Community 162"
 Cohesion: 0.03
 Nodes (60): marketplace, active, active_offers, approve_btn_label, approve_confirm_wallet, approve_failed, approve_success, approve_success_sufficient (+52 more)
 
 ### Community 163 - "Community 163"
-Cohesion: 0.11
-Nodes (18): claim, btn, title, combat, in_progress, scanning, dashboard, balance (+10 more)
+Cohesion: 0.18
+Nodes (10): claim, btn, title, combat, in_progress, scanning, pwa, install_btn (+2 more)
 
 ### Community 165 - "Community 165"
 Cohesion: 0.25
@@ -1200,8 +1214,8 @@ Cohesion: 0.40
 Nodes (3): body, mockStore, urlString
 
 ### Community 256 - "Community 256"
-Cohesion: 0.29
-Nodes (7): nav, arena, disconnect, influencer, marketplace, referral, refresh
+Cohesion: 0.25
+Nodes (8): dashboard, balance, bet, status_available, status_fighting, status_stopped, status_waiting, strategy
 
 ### Community 257 - "Community 257"
 Cohesion: 0.29
@@ -1284,12 +1298,8 @@ Cohesion: 0.08
 Nodes (26): feed, allocating_card, buying_offer, canceling_offer, card_allocated, claim_failed, claim_success, error (+18 more)
 
 ### Community 430 - "Community 430"
-Cohesion: 0.12
-Nodes (15): anum(), bigIntToBytes(), bigIntToHex(), expand_message_xmd(), expand_message_xof(), fromAscii(), hash_to_field(), i2osp() (+7 more)
-
-### Community 431 - "Community 431"
-Cohesion: 0.67
-Nodes (3): get_blob(), get_padded(), getBlobs()
+Cohesion: 0.29
+Nodes (7): nav, arena, disconnect, influencer, marketplace, referral, refresh
 
 ### Community 436 - "Community 436"
 Cohesion: 0.08
@@ -1303,25 +1313,21 @@ Nodes (26): feed, allocating_card, buying_offer, canceling_offer, card_allocated
 Cohesion: 0.08
 Nodes (26): feed, allocating_card, buying_offer, canceling_offer, card_allocated, claim_failed, claim_success, error (+18 more)
 
-### Community 722 - "Community 722"
-Cohesion: 0.67
-Nodes (3): arrayClone(), _listeners(), unwrapListeners()
-
-### Community 729 - "Community 729"
-Cohesion: 0.67
-Nodes (3): keccakP(), rotlH(), rotlL()
-
 ### Community 737 - "Community 737"
-Cohesion: 0.13
+Cohesion: 0.10
 Nodes (6): A(), entries(), keys(), mask(), set(), setupOnce()
+
+### Community 738 - "Community 738"
+Cohesion: 0.07
+Nodes (6): addIntegration(), bt, ge(), getIntegrationByName(), te(), ze()
 
 ### Community 740 - "Community 740"
 Cohesion: 0.11
-Nodes (18): claim, btn, title, combat, in_progress, scanning, dashboard, balance (+10 more)
+Nodes (17): claim, btn, title, combat, in_progress, scanning, nav, arena (+9 more)
 
 ### Community 741 - "Community 741"
-Cohesion: 0.11
-Nodes (17): claim, btn, title, combat, in_progress, scanning, nav, arena (+9 more)
+Cohesion: 0.18
+Nodes (10): claim, btn, title, combat, in_progress, scanning, pwa, install_btn (+2 more)
 
 ### Community 742 - "Community 742"
 Cohesion: 0.13
@@ -1431,10 +1437,6 @@ Nodes (7): nav, arena, disconnect, influencer, marketplace, referral, refresh
 Cohesion: 0.29
 Nodes (7): connect, btn, enter, session_expired, subtitle, title, wc_btn
 
-### Community 771 - "Community 771"
-Cohesion: 0.29
-Nodes (7): nav, arena, disconnect, influencer, marketplace, referral, refresh
-
 ### Community 772 - "Community 772"
 Cohesion: 0.29
 Nodes (7): connect, btn, enter, session_expired, subtitle, title, wc_btn
@@ -1450,17 +1452,17 @@ Nodes (3): buttons, esBtn, h1
 ## Knowledge Gaps
 - **2252 isolated node(s):** `name`, `type`, `description`, `keywords`, `license` (+2247 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **245 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **242 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `h()` connect `Community 76` to `Community 0`, `Community 1`, `Community 738`, `Community 2`, `Community 5`, `Community 37`, `Community 8`, `Community 12`, `Community 430`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Why does `O()` connect `Community 5` to `Community 0`, `Community 1`, `Community 738`, `Community 737`, `Community 2`, `Community 7`, `Community 8`, `Community 9`, `Community 11`, `Community 76`, `Community 12`, `Community 31`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
-- **Why does `r()` connect `Community 1` to `Community 5`?**
-  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `h()` connect `Community 76` to `Community 0`, `Community 1`, `Community 2`, `Community 5`, `Community 37`, `Community 39`, `Community 8`, `Community 12`, `Community 21`?**
+  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+- **Why does `O()` connect `Community 5` to `Community 0`, `Community 1`, `Community 738`, `Community 737`, `Community 2`, `Community 7`, `Community 8`, `Community 9`, `Community 11`, `Community 76`, `Community 12`, `Community 21`, `Community 31`?**
+  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+- **Why does `expand_message_xmd()` connect `Community 37` to `Community 0`, `Community 76`?**
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `i()` (e.g. with `A()` and `C()`) actually correct?**
   _`i()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 31 inferred relationships involving `O()` (e.g. with `r()` and `r()`) actually correct?**

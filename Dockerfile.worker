@@ -1,0 +1,22 @@
+# Utilisation d'une image Node.js ultra-légère (Alpine Linux)
+FROM node:20-alpine
+
+# On se place dans le dossier /app à l'intérieur du conteneur
+WORKDIR /app
+
+# On copie d'abord uniquement les fichiers de configuration NPM
+COPY package.json package-lock.json ./
+
+# On installe les paquets Node.js. 
+# --omit=dev permet de ne pas installer les outils de développement (Vite, Tailwind...) 
+# car le worker n'en a pas besoin, ce qui allège l'image.
+RUN npm ci --omit=dev
+
+# On copie tout le reste du code source (scripts, ABI des smart contracts, etc.)
+COPY . .
+
+# On installe AUSSI les dépendances spécifiques aux smart contracts (comme helia) après la copie
+RUN cd smart_contracts && npm ci --omit=dev
+
+# La commande qui sera lancée automatiquement quand le conteneur démarrera
+CMD ["node", "smart_contracts/run_batch_processor.js"]

@@ -1,0 +1,1 @@
+echo 'Users: ' . App\Models\User::count() . PHP_EOL; echo 'PreMoves: ' . DB::table('pre_moves')->count() . PHP_EOL; echo 'Pools: ' . DB::table('pools')->count() . PHP_EOL; echo 'Batches: ' . DB::table('batches')->count() . PHP_EOL;

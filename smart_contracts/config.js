@@ -28,8 +28,8 @@ if (!INTERNAL_API_SECRET) {
 export const SECURITY_COEFFICIENT = 1000;
 
 // --- URLs des Réseaux ---
-export const LOCAL_HARDHAT_URL = "http://127.0.0.1:8545";
-export const FUJI_RPC_URL = "http://127.0.0.1:8545"; //process.env.FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
+export const LOCAL_HARDHAT_URL = process.env.FUJI_RPC_URL || "http://127.0.0.1:8545";
+export const FUJI_RPC_URL = process.env.FUJI_RPC_URL || "http://127.0.0.1:8545";
 
 // --- Port du Serveur Node ---
 export const NODE_SERVER_PORT = process.env.NODE_SERVER_PORT || 3000;

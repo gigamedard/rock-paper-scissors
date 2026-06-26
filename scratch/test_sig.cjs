@@ -1,0 +1,1 @@
+const { ethers } = require('ethers'); const messageHash = '0x8bae272da06e35dadbc0de5ea083fcf07eb36afa02fe57d79816eb5a5274ec34'; const ethSignedMessageHash = ethers.hashMessage(ethers.getBytes(messageHash)); console.log('Eth Signed Message Hash:', ethSignedMessageHash);

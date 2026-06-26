@@ -560,8 +560,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Http\\Controllers\\InfluencerController.php": {
-    "mtime": 1781911006.5620797,
-    "ast_hash": "b75cc77f96382a7722f254fd6fdc0ddb",
+    "mtime": 1782321371.3851943,
+    "ast_hash": "0e24dd06712e10214716ed5af4ed022a",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Http\\Controllers\\InternalPayoutController.php": {
@@ -665,8 +665,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Http\\Controllers\\Auth\\EnhancedRegistrationController.php": {
-    "mtime": 1779548835.3724155,
-    "ast_hash": "b2f9b37981c60210ee131e5739675a51",
+    "mtime": 1782056403.3067884,
+    "ast_hash": "3ddaa810173b2a888485c94789c7b884",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Http\\Controllers\\Auth\\NewPasswordController.php": {
@@ -870,8 +870,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Models\\InfluencerPool.php": {
-    "mtime": 1779548305.187384,
-    "ast_hash": "f373f7f30036ff1c3e8061daf0e455fd",
+    "mtime": 1782320222.71535,
+    "ast_hash": "75df8f54cb255cd04c9f3826df6d68ef",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Models\\InfluencerStat.php": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Models\\User.php": {
-    "mtime": 1781988187.0051718,
-    "ast_hash": "b6f7d9586021d2986c2ed9b110d2a782",
+    "mtime": 1782000545.3423755,
+    "ast_hash": "2fd93b0fc96beb97d1b30c7a5fabcaba",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Models\\UserCard.php": {
@@ -940,8 +940,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Providers\\EventServiceProvider.php": {
-    "mtime": 1779548835.3909242,
-    "ast_hash": "772777a29fd47c5551eddcb55cc5ad9b",
+    "mtime": 1782056416.7799423,
+    "ast_hash": "5ca989b8e00fe0476bec9c55154be0fe",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Providers\\GameSettingServiceProvider.php": {
@@ -1030,8 +1030,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Services\\ReferralService.php": {
-    "mtime": 1781907574.6765578,
-    "ast_hash": "3d8522ded75d47641de6dfc1e6ad3a4e",
+    "mtime": 1782056422.8540049,
+    "ast_hash": "54e4323e0c66e737ffcdb2b6af207f1a",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Services\\SessionHistoryService.php": {
@@ -1040,8 +1040,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Services\\SessionManager.php": {
-    "mtime": 1781906028.7566748,
-    "ast_hash": "ba753cfc3445eab46629fba5915af75c",
+    "mtime": 1782301513.8673491,
+    "ast_hash": "0db117dad9f8ae941f48f1af1d3d36c3",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Services\\SignatureService.php": {
@@ -1055,8 +1055,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Services\\UserDataService.php": {
-    "mtime": 1779548835.4010787,
-    "ast_hash": "a910fbac257323ba57766041eb5ba5ea",
+    "mtime": 1781997316.4028213,
+    "ast_hash": "7c6d1a2c1f7ef5c6b72979868472341c",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Services\\Web3Service.php": {
@@ -1105,8 +1105,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Traits\\UserBalanceTrait.php": {
-    "mtime": 1779548305.2001405,
-    "ast_hash": "e97414e790f49a4a4f3072ebead2f129",
+    "mtime": 1781994280.6998446,
+    "ast_hash": "b1681a75e004813c60b60ba6617f1923",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Transformers\\HistoricalDataTransformer.php": {
@@ -1355,13 +1355,13 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\battlepool\\artifacts\\contracts\\Battlepool.sol\\Battlepool.dbg.json": {
-    "mtime": 1781956812.7345216,
-    "ast_hash": "1c0a49e1a372b8d76521a5c3c082d59a",
+    "mtime": 1781989165.3167355,
+    "ast_hash": "ad217e1c36240759faaf7c9520b0f3a6",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\battlepool\\artifacts\\contracts\\Battlepool.sol\\Battlepool.json": {
-    "mtime": 1781956812.7345216,
-    "ast_hash": "ebf691e4aa40b0f76a7e815ede433a3c",
+    "mtime": 1781989165.3152258,
+    "ast_hash": "0dc06c4a87faa2cdcb2c745e18061502",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\battlepool\\artifacts\\contracts\\MarketplaceEscrow.sol\\MarketplaceEscrow.dbg.json": {
@@ -1385,8 +1385,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\battlepool\\cache\\solidity-files-cache.json": {
-    "mtime": 1781965252.0430095,
-    "ast_hash": "f7f9b213c001ff122d5f82589f2505ef",
+    "mtime": 1782299799.9937296,
+    "ast_hash": "fc6e3e774d656844a17fc5f7f3d30f45",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\battlepool\\ignition\\parameters.json": {
@@ -2210,8 +2210,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\resources\\js\\modules\\game.js": {
-    "mtime": 1781968068.1351442,
-    "ast_hash": "c1a905de9f3791376139dfd3de8f5c71",
+    "mtime": 1781996012.178938,
+    "ast_hash": "f6d929befb3b61ec357964425db1ffdc",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\resources\\js\\modules\\i18n.js": {
@@ -2220,8 +2220,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\resources\\js\\modules\\influencer.js": {
-    "mtime": 1780781685.0083296,
-    "ast_hash": "f151adf9e345f0feabab6dcaeb2ed529",
+    "mtime": 1782233079.1813884,
+    "ast_hash": "2b9904a7a4031009cd67321ddebc9039",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\resources\\js\\modules\\marketplace.js": {
@@ -2490,8 +2490,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\routes\\api.php": {
-    "mtime": 1781908324.5030248,
-    "ast_hash": "5471851d4f71e958a0bdea0abf8dc89b",
+    "mtime": 1782056435.1990368,
+    "ast_hash": "35a86b80ed91d5f70675304ea7bffa69",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\routes\\auth.php": {
@@ -2625,8 +2625,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\start_tb_protocol.ps1": {
-    "mtime": 1780875624.0392635,
-    "ast_hash": "2d29840b1457ced3309506e2e653bd07",
+    "mtime": 1781996340.0072048,
+    "ast_hash": "83c5e7bf8cd9c4e84e9665d1b8815b75",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\test_artefacts.js": {
@@ -2675,8 +2675,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\smart_contracts\\check_sc_pool.js": {
-    "mtime": 1779548835.5643857,
-    "ast_hash": "c865b69c730bcaeb33b136ba4320f796",
+    "mtime": 1781991014.6989567,
+    "ast_hash": "3ae47e16806f24979a28af09ad080650",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\smart_contracts\\check_user_0.js": {
@@ -2695,7 +2695,7 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\smart_contracts\\config.js": {
-    "mtime": 1781965253.4108565,
+    "mtime": 1782299801.0360532,
     "ast_hash": "6726e64b215c17604243bf5a5d42cc27",
     "semantic_hash": ""
   },
@@ -2780,8 +2780,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\smart_contracts\\listener3.js": {
-    "mtime": 1779548835.5720527,
-    "ast_hash": "bce870903cedf495163d0634a5d4383d",
+    "mtime": 1781994346.0902078,
+    "ast_hash": "e89adf958669066841864c940d277c68",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\smart_contracts\\makePayment.js": {
@@ -2855,8 +2855,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\smart_contracts\\simulation_bots.js": {
-    "mtime": 1781948110.9973662,
-    "ast_hash": "3296e2834aebb5a3ec4136fefc6c76db",
+    "mtime": 1781990989.5243258,
+    "ast_hash": "41b5a3abc8716d6f336563bca554755f",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\smart_contracts\\simulation_complex.js": {
@@ -3540,8 +3540,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\public\\admin.html": {
-    "mtime": 1779548835.5088048,
-    "ast_hash": "0db84dbb120a84c556d79cc9533f278b",
+    "mtime": 1782232443.1676528,
+    "ast_hash": "4d602a4763ee0f0a5cf70e67fd83be40",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\public\\autoplay.html": {
@@ -3665,8 +3665,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\standalone_app\\admin.html": {
-    "mtime": 1779548835.5853982,
-    "ast_hash": "f07f232788bce56ec814fcdf86de64db",
+    "mtime": 1782232457.1271713,
+    "ast_hash": "6b8d3e949122f7724cc09d93842a8c52",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\standalone_app\\index.html": {
@@ -3874,11 +3874,6 @@
     "ast_hash": "5174f7f43baf55ccce17952336fd619f",
     "semantic_hash": ""
   },
-  "G:\\DEV\\PHP\\rock-paper-scissors\\battlepool\\artifacts\\build-info\\99017bccbe9c35b0eaf1289e75c2efd0.json": {
-    "mtime": 1781956812.733014,
-    "ast_hash": "3e198608159dc9015b6b7baea275861f",
-    "semantic_hash": ""
-  },
   "G:\\DEV\\PHP\\rock-paper-scissors\\battlepool\\ignition\\deployments\\chain-1337\\build-info\\a57723f48e1faa018a5772431cc3ab31.json": {
     "mtime": 1781462338.1966643,
     "ast_hash": "dd4c24df095d3f8e311eb7cce60bd0be",
@@ -3910,8 +3905,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\test_bots_bet.ps1": {
-    "mtime": 1781988751.7778263,
-    "ast_hash": "8bd9a08087fe3e292ab2940a1ec210a2",
+    "mtime": 1781996037.2305813,
+    "ast_hash": "bd030ec62b826a05d0d0c9e2297d8715",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\test_browser_referral.js": {
@@ -3935,8 +3930,8 @@
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\update_bots_bet.php": {
-    "mtime": 1781988218.5082798,
-    "ast_hash": "b33fe9a718a6f76016691f028c10e228",
+    "mtime": 1781997326.895393,
+    "ast_hash": "c3042e7d16273ee5a7caedb71e3b4b35",
     "semantic_hash": ""
   },
   "G:\\DEV\\PHP\\rock-paper-scissors\\smart_contracts\\set_base_bet.js": {
@@ -3972,6 +3967,81 @@
   "G:\\DEV\\PHP\\rock-paper-scissors\\graphify-out\\memory\\query_20260620_205452_comment_tester_le_syst\u00e8me_avec_un_base_bet_diff\u00e9re.md": {
     "mtime": 1781988892.8108218,
     "ast_hash": "05b389ed1f6a4b11c87d8fbcfa0e5b28",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\app\\Listeners\\ProcessInfluencerRewardPayment.php": {
+    "mtime": 1782320287.4991047,
+    "ast_hash": "e997bbc5cb01ccb2bd44f5ca4c6bf5c5",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\battlepool\\artifacts\\build-info\\abab4dce579cee1468cd03f5ea4fbb75.json": {
+    "mtime": 1781989165.3132439,
+    "ast_hash": "4acbe2db27eb32258d9ef96688f1310c",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\database\\migrations\\2026_06_20_231448_add_initial_base_bet_to_users_table.php": {
+    "mtime": 1781997299.8310673,
+    "ast_hash": "8ea025c48860dcfb544c5c0c32162793",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\check_stats.php": {
+    "mtime": 1781992661.7166984,
+    "ast_hash": "5e6ec0c84f337d792e05fa7e194e4fcc",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\find_apps.php": {
+    "mtime": 1782321176.3970072,
+    "ast_hash": "8952750d61c7723ea04a9c68b93c7d22",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\find_sig.php": {
+    "mtime": 1781993865.0712554,
+    "ast_hash": "8edd17a4a40680b58ee654d97b2676f0",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\reset_claim.php": {
+    "mtime": 1782320899.3995354,
+    "ast_hash": "aeb1b6c4b4e618b82c98a711bc8ba5a7",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\reset_user.php": {
+    "mtime": 1782000503.5570533,
+    "ast_hash": "8ce6e71c7f88516308baf5aa6227f193",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\test_claim.php": {
+    "mtime": 1782320238.311494,
+    "ast_hash": "f3be7a52212d632a1daf4bf032363f91",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\test_claim_again.php": {
+    "mtime": 1782320292.8756845,
+    "ast_hash": "377420a9af3444f85e2dbce1e268f90a",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\test_php_sig.php": {
+    "mtime": 1781993753.017062,
+    "ast_hash": "339f16c28d0f00a412ed5a55837a499e",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\test_php_sig2.php": {
+    "mtime": 1781993780.9306607,
+    "ast_hash": "044656e7482e59399b009beb12f812e5",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\test_php_sig3.php": {
+    "mtime": 1781993825.5914795,
+    "ast_hash": "f8875f72ed38484d767cbc96f0f57b0d",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\trigger_payment.php": {
+    "mtime": 1782321981.2349782,
+    "ast_hash": "51a37677e044b6f8d137d31fcd22e45b",
+    "semantic_hash": ""
+  },
+  "G:\\DEV\\PHP\\rock-paper-scissors\\scratch\\hardhat_user.txt": {
+    "mtime": 1781995538.8882687,
+    "ast_hash": "76398c0c3e6f17bc38ec7f95f46f372b",
     "semantic_hash": ""
   }
 }
