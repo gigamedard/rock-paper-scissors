@@ -34,7 +34,17 @@ return Application::configure(basePath: dirname(__DIR__))
     })
 
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // SECURITY FIX: Never leak database errors to the frontend, even in debug mode.
+        $exceptions->render(function (\Illuminate\Database\QueryException $e, \Illuminate\Http\Request $request) {
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return response()->json(['message' => 'Erreur interne de la base de données. Veuillez réessayer plus tard.'], 500);
+            }
+        });
+        $exceptions->render(function (\PDOException $e, \Illuminate\Http\Request $request) {
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return response()->json(['message' => 'Erreur de connexion à la base de données. Veuillez réessayer plus tard.'], 500);
+            }
+        });
     })
     ->withProviders([
         EventServiceProvider::class, // Register the provider here

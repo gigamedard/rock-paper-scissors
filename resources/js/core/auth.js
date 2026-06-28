@@ -51,7 +51,13 @@ export async function connectWallet(providerType = 'injected') {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify({ wallet_address: walletAddress })
         });
-        const { message } = await challengeRes.json();
+        
+        const challengeData = await challengeRes.json();
+        if (!challengeRes.ok) {
+            throw new Error("Erreur de connexion au serveur. Veuillez réessayer.");
+        }
+        
+        const message = challengeData.message;
 
         // 2. Sign Challenge
         const signature = await signer.signMessage(message);

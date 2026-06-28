@@ -71,22 +71,13 @@ async function main() {
     const configPath = path.join(__dirname, "..", "smart_contracts", "config.js");
     if (fs.existsSync(configPath)) {
         let configContent = fs.readFileSync(configPath, "utf8");
-        configContent = configContent.replace(/game:\s*\{\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `game: {\n    address: "${gameAddr}"`);
-        configContent = configContent.replace(/snt:\s*\{\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `snt: {\n    address: "${sntAddr}"`);
-        configContent = configContent.replace(/marketplace:\s*\{\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `marketplace: {\n    address: "${marketplaceAddr}"`);
+        configContent = configContent.replace(/game:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `game: {\n    address: "${gameAddr}"`);
+        configContent = configContent.replace(/snt:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `snt: {\n    address: "${sntAddr}"`);
+        configContent = configContent.replace(/marketplace:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `marketplace: {\n    address: "${marketplaceAddr}"`);
         fs.writeFileSync(configPath, configContent);
         console.log("✅ Updated smart_contracts/config.js with new addresses.");
-    }
-
-    // --- AUTOMATION: Update Laravel .env ---
-    const envPath = path.join(__dirname, "..", ".env");
-    if (fs.existsSync(envPath)) {
-        let envContent = fs.readFileSync(envPath, "utf8");
-        envContent = envContent.replace(/BATTLEPOOL_ADDRESS=0x[a-fA-F0-9]*/g, `BATTLEPOOL_ADDRESS=${gameAddr}`);
-        envContent = envContent.replace(/SNT_TOKEN_ADDRESS=0x[a-fA-F0-9]*/g, `SNT_TOKEN_ADDRESS=${sntAddr}`);
-        envContent = envContent.replace(/MARKETPLACE_ESCROW_ADDRESS=0x[a-fA-F0-9]*/g, `MARKETPLACE_ESCROW_ADDRESS=${marketplaceAddr}`);
-        fs.writeFileSync(envPath, envContent);
-        console.log("✅ Updated Laravel .env with new addresses.");
+    } else {
+        console.warn("⚠️  config.js not found at", configPath, "- skipping address update.");
     }
 }
 

@@ -58,8 +58,9 @@ class InternalTradeController extends Controller
             // Décrémenter le solde SNT du vendeur
             $seller = User::where('wallet_address', strtolower($validatedData['seller']))->first();
             if ($seller) {
-                $seller->decrement('token_balance', $validatedData['sntAmount']);
-                Log::info("Decremented {$validatedData['sntAmount']} SNT from seller {$seller->wallet_address} due to offer creation.");
+                $newBalance = max(0, $seller->token_balance - $validatedData['sntAmount']);
+                $seller->update(['token_balance' => $newBalance]);
+                Log::info("Decremented {$validatedData['sntAmount']} SNT from seller {$seller->wallet_address} due to offer creation. New balance: {$newBalance}");
             }
         });
         Log::info('==> [LISTENER] Trade créé avec succès dans la BDD.', ['id' => $validatedData['offerId']]);
@@ -189,8 +190,9 @@ class InternalTradeController extends Controller
             if ($fromAddress && $fromAddress !== '0x0000000000000000000000000000000000000000') {
                 $sender = User::where('wallet_address', strtolower($fromAddress))->first();
                 if ($sender) {
-                    $sender->decrement('token_balance', $amount);
-                    Log::info("Décrémenté $amount tokens de $fromAddress");
+                    $newBalance = max(0, $sender->token_balance - $amount);
+                    $sender->update(['token_balance' => $newBalance]);
+                    Log::info("Décrémenté $amount tokens de $fromAddress. New balance: {$newBalance}");
                 }
             }
 

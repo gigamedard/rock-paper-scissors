@@ -82,12 +82,34 @@ class Web3Helper
 
     public static function weiToEther($wei)
     {
-        return bcdiv($wei, '1000000000000000000', 18); // 1 Ether = 10^18 Wei
+        $weiStr = (string)$wei;
+        $isNegative = str_starts_with($weiStr, '-');
+        if ($isNegative) $weiStr = substr($weiStr, 1);
+        
+        $weiStr = str_pad($weiStr, 19, '0', STR_PAD_LEFT);
+        $ether = substr_replace($weiStr, '.', -18, 0);
+        $ether = ltrim($ether, '0');
+        if (str_starts_with($ether, '.')) $ether = '0' . $ether;
+        
+        return ($isNegative ? '-' : '') . $ether;
     }
 
     public static function etherToWei($eth)
     {
-        return bcmul($eth, '1000000000000000000', 0); // 1 Ether = 10^18 Wei
+        $ethStr = (string)$eth;
+        $isNegative = str_starts_with($ethStr, '-');
+        if ($isNegative) $ethStr = substr($ethStr, 1);
+        
+        if (strpos($ethStr, '.') === false) {
+            $wei = $ethStr . '000000000000000000';
+        } else {
+            $parts = explode('.', $ethStr);
+            $decimals = str_pad(substr($parts[1], 0, 18), 18, '0');
+            $wei = ltrim($parts[0] . $decimals, '0');
+        }
+        $wei = $wei === '' ? '0' : ltrim($wei, '0');
+        $wei = $wei === '' ? '0' : $wei;
+        return ($isNegative ? '-' : '') . $wei;
     }
     // send achive to ipfs
     public static function sendArchiveToPinata($data)

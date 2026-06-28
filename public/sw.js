@@ -1,5 +1,5 @@
-const CACHE_NAME = 'battlepool-shell-v1';
-const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v1';
+const CACHE_NAME = 'battlepool-shell-v2';
+const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v2';
 
 // Static assets to pre-cache immediately on installation
 const STATIC_ASSETS = [

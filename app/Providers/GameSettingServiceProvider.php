@@ -22,19 +22,18 @@ class GameSettingServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Only attempt to load settings if the database tables exist
-        if (app()->runningInConsole() || !Schema::hasTable('game_settings')) {
-            return;
-        }
-
+        // Resilient boot: if DB is not ready, skip gracefully
         try {
+            if (app()->runningInConsole() || !Schema::hasTable('game_settings')) {
+                return;
+            }
             $settings = GameSetting::all();
             foreach ($settings as $setting) {
-                // If the key exists in our 'game_settings' config, override it dynamically:
                 Config::set('game_settings.' . $setting->key, GameSetting::getValue($setting->key));
             }
         } catch (\Exception $e) {
-            // Ignore errors in case of connection failure during boot
+            // DB not ready yet — app will boot without game settings.
+            // They will be loaded on the next request once DB is available.
         }
     }
 }

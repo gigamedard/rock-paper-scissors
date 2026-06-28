@@ -1,88 +1,179 @@
 services:
-  # 1. Le Backend Web (PHP/Nginx + Frontend compilé)
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "8000:8080" # Redirige le port 80 de votre serveur vers le port 8080 du conteneur Nginx
-    env_file: .env.staging # Nous allons créer ce fichier juste après
-    depends_on:
-      - db
-      - redis
 
-  # 2. Le Worker en arrière-plan (Node.js)
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
-    restart: unless-stopped
-    env_file: .env.staging
-    depends_on:
-      - db
-      - redis
-
-  # 3. La Base de données (MySQL)
+  # ============================================================
+  # 1. BASE DE DONNÉES (MySQL)
+  # ============================================================
   db:
     image: mysql:8.0
     restart: unless-stopped
-    # On force l'encodage natif pour éviter les erreurs avec les emojis ou les langues
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
-      # Ces variables sont lues lors du TOUT PREMIER lancement du conteneur
-      MYSQL_DATABASE: ${DB_DATABASE:-laravel}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-
+      MYSQL_DATABASE: rock_paper_scissors
+      MYSQL_ROOT_PASSWORD: ***REMOVED***
     volumes:
-      # TRES IMPORTANT : Persistance des données !
-      # Sans ça, un redémarrage du conteneur effacerait toutes vos tables MySQL.
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p***REMOVED***"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
-  # 4. Le Cache et Système de Queue (Redis)
+  # ============================================================
+  # 2. CACHE & QUEUE (Redis)
+  # ============================================================
   redis:
     image: redis:alpine
     restart: unless-stopped
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
-  # 5. Le Nœud Blockchain Local (Hardhat)
+  # ============================================================
+  # 3. MIGRATIONS (One-shot — s'éteint après succès)
+  # Utilise l'image app déjà buildée — pas de rebuild Composer.
+  # ============================================================
+  init-db:
+    image: rock-paper-scissors-app:latest
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cd /var/www/html &&
+        echo "Attente de la base de données..." &&
+        until php -r "new PDO('mysql:host=db;dbname=rock_paper_scissors', 'root', '***REMOVED***');" 2>/dev/null; do sleep 2; done;
+        echo "Base de données prête !" &&
+        php artisan migrate --force &&
+        php artisan db:seed --force &&
+        echo '✅ Migrations terminées.'
+    env_file: .env.staging
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ============================================================
+  # 4. BLOCKCHAIN (Hardhat + Deploy des Smart Contracts)
+  # Image rebuildée avec le nouveau entrypoint.sh + deployed.txt
+  # ============================================================
   blockchain:
-    build:
-      context: .
-      dockerfile: Dockerfile.blockchain
+    image: rock-paper-scissors-blockchain:latest
     restart: unless-stopped
     ports:
       - "8545:8545"
+    volumes:
+      # Permet à full_deploy.js d'écrire les nouvelles adresses dans config.js (sur le host)
+      - ./smart_contracts:/smart_contracts
+    healthcheck:
+      # Vérifie que le déploiement des contrats est terminé
+      test: ["CMD", "test", "-f", "/app/deployed.txt"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
 
-  # 6. Le Bridge (smart_contracts/app.js)
+  # ============================================================
+  # 5. BRIDGE NODE.JS (Listener Smart Contracts + API interne)
+  # Démarre UNIQUEMENT après que blockchain soit healthy.
+  # Reçoit les adresses fraîches via le volume partagé smart_contracts/
+  # ============================================================
   bridge:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
+    image: rock-paper-scissors-bridge:latest
     command: ["node", "smart_contracts/app.js"]
     restart: unless-stopped
     env_file: .env.staging
+    volumes:
+      # CRUCIAL : Monter UNIQUEMENT config.js (pas tout le dossier).
+      # Monter tout smart_contracts/ écraserait les node_modules Linux avec ceux de Windows.
+      - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
     depends_on:
-      - blockchain
-      - db
-      - redis
+      blockchain:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
-  # 7. Serveur WebSocket (Laravel Reverb)
+  # ============================================================
+  # 6. APPLICATION LARAVEL (PHP + Nginx + Frontend)
+  # Démarre après les migrations ET que le bridge soit ready
+  # ============================================================
+  app:
+    image: rock-paper-scissors-app:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8080"
+    env_file: .env.staging
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+      bridge:
+        condition: service_healthy
+
+  # ============================================================
+  # 7. SERVEUR WEBSOCKET (Laravel Reverb)
+  # Démarre après les migrations (il lit la table cache)
+  # ============================================================
   reverb:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: rock-paper-scissors-reverb:latest
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8008"]
     restart: unless-stopped
     ports:
       - "8008:8008"
     env_file: .env.staging
+    # Le serveur WebSocket Reverb est opérationnel (confirmé dans les logs).
+    # L'image serversideup n'expose pas de tool TCP simple, on désactive le healthcheck.
+    healthcheck:
+      disable: true
     depends_on:
-      - db
-      - redis
+      init-db:
+        condition: service_completed_successfully
 
-# Déclaration des volumes persistants stockés sur votre machine hôte
+  # ============================================================
+  # 8. WORKER BATCH (Node.js — Run Batch Processor)
+  # ============================================================
+  worker:
+    image: rock-paper-scissors-worker:latest
+    restart: unless-stopped
+    env_file: .env.staging
+    volumes:
+      # Monter UNIQUEMENT config.js pour ne pas écraser les node_modules Linux
+      - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
+    depends_on:
+      bridge:
+        condition: service_healthy
+
+  # ============================================================
+  # 9. QUEUE WORKER LARAVEL (Traitement des jobs async)
+  # Dépend des migrations pour que les tables jobs/ batches existent
+  # ============================================================
+  queue-worker:
+    image: rock-paper-scissors-app:latest
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
+    restart: unless-stopped
+    env_file: .env.staging
+    # Désactive le healthcheck Nginx interne de l'image serversideup
+    healthcheck:
+      disable: true
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+
+# ============================================================
+# VOLUMES PERSISTANTS (survivent aux docker-compose down)
+# Pour tout effacer : docker-compose down -v
+# ============================================================
 volumes:
   db_data:
   redis_data:

@@ -12,8 +12,8 @@ RUN npm ci
 # Copier le reste du dossier battlepool
 COPY battlepool/ .
 
-# Exposer le port par défaut de Hardhat
-EXPOSE 8545
+# Rendre le script exécutable
+RUN chmod +x entrypoint.sh
 
-# Lancer le nœud local accessible depuis les autres conteneurs
-CMD ["npx", "hardhat", "node", "--hostname", "0.0.0.0"]
+# Lancer le script d'entrée (démarre le nœud ET déploie)
+CMD ["./entrypoint.sh"]
