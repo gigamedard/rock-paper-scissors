@@ -25,8 +25,7 @@ services:
   redis:
     image: redis:alpine
     restart: unless-stopped
-    volumes:
-      - redis_data:/data
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -83,6 +82,9 @@ services:
   # Reçoit les adresses fraîches via le volume partagé smart_contracts/
   # ============================================================
   bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
     image: rock-paper-scissors-bridge:latest
     command: ["node", "smart_contracts/app.js"]
     restart: unless-stopped
@@ -99,7 +101,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "3000"]
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000', (r) => process.exit(0)).on('error', () => process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -110,8 +112,10 @@ services:
   # Démarre après les migrations ET que le bridge soit ready
   # ============================================================
   app:
+    build: .
     image: rock-paper-scissors-app:latest
     restart: unless-stopped
+    command: ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=8080"]
     ports:
       - "8000:8080"
     env_file: .env.staging
@@ -126,6 +130,9 @@ services:
   # Démarre après les migrations (il lit la table cache)
   # ============================================================
   reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: rock-paper-scissors-reverb:latest
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8008"]
     restart: unless-stopped
@@ -176,4 +183,3 @@ services:
 # ============================================================
 volumes:
   db_data:
-  redis_data:

@@ -1,7 +1,7 @@
 # ==========================================
 # ÉTAPE 1 : BUILDER NODE (Compilation Frontend)
 # ==========================================
-FROM node:20-alpine AS frontend-builder
+FROM node:20-slim AS frontend-builder
 
 # Définir le dossier de travail
 WORKDIR /app
@@ -22,13 +22,13 @@ RUN npm run build
 # ==========================================
 # ÉTAPE 2 : IMAGE FINALE PHP (Backend)
 # ==========================================
-FROM serversideup/php:8.3-fpm-nginx
+FROM serversideup/php:8.3-cli
 
 # Revenir en root pour installer des dépendances système PHP manquantes
 USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git curl unzip libzip-dev libicu-dev libgmp-dev \
-    && docker-php-ext-install gmp \
+    && install-php-extensions gmp pcntl openswoole \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -39,7 +39,7 @@ USER www-data
 COPY --chown=www-data:www-data . /var/www/html
 
 # Installer les dépendances PHP via Composer (sans les paquets de dev)
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# RUN composer install --no-interaction --optimize-autoloader --no-dev
 
 # RÉCUPÉRATION DU FRONTEND : Copier le dossier public/build depuis l'étape 1
 COPY --from=frontend-builder --chown=www-data:www-data /app/public/build /var/www/html/public/build
