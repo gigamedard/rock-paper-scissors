@@ -416,16 +416,21 @@ class SessionManager
     {
         try {
             $nodeUrl = config('app.NODE_WORKER_URL');
-            $contractAddress = config('app.BATTLEPOOL_ADDRESS');
-            $nonce = $this->web3Helper->getUserNonce($nodeUrl, $user->wallet_address);
             $amountWei = $this->web3Helper->etherToWei($user->balance);
 
-            return $this->signatureService->generateClaimSignature(
-                $user->wallet_address,
-                $amountWei,
-                $nonce,
-                $contractAddress
-            );
+            // Delegate signature generation to the Node.js bridge which uses ethers.js signMessage()
+            // This avoids the unreliable recovery parameter from the PHP Elliptic library.
+            $response = \Illuminate\Support\Facades\Http::post("{$nodeUrl}/generate-signature", [
+                'wallet' => $user->wallet_address,
+                'amount' => $amountWei,
+            ]);
+
+            if ($response->successful() && $response->json('signature')) {
+                return $response->json('signature');
+            }
+
+            Log::error("Bridge /generate-signature failed for {$user->wallet_address}: " . $response->body());
+            return null;
         } catch (\Exception $e) {
             Log::error("Failed to generate signature for {$user->wallet_address}: " . $e->getMessage());
             return null;

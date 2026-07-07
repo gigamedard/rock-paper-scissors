@@ -35,7 +35,14 @@ class BlockchainController extends Controller
                 // Check if balance dropped to 0 (Bankruptcy risk)
                 $oldBalance = $user->balance;
                 Log::info("Updating existing user balance", ['old' => $oldBalance, 'new' => $balanceEth]);
-                $updated = $user->update(['balance' => $balanceEth]);
+                
+                $updateData = ['balance' => $balanceEth];
+                if ($user->autoplay_active && in_array($user->status, ['awaiting_onchain', 'stopped']) && $balanceEth >= $user->bet_amount) {
+                    $updateData['status'] = 'available';
+                    Log::info("User {$user->id} status updated to available because of positive balance and active autoplay");
+                }
+                
+                $updated = $user->update($updateData);
                 Log::info("Update result", ['success' => $updated]);
                 
                 if ($oldBalance > 0 && $balanceEth <= 0.0001) { // Near zero

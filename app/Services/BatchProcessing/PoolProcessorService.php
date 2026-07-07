@@ -27,33 +27,63 @@ class PoolProcessorService
         Log::info("Starting processing loop for batch {$batchContext->id} (Pool Size: {$batchContext->pool_size}). Processing {$poolsToProcess->count()} pools.");
 
         // Vérification de la disponibilité de Swoole (Octane/Production vs CLI/Tests)
-        if (class_exists('Swoole\Coroutine')) {
-            $barrier = \Swoole\Coroutine\Barrier::create();
+        if (class_exists('OpenSwoole\Coroutine') || class_exists('Swoole\Coroutine')) {
+            $isSwoole = class_exists('Swoole\Coroutine');
+            $isOpenSwoole = class_exists('OpenSwoole\Coroutine');
+
+            if ($isOpenSwoole && class_exists('OpenSwoole\Coroutine\Barrier')) {
+                $barrier = \OpenSwoole\Coroutine\Barrier::create();
+                $atomicCount = new \OpenSwoole\Atomic(0);
+                $errorChannel = new \OpenSwoole\Coroutine\Channel($poolsToProcess->count() > 0 ? $poolsToProcess->count() : 1);
+            } elseif ($isSwoole && class_exists('Swoole\Coroutine\Barrier')) {
+                $barrier = \Swoole\Coroutine\Barrier::create();
+                $atomicCount = new \Swoole\Atomic(0);
+                $errorChannel = new \Swoole\Coroutine\Channel($poolsToProcess->count() > 0 ? $poolsToProcess->count() : 1);
+            } else {
+                goto fallback;
+            }
+
             foreach ($poolsToProcess as $pool) {
                 $poolId = $pool->id;
                 // Lancement de chaque match dans une coroutine concurrente
-                go(function () use ($barrier, $pool, $poolId, $batchContext, &$processedCount, &$firstError) {
-                    $cid = \Swoole\Coroutine::getCid();
+                $goFunc = function () use ($barrier, $pool, $poolId, $batchContext, $atomicCount, $errorChannel, $isOpenSwoole) {
+                    $cid = $isOpenSwoole ? \OpenSwoole\Coroutine::getCid() : \Swoole\Coroutine::getCid();
                     try {
                         Log::debug("[Coroutine #{$cid}] Processing Pool ID: {$poolId} (Size: {$pool->pool_size}, Status: {$pool->status})");
                         Web3Helper::marker(20, "model pool", "processPools", "before match() for pool ID: {$poolId} in Coroutine #{$cid}");
                         $pool->match(); // Call the core logic
                         Web3Helper::marker(20, "model pool", "processPools", "after match() for pool ID: {$poolId} in Coroutine #{$cid}");
                         Log::debug("[Coroutine #{$cid}] Finished Processing Pool ID: {$poolId}");
-                        $processedCount++;
+                        $atomicCount->add(1);
                     } catch (Exception $poolError) {
                         Log::error("[Coroutine #{$cid}] Error processing Pool ID: {$poolId} in Batch ID: {$batchContext->id}. Error: {$poolError->getMessage()}");
                         Web3Helper::marker(20, "model pool", "processPools", "Error processing pool ID: {$poolId} in batch ID: {$batchContext->id} in Coroutine #{$cid}. Error: {$poolError->getMessage()}");
-                        // Capture de la première erreur de manière sécurisée en coroutine
-                        if (!$firstError) {
-                            $firstError = $poolError;
-                        }
+                        $errorChannel->push($poolError);
                     }
-                });
+                };
+                
+                if ($isOpenSwoole && function_exists('OpenSwoole\Coroutine\go')) {
+                    \OpenSwoole\Coroutine\go($goFunc);
+                } elseif ($isSwoole && function_exists('go')) {
+                    go($goFunc);
+                } elseif (function_exists('go')) {
+                    go($goFunc);
+                } else {
+                    $goFunc(); // Fallback
+                }
             }
-            // Barrière de synchronisation : attend que toutes les coroutines aient terminé
-            \Swoole\Coroutine\Barrier::wait($barrier);
+
+            // Attente de la fin de toutes les coroutines
+            if ($isOpenSwoole && class_exists('OpenSwoole\Coroutine\Barrier')) {
+                \OpenSwoole\Coroutine\Barrier::wait($barrier);
+            } else {
+                \Swoole\Coroutine\Barrier::wait($barrier);
+            }
+
+            $processedCount = $atomicCount->get();
+            $firstError = !$errorChannel->isEmpty() ? $errorChannel->pop() : null;
         } else {
+            fallback:
             // Mode séquentiel de repli pour la suite de tests PHPUnit et le développement local sans Swoole
             foreach ($poolsToProcess as $pool) {
                 $poolId = $pool->id;

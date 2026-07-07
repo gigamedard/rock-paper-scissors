@@ -22,7 +22,12 @@ async function main() {
     console.log("Setting Fee Basis Points to 250...");
     const txFee = await battlepool.setFeeBasisPoints(250);
     await txFee.wait();
-    console.log("✅ Fee Basis Points set to 250.");
+    console.log("✓ Fee Basis Points set to 250.");
+
+    console.log("Setting default max base bet to 100 ETH...");
+    const txMaxBet = await battlepool.setDefaultMaxBaseBet(ethers.parseEther("100"));
+    await txMaxBet.wait();
+    console.log("✓ Default Max Base Bet set to 100 ETH.");
     
     console.log("Setting Default Min Cooldown to 10 seconds...");
     const txCooldown = await battlepool.setDefaultMinCooldown(10);

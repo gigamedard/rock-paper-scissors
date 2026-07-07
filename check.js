@@ -1,0 +1,1 @@
+import { JsonRpcProvider, formatEther } from "ethers"; const p = new JsonRpcProvider("http://127.0.0.1:8545"); p.getBalance("0x5FbDB2315678afecb367f032d93F642f64180aa3").then(b => console.log(formatEther(b)));

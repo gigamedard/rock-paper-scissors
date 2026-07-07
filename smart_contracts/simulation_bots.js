@@ -155,9 +155,10 @@ async function simulateBot(botIndex) {
 
     // ALIGNMENT WITH HUMAN UI: (Base Bet * Security Coefficient) + 2.5% Fee
     const stakeWei = parseEther((parseFloat(BASE_BET) * securityCoefficient).toFixed(18));
-    const feeWei = (stakeWei * BigInt(Math.round(feePercentage * 100))) / 10000n; // Use feePercentage from config
-    const amountToSendWei = stakeWei + feeWei;
-
+    const feeBasisPoints = BigInt(Math.round(feePercentage * 100));
+    // Contract formula: depositAmount = (msg.value * 10000) / (10000 + feeBasisPoints)
+    // So: msg.value >= stakeWei * (10000 + feeBasisPoints) / 10000  (+1n for rounding)
+    const amountToSendWei = (stakeWei * (10000n + feeBasisPoints)) / 10000n + 1n;
     const baseBetWei = parseEther(BASE_BET);
 
     const tx = await gameContract.submitPremoveCID(baseBetWei, preMoveCid, {

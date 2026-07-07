@@ -371,8 +371,8 @@ const app = {
             
             const baseBetWei = ethers.parseUnits(bet, 18);
             const stakeWei = baseBetWei * BigInt(securityCoefficient);
-            const feeWei = (stakeWei * BigInt(Math.round(feePercentage * 100))) / BigInt(10000);
-            const amountToSendWei = stakeWei + feeWei;            
+            const feeBasisPoints = BigInt(Math.round(feePercentage * 100));
+            const amountToSendWei = (stakeWei * BigInt(10000)) / (BigInt(10000) - feeBasisPoints);
             const abi = ["function submitPremoveCID(uint256 baseBet, string cid) external payable"];
             const contract = new ethers.Contract(this.contractAddress, abi, signer);
             

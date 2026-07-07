@@ -16,7 +16,7 @@ class SeedAdminSettings extends Seeder
         $settings = [
             [
                 'key' => 'security_coefficient',
-                'value' => '100',
+                'value' => '1000',
                 'type' => 'integer',
                 'group' => 'blockchain',
                 'description' => 'Coefficient multiplicateur pour le dépôt de sécurité (Base Bet x Coef)'
