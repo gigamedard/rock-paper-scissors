@@ -21,7 +21,9 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      chainId: 1337,
+      // Aligné sur 31337 (standard Hardhat) pour un réseau MetaMask unique
+      // compatible avec les deux apps du portail (App 2 = 31337).
+      chainId: 31337,
       accounts: {
         count: 101, // Change this number to get more accounts
       },

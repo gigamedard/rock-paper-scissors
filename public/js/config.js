@@ -4,7 +4,7 @@ export const CONFIG = {
     REVERB_HOST: window.location.hostname,
     REVERB_PORT: 8008,
     REVERB_KEY: '***REMOVED***', 
-    HARDHAT_RPC: "http://127.0.0.1:8545",
+    HARDHAT_RPC: "http://127.0.0.1:8546",
     MOCK_WALLET_ADDRESS: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", // Account #0
     DEFAULT_SECURITY_COEFFICIENT: 1000,
     DEFAULT_FEE_PERCENTAGE: 2.5

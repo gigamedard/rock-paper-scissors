@@ -611,6 +611,11 @@ Route::get('/dashboard', function () {
     return file_get_contents(public_path('index.html'));
 })->name('dashboard');
 
+// Portail unifié (App 1 + App 2) — servie par App 1 (même origine que /api/wallet/*)
+Route::get('/portal', function () {
+    return file_get_contents(public_path('portal.html'));
+})->name('portal');
+
 Route::get('/{any}', function () {
     return file_get_contents(public_path('index.html'));
 })->where('any', '.*');

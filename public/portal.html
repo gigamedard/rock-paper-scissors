@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BATTLEPOOL | Portal</title>
+    <meta name="theme-color" content="#7000ff">
+    <style>
+        :root {
+            --bg: #0a0a14;
+            --bg-card: #131322;
+            --primary: #7000ff;
+            --cyan: #00f2ff;
+            --pink: #ff0080;
+            --orange: #f97316;
+            --green: #16a34a;
+            --red: #ef4444;
+            --text: #ffffff;
+            --text-dim: #9ca3af;
+            --border: #232338;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .bg-glow {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background:
+                radial-gradient(600px 400px at 15% 0%, rgba(112,0,255,.25), transparent 60%),
+                radial-gradient(600px 400px at 85% 10%, rgba(0,242,255,.12), transparent 60%),
+                radial-gradient(800px 500px at 50% 110%, rgba(255,0,128,.12), transparent 60%);
+        }
+
+        /* ===== ÉCRANS (langue → connexion → menu) ===== */
+        .screen {
+            position: relative; z-index: 1;
+            width: 100vw; height: 100vh;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+        }
+        .screen.active { display: flex; }
+
+        .logo {
+            position: absolute; top: 2rem; left: 2rem;
+            font-size: 1.6rem; font-weight: 800; letter-spacing: 3px; z-index: 2;
+        }
+        .logo span { color: var(--cyan); }
+
+        h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; letter-spacing: 2px; text-align: center; }
+        h1 .grad {
+            background: linear-gradient(90deg, var(--primary), var(--cyan), var(--pink));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .sub { color: var(--text-dim); margin-top: .8rem; font-size: 1rem; text-align: center; max-width: 520px; }
+
+        /* ===== SÉLECTEUR DE LANGUE ===== */
+        .lang-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            max-width: 500px; width: 90%; margin-top: 2rem;
+        }
+        .lang-btn {
+            padding: 15px 20px; font-size: 1.1rem; font-weight: 600; font-family: inherit;
+            border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05); color: #fff; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.5); }
+
+        /* ===== CONNEXION ===== */
+        .auth-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+            padding: 2.2rem; width: 100%; max-width: 440px; text-align: center; margin-top: 2rem;
+        }
+        .auth-card p { color: var(--text-dim); font-size: .9rem; margin: .6rem 0 1.4rem; }
+        .btn {
+            padding: .85rem 2rem; border: none; border-radius: 10px; cursor: pointer;
+            font-family: inherit; font-weight: 700; font-size: .95rem; letter-spacing: 1px;
+            background: linear-gradient(135deg, var(--primary), #9d4dff); color: #fff;
+            transition: transform .15s, box-shadow .15s; width: 100%;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(112,0,255,.35); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .wallet-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(0,242,255,.05); border: 1px solid rgba(0,242,255,.3);
+            color: var(--cyan); padding: 8px 14px; border-radius: 8px;
+            font-size: .85rem; font-weight: 600; margin-bottom: 1rem;
+        }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.6s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+        /* ===== MENU UNIFIÉ ===== */
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; width: 100%; max-width: 900px; margin-top: 2.5rem; }
+        .menu-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+            padding: 1.8rem; display: flex; flex-direction: column; gap: .9rem; cursor: pointer;
+            transition: transform .2s, border-color .2s, box-shadow .2s; text-align: center;
+        }
+        .menu-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(112,0,255,.25); }
+        .menu-card .icon { font-size: 2.4rem; }
+        .menu-card h2 { font-size: 1.3rem; font-weight: 800; letter-spacing: 1px; }
+        .menu-card p { color: var(--text-dim); font-size: .88rem; line-height: 1.5; flex: 1; }
+        .menu-card .enter {
+            padding: .7rem; border-radius: 8px; font-weight: 700; letter-spacing: 1px; font-size: .85rem;
+            background: linear-gradient(135deg, var(--primary), #9d4dff);
+        }
+        .card-bp { border-color: rgba(112,0,255,.5); }
+        .card-duel { border-color: rgba(0,242,255,.4); }
+        .card-br { border-color: rgba(249,115,22,.5); }
+        .card-duel .enter { background: linear-gradient(135deg, var(--cyan), #38bdf8); color: #000; }
+        .card-br .enter { background: linear-gradient(135deg, var(--orange), #fdba74); }
+        .topbar {
+            position: absolute; top: 2rem; right: 2rem; z-index: 2;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .topbar .lang-switch {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-dim);
+            padding: 8px 12px; border-radius: 8px; font-size: .8rem; cursor: pointer; font-family: inherit;
+        }
+        .topbar .logout-btn {
+            background: rgba(255,0,128,.1); border: 1px solid rgba(255,0,128,.4); color: var(--pink);
+            padding: 8px 14px; border-radius: 8px; font-size: .8rem; cursor: pointer; font-family: inherit; font-weight: 600;
+        }
+
+        /* ===== POPUP APPLICATION (iframe) ===== */
+        #app-overlay {
+            display: none; position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+        }
+        #app-overlay.show { display: flex; align-items: center; justify-content: center; }
+        #app-window {
+            width: 96vw; height: 94vh; max-width: 1600px;
+            background: #000; border: 1px solid var(--border); border-radius: 12px;
+            overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 25px 60px rgba(0,0,0,.6);
+        }
+        #app-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border);
+        }
+        #app-bar .title { font-size: .9rem; font-weight: 700; letter-spacing: 1px; }
+        #app-bar .actions { display: flex; gap: 8px; }
+        .bar-btn {
+            padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border);
+            background: rgba(255,255,255,0.05); color: var(--text-dim); font-size: .8rem;
+            cursor: pointer; font-family: inherit; font-weight: 600;
+        }
+        .bar-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+        .bar-btn.close:hover { color: var(--pink); border-color: rgba(255,0,128,.5); }
+        #app-frame { flex: 1; width: 100%; border: none; background: #000; }
+
+        #toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: #1f1f38; border: 1px solid var(--border); color: #fff;
+            padding: 12px 22px; border-radius: 10px; font-size: .9rem; z-index: 999;
+            opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 90vw; text-align: center;
+        }
+        #toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="logo">BATTLE<span>POOL</span></div>
+
+<!-- ===== ÉCRAN 1 : CHOIX DE LANGUE ===== -->
+<div id="screen-lang" class="screen">
+    <h1 data-i18n="lang.title">Select your Language</h1>
+    <div class="lang-grid" id="lang-grid"></div>
+</div>
+
+<!-- ===== ÉCRAN 2 : CONNEXION ===== -->
+<div id="screen-login" class="screen">
+    <h1 data-i18n="login.title">Ready to Fight?</h1>
+    <p class="sub" data-i18n="login.subtitle">Connect your wallet to enter the arena and start your session.</p>
+    <div class="auth-card">
+        <div class="wallet-badge" id="wallet-badge" style="display:none;">
+            <span class="live-dot"></span>
+            <span id="wallet-addr">0x...</span>
+        </div>
+        <h3 data-i18n="login.card_title" style="margin-bottom:.5rem;">Wallet Connection</h3>
+        <p id="login-hint">...</p>
+        <button class="btn" id="connect-btn">🦊 MetaMask</button>
+    </div>
+    <div class="topbar">
+        <button class="lang-switch" id="lang-switch" data-i18n="login.lang_switch">🌐 Change language</button>
+    </div>
+</div>
+
+<!-- ===== ÉCRAN 3 : MENU UNIFIÉ (portail) ===== -->
+<div id="screen-menu" class="screen">
+    <h1 data-i18n="menu.title">SELECT YOUR <span class="grad">GAME MODE</span></h1>
+    <p class="sub" data-i18n="menu.subtitle">One account, three modes. Choose your battleground.</p>
+    <div class="menu-grid">
+        <div class="menu-card card-bp" data-app="bp">
+            <span class="icon">🥊</span>
+            <h2 data-i18n="menu.bp.title">Battle Pool</h2>
+            <p data-i18n="menu.bp.desc">Prédiction de combat en direct. Pierre, papier, ciseaux avec paris ETH, marketplace et parrainage.</p>
+            <div class="enter" data-i18n="menu.play">JOUER</div>
+        </div>
+        <div class="menu-card card-duel" data-app="duel">
+            <span class="icon">⚔️</span>
+            <h2 data-i18n="menu.duel.title">Duel</h2>
+            <p data-i18n="menu.duel.desc">Combat 3D Godot en temps réel. 1 vs 1 en direct contre un adversaire.</p>
+            <div class="enter" data-i18n="menu.play">JOUER</div>
+        </div>
+        <div class="menu-card card-br" data-app="br">
+            <span class="icon">🏆</span>
+            <h2 data-i18n="menu.br.title">Battle Royale</h2>
+            <p data-i18n="menu.br.desc">Tournoi à élimination. Rejoins un salon ou crée une poule privée.</p>
+            <div class="enter" data-i18n="menu.play">JOUER</div>
+        </div>
+    </div>
+    <div class="topbar">
+        <span class="wallet-badge" id="menu-wallet-badge"><span class="live-dot"></span><span id="menu-wallet-addr">0x...</span></span>
+        <button class="lang-switch" id="lang-switch-2">🌐</button>
+        <button class="logout-btn" id="logout-btn">🔌</button>
+    </div>
+</div>
+
+<!-- ===== POPUP APPLICATION ===== -->
+<div id="app-overlay">
+    <div id="app-window">
+        <div id="app-bar">
+            <div class="title" id="app-title">BATTLEPOOL</div>
+            <div class="actions">
+                <button class="bar-btn" id="app-fullscreen">⛶</button>
+                <button class="bar-btn close" id="app-close">✖</button>
+            </div>
+        </div>
+        <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-pointer-lock allow-downloads" loading="eager"></iframe>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+ * PORTAL BATTLEPOOL — Phase 1 (viabilité)
+ * - Flow inspiré d'App 1 (rock-paper-scissors) :
+ *   1. Choix de langue (localStorage.user_locale) si absent
+ *   2. Connexion wallet (challenge → sign → verify) via /api/wallet/*
+ *   3. Menu unifié : Battle Pool (App 1) / Duel + Battle (App 2)
+ * - Le popup charge l'app dans une iframe (origine partagée)
+ * ============================================================ */
+
+/* ===== CONFIGURATION ===== */
+const PORTAL_CONFIG = {
+    // App 1 : servie par Laravel lui-même (même origine) à la racine
+    APP1_URL: window.PORTAL_APP1_URL || '/',
+    // App 2 : frontend statique derrière le proxy (même domaine)
+    APP2_URL: window.PORTAL_APP2_URL || '/app2/',
+    // Développement : décommentez pour pointer vers le frontend local App 2
+    // APP2_URL: window.PORTAL_APP2_URL || 'http://localhost:8080/',
+};
+
+/* ===== I18N (inspiré de resources/js/modules/i18n.js d'App 1) ===== */
+const SUPPORTED_LOCALES = ['fr', 'en', 'es', 'de', 'pt', 'zh'];
+const FLAGS = {
+    fr: '🇫🇷 Français', en: '🇬🇧 English', es: '🇪🇸 Español',
+    de: '🇩🇪 Deutsch', pt: '🇵🇹 Português', zh: '🇨🇳 中文'
+};
+
+const TRANSLATIONS = {
+    fr: {
+        'lang.title': 'Choisissez votre langue',
+        'login.title': 'Prêt à Combattre ?',
+        'login.subtitle': 'Connectez votre wallet pour entrer dans l\'arène et démarrer votre session.',
+        'login.card_title': 'Connexion Wallet',
+        'login.connect': '🦊 Connecter MetaMask',
+        'login.connecting': '⏳ Connexion...',
+        'login.lang_switch': '🌐 Changer de langue',
+        'menu.title': 'SÉLECTION DU MODE',
+        'menu.subtitle': 'Un seul compte, trois modes. Choisissez votre terrain de bataille.',
+        'menu.bp.title': 'Battle Pool',
+        'menu.bp.desc': 'Prédiction de combat en direct. Pierre, papier, ciseaux avec paris ETH, marketplace et parrainage.',
+        'menu.duel.title': 'Duel',
+        'menu.duel.desc': 'Combat 3D Godot en temps réel. 1 vs 1 en direct contre un adversaire.',
+        'menu.br.title': 'Battle Royale',
+        'menu.br.desc': 'Tournoi à élimination. Rejoins un salon ou crée une poule privée.',
+        'menu.play': 'JOUER',
+        'login.required': 'Connectez d\'abord votre wallet pour jouer.',
+        'login.connected': 'Connecté — tous les modes sont débloqués.',
+        'session.valid': 'Session active détectée.',
+        'errors.metamask': 'MetaMask est requis. Installez l\'extension ou utilisez un navigateur intégré mobile.',
+        'errors.network': 'Erreur de connexion au serveur. Veuillez réessayer.',
+        'errors.auth': 'Échec de connexion.',
+        'logout.done': 'Déconnecté.',
+        'app.title.bp': 'BATTLE POOL',
+        'app.title.duel': 'DUEL',
+        'app.title.br': 'BATTLE ROYALE',
+    },
+    en: {
+        'lang.title': 'Select your Language',
+        'login.title': 'Ready to Fight?',
+        'login.subtitle': 'Connect your wallet to enter the arena and start your session.',
+        'login.card_title': 'Wallet Connection',
+        'login.connect': '🦊 Connect MetaMask',
+        'login.connecting': '⏳ Connecting...',
+        'login.lang_switch': '🌐 Change language',
+        'menu.title': 'SELECT YOUR GAME MODE',
+        'menu.subtitle': 'One account, three modes. Choose your battleground.',
+        'menu.bp.title': 'Battle Pool',
+        'menu.bp.desc': 'Live combat prediction. Rock-paper-scissors with ETH bets, marketplace and referral.',
+        'menu.duel.title': 'Duel',
+        'menu.duel.desc': 'Real-time 3D Godot combat. Live 1 vs 1 against an opponent.',
+        'menu.br.title': 'Battle Royale',
+        'menu.br.desc': 'Elimination tournament. Join a lobby or create a private pool.',
+        'menu.play': 'PLAY',
+        'login.required': 'Connect your wallet first to play.',
+        'login.connected': 'Connected — all modes unlocked.',
+        'session.valid': 'Active session detected.',
+        'errors.metamask': 'MetaMask is required. Install the extension or use a mobile browser.',
+        'errors.network': 'Server connection error. Please try again.',
+        'errors.auth': 'Connection failed.',
+        'logout.done': 'Disconnected.',
+        'app.title.bp': 'BATTLE POOL',
+        'app.title.duel': 'DUEL',
+        'app.title.br': 'BATTLE ROYALE',
+    },
+    es: {
+        'lang.title': 'Selecciona tu idioma',
+        'login.title': '¿Listo para Luchar?',
+        'login.subtitle': 'Conecta tu wallet para entrar a la arena y comenzar tu sesión.',
+        'login.card_title': 'Conexión Wallet',
+        'login.connect': '🦊 Conectar MetaMask',
+        'login.connecting': '⏳ Conectando...',
+        'login.lang_switch': '🌐 Cambiar idioma',
+        'menu.title': 'SELECCIÓN DE MODO',
+        'menu.subtitle': 'Una cuenta, tres modos. Elige tu campo de batalla.',
+        'menu.bp.title': 'Battle Pool',
+        'menu.bp.desc': 'Predicción de combate en vivo. Piedra, papel, tijera con apuestas ETH, marketplace y referidos.',
+        'menu.duel.title': 'Duelo',
+        'menu.duel.desc': 'Combate 3D Godot en tiempo real. 1 vs 1 en vivo contra un oponente.',
+        'menu.br.title': 'Battle Royale',
+        'menu.br.desc': 'Torneo de eliminación. Únete a una sala o crea un grupo privado.',
+        'menu.play': 'JUGAR',
+        'login.required': 'Conecta tu wallet primero para jugar.',
+        'login.connected': 'Conectado — todos los modos desbloqueados.',
+        'session.valid': 'Sesión activa detectada.',
+        'errors.metamask': 'MetaMask es necesario. Instala la extensión o usa un navegador móvil.',
+        'errors.network': 'Error de conexión con el servidor. Inténtalo de nuevo.',
+        'errors.auth': 'Conexión fallida.',
+        'logout.done': 'Desconectado.',
+        'app.title.bp': 'BATTLE POOL',
+        'app.title.duel': 'DUELO',
+        'app.title.br': 'BATTLE ROYALE',
+    },
+    de: {
+        'lang.title': 'Wähle deine Sprache',
+        'login.title': 'Bereit zu kämpfen?',
+        'login.subtitle': 'Verbinde deine Wallet, um die Arena zu betreten und deine Sitzung zu starten.',
+        'login.card_title': 'Wallet-Verbindung',
+        'login.connect': '🦊 MetaMask verbinden',
+        'login.connecting': '⏳ Verbinden...',
+        'login.lang_switch': '🌐 Sprache ändern',
+        'menu.title': 'MODUS AUSWAHL',
+        'menu.subtitle': 'Ein Konto, drei Modi. Wähle dein Schlachtfeld.',
+        'menu.bp.title': 'Battle Pool',
+        'menu.bp.desc': 'Live-Kampfvorhersage. Schere-Stein-Papier mit ETH-Wetten, Marktplatz und Empfehlung.',
+        'menu.duel.title': 'Duell',
+        'menu.duel.desc': 'Echtzeit-3D-Godot-Kampf. Live 1 gegen 1 gegen einen Gegner.',
+        'menu.br.title': 'Battle Royale',
+        'menu.br.desc': 'Ausscheidungsturnier. Trete einer Lobby bei oder erstelle einen privaten Pool.',
+        'menu.play': 'SPIELEN',
+        'login.required': 'Verbinde zuerst deine Wallet, um zu spielen.',
+        'login.connected': 'Verbunden — alle Modi freigeschaltet.',
+        'session.valid': 'Aktive Sitzung erkannt.',
+        'errors.metamask': 'MetaMask ist erforderlich. Installiere die Erweiterung oder nutze einen mobilen Browser.',
+        'errors.network': 'Serververbindungsfehler. Bitte erneut versuchen.',
+        'errors.auth': 'Verbindung fehlgeschlagen.',
+        'logout.done': 'Getrennt.',
+        'app.title.bp': 'BATTLE POOL',
+        'app.title.duel': 'DUEL',
+        'app.title.br': 'BATTLE ROYALE',
+    },
+    pt: {
+        'lang.title': 'Selecione seu idioma',
+        'login.title': 'Pronto para Lutar?',
+        'login.subtitle': 'Conecte sua carteira para entrar na arena e iniciar sua sessão.',
+        'login.card_title': 'Conexão da Carteira',
+        'login.connect': '🦊 Conectar MetaMask',
+        'login.connecting': '⏳ Conectando...',
+        'login.lang_switch': '🌐 Mudar idioma',
+        'menu.title': 'SELEÇÃO DE MODO',
+        'menu.subtitle': 'Uma conta, três modos. Escolha seu campo de batalha.',
+        'menu.bp.title': 'Battle Pool',
+        'menu.bp.desc': 'Previsão de combate ao vivo. Pedra, papel, tesoura com apostas ETH, marketplace e indicação.',
+        'menu.duel.title': 'Duelo',
+        'menu.duel.desc': 'Combate 3D Godot em tempo real. 1 vs 1 ao vivo contra um oponente.',
+        'menu.br.title': 'Battle Royale',
+        'menu.br.desc': 'Torneio de eliminação. Entre em um lobby ou crie um grupo privado.',
+        'menu.play': 'JOGAR',
+        'login.required': 'Conecte sua carteira primeiro para jogar.',
+        'login.connected': 'Conectado — todos os modos desbloqueados.',
+        'session.valid': 'Sessão ativa detectada.',
+        'errors.metamask': 'MetaMask é necessário. Instale a extensão ou use um navegador móvel.',
+        'errors.network': 'Erro de conexão com o servidor. Tente novamente.',
+        'errors.auth': 'Falha na conexão.',
+        'logout.done': 'Desconectado.',
+        'app.title.bp': 'BATTLE POOL',
+        'app.title.duel': 'DUELO',
+        'app.title.br': 'BATTLE ROYALE',
+    },
+    zh: {
+        'lang.title': '选择您的语言',
+        'login.title': '准备战斗？',
+        'login.subtitle': '连接您的钱包进入竞技场并开始您的会话。',
+        'login.card_title': '钱包连接',
+        'login.connect': '🦊 连接 MetaMask',
+        'login.connecting': '⏳ 连接中...',
+        'login.lang_switch': '🌐 更改语言',
+        'menu.title': '模式选择',
+        'menu.subtitle': '一个账户，三种模式。选择您的战场。',
+        'menu.bp.title': 'Battle Pool',
+        'menu.bp.desc': '实时战斗预测。石头剪刀布并下注ETH，市场与推荐。',
+        'menu.duel.title': '决斗',
+        'menu.duel.desc': '实时3D Godot战斗。与对手进行1对1对决。',
+        'menu.br.title': '大逃杀',
+        'menu.br.desc': '淘汰赛。加入大厅或创建私人房间。',
+        'menu.play': '开始',
+        'login.required': '请先连接您的钱包再开始游戏。',
+        'login.connected': '已连接 — 所有模式已解锁。',
+        'session.valid': '检测到活跃会话。',
+        'errors.metamask': '需要MetaMask。请安装扩展或使用移动浏览器。',
+        'errors.network': '服务器连接错误。请重试。',
+        'errors.auth': '连接失败。',
+        'logout.done': '已断开连接。',
+        'app.title.bp': 'BATTLE POOL',
+        'app.title.duel': '决斗',
+        'app.title.br': '大逃杀',
+    }
+};
+
+let currentLocale = 'fr';
+function t(key) {
+    return (TRANSLATIONS[currentLocale] && TRANSLATIONS[currentLocale][key])
+        || TRANSLATIONS.en[key]
+        || key;
+}
+function applyTranslations() {
+    document.documentElement.lang = currentLocale;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.innerHTML = t(key); // autorise le <span class="grad"> inline
+    });
+    const btn = document.getElementById('connect-btn');
+    if (btn) btn.textContent = t('login.connect');
+}
+
+/* ===== NAVIGATION ENTRE ÉCRANS ===== */
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+/* ===== ÉTAT ===== */
+const state = { connected: false, walletAddress: null };
+
+/* ===== DÉTECTION SESSION EXISTANTE (localStorage partagé) ===== */
+function detectSession() {
+    try {
+        const raw = localStorage.getItem('user');
+        if (raw) {
+            const u = JSON.parse(raw);
+            const addr = u && (u.wallet_address || u.walletAddress || u.address);
+            if (addr) {
+                state.walletAddress = addr.toLowerCase();
+                state.connected = !!localStorage.getItem('auth_token') || !!localStorage.getItem('token');
+                return true;
+            }
+        }
+    } catch (e) { /* malformé → non connecté */ }
+    return false;
+}
+
+function shortAddr(a) { return a ? a.slice(0, 6) + '...' + a.slice(-4) : '0x...'; }
+function toast(msg, ms = 3000) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+/* ===== CONNEXION WALLET (flow identique à App 1) ===== */
+async function connectWallet() {
+    const btn = document.getElementById('connect-btn');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = t('login.connecting');
+
+    try {
+        if (typeof window.ethereum === 'undefined') {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                const cleaned = window.location.href.replace(/^https?:\/\//, '');
+                window.open('https://metamask.app.link/dapp/' + cleaned, '_blank');
+                toast(t('login.connecting'));
+                return;
+            }
+            toast(t('errors.metamask'));
+            return;
+        }
+
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const walletAddress = accounts[0];
+
+        // 1. Challenge
+        const challengeRes = await fetch('/api/wallet/generate-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ wallet_address: walletAddress })
+        });
+        const challengeData = await challengeRes.json();
+        if (!challengeRes.ok) throw new Error(challengeData.message || t('errors.network'));
+        const message = challengeData.message;
+
+        // 2. Sign
+        const signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [message, walletAddress]
+        });
+
+        // 3. Verify (locale envoyé comme App 1)
+        const verifyRes = await fetch('/api/wallet/verify-signature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+                wallet_address: walletAddress,
+                signature: signature,
+                locale: localStorage.getItem('user_locale') || currentLocale
+            })
+        });
+        const data = await verifyRes.json();
+        if (!verifyRes.ok) throw new Error(data.message || t('errors.auth'));
+
+        // Persist session (clés identiques App 1 → partagées avec App 1 & App 2)
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('auth_token', data.token);
+
+        state.user = data.user;
+        state.walletAddress = (data.user.wallet_address || walletAddress).toLowerCase();
+        state.connected = true;
+
+        toast('✅ ' + t('login.connected'));
+        render();
+    } catch (error) {
+        console.error('[Portal] Échec connexion :', error);
+        toast('❌ ' + (error?.message || t('errors.auth')));
+    } finally {
+        btn.disabled = false;
+        btn.textContent = t('login.connect');
+    }
+}
+
+function logout() {
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
+    state.connected = false;
+    state.walletAddress = null;
+    toast(t('logout.done'));
+    showScreen('screen-login');
+    render();
+}
+
+/* ===== RENDU ===== */
+function render() {
+    document.getElementById('wallet-badge').style.display = state.connected ? 'flex' : 'none';
+    document.getElementById('wallet-addr').textContent = shortAddr(state.walletAddress);
+    document.getElementById('menu-wallet-addr').textContent = shortAddr(state.walletAddress);
+    if (state.connected) {
+        showScreen('screen-menu');
+    } else {
+        showScreen('screen-login');
+        document.getElementById('login-hint').textContent = t('login.required');
+    }
+}
+
+/* ===== POPUP APPLICATION (iframe) ===== */
+const APP_ROUTES = {
+    bp:   { url: PORTAL_CONFIG.APP1_URL,  titleKey: 'app.title.bp' },
+    duel: { url: PORTAL_CONFIG.APP2_URL,  titleKey: 'app.title.duel' },
+    br:   { url: PORTAL_CONFIG.APP2_URL,  titleKey: 'app.title.br' },
+};
+
+function openApp(mode) {
+    const conf = APP_ROUTES[mode];
+    if (!conf) return;
+    if (!state.connected) { toast(t('login.required')); return; }
+    document.getElementById('app-title').textContent = t(conf.titleKey);
+    const frame = document.getElementById('app-frame');
+    frame.src = conf.url;
+    document.getElementById('app-overlay').classList.add('show');
+    // Un second chargement évite le cache si l'utilisateur change de mode
+    document.getElementById('app-frame').onload = null;
+}
+function closeApp() {
+    document.getElementById('app-overlay').classList.remove('show');
+    document.getElementById('app-frame').src = 'about:blank';
+}
+function toggleFullscreen() {
+    const win = document.getElementById('app-window');
+    if (!document.fullscreenElement) {
+        win.requestFullscreen().catch(() => {});
+    } else {
+        document.exitFullscreen().catch(() => {});
+    }
+}
+
+/* ===== SÉLECTION DE LANGUE ===== */
+function buildLangGrid() {
+    const grid = document.getElementById('lang-grid');
+    grid.innerHTML = '';
+    SUPPORTED_LOCALES.forEach(lang => {
+        const btn = document.createElement('button');
+        btn.className = 'lang-btn';
+        btn.textContent = FLAGS[lang];
+        btn.onclick = () => chooseLanguage(lang);
+        grid.appendChild(btn);
+    });
+}
+function chooseLanguage(lang) {
+    if (!SUPPORTED_LOCALES.includes(lang)) return;
+    currentLocale = lang;
+    localStorage.setItem('user_locale', lang);
+    applyTranslations();
+    // Après choix de langue → connexion (ou menu si déjà connecté)
+    render();
+}
+
+/* ===== INITIALISATION ===== */
+function initLanguage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlLang = urlParams.get('lang');
+    let savedLang = localStorage.getItem('user_locale');
+
+    if (urlLang && SUPPORTED_LOCALES.includes(urlLang)) {
+        savedLang = urlLang;
+        localStorage.setItem('user_locale', urlLang);
+    }
+    if (savedLang && SUPPORTED_LOCALES.includes(savedLang)) {
+        currentLocale = savedLang;
+        applyTranslations();
+        return true; // langue connue → passer à la connexion
+    }
+    // Pas de langue → afficher le sélecteur plein écran
+    currentLocale = 'en';
+    buildLangGrid();
+    applyTranslations();
+    showScreen('screen-lang');
+    return false;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const hasLang = initLanguage();
+
+    // Boutons
+    document.getElementById('connect-btn').addEventListener('click', connectWallet);
+    document.getElementById('lang-switch').addEventListener('click', () => { buildLangGrid(); showScreen('screen-lang'); });
+    document.getElementById('lang-switch-2').addEventListener('click', () => { buildLangGrid(); showScreen('screen-lang'); });
+    document.getElementById('logout-btn').addEventListener('click', logout);
+    document.getElementById('app-close').addEventListener('click', closeApp);
+    document.getElementById('app-fullscreen').addEventListener('click', toggleFullscreen);
+
+    // Cartes du menu
+    document.querySelectorAll('.menu-card').forEach(card => {
+        card.addEventListener('click', () => openApp(card.dataset.app));
+    });
+
+    // Si langue connue → connexion ou menu directement
+    if (hasLang) render();
+
+    // Sync multi-onglet
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'user' || e.key === 'auth_token' || e.key === 'token') {
+            const was = state.connected;
+            detectSession();
+            if (was !== state.connected) render();
+        }
+    });
+});
+</script>
+</body>
+</html>
