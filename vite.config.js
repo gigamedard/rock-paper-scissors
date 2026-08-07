@@ -5,7 +5,6 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
-                'resources/css/app.css',
                 'resources/css/marketplace.css',
                 'resources/css/referral.css',
                 'resources/css/influencer.css',

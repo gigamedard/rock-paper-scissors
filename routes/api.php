@@ -9,6 +9,7 @@ use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\PoolAutoMatchController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\WalletAuthController;
+use App\Http\Controllers\GameMetricsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -22,11 +23,35 @@ Route::post('/auth/verify', [WalletAuthController::class, 'verifySignature']);  
 Route::post('/login', [WalletAuthController::class, 'login']);                    // Direct login for UI/Bots
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);           // Publié pour permettre l'init Web3
 
+Route::get('/health', function () {
+    try {
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        $db = 'OK';
+    } catch (\Exception $e) {
+        $db = 'ERROR';
+    }
+
+    try {
+        \Illuminate\Support\Facades\Cache::put('health', 'ok', 1);
+        $cache = 'OK';
+    } catch (\Exception $e) {
+        $cache = 'ERROR';
+    }
+
+    return response()->json([
+        'status' => ($db === 'OK' && $cache === 'OK') ? 'OK' : 'ERROR',
+        'database' => $db,
+        'cache' => $cache,
+        'bridge_last_ping' => \Illuminate\Support\Facades\Cache::get('bridge_last_ping', 'NONE')
+    ]);
+});
+
 // Protected routes (using our custom ApiAuth middleware)
 Route::middleware('token.auth')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::post('/metrics/collect', [GameMetricsController::class, 'collect']);
     Route::get('/user/polling-status', [PoolAutoMatchController::class, 'getPollingStatus']);
     Route::post('/user/set-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
     Route::get('/referral/status', [ReferralController::class, 'getStatus']);
@@ -196,6 +221,10 @@ Route::prefix('internal')->middleware('auth.internal')->group(function () {
     Route::post('/batch-processing-all', [PoolAutoMatchController::class, 'processAllBetTiers']);
     Route::post('/internal-pools', [PoolAutoMatchController::class, 'processInternalPools']);
     Route::post('/payout', [InternalPayoutController::class, 'payout']);
+    Route::post('/ping', function () {
+        \Illuminate\Support\Facades\Cache::put('bridge_last_ping', now()->timestamp, 60);
+        return response()->json(['success' => true]);
+    });
     //todo: do not forget sendPremove from frontend to backend since we use now we use token auth middleware
 
 });

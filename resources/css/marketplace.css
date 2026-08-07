@@ -1,4 +1,4 @@
-/* resources/css/marketplace.css — Thème DBS Battlepool */
+/* resources/css/marketplace.css — Thème Battlepool (DA du jeu : Neo-Street Fighter) */
 
 #marketplace-page {
     padding: 2rem;
@@ -12,12 +12,14 @@
 }
 
 .mp-header h1 {
-    font-size: 2.5rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #6366f1, #ec4899);
+    font-size: 2.2rem;
+    font-weight: 900;
+    font-style: italic;
+    background: linear-gradient(90deg, var(--gold-primary), var(--gold-hover));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    text-shadow: 0 0 25px rgba(255,199,0,0.25);
 }
 
 .mp-header p {
@@ -34,47 +36,51 @@
 }
 
 .mp-stat-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 1rem;
+    background: rgba(31,27,46,0.8);
+    border: 1.5px solid var(--purple-neon);
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     padding: 1.2rem;
     text-align: center;
-    transition: border-color 0.3s;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .mp-stat-card:hover {
-    border-color: var(--primary);
+    border-color: var(--cyan-spark);
+    box-shadow: 0 0 15px rgba(0,229,255,0.2);
 }
 
 .mp-stat-label {
-    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    font-size: 0.68rem;
     color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     margin-bottom: 0.5rem;
 }
 
 .mp-stat-value {
+    font-family: var(--font-heading);
     font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--primary);
+    font-weight: 900;
+    color: var(--gold-primary);
 }
 
 /* Create offer form */
 .mp-create-panel {
-    background: rgba(99, 102, 241, 0.08);
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    border-radius: 1.2rem;
+    background: rgba(31,27,46,0.8);
+    border: 1.5px solid var(--purple-neon);
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
     padding: 1.8rem;
     margin-bottom: 2rem;
 }
 
 .mp-create-panel h2 {
-    color: var(--primary);
+    color: var(--gold-primary);
     margin-bottom: 1.2rem;
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
+    font-style: italic;
 }
 
 .mp-form-grid {
@@ -86,52 +92,60 @@
 
 .mp-form-group label {
     display: block;
-    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    font-size: 0.68rem;
     color: var(--text-dim);
     text-transform: uppercase;
     margin-bottom: 0.4rem;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
 }
 
 .mp-form-group input {
     width: 100%;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 0.6rem;
+    background: var(--bg-cyber-dark);
+    border: 1px solid var(--purple-neon);
+    clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
     padding: 0.8rem;
     color: #fff;
+    font-family: var(--font-body);
     font-size: 1rem;
+    font-weight: 600;
     outline: none;
-    transition: border-color 0.3s;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .mp-form-group input:focus {
-    border-color: var(--primary);
+    border-color: var(--cyan-spark);
+    box-shadow: 0 0 10px rgba(0,229,255,0.25);
 }
 
 .btn-mp-create {
     width: 100%;
-    background: linear-gradient(135deg, #6366f1, #ec4899);
+    background: linear-gradient(90deg, var(--gold-primary), var(--gold-hover));
     border: none;
-    border-radius: 0.8rem;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     padding: 0.9rem;
-    color: #fff;
+    color: #000;
+    font-family: var(--font-heading);
     font-weight: 800;
-    font-size: 1rem;
+    font-size: 0.9rem;
     letter-spacing: 1px;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
+    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 0 15px rgba(255,199,0,0.3);
 }
 
-.btn-mp-create:hover { opacity: 0.85; transform: translateY(-1px); }
-.btn-mp-create:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-mp-create:hover { opacity: 0.88; transform: translateY(-1px); box-shadow: 0 0 25px rgba(255,199,0,0.5); }
+.btn-mp-create:disabled { opacity: 0.4; cursor: not-allowed; transform: none; filter: grayscale(1); }
 
 /* Offer cards */
 .mp-offers-section h2 {
     color: var(--text-dim);
-    font-size: 1rem;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     margin-bottom: 1rem;
 }
 
@@ -141,9 +155,9 @@
 }
 
 .mp-offer-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 1rem;
+    background: rgba(42,36,61,0.6);
+    border: 1.5px solid var(--purple-neon);
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     padding: 1.2rem 1.5rem;
     display: flex;
     align-items: center;
@@ -153,27 +167,28 @@
 }
 
 .mp-offer-card:hover {
-    background: rgba(99, 102, 241, 0.07);
-    border-color: rgba(99, 102, 241, 0.4);
+    background: rgba(123,44,191,0.12);
+    border-color: var(--cyan-spark);
 }
 
 .mp-offer-card.own-trade {
-    border-color: rgba(236, 72, 153, 0.4);
-    background: rgba(236, 72, 153, 0.05);
+    border-color: var(--magenta-vivid);
+    background: rgba(255,0,85,0.08);
 }
 
 .mp-offer-amounts {
     display: flex;
     align-items: center;
     gap: 0.8rem;
+    font-family: var(--font-heading);
     font-size: 1.1rem;
     font-weight: 800;
 }
 
-.mp-snt { color: #f59e0b; }
+.mp-snt { color: var(--gold-primary); }
 .mp-arrow { color: var(--text-dim); }
-.mp-avax { color: #e84142; }
-.mp-snt em, .mp-avax em { font-style: normal; font-size: 0.75rem; font-weight: 400; }
+.mp-avax { color: var(--cyan-spark); }
+.mp-snt em, .mp-avax em { font-style: normal; font-size: 0.75rem; font-weight: 400; color: var(--text-dim); }
 
 .mp-offer-meta {
     display: flex;
@@ -186,116 +201,140 @@
 }
 
 .btn-mp-buy {
-    background: linear-gradient(135deg, #10b981, #6366f1);
+    background: linear-gradient(90deg, var(--success-green), var(--cyan-spark));
     border: none;
-    border-radius: 0.6rem;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
     padding: 0.6rem 1.2rem;
-    color: #fff;
-    font-weight: 700;
+    color: #000;
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.75rem;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s, box-shadow 0.2s;
 }
 
 .btn-mp-cancel {
-    background: rgba(236, 72, 153, 0.2);
-    border: 1px solid #ec4899;
-    border-radius: 0.6rem;
+    background: rgba(255,0,85,0.15);
+    border: 1px solid var(--magenta-vivid);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
     padding: 0.6rem 1.2rem;
-    color: #ec4899;
-    font-weight: 700;
+    color: var(--magenta-vivid);
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.75rem;
     cursor: pointer;
     transition: background 0.2s;
 }
 
-.btn-mp-buy:hover { opacity: 0.85; }
-.btn-mp-cancel:hover { background: rgba(236, 72, 153, 0.4); }
+.btn-mp-buy:hover { opacity: 0.85; box-shadow: 0 0 15px rgba(0,230,118,0.4); }
+.btn-mp-cancel:hover { background: rgba(255,0,85,0.35); }
 
 .mp-empty-state {
     text-align: center;
     color: var(--text-dim);
     padding: 3rem;
-    border: 1px dashed rgba(255,255,255,0.1);
-    border-radius: 1rem;
+    border: 1.5px dashed var(--purple-neon);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    font-family: var(--font-body);
+    font-weight: 600;
 }
 
 /* Bouton Approuver (Étape 1) */
 .mp-btn-approve {
-    background: rgba(245, 158, 11, 0.15);
-    border: 1px solid rgba(245, 158, 11, 0.6);
-    border-radius: 0.8rem;
+    background: rgba(255,199,0,0.12);
+    border: 1px solid rgba(255,199,0,0.6);
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     padding: 0.9rem;
-    color: #f59e0b;
+    color: var(--gold-primary);
+    font-family: var(--font-heading);
     font-weight: 800;
-    font-size: 1rem;
+    font-size: 0.9rem;
     letter-spacing: 1px;
+    text-transform: uppercase;
     cursor: pointer;
     transition: background 0.2s, transform 0.1s;
 }
-.mp-btn-approve:hover:not(:disabled) { background: rgba(245,158,11,0.3); transform: translateY(-1px); }
+.mp-btn-approve:hover:not(:disabled) { background: rgba(255,199,0,0.25); transform: translateY(-1px); }
 .mp-btn-approve:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 /* Bouton Créer (Étape 2) */
 .mp-btn-create {
-    background: linear-gradient(135deg, #6366f1, #ec4899);
+    background: linear-gradient(90deg, var(--gold-primary), var(--gold-hover));
     border: none;
-    border-radius: 0.8rem;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     padding: 0.9rem;
-    color: #fff;
+    color: #000;
+    font-family: var(--font-heading);
     font-weight: 800;
-    font-size: 1rem;
+    font-size: 0.9rem;
     letter-spacing: 1px;
+    text-transform: uppercase;
     cursor: pointer;
     transition: opacity 0.2s, transform 0.1s;
+    box-shadow: 0 0 15px rgba(255,199,0,0.3);
 }
-.mp-btn-create:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
-.mp-btn-create:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.mp-btn-create:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); box-shadow: 0 0 25px rgba(255,199,0,0.5); }
+.mp-btn-create:disabled { opacity: 0.4; cursor: not-allowed; transform: none; filter: grayscale(1); }
 
 /* Notifications toast Marketplace */
-.mp-notification { border-radius: 0.6rem; padding: 0.8rem 1rem; font-size: 0.9rem; }
-.mp-notification-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #6ee7b7; }
-.mp-notification-error   { background: rgba(239,68,68,0.15);  border: 1px solid rgba(239,68,68,0.4);  color: #fca5a5; }
-.mp-notification-info    { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; }
+.mp-notification {
+    border-radius: 0.6rem;
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+.mp-notification-success { background: rgba(0,230,118,0.15); border: 1px solid rgba(0,230,118,0.4); color: var(--success-green); }
+.mp-notification-error   { background: rgba(255,23,68,0.15);  border: 1px solid rgba(255,23,68,0.4);  color: var(--error-red); }
+.mp-notification-info    { background: rgba(0,229,255,0.12); border: 1px solid rgba(0,229,255,0.4); color: var(--cyan-spark); }
 
 /* Fix mp-input-group (class utilisée en HTML mais style défini comme mp-form-group) */
 .mp-input-group { display: flex; flex-direction: column; }
 .mp-input-group label {
     display: block;
-    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    font-size: 0.68rem;
     color: var(--text-dim);
     text-transform: uppercase;
     margin-bottom: 0.4rem;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
 }
 .mp-input-group input {
     width: 100%;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 0.6rem;
+    background: var(--bg-cyber-dark);
+    border: 1px solid var(--purple-neon);
+    clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
     padding: 0.8rem;
     color: #fff;
+    font-family: var(--font-body);
     font-size: 1rem;
+    font-weight: 600;
     outline: none;
     transition: border-color 0.3s;
     box-sizing: border-box;
 }
-.mp-input-group input:focus { border-color: var(--primary); }
+.mp-input-group input:focus { border-color: var(--cyan-spark); box-shadow: 0 0 10px rgba(0,229,255,0.25); }
 
 /* --- BOUTIQUE CARTES HOLOGRAPHIQUES --- */
 .holo-card {
     position: relative;
-    background: rgba(20, 20, 20, 0.8);
-    border-radius: 15px;
+    background: rgba(24,24,36,0.85);
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
     padding: 20px;
     overflow: hidden;
     color: white;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 18px rgba(123,44,191,0.12);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1.5px solid var(--purple-neon);
 }
 
 .holo-card:hover {
     transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.8), 0 0 25px rgba(123,44,191,0.3);
+    border-color: var(--gold-primary);
 }
 
 .holo-card::before {
@@ -304,17 +343,13 @@
     top: -50%; left: -50%; width: 200%; height: 200%;
     background: linear-gradient(
         45deg,
-        rgba(255, 0, 0, 0.1) 0%,
-        rgba(255, 154, 0, 0.1) 10%,
-        rgba(208, 222, 33, 0.1) 20%,
-        rgba(79, 220, 74, 0.1) 30%,
-        rgba(63, 218, 216, 0.1) 40%,
-        rgba(47, 201, 226, 0.1) 50%,
-        rgba(28, 127, 238, 0.1) 60%,
-        rgba(95, 21, 242, 0.1) 70%,
-        rgba(186, 12, 248, 0.1) 80%,
-        rgba(251, 7, 217, 0.1) 90%,
-        rgba(255, 0, 0, 0.1) 100%
+        rgba(255,199,0,0.08) 0%,
+        rgba(255,145,0,0.08) 15%,
+        rgba(255,0,85,0.08) 30%,
+        rgba(123,44,191,0.08) 50%,
+        rgba(0,229,255,0.08) 70%,
+        rgba(0,230,118,0.08) 85%,
+        rgba(255,199,0,0.08) 100%
     );
     opacity: 0;
     transition: opacity 0.3s;
@@ -340,44 +375,91 @@
 }
 
 .holo-card-title {
-    font-size: 1.5rem;
-    font-weight: bold;
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 900;
+    font-style: italic;
     margin-bottom: 0.5rem;
-    background: linear-gradient(to right, #fff, #aaa);
+    background: linear-gradient(to right, var(--gold-primary), #fff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .holo-card-effect {
-    font-size: 0.9rem;
-    color: var(--accent);
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    color: var(--cyan-spark);
     margin-bottom: 1rem;
-    background: rgba(255,255,255,0.1);
+    background: rgba(0,229,255,0.1);
     display: inline-block;
     padding: 0.3rem 0.8rem;
-    border-radius: 20px;
+    clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
 }
 
 .holo-card-price {
+    font-family: var(--font-heading);
     font-size: 1.2rem;
-    font-weight: 800;
-    color: var(--success);
+    font-weight: 900;
+    color: var(--success-green);
     margin: 1rem 0;
+    text-shadow: 0 0 15px rgba(0,230,118,0.35);
 }
 
 .btn-buy-card {
-    background: linear-gradient(90deg, #10b981, #059669);
+    background: linear-gradient(90deg, var(--success-green), var(--cyan-spark));
     border: none;
-    border-radius: 25px;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     padding: 0.8rem 2rem;
-    color: white;
-    font-weight: bold;
+    color: #000;
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
 }
 .btn-buy-card:hover {
-    background: linear-gradient(90deg, #34d399, #10b981);
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+    filter: brightness(1.12);
+    box-shadow: 0 0 20px rgba(0,230,118,0.5);
 }
 
+/* ===== Offre card : meta / seller / price / actions ===== */
+.mp-offer-meta {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 0;
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+}
+
+.mp-seller {
+    color: var(--text-dim);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 55%;
+}
+
+.mp-price {
+    color: var(--gold-primary);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 10px rgba(255,199,0,0.25);
+}
+
+.mp-offer-actions {
+    display: flex;
+    gap: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid rgba(123,44,191,0.25);
+}
+
+.mp-offer-actions .btn-mp-buy,
+.mp-offer-actions .btn-mp-cancel {
+    flex: 1;
+}

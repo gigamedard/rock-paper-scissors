@@ -95,17 +95,19 @@
 
 ## 5. Wallets & Tokens
 
-| Wallet | Adresse | Solde |
+| Wallet | Adresse | Solde (2026-08-07) |
 |---|---|---|
-| Compte Hardhat #0 | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | 1000 SNT + ETH |
-| **Wallet utilisateur (session)** | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` | **1000 SNT** + 9989 ETH |
+| Compte Hardhat #0 | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | **3 SNT** + ETH — ⚠️ **spammé par le worker** (nonce ~29832, croît en continu) : NE PAS l'utiliser pour tester le marketplace |
+| **Wallet utilisateur (session)** | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` | **953 SNT** + ETH — nonce stable (7) : ✅ **compte de test MARKETPLACE** |
 | Owner SNTToken | `0x8C3229EC621644789d7F61FAa82c6d0E5F97d43D` | 999 000 SNT (mint initial 1M) |
 
 > 🔑 Clé privée compte #0 (standard Hardhat) : `***REMOVED***`
-> 🔴 **HISTORIQUE** : `createOffer` échouait avec `0xe450d38c` =
-> `ERC20InsufficientBalance(address,0,amount)` car le wallet avait **0 SNT**.
-> **CORRECTION** : transfert de 1000 SNT (compte #0 → wallet utilisateur).
-> ⚠️ Après un **reset/rebuild** de la blockchain App 1, les SNT sont perdus → **re-transférer**.
+> 🔑 Clé privée compte #1 (standard Hardhat) : `***REMOVED***`
+> 🔴 **PROCÉDURE DE TEST MARKETPLACE (recommandée)** :
+> 1. Dans MetaMask, importer la clé privée du **compte #1** (ci-dessus) et l'activer.
+> 2. Se connecter au portail avec ce compte (le wallet utilisé par la session détermine le user DB).
+> 3. Créer une offre : Approve puis Create (le nonce frais est géré automatiquement par `_sendWithFreshNonce`).
+> ⚠️ Après un **reset/rebuild** de la blockchain App 1, les SNT sont perdus → **re-transférer** (compte #0 → #1).
 
 ---
 
@@ -113,7 +115,7 @@
 
 | Fichier | Rôle |
 |---|---|
-| `public/portal.html` | Le portail unifié (langue + wallet + menu + iframe popup) — **assets inline** |
+| `public/portal.html` | Le portail unifié (langue + wallet + menu + iframe popup) — **assets inline** (restylé DA jeu 2026-08-07) |
 | `routes/web.php` | Route `GET /portal` (AJOUTÉE avant le catch-all `/{any}`) |
 | `proxy/nginx.conf` | Config du proxy nginx unifié (root → 8001, /app2/ → 8080) |
 
@@ -144,10 +146,13 @@ docker cp "G:\DEV\PHP\rock-paper-scissors\battlepool\hardhat.config.js" rock-pap
 docker restart rock-paper-scissors-blockchain-1
 docker restart rock-paper-scissors-bridge-1   # (crash "network changed: 1337 => 31337")
 
-# 5. Après un REBUILD de l'image app-1 : re-copier le portail + config.js
-docker cp "G:\DEV\PHP\rock-paper-scissors\public\portal.html" rock-paper-scissors-app-1:/var/www/html/public/portal.html
-docker cp "G:\DEV\PHP\rock-paper-scissors\public\js\config.js" rock-paper-scissors-app-1:/var/www/html/public/js/config.js
-docker restart rock-paper-scissors-app-1
+# 5. Après un REBUILD de l'image app-1 : (⚠️ PLUS NÉCESSAIRE depuis 2026-08-07)
+#    L'image inclut désormais le portail restylé, config.js (8546) ET le build Vite.
+#    Pour régénérer l'image (ex: nouveau restyle) :
+#    docker compose build app
+#    docker compose up -d --force-recreate app
+#    NB : si le package.json a changé, régénérer d'abord le lock avec npm 11 (node >= 22) :
+#    npm install --no-audit --no-fund   (node 24 recommandé)
 
 # 6. Après un reset de la blockchain App 1 : re-transférer les SNT
 node "C:\Users\GWX122~1\AppData\Local\Temp\opencode\transfer_snt.js"
@@ -183,8 +188,11 @@ Invoke-WebRequest http://127.0.0.1:8090/api/wallet/generate-message -Method POST
 | 3 | StackOverflow sur re-déploiement contrat App 2 (`<UnrecognizedContract>`) | ⚠️ connu |
 | 4 | Bridge App 1 : boucle "Catching up" (ne rattrape jamais le tip) | ⚠️ connu |
 | 5 | `web3-core.js` App 1 : switch WalletConnect force encore `0x539` (1337) → à corriger si WalletConnect utilisé | TODO |
-| 6 | Persistance `portal.html` + `config.js` : perdus au rebuild image App 1 (pas de volume) → **rebuild l'image avec ces fichiers** | TODO |
+| 6 | ~~Persistance `portal.html` + `config.js` perdus au rebuild image App 1~~ | ✅ **RÉSOLU 2026-08-07** : le rebuild image inclut désormais TOUS les fichiers restylés (DA jeu) + `config.js` en 8546. Le Dockerfile builder est passé en `node:24-slim` (npm 11) car le `package-lock.json` est généré par npm 11 et exige `node >= 22.12` (puppeteer-core@25). |
 | 7 | Automatisation switch réseau MetaMask dans le portail (`wallet_switchEthereumChain` → `0x7a69`) | TODO optionnel |
+| 8 | ~~`Nonce too low` sur le marketplace~~ | ✅ **RÉSOLU 2026-08-07 (partiellement côté code)** : le worker/bridge spame le compte #0 (`0xf39F...`) ~1 tx/5s en boucle (automining) → nonce nœud à ~29832 vs MetaMask périmé. Fix dans `marketplace.js` : `_sendWithFreshNonce()` lit le nonce frais (`getTransactionCount pending`) à chaque envoi + retry sur `NONCE_EXPIRED`. ⚠️ Pour tester SEREINEMENT : utiliser le **compte #1** (`0x7099...`, nonce stable = 7, 953 SNT) au lieu du compte #0 (3 SNT + nonce spammé). |
+| 9 | ~~403 "Accès réservé aux influenceurs" sur `/api/influencer/dashboard`~~ | ✅ **RÉSOLU 2026-08-07** : la table `influencers` était VIDE (seed commenté). Fait via la route existante `POST /api/influencer/join-test` (non destructive) → pool FR + influencer (user id=1) + stats créés. Dashboard 200. |
+| 10 | ~~Rogue PHP XAMPP squatte `127.0.0.1:8090` → 404/500 au lieu du proxy Docker~~ | ✅ **RÉSOLU 2026-08-07 (RÉCURRENT !)** : `php -S 127.0.0.1:8090 -t public` (XAMPP) reprend le port à chaque session. **Fix** : `Stop-Process -Id (PID du php.exe sur 8090) -Force` puis `Get-NetTCPConnection -LocalPort 8090` doit montrer uniquement `::` (com.docker.backend) et `::1` (wslrelay). Toujours tester via `localhost:8090` ou `127.0.0.1:8090` APRÈS vérification qu'il n'y a plus de listener php. |
 
 ---
 
@@ -197,3 +205,6 @@ Invoke-WebRequest http://127.0.0.1:8090/api/wallet/generate-message -Method POST
 | `execution reverted 0xe450d38c` = `ERC20InsufficientBalance` | wallet à 0 SNT | transférer des SNT (script) |
 | `could not coalesce error ... eth_sendTransaction` | chaîne ethers v6 vers MetaMask, erreur RPC sous-jacente | dépend de l'erreur réelle (ci-dessus) |
 | `network changed: 1337 => 31337` (bridge crash) | bridge démarré AVANT le changement de chainId | `docker restart rock-paper-scissors-bridge-1` |
+| `Nonce too low. Have 29668, want 29689` (createOffer/approve) | le worker spame le compte #0 (nonce nœud >> nonce MetaMask) | utiliser le **compte #1** (`0x7099...`) pour tester + fix `_sendWithFreshNonce()` dans `marketplace.js` (déjà déployé) |
+| 404/500 Apache au lieu du portail sur `localhost:8090` | rogue `php -S 127.0.0.1:8090` (XAMPP) a repris le port | `Stop-Process` du php.exe sur 8090 ; vérifier que seul Docker écoute |
+| 403 "Accès réservé aux influenceurs" | pas d'enregistrement dans la table `influencers` | `POST /api/influencer/join-test` (avec Bearer token) |

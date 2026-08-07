@@ -12,6 +12,9 @@ services:
       MYSQL_ROOT_PASSWORD: ***REMOVED***
     volumes:
       - db_data:/var/lib/mysql
+    ports:
+      # 3307 hôte pour ne pas entrer en conflit avec l'autre app (3306)
+      - "3307:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p***REMOVED***"]
       interval: 5s
@@ -64,7 +67,8 @@ services:
     image: rock-paper-scissors-blockchain:latest
     restart: unless-stopped
     ports:
-      - "8545:8545"
+      # 8546 hôte pour ne pas entrer en conflit avec l'autre app (8545)
+      - "8546:8545"
     volumes:
       # Permet à full_deploy.js d'écrire les nouvelles adresses dans config.js (sur le host)
       - ./smart_contracts:/smart_contracts
@@ -117,7 +121,8 @@ services:
     restart: unless-stopped
     command: ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=8080"]
     ports:
-      - "8000:8080"
+      # 8001 hôte pour ne pas entrer en conflit avec l'autre app (8000)
+      - "8001:8080"
     env_file: .env.staging
     depends_on:
       init-db:

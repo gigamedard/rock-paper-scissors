@@ -27,3 +27,10 @@ smart_contracts/ipfs-storage/
 .agents/
 /storage/logs/
 *.log
+
+# Boucle de collaboration (état volatile)
+/collab/
+/.opencode/
+__pycache__/
+*.pyc
+/graphify-out/cache/ast/

@@ -68,26 +68,39 @@ class PoolAutoMatchController extends Controller
             'cooldown_time' => 'nullable|integer|min:0',
         ]);
 
-        $user = $request->user();
-        if ($user && in_array($user->status, ['in_pool', 'waiting', 'in_fight'])) {
-            return response()->json(['message' => 'You are already in an active session.'], 400);
+        $userId = $data['user_id'];
+        $lock = \Illuminate\Support\Facades\Cache::lock('join_pool_' . $userId, 5); // 5 seconds lock
+
+        if (!$lock->get()) {
+            return response()->json(['error' => 'Action already in progress'], 429);
         }
 
-        $response = $this->preMoveService->storePreMoves($data);
+        try {
+            $user = \App\Models\User::find($userId);
+            
+            // FSM Check: Prevent joining if already in active session
+            if ($user && in_array($user->status, ['in_pool', 'waiting', 'in_fight'])) {
+                return response()->json(['message' => 'You are already in an active session.'], 400);
+            }
 
-        // NOTIFICATION: User Joined Pool (or Queue)
-        if (isset($response['success']) && $response['success']) {
-            \App\Models\GameNotification::create([
-                'user_id' => $data['user_id'],
-                'type' => 'POOL_JOINED',
-                'data' => [
-                    'bet_amount' => $data['bet_amount'],
-                    'timestamp' => now()->toIso8601String(),
-                ],
-            ]);
+            $response = $this->preMoveService->storePreMoves($data);
+
+            // NOTIFICATION: User Joined Pool (or Queue)
+            if (isset($response['success']) && $response['success']) {
+                \App\Models\GameNotification::create([
+                    'user_id' => $data['user_id'],
+                    'type' => 'POOL_JOINED',
+                    'data' => [
+                        'bet_amount' => $data['bet_amount'],
+                        'timestamp' => now()->toIso8601String(),
+                    ],
+                ]);
+            }
+
+            return response()->json($response);
+        } finally {
+            $lock->release();
         }
-
-        return response()->json($response);
     }
 
     public function unregisterFromAutoplay(Request $request): JsonResponse
@@ -115,6 +128,7 @@ class PoolAutoMatchController extends Controller
             'session_start_battle_balance' => $user->session_start_battle_balance,
             'payout_signature' => $user->payout_signature,
             'cooldown_until' => $user->cooldown_until ? $user->cooldown_until->toIso8601String() : null,
+            'client_batch_interval' => config('game_settings.client_batch_interval', 5000)
         ]);
     }
 

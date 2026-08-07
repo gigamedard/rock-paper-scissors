@@ -1,4 +1,4 @@
-/* resources/css/referral.css — Thème DBS Battlepool */
+/* resources/css/referral.css — Thème Battlepool (DA du jeu : Neo-Street Fighter) */
 
 #referral-dashboard-page {
     padding: 2rem;
@@ -12,19 +12,21 @@
 }
 
 .ref-header h1 {
-    font-size: 2.5rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #10b981, #6366f1);
+    font-size: 2.2rem;
+    font-weight: 900;
+    font-style: italic;
+    background: linear-gradient(90deg, var(--gold-primary), var(--gold-hover));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    text-shadow: 0 0 25px rgba(255,199,0,0.25);
 }
 
 /* Mon code de parrainage */
 .ref-my-code-panel {
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    border-radius: 1.2rem;
+    background: rgba(0,230,118,0.06);
+    border: 1px solid rgba(0,230,118,0.3);
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
     padding: 1.8rem;
     margin-bottom: 1.5rem;
     display: flex;
@@ -34,34 +36,40 @@
 }
 
 .ref-my-code-panel h2 {
-    color: #10b981;
-    font-size: 0.85rem;
+    color: var(--success-green);
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     margin-bottom: 0.5rem;
 }
 
 #referral-my-code {
     font-size: 2rem;
     font-weight: 800;
-    font-family: monospace;
+    font-family: var(--font-heading);
     letter-spacing: 4px;
-    color: #fff;
+    color: var(--gold-primary);
+    text-shadow: 0 0 18px rgba(255,199,0,0.35);
 }
 
 .btn-ref-copy {
-    background: rgba(16, 185, 129, 0.2);
-    border: 1px solid #10b981;
-    border-radius: 0.8rem;
+    background: rgba(0,230,118,0.15);
+    border: 1px solid var(--success-green);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
     padding: 0.8rem 1.5rem;
-    color: #10b981;
-    font-weight: 700;
+    color: var(--success-green);
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.78rem;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, box-shadow 0.2s;
     white-space: nowrap;
 }
 
-.btn-ref-copy:hover { background: rgba(16, 185, 129, 0.35); }
+.btn-ref-copy:hover { background: rgba(0,230,118,0.3); box-shadow: 0 0 15px rgba(0,230,118,0.35); }
 
 /* Stats Grid */
 .ref-stats-grid {
@@ -72,35 +80,40 @@
 }
 
 .ref-stat-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 1rem;
+    background: rgba(42,36,61,0.6);
+    border: 1.5px solid var(--purple-neon);
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     padding: 1.2rem;
     text-align: center;
-    transition: border-color 0.3s;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.ref-stat-card:hover { border-color: var(--primary); }
+.ref-stat-card:hover {
+    border-color: var(--cyan-spark);
+    box-shadow: 0 0 15px rgba(0,229,255,0.2);
+}
 
 .ref-stat-label {
-    font-size: 0.7rem;
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
     color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     margin-bottom: 0.5rem;
 }
 
 .ref-stat-value {
+    font-family: var(--font-heading);
     font-size: 1.8rem;
-    font-weight: 800;
-    color: #10b981;
+    font-weight: 900;
+    color: var(--gold-primary);
 }
 
 /* Apply Code */
 .ref-apply-panel {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 1.2rem;
+    background: rgba(31,27,46,0.8);
+    border: 1.5px solid var(--purple-neon);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
     padding: 1.5rem;
     margin-bottom: 2rem;
     display: flex;
@@ -110,49 +123,58 @@
 
 .ref-apply-panel label {
     display: block;
-    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    font-size: 0.68rem;
     color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     margin-bottom: 0.4rem;
 }
 
 .ref-apply-panel input {
     flex: 1;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 0.6rem;
+    background: var(--bg-cyber-dark);
+    border: 1px solid var(--purple-neon);
+    clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
     padding: 0.8rem;
-    color: #fff;
+    color: var(--gold-primary);
     font-size: 1rem;
     outline: none;
-    font-family: monospace;
+    font-family: var(--font-heading);
     letter-spacing: 2px;
+    font-weight: 700;
 }
 
-.ref-apply-panel input:focus { border-color: var(--primary); }
+.ref-apply-panel input:focus { border-color: var(--cyan-spark); box-shadow: 0 0 10px rgba(0,229,255,0.25); }
 
 .btn-ref-apply {
-    background: linear-gradient(135deg, #6366f1, #ec4899);
+    background: linear-gradient(90deg, var(--gold-primary), var(--gold-hover));
     border: none;
-    border-radius: 0.8rem;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
     padding: 0.8rem 1.5rem;
-    color: #fff;
-    font-weight: 700;
+    color: #000;
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: opacity 0.2s;
     white-space: nowrap;
+    box-shadow: 0 0 15px rgba(255,199,0,0.3);
 }
 
-.btn-ref-apply:hover { opacity: 0.85; }
+.btn-ref-apply:hover { opacity: 0.88; box-shadow: 0 0 25px rgba(255,199,0,0.5); }
 
 /* Leaderboard */
 .ref-leaderboard-section h2 {
-    color: var(--text-dim);
-    font-size: 1rem;
+    color: var(--gold-primary);
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     margin-bottom: 1rem;
+    font-style: italic;
 }
 
 #referral-leaderboard {
@@ -165,29 +187,31 @@
     grid-template-columns: 50px 1fr 120px 80px;
     align-items: center;
     gap: 1rem;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 0.8rem;
+    background: rgba(42,36,61,0.5);
+    border: 1px solid var(--purple-neon);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
     padding: 0.9rem 1.2rem;
     transition: border-color 0.3s;
 }
 
-.ref-leaderboard-row:hover { border-color: rgba(99,102,241,0.3); }
+.ref-leaderboard-row:hover { border-color: var(--cyan-spark); }
 
 .ref-leaderboard-row.top-three {
-    background: rgba(99, 102, 241, 0.06);
-    border-color: rgba(99, 102, 241, 0.2);
+    background: rgba(255,199,0,0.06);
+    border-color: rgba(255,199,0,0.35);
 }
 
-.ref-rank { font-size: 1.3rem; text-align: center; }
-.ref-wallet { font-family: monospace; color: var(--primary); font-size: 0.9rem; }
-.ref-count { color: var(--text-dim); font-size: 0.85rem; }
-.ref-rewards { color: #f59e0b; font-weight: 700; text-align: right; }
+.ref-rank { font-family: var(--font-heading); font-size: 1.3rem; text-align: center; color: var(--gold-primary); }
+.ref-wallet { font-family: var(--font-heading); color: var(--cyan-spark); font-size: 0.9rem; font-weight: 700; }
+.ref-count { color: var(--text-dim); font-size: 0.85rem; font-weight: 600; }
+.ref-rewards { color: var(--gold-primary); font-weight: 700; text-align: right; font-family: var(--font-heading); }
 
 .ref-empty {
     text-align: center;
     color: var(--text-dim);
     padding: 3rem;
-    border: 1px dashed rgba(255,255,255,0.1);
-    border-radius: 1rem;
+    border: 1.5px dashed var(--purple-neon);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    font-family: var(--font-body);
+    font-weight: 600;
 }

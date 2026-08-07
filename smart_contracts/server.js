@@ -55,10 +55,46 @@ const contract = new Contract(contracts.game.address, contracts.game.abi, wallet
 const fujiRpcUrl = FUJI_RPC_URL;
 const Avax_wallet = new Wallet(MARKETPLACE_WALLET_PK, fujiRpcUrl);
 
-
+// Wrapper to retry transactions on Nonce issues
+async function sendTransactionWithRetry(actionName, txFunc, maxRetries = 3) {
+    let retries = 0;
+    while (retries < maxRetries) {
+        try {
+            const nonce = await wallet.getNonce("pending");
+            const tx = await txFunc({ nonce });
+            await tx.wait();
+            return tx;
+        } catch (error) {
+            const msg = error.message || error.toString() || "";
+            if (msg.includes("nonce too low") || msg.includes("replacement transaction underpriced") || msg.includes("already known")) {
+                retries++;
+                console.warn(`[Nonce Error - ${actionName}] Retrying (Attempt ${retries}/${maxRetries})...`);
+                await new Promise(res => setTimeout(res, 500 * retries));
+            } else {
+                throw error;
+            }
+        }
+    }
+    throw new Error(`[${actionName}] Transaction failed after ${maxRetries} retries due to nonce issues.`);
+}
 
 // ABI et Adresse du contrat MarketplaceEscrow
 const marketplaceAbi = [
+
+// Watchdog Ping
+setInterval(async () => {
+    try {
+        await fetch(`${LARAVEL_API_URL}/internal/ping`, {
+            method: 'POST',
+            headers: {
+                'X-Internal-Secret': INTERNAL_API_SECRET,
+                'Content-Type': 'application/json'
+            }
+        });
+    } catch (e) {
+        console.error('❌ Watchdog Ping Failed:', e.message);
+    }
+}, 5000); // ping every 5 seconds
 	{
 		"inputs": [
 			{
@@ -503,12 +539,11 @@ app.post("/sendPoolCID", async (req, res) => {
 
 		console.log(`📡 Sending  CID on smart contract...`);
 		// Call the smart contract function (Replace with actual function name)
-		const tx = await contract.storeMatchHistoryCID(poolId, CID);
-		await tx.wait();
+		const tx = await sendTransactionWithRetry("storeMatchHistoryCID", (overrides) => contract.storeMatchHistoryCID(poolId, CID, overrides));
 
 		res.json({ success: true, txHash: tx.hash });
 	} catch (error) {
-		console.error("❌ Error sending CID to smart contract:", error);
+		console.error("❌ Error storing Match History CID:", error);
 		res.status(500).json({ error: error.message });
 	}
 });
@@ -522,18 +557,15 @@ app.post("/sendSessionCID", async (req, res) => {
 		}
 
 		console.log(`📡 Sending session  CID on smart contract...`)
-		// Call the smart contract function (Replace with actual function name)
-		const tx = await contract.storeSessionCID(wallet, CID);
-		await tx.wait();
+		// Call the smart contract function 
+		const tx = await sendTransactionWithRetry("storeSessionCID", (overrides) => contract.storeSessionCID(wallet, CID, overrides));
 
 		res.json({ success: true, txHash: tx.hash });
 	} catch (error) {
-		console.error("❌ Error sending session CID to smart contract:", error);
+		console.error("❌ Error storing session CID:", error);
 		res.status(500).json({ error: error.message });
 	}
-
-}
-);
+});
 
 app.post("/sendPayment", async (req, res) => {
 	try {
@@ -544,15 +576,10 @@ app.post("/sendPayment", async (req, res) => {
 		}
 
 		console.log(`📡 Sending payment - amount: ${formatEther(amount)} ETH on smart contract...`);
-		// Call the smart contract function (Replace with actual function name)
-		//const nonce = await provider.getTransactionCount(wallet, 'latest');
-
-
 		const balanceBefore = await provider.getBalance(wallet);
 
 		// Step 2: Send the payout transaction
-		const tx = await contract.payOut(wallet, amount);
-		const receipt = await tx.wait();
+		const tx = await sendTransactionWithRetry("payOut", (overrides) => contract.payOut(wallet, amount, overrides));
 
 		// Step 3: Small delay to allow for sync (optional in local dev)
 		await new Promise(resolve => setTimeout(resolve, 2000));
@@ -591,12 +618,11 @@ app.post("/sendBatchPayment", async (req, res) => {
 		console.log(`📡 Sending batch payment - total recipients: ${wallets.length}`);
 
 		// Call the smart contract function
-		const tx = await contract.batchPayOut(wallets, amounts);
-		await tx.wait();
+		const tx = await sendTransactionWithRetry("batchPayOut", (overrides) => contract.batchPayOut(wallets, amounts, overrides));
 
 		res.json({ success: true, txHash: tx.hash });
 	} catch (error) {
-		console.error("❌ Error sending batch payments to smart contract:", error);
+		console.error("❌ Error sending batch payments:", error);
 		res.status(500).json({ error: error.message });
 	}
 });
@@ -641,8 +667,7 @@ app.post("/refundUsers", async (req, res) => {
 			amounts.push(bal);
 		}
 
-		const tx = await contract.batchPayOut(wallets, amounts);
-		await tx.wait();
+		const tx = await sendTransactionWithRetry("batchPayOut", (overrides) => contract.batchPayOut(wallets, amounts, overrides));
 
 		res.json({ success: true, txHash: tx.hash });
 	} catch (error) {
@@ -659,12 +684,12 @@ app.post("/pool/validate", async (req, res) => {
 		}
 		console.log(`📡 Validating pool for baseBet: ${baseBet}`);
 		const parsedBaseBet = parseEther(baseBet.toString());
-		const tx = await contract.validatePool(parsedBaseBet);
-		await tx.wait();
-		res.json({ success: true, txHash: tx.hash });
-	} catch (error) {
-		console.error("❌ Error validating pool:", error.message);
-		res.status(500).json({ error: error.message });
+		const tx = await sendTransactionWithRetry("validatePool", (overrides) => contract.validatePool(parsedBaseBet, overrides));
+
+		return res.json({ success: true, txHash: tx.hash, message: "Pool validated successfully" });
+	} catch (contractError) {
+		console.error("❌ Error validating pool:", contractError.message);
+		res.status(500).json({ error: contractError.message });
 	}
 });
 
@@ -676,12 +701,12 @@ app.post("/pool/invalidate", async (req, res) => {
 		}
 		console.log(`📡 Invalidating users: ${invalidUsers.join(', ')} for baseBet: ${baseBet}`);
 		const parsedBaseBet = parseEther(baseBet.toString());
-		const tx = await contract.invalidatePoolUsers(parsedBaseBet, invalidUsers);
-		await tx.wait();
-		res.json({ success: true, txHash: tx.hash });
-	} catch (error) {
-		console.error("❌ Error invalidating pool users:", error.message);
-		res.status(500).json({ error: error.message });
+		const tx = await sendTransactionWithRetry("invalidatePoolUsers", (overrides) => contract.invalidatePoolUsers(parsedBaseBet, invalidUsers, overrides));
+
+		return res.json({ success: true, txHash: tx.hash, message: "Pool users invalidated successfully" });
+	} catch (contractError) {
+		console.error("❌ Error invalidating pool users:", contractError.message);
+		res.status(500).json({ error: contractError.message });
 	}
 });
 

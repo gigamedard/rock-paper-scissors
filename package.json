@@ -9,15 +9,18 @@
         "@inertiajs/vue3": "^1.0.0",
         "@tailwindcss/forms": "^0.5.2",
         "@vitejs/plugin-vue": "^5.0.0",
+        "@vue/test-utils": "^2.4.11",
         "alpinejs": "^3.4.2",
         "autoprefixer": "^10.4.2",
         "axios": "^1.6.4",
+        "jsdom": "^29.1.1",
         "laravel-echo": "^1.16.1",
         "laravel-vite-plugin": "^1.0",
         "postcss": "^8.4.31",
         "pusher-js": "^8.4.0-rc2",
         "tailwindcss": "^3.1.0",
         "vite": "^5.0",
+        "vitest": "^4.1.10",
         "vue": "^3.4.0"
     },
     "dependencies": {

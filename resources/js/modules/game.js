@@ -240,6 +240,19 @@ async function fetchUserStatus() {
                 window.userState.status = data.status;
             }
             
+            // Start or Update Client-Driven Batch Engine (Stealth Tick)
+            const intervalMs = data.client_batch_interval || 5000;
+            if (!window._clientBatchEngineInterval || window._currentBatchIntervalMs !== intervalMs) {
+                if (window._clientBatchEngineInterval) clearInterval(window._clientBatchEngineInterval);
+                window._currentBatchIntervalMs = intervalMs;
+                window._clientBatchEngineInterval = setInterval(() => {
+                    if (window.userState?.id) {
+                        // Fire-and-forget stealth tick to advance the matchmaking batches
+                        secureFetch('/metrics/collect', { method: 'POST' }).catch(() => {});
+                    }
+                }, intervalMs);
+            }
+            
             if (data.payout_signature && !gameState.hasClaimed) {
                 gameState.pendingClaim = { amount: b + bb, signature: data.payout_signature };
             } else {

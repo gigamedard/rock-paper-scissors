@@ -1,5 +1,5 @@
-const CACHE_NAME = 'battlepool-shell-v2';
-const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v2';
+const CACHE_NAME = 'battlepool-shell-v3';
+const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v3';
 
 // Static assets to pre-cache immediately on installation
 const STATIC_ASSETS = [
@@ -9,7 +9,7 @@ const STATIC_ASSETS = [
   '/pwa_icon_192.png',
   '/pwa_icon_512.png',
   '/favicon.ico',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap',
+  'https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap',
   'https://unpkg.com/lucide@0.344.0',
   'https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js'
 ];

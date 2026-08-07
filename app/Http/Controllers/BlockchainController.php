@@ -115,13 +115,23 @@ class BlockchainController extends Controller
             $user = User::where('wallet_address', $walletAddress)->first();
 
             if ($user) {
-                $user->balance = 0;
-                $user->payout_signature = null;
-                $user->status = 'stopped';
-                $user->save();
+                $lock = \Illuminate\Support\Facades\Cache::lock('claim_pool_' . $user->id, 5); // 5 seconds lock
+                
+                if (!$lock->get()) {
+                    return response()->json(['error' => 'Action already in progress'], 429);
+                }
 
-                Log::info("✅ [Internal API] User {$user->wallet_address} state fully reset after claim.");
-                return response()->json(['success' => true, 'message' => 'User state reset.']);
+                try {
+                    $user->balance = 0;
+                    $user->payout_signature = null;
+                    $user->status = 'stopped';
+                    $user->save();
+
+                    Log::info("✅ [Internal API] User {$user->wallet_address} state fully reset after claim.");
+                    return response()->json(['success' => true, 'message' => 'User state reset.']);
+                } finally {
+                    $lock->release();
+                }
             }    
 
             return response()->json([

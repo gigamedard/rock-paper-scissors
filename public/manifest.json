@@ -6,8 +6,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0a0b10",
-  "theme_color": "#7000ff",
+  "background_color": "#0F0C1B",
+  "theme_color": "#0F0C1B",
   "categories": ["games", "finance"],
   "icons": [
     {

@@ -1,7 +1,9 @@
 # ==========================================
 # ÉTAPE 1 : BUILDER NODE (Compilation Frontend)
+# Node 24 (LTS, npm 11) : requis car package-lock.json est généré par npm 11
+# et certaines deps (puppeteer-core@25) exigent node >= 22.12.
 # ==========================================
-FROM node:20-slim AS frontend-builder
+FROM node:24-slim AS frontend-builder
 
 # Définir le dossier de travail
 WORKDIR /app

@@ -38,6 +38,52 @@ let CONTRACT_ADDRESSES = {
 // État interne : approbation déjà faite pour ce montant ?
 let _approvalDone = false;
 
+// ─── RÉSILIENCE NONCE ─────────────────────────────────────────────────────────
+// Le worker/batch process tourne en continu avec le compte GAME_WALLET (même
+// compte que celui parfois utilisé pour tester) → le nonce nœud avance sans
+// cesse alors que MetaMask garde son propre compteur local périmé.
+// On lit donc le nonce frais ('pending') à chaque envoi et on retente en cas
+// de collision (NONCE_EXPIRED), au lieu de laisser MetaMask décider seul.
+const _MAX_NONCE_RETRIES = 4;
+
+async function _getFreshNonce() {
+    const provider = await getProvider();
+    const signer   = await getSigner();
+    const addr     = await signer.getAddress();
+    // 'pending' = nonce courant du nœud (inclut les tx déjà soumises)
+    return provider.getTransactionCount(addr, 'pending');
+}
+
+/**
+ * Envoie une transaction en forçant un nonce frais (résilience NONCE_EXPIRED).
+ * @param {(overrides: object) => Promise<any>} sendFn
+ *   Fonction appelée avec l'overrides { nonce } (puis { nonce, value } si besoin).
+ * @returns {Promise<any>} le receipt de transaction.
+ */
+async function _sendWithFreshNonce(sendFn) {
+    let lastError;
+    for (let attempt = 1; attempt <= _MAX_NONCE_RETRIES; attempt++) {
+        const nonce = await _getFreshNonce();
+        try {
+            const tx = await sendFn({ nonce });
+            return await tx.wait();
+        } catch (e) {
+            lastError = e;
+            const msg = (e && (e.shortMessage || e.message || e.reason)) || '';
+            const isNonceCollision =
+                e?.code === 'NONCE_EXPIRED' ||
+                e?.info?.error?.code === -32000 ||
+                /nonce/i.test(msg);
+            if (isNonceCollision && attempt < _MAX_NONCE_RETRIES) {
+                console.warn(`[Marketplace] Collision de nonce (${msg}), nouvelle tentative ${attempt}/${_MAX_NONCE_RETRIES}...`);
+                continue;
+            }
+            throw e;
+        }
+    }
+    throw lastError;
+}
+
 export async function initMarketplace() {
     console.log("[Marketplace] Initialisation du module Marketplace");
 
@@ -529,8 +575,7 @@ async function handleApprove() {
         }
 
         btn.textContent = t('marketplace.approve_confirm_wallet');
-        const approveTx = await sntContract.approve(CONTRACT_ADDRESSES.marketplace, sntAmountWei);
-        await approveTx.wait();
+        await _sendWithFreshNonce((ovr) => sntContract.approve(CONTRACT_ADDRESSES.marketplace, sntAmountWei, ovr));
 
         _approvalDone = true;
         createBtn.disabled = false;
@@ -571,9 +616,11 @@ async function handleCreateOffer() {
         const avaxAmountWei = _safeParseEther(avaxAmount);
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
 
-        const createTx = await escrowContract.createOffer(sntAmountWei, avaxAmountWei, parseInt(durationHours));
+        const createTx = await _sendWithFreshNonce((ovr) =>
+            escrowContract.createOffer(sntAmountWei, avaxAmountWei, parseInt(durationHours), ovr)
+        );
         btn.textContent = t('marketplace.create_offer_tx_pending');
-        await createTx.wait();
+        console.log('[Marketplace] Offre créée, tx:', createTx.hash);
 
         _approvalDone = false;
         _showMpNotification(t('marketplace.create_offer_success', { snt: sntAmount, avax: avaxAmount }), 'success');
@@ -606,8 +653,9 @@ window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
         const avaxWei = _safeParseEther(avaxAmount.toString());
         addToFeed(t('feed.buying_offer', { id: offerId }), 'var(--primary)');
-        const tx = await escrowContract.fulfillOffer(offerId, { value: avaxWei });
-        await tx.wait();
+        await _sendWithFreshNonce((ovr) =>
+            escrowContract.fulfillOffer(offerId, { value: avaxWei, ...ovr })
+        );
         _showMpNotification(t('marketplace.buy_offer_success'), 'success');
         setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {
@@ -626,8 +674,7 @@ window.marketplaceCancelOffer = async function(offerId) {
     try {
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
         addToFeed(t('feed.canceling_offer', { id: offerId }), 'var(--text-dim)');
-        const tx = await escrowContract.cancelOffer(offerId);
-        await tx.wait();
+        await _sendWithFreshNonce((ovr) => escrowContract.cancelOffer(offerId, ovr));
         _showMpNotification(t('marketplace.cancel_offer_success', { id: offerId }), 'success');
         setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {

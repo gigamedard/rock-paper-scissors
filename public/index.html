@@ -7,7 +7,7 @@
     
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#7000ff">
+    <meta name="theme-color" content="#0F0C1B">
     
     <!-- iOS support -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
     <link rel="apple-touch-icon" href="/pwa_icon_192.png">
 
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <!-- CSS modules (générés par Vite en prod, sinon dev HMR) -->
 </head>
 <body>
@@ -28,27 +28,27 @@
             <a href="#/" class="nav-link" data-i18n="nav.arena">Arena</a>
             <a href="#/marketplace" class="nav-link" data-i18n="nav.marketplace">Marché</a>
             <a href="#/referral" class="nav-link" data-i18n="nav.referral">Parrainage</a>
-            <a href="#/influencer" class="nav-link" data-i18n="nav.influencer" style="color: #f59e0b;">VIP</a>
+            <a href="#/influencer" class="nav-link" data-i18n="nav.influencer" style="color: var(--gold-primary);">VIP</a>
             
 
         </nav>
         <div id="wallet-section">
             <div id="connected-user" style="display: none; align-items: center; gap: 10px;">
                 <span id="user-wallet" class="wallet-badge">0x...</span>
-                <span class="network-status-text wallet-badge" style="font-size: 0.75rem; border-color: rgba(0, 242, 255, 0.2);">Live Sync</span>
+                <span class="network-status-text wallet-badge" style="font-size: 0.75rem; border-color: rgba(0, 230, 118, 0.2);">Live Sync</span>
                 <div class="live-indicator"></div>
-                <button id="refresh-btn" class="wallet-btn" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 0.8rem; background: rgba(0, 242, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); color: #00f2ff; cursor: pointer; border-radius: 6px; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 242, 255, 0.15)'" onmouseout="this.style.background='rgba(0, 242, 255, 0.05)'">
+                <button id="refresh-btn" class="wallet-btn" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 0.8rem; background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.3); color: #00E5FF; cursor: pointer; border-radius: 6px; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 229, 255, 0.15)'" onmouseout="this.style.background='rgba(0, 229, 255, 0.05)'">
                     <span class="refresh-icon" style="transition: transform 0.5s ease; display: inline-block;">🔄</span>
                     <span data-i18n="nav.refresh">Rafraîchir</span>
                 </button>
-                <button id="disconnect-btn" class="wallet-btn" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 0.8rem; background: rgba(255, 0, 128, 0.05); border: 1px solid rgba(255, 0, 128, 0.3); color: #ff0080; cursor: pointer; border-radius: 6px; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 0, 128, 0.15)'" onmouseout="this.style.background='rgba(255, 0, 128, 0.05)'">
+                <button id="disconnect-btn" class="wallet-btn" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 0.8rem; background: rgba(255, 0, 85, 0.05); border: 1px solid rgba(255, 0, 85, 0.3); color: #FF0055; cursor: pointer; border-radius: 6px; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 0, 85, 0.15)'" onmouseout="this.style.background='rgba(255, 0, 85, 0.05)'">
                     <span>🔌</span>
                     <span data-i18n="nav.disconnect">Déconnexion</span>
                 </button>
             </div>
             <div id="connection-buttons" style="display: flex; gap: 10px;">
                 <button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">MetaMask</button>
-                <button class="wallet-btn" id="connect-wc-btn" style="background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);" data-i18n="connect.wc_btn">WalletConnect</button>
+                <button class="wallet-btn" id="connect-wc-btn" style="background: linear-gradient(90deg, var(--purple-neon) 0%, var(--cyan-spark) 100%);" data-i18n="connect.wc_btn">WalletConnect</button>
             </div>
         </div>
     </header>
@@ -347,8 +347,8 @@
             <span class="nav-label" data-i18n="nav.referral">Parrainage</span>
         </a>
         <a href="#/influencer" class="bottom-nav-link" id="btn-nav-vip">
-            <span class="nav-icon" style="color: #f59e0b;">👑</span>
-            <span class="nav-label" data-i18n="nav.influencer" style="color: #f59e0b;">VIP</span>
+            <span class="nav-icon" style="color: var(--gold-primary);">👑</span>
+            <span class="nav-label" data-i18n="nav.influencer" style="color: var(--gold-primary);">VIP</span>
         </a>
     </nav>
 
