@@ -183,6 +183,12 @@
         }
         .bar-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
         .bar-btn.close:hover { color: var(--pink); border-color: rgba(255,0,85,.5); }
+        .bar-btn.back {
+            background: linear-gradient(135deg, var(--cyan), #00E676);
+            color: #000; border: 1px solid rgba(0,229,255,.7); font-weight: 800;
+            box-shadow: 0 0 12px rgba(0,229,255,.35);
+        }
+        .bar-btn.back:hover { filter: brightness(1.1); color: #000; box-shadow: 0 0 20px rgba(0,229,255,.55); }
         #app-frame { flex: 1; width: 100%; border: none; background: #000; }
 
         #toast {
@@ -222,34 +228,22 @@
     </div>
 </div>
 
-<!-- ===== ├ëCRAN 3 : MENU UNIFI├ë (portail) ===== -->
+<!-- ===== ÉCRAN 3 : LANCEMENT BATTLEPOOL (App 1 uniquement) ===== -->
 <div id="screen-menu" class="screen">
-    <h1 data-i18n="menu.title">SELECT YOUR <span class="grad">GAME MODE</span></h1>
-    <p class="sub" data-i18n="menu.subtitle">One account, three modes. Choose your battleground.</p>
+    <h1 data-i18n="menu.title">BATTLE<span class="grad">POOL</span></h1>
+    <p class="sub" data-i18n="menu.subtitle">Votre arène de combat. Prêt à jouer ?</p>
     <div class="menu-grid">
         <div class="menu-card card-bp" data-app="bp">
-            <span class="icon">≡ƒÑè</span>
+            <span class="icon">🛡️</span>
             <h2 data-i18n="menu.bp.title">Battle Pool</h2>
-            <p data-i18n="menu.bp.desc">Pr├⌐diction de combat en direct. Pierre, papier, ciseaux avec paris ETH, marketplace et parrainage.</p>
-            <div class="enter" data-i18n="menu.play">JOUER</div>
-        </div>
-        <div class="menu-card card-duel" data-app="duel">
-            <span class="icon">ΓÜö∩╕Å</span>
-            <h2 data-i18n="menu.duel.title">Duel</h2>
-            <p data-i18n="menu.duel.desc">Combat 3D Godot en temps r├⌐el. 1 vs 1 en direct contre un adversaire.</p>
-            <div class="enter" data-i18n="menu.play">JOUER</div>
-        </div>
-        <div class="menu-card card-br" data-app="br">
-            <span class="icon">≡ƒÅå</span>
-            <h2 data-i18n="menu.br.title">Battle Royale</h2>
-            <p data-i18n="menu.br.desc">Tournoi ├á ├⌐limination. Rejoins un salon ou cr├⌐e une poule priv├⌐e.</p>
+            <p data-i18n="menu.bp.desc">Prédiction de combat en direct. Pierre, papier, ciseaux avec paris ETH, marketplace et parrainage.</p>
             <div class="enter" data-i18n="menu.play">JOUER</div>
         </div>
     </div>
     <div class="topbar">
         <span class="wallet-badge" id="menu-wallet-badge"><span class="live-dot"></span><span id="menu-wallet-addr">0x...</span></span>
-        <button class="lang-switch" id="lang-switch-2">≡ƒîÉ</button>
-        <button class="logout-btn" id="logout-btn">≡ƒöî</button>
+        <button class="lang-switch" id="lang-switch-2">🌐</button>
+        <button class="logout-btn" id="logout-btn">🔌</button>
     </div>
 </div>
 
@@ -257,10 +251,11 @@
 <div id="app-overlay">
     <div id="app-window">
         <div id="app-bar">
+            <button class="bar-btn back" id="app-back">⟵ <span data-i18n="app.back">RETOUR AU JEU</span></button>
             <div class="title" id="app-title">BATTLEPOOL</div>
             <div class="actions">
-                <button class="bar-btn" id="app-fullscreen">Γ¢╢</button>
-                <button class="bar-btn close" id="app-close">Γ£û</button>
+                <button class="bar-btn" id="app-fullscreen">⛶</button>
+                <button class="bar-btn close" id="app-close">✕</button>
             </div>
         </div>
         <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-pointer-lock allow-downloads" loading="eager"></iframe>
@@ -322,6 +317,7 @@ const TRANSLATIONS = {
         'errors.auth': '├ëchec de connexion.',
         'logout.done': 'D├⌐connect├⌐.',
         'app.title.bp': 'BATTLE POOL',
+        'app.back': 'RETOUR AU JEU',
         'app.title.duel': 'DUEL',
         'app.title.br': 'BATTLE ROYALE',
     },
@@ -350,6 +346,7 @@ const TRANSLATIONS = {
         'errors.auth': 'Connection failed.',
         'logout.done': 'Disconnected.',
         'app.title.bp': 'BATTLE POOL',
+        'app.back': 'BACK TO GAME',
         'app.title.duel': 'DUEL',
         'app.title.br': 'BATTLE ROYALE',
     },
@@ -378,6 +375,7 @@ const TRANSLATIONS = {
         'errors.auth': 'Conexi├│n fallida.',
         'logout.done': 'Desconectado.',
         'app.title.bp': 'BATTLE POOL',
+        'app.back': 'VOLVER AL JUEGO',
         'app.title.duel': 'DUELO',
         'app.title.br': 'BATTLE ROYALE',
     },
@@ -406,6 +404,7 @@ const TRANSLATIONS = {
         'errors.auth': 'Verbindung fehlgeschlagen.',
         'logout.done': 'Getrennt.',
         'app.title.bp': 'BATTLE POOL',
+        'app.back': 'ZURÜCK ZUM SPIEL',
         'app.title.duel': 'DUEL',
         'app.title.br': 'BATTLE ROYALE',
     },
@@ -434,6 +433,7 @@ const TRANSLATIONS = {
         'errors.auth': 'Falha na conex├úo.',
         'logout.done': 'Desconectado.',
         'app.title.bp': 'BATTLE POOL',
+        'app.back': 'VOLTAR AO JOGO',
         'app.title.duel': 'DUELO',
         'app.title.br': 'BATTLE ROYALE',
     },
@@ -462,6 +462,7 @@ const TRANSLATIONS = {
         'errors.auth': 'Φ┐₧µÄÑσñ▒Φ┤ÑπÇé',
         'logout.done': 'σ╖▓µû¡σ╝ÇΦ┐₧µÄÑπÇé',
         'app.title.bp': 'BATTLE POOL',
+        'app.back': 'Φ┐öσ¢₧µ╕╕µêÅ',
         'app.title.duel': 'σå│µûù',
         'app.title.br': 'σñºΘÇâµ¥Ç',
     }
@@ -578,6 +579,19 @@ async function connectWallet() {
         state.walletAddress = (data.user.wallet_address || walletAddress).toLowerCase();
         state.connected = true;
 
+        // Synchroniser la session vers le parent (App 2, origine différente : 8001 -> 8080).
+        // Le localStorage d'une iframe cross-origin peut être isolé selon le navigateur :
+        // le parent conserve la session et nous la redonnera à la prochaine ouverture.
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'BATTLEPOOL_SESSION_SAVE',
+                    user: data.user,
+                    auth_token: data.token
+                }, '*');
+            }
+        } catch (e) { /* ignore */ }
+
         toast('Γ£à ' + t('login.connected'));
         render();
     } catch (error) {
@@ -594,6 +608,12 @@ function logout() {
     localStorage.removeItem('auth_token');
     state.connected = false;
     state.walletAddress = null;
+    // Informer le parent que la session est terminée
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'BATTLEPOOL_SESSION_CLEAR' }, '*');
+        }
+    } catch (e) { /* ignore */ }
     toast(t('logout.done'));
     showScreen('screen-login');
     render();
@@ -605,7 +625,9 @@ function render() {
     document.getElementById('wallet-addr').textContent = shortAddr(state.walletAddress);
     document.getElementById('menu-wallet-addr').textContent = shortAddr(state.walletAddress);
     if (state.connected) {
-        showScreen('screen-menu');
+        // Connecté : lancer DIRECTEMENT l'UI de l'App 1 (Battlepool) dans l'iframe,
+        // sans écran intermédiaire de choix de mode (Duel/Battle Royale supprimés).
+        openApp('bp');
     } else {
         showScreen('screen-login');
         document.getElementById('login-hint').textContent = t('login.required');
@@ -614,9 +636,7 @@ function render() {
 
 /* ===== POPUP APPLICATION (iframe) ===== */
 const APP_ROUTES = {
-    bp:   { url: PORTAL_CONFIG.APP1_URL,  titleKey: 'app.title.bp' },
-    duel: { url: PORTAL_CONFIG.APP2_URL,  titleKey: 'app.title.duel' },
-    br:   { url: PORTAL_CONFIG.APP2_URL,  titleKey: 'app.title.br' },
+    bp: { url: PORTAL_CONFIG.APP1_URL, titleKey: 'app.title.bp' },
 };
 
 function openApp(mode) {
@@ -696,6 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('lang-switch-2').addEventListener('click', () => { buildLangGrid(); showScreen('screen-lang'); });
     document.getElementById('logout-btn').addEventListener('click', logout);
     document.getElementById('app-close').addEventListener('click', closeApp);
+    document.getElementById('app-back').addEventListener('click', goBackToGame);
     document.getElementById('app-fullscreen').addEventListener('click', toggleFullscreen);
 
     // Cartes du menu
@@ -703,8 +724,46 @@ document.addEventListener('DOMContentLoaded', () => {
         card.addEventListener('click', () => openApp(card.dataset.app));
     });
 
+    // Session cross-origin : on demande au parent (App 2) une session persistée.
+    // À l'ouverture, le localStorage d'une iframe 8001 peut être vide même si
+    // l'utilisateur est déjà connecté — le parent répond avec la session sauvegardée.
+    function requestParentSession() {
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'BATTLEPOOL_SESSION_GET' }, '*');
+            }
+        } catch (e) { /* ignore */ }
+    }
+    window.addEventListener('message', (e) => {
+        if (!e.data || e.data.type !== 'BATTLEPOOL_SESSION_RETURN') return;
+        const s = e.data;
+        if (s.user && s.auth_token) {
+            try {
+                localStorage.setItem('user', JSON.stringify(s.user));
+                localStorage.setItem('auth_token', s.auth_token);
+                const was = state.connected;
+                detectSession();
+                if (was !== state.connected) render();
+            } catch (err) { /* ignore */ }
+        }
+    });
+
+    // Bouton retour vers le jeu principal (App 2) : ferme l'overlay portail du parent.
+    function goBackToGame() {
+        closeApp();
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'BATTLEPOOL_CLOSE' }, '*');
+            }
+        } catch (e) { /* ignore */ }
+    }
+
     // Si langue connue ΓåÆ connexion ou menu directement
     if (hasLang) render();
+
+    // Demander la session au parent APRÈS render initial (au cas où render a
+    // affiché l'écran de connexion faute de localStorage local).
+    setTimeout(requestParentSession, 300);
 
     // Sync multi-onglet
     window.addEventListener('storage', (e) => {
