@@ -10,6 +10,7 @@ import { initMarketplace } from './modules/marketplace.js';
 import { initReferral } from './modules/referral.js';
 import { initInfluencer } from './modules/influencer.js';
 import { initPWA } from './core/pwa.js';
+import { showToast } from './core/toast.js';
 
 // ===== ÉTAT GLOBAL =====
 window.userState = {
@@ -107,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             balance: 0, bet_amount: 0.01, status: 'disconnected'
         };
         if (window.echoInstance) window.echoInstance.disconnect();
-        alert(window.t ? window.t('connect.session_expired') : "Session expirée. Veuillez vous reconnecter.");
+        showToast(window.t ? window.t('connect.session_expired') : "Session expirée. Veuillez vous reconnecter.", 'warn');
         window.location.reload();
     });
 });

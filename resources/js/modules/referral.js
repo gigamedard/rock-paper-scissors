@@ -8,6 +8,7 @@
 import { secureFetch } from '../core/api.js';
 import { t } from './i18n.js';
 import { getCurrentLocale } from './i18n.js';
+import { showToast } from '../core/toast.js';
 
 export function initReferral() {
     console.log("[Referral] Initialisation du module Parrainage");
@@ -173,11 +174,11 @@ async function applyReferralCode() {
         const data = await res.json();
 
         if (res.ok) {
-            alert('✅ ' + data.message);
+            showToast('✅ ' + data.message, 'success');
             input.value = '';
             await loadMyStats();
         } else {
-            alert('❌ ' + data.message);
+            showToast('❌ ' + data.message, 'error');
         }
     } catch (e) {
         console.error('[Referral] Erreur application code:', e);

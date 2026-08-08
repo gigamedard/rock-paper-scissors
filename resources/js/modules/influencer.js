@@ -4,6 +4,7 @@
  */
 import { secureFetch } from '../core/api.js';
 import { t } from './i18n.js';
+import { showToast } from '../core/toast.js';
 
 let influencerData = null;
 
@@ -292,13 +293,13 @@ async function joinInfluencerProgram() {
     try {
         const res = await secureFetch('/influencer/join-test', { method: 'POST' });
         if (res.ok) {
-            alert(t('influencer.join_success'));
+            showToast(t('influencer.join_success'), 'success');
             loadInfluencerDashboard();
         } else {
-            alert(t('influencer.join_error'));
+            showToast(t('influencer.join_error'), 'error');
         }
     } catch (err) {
-        alert(t('influencer.join_error'));
+        showToast(t('influencer.join_error'), 'error');
     } finally {
         if (btn) btn.disabled = false;
     }
@@ -327,7 +328,7 @@ async function submitApplication(form) {
     });
 
     if (social_links.length === 0) {
-        alert("Veuillez ajouter au moins un réseau social.");
+        showToast("Veuillez ajouter au moins un réseau social.", 'warn');
         if (btn) {
             btn.disabled = false;
             btn.textContent = 'Envoyer ma Candidature';
@@ -345,14 +346,14 @@ async function submitApplication(form) {
         if (res.ok) {
             loadInfluencerDashboard();
         } else {
-            alert(data.message || data.error || "Erreur lors de l'envoi.");
+            showToast(data.message || data.error || "Erreur lors de l'envoi.", 'error');
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = 'Envoyer ma Candidature';
             }
         }
     } catch (err) {
-        alert("Erreur réseau.");
+        showToast("Erreur réseau.", 'error');
         if (btn) {
             btn.disabled = false;
             btn.textContent = 'Envoyer ma Candidature';
@@ -365,12 +366,12 @@ async function claimReward() {
         const res = await secureFetch('/influencer/claim-reward', { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
-            alert(t('influencer.claim_success', { amount: data.amount }));
+            showToast(t('influencer.claim_success', { amount: data.amount }), 'success');
             loadInfluencerDashboard();
         } else {
-            alert(data.error || t('influencer.claim_error'));
+            showToast(data.error || t('influencer.claim_error'), 'error');
         }
     } catch (err) {
-        alert(t('influencer.network_error'));
+        showToast(t('influencer.network_error'), 'error');
     }
 }

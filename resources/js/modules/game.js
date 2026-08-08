@@ -4,6 +4,7 @@ import { getProvider } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
 import { parseRpcError } from '../core/auth.js';
 import { t } from './i18n.js';
+import { showToast } from '../core/toast.js';
 
 const gameState = {
     preMoves: [],
@@ -35,12 +36,12 @@ export function initGame() {
     if (joinBtn) {
         joinBtn.onclick = () => {
             if (gameState.pendingClaim) {
-                alert(t('errors.claim_previous'));
+                showToast(t('errors.claim_previous'), 'warn');
                 return;
             }
             if (isUserInCooldown()) {
                 const remaining = Math.ceil((new Date(window.userState.cooldown_until).getTime() - Date.now()) / 1000);
-                alert(t('errors.cooldown_active').replace(':remaining', remaining));
+                showToast(t('errors.cooldown_active').replace(':remaining', remaining), 'warn');
                 return;
             }
             window.userState.status = 'setup';
@@ -347,7 +348,7 @@ function renderSlots() {
 
 async function startSession() {
     if (gameState.preMoves.length < 10) {
-        alert(t('errors.select_premoves'));
+        showToast(t('errors.select_premoves'), 'warn');
         return;
     }
 
@@ -417,7 +418,7 @@ async function startSession() {
         }
     } catch (error) {
         console.error(error);
-        alert(t('errors.error_prefix') + parseRpcError(error));
+        showToast(t('errors.error_prefix') + parseRpcError(error), 'error');
         addToFeed(t('feed.error', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
         gameState.isStartingSession = false;
@@ -463,7 +464,7 @@ async function claim() {
 
     } catch (error) {
         console.error(error);
-        alert(t('errors.claim_failed') + parseRpcError(error));
+        showToast(t('errors.claim_failed') + parseRpcError(error), 'error');
         addToFeed(t('feed.claim_failed', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
         btn.innerText = "CLAIM & EXIT ARENA";

@@ -2,6 +2,7 @@
 import { getProvider, getSigner } from '../web3/web3-core.js';
 import { secureFetch } from './api.js';
 import { t } from '../modules/i18n.js';
+import { showToast } from './toast.js';
 
 export function parseRpcError(error) {
     const msg = error?.message || error?.toString() || "Unknown error";
@@ -34,7 +35,7 @@ export async function connectWallet(providerType = 'injected') {
             window.open(metamaskDeepLink, '_blank');
             return false;
         }
-        alert(t('errors.metamask_required'));
+        showToast(t('errors.metamask_required'), 'error');
         return false;
     }
 
@@ -96,7 +97,7 @@ export async function connectWallet(providerType = 'injected') {
         return true;
     } catch (error) {
         console.error("[Auth] Échec :", error);
-        alert(t('errors.auth_failed') + parseRpcError(error));
+        showToast(t('errors.auth_failed') + ' ' + parseRpcError(error), 'error');
         return false;
     }
 }
