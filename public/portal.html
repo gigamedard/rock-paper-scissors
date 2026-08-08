@@ -170,24 +170,71 @@
             z-index: 1;
         }
         .return-card .enter {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
             padding: 1.1rem 3rem;
-            border-radius: 10px;
+            border-radius: 12px;
             font-family: var(--font-heading);
             font-weight: 900;
-            letter-spacing: 2px;
-            font-size: 1rem;
-            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-            background: linear-gradient(135deg, var(--cyan), #00E676);
+            letter-spacing: 3px;
+            font-size: 1.05rem;
             color: #000;
             cursor: pointer;
             z-index: 1;
-            box-shadow: 0 4px 20px rgba(0,229,255,0.4);
-            transition: all .3s ease;
+            border: 2px solid rgba(0,229,255,0.9);
+            background: linear-gradient(135deg, var(--cyan) 0%, #00E676 100%);
+            box-shadow:
+                0 0 25px rgba(0,229,255,0.5),
+                0 0 60px rgba(0,229,255,0.2),
+                inset 0 0 18px rgba(255,255,255,0.35);
+            transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease, filter .3s ease;
+            overflow: hidden;
+        }
+        .return-card .enter::after {
+            /* Effet "shine" qui balaye le bouton au survol */
+            content: '';
+            position: absolute;
+            top: 0; left: -80%;
+            width: 60%; height: 100%;
+            background: linear-gradient(105deg, transparent, rgba(255,255,255,0.55), transparent);
+            transform: skewX(-20deg);
+            transition: left .55s ease;
+            pointer-events: none;
         }
         .return-card .enter:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 30px rgba(0,229,255,0.6);
-            background: linear-gradient(135deg, var(--gold), var(--gold-hover));
+            transform: scale(1.06) translateY(-2px);
+            filter: brightness(1.12);
+            box-shadow:
+                0 0 35px rgba(0,229,255,0.7),
+                0 0 90px rgba(0,229,255,0.3),
+                inset 0 0 22px rgba(255,255,255,0.45);
+        }
+        .return-card .enter:hover::after { left: 120%; }
+        .return-card .enter:active { transform: scale(0.97); }
+        .return-card .enter .enter-arrow {
+            display: inline-block;
+            font-size: 1.3rem;
+            line-height: 1;
+            transition: transform .25s ease;
+        }
+        .return-card .enter:hover .enter-arrow { transform: translateX(6px); }
+        /* Halo pulsant derrière le bouton pour attirer l'œil */
+        .return-card .enter::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--cyan), var(--gold));
+            filter: blur(14px);
+            opacity: 0.5;
+            z-index: -1;
+            animation: enterPulse 2.2s ease-in-out infinite;
+        }
+        @keyframes enterPulse {
+            0%, 100% { opacity: 0.35; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.04); }
         }
         .topbar {
             position: absolute; top: 2rem; right: 2rem; z-index: 2;
@@ -279,7 +326,7 @@
         <span class="icon">↩️</span>
         <h2 data-i18n="menu.return.title">Retour au Jeu</h2>
         <p data-i18n="menu.return.desc">Retourner à l'application principale (App 2)</p>
-        <div class="enter" id="btn-return-to-game" data-i18n="menu.return">RETOUR</div>
+        <div class="enter" id="btn-return-to-game" data-i18n="menu.return"><span class="enter-arrow">▶</span>RETOUR</div>
     </div>
     
     <div class="topbar">
