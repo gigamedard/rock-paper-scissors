@@ -119,28 +119,23 @@
         .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.6s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
 
-        /* ===== MENU UNIFIÉ ===== */
-        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; width: 100%; max-width: 900px; margin-top: 2.5rem; }
-        .menu-card {
+        /* ===== MENU SIMPLIFIÉ (juste retour) ===== */
+        .return-card {
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
             clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
-            padding: 1.8rem; display: flex; flex-direction: column; gap: .9rem; cursor: pointer;
+            padding: 2.5rem 2rem; display: flex; flex-direction: column; align-items: center; gap: 1.2rem;
             transition: transform .2s, border-color .2s, box-shadow .2s; text-align: center;
+            max-width: 480px; margin-top: 2rem;
         }
-        .menu-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(123,44,191,.35); }
-        .menu-card .icon { font-size: 2.4rem; }
-        .menu-card h2 { font-family: var(--font-heading); font-size: 1.3rem; font-weight: 800; letter-spacing: 1px; }
-        .menu-card p { color: var(--text-dim); font-size: .88rem; line-height: 1.5; flex: 1; }
-        .menu-card .enter {
-            padding: .7rem; border-radius: 8px; font-family: var(--font-heading); font-weight: 800; letter-spacing: 1px; font-size: .85rem;
+        .return-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(123,44,191,.35); border-color: var(--cyan); }
+        .return-card .icon { font-size: 3.5rem; }
+        .return-card h2 { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; }
+        .return-card p { color: var(--text-dim); font-size: .95rem; line-height: 1.5; }
+        .return-card .enter {
+            padding: .9rem 2rem; border-radius: 8px; font-family: var(--font-heading); font-weight: 800; letter-spacing: 1px; font-size: .9rem;
             clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
-            background: linear-gradient(90deg, var(--purple), var(--cyan)); color: #000;
+            background: linear-gradient(90deg, var(--cyan), #00E676); color: #000; cursor: pointer;
         }
-        .card-bp { border-color: rgba(123,44,191,.6); }
-        .card-duel { border-color: rgba(0,229,255,.45); }
-        .card-br { border-color: rgba(255,199,0,.55); }
-        .card-duel .enter { background: linear-gradient(90deg, var(--cyan), #00E676); color: #000; }
-        .card-br .enter { background: linear-gradient(90deg, var(--gold), var(--gold-hover)); }
         .topbar {
             position: absolute; top: 2rem; right: 2rem; z-index: 2;
             display: flex; align-items: center; gap: 10px;
@@ -222,30 +217,18 @@
     </div>
 </div>
 
-<!-- ===== ÉCRAN 3 : MENU UNIFIÉ (portail) ===== -->
+<!-- ===== ÉCRAN 3 : MENU SIMPLIFIÉ (juste retour au jeu) ===== -->
 <div id="screen-menu" class="screen">
-    <h1 data-i18n="menu.title">SELECT YOUR <span class="grad">GAME MODE</span></h1>
-    <p class="sub" data-i18n="menu.subtitle">One account, three modes. Choose your battleground.</p>
-    <div class="menu-grid">
-        <div class="menu-card card-bp" data-app="bp">
-            <span class="icon">🥊</span>
-            <h2 data-i18n="menu.bp.title">Battle Pool</h2>
-            <p data-i18n="menu.bp.desc">Prédiction de combat en direct. Pierre, papier, ciseaux avec paris ETH, marketplace et parrainage.</p>
-            <div class="enter" data-i18n="menu.play">JOUER</div>
-        </div>
-        <div class="menu-card card-duel" data-app="duel">
-            <span class="icon">⚔️</span>
-            <h2 data-i18n="menu.duel.title">Duel</h2>
-            <p data-i18n="menu.duel.desc">Combat 3D Godot en temps réel. 1 vs 1 en direct contre un adversaire.</p>
-            <div class="enter" data-i18n="menu.play">JOUER</div>
-        </div>
-        <div class="menu-card card-br" data-app="br">
-            <span class="icon">🏆</span>
-            <h2 data-i18n="menu.br.title">Battle Royale</h2>
-            <p data-i18n="menu.br.desc">Tournoi à élimination. Rejoins un salon ou crée une poule privée.</p>
-            <div class="enter" data-i18n="menu.play">JOUER</div>
-        </div>
+    <h1 data-i18n="menu.title">BATTLE<span class="grad">POOL</span></h1>
+    <p class="sub" data-i18n="menu.subtitle">Portail de jeu Battle Pool</p>
+    
+    <div class="return-card">
+        <span class="icon">↩️</span>
+        <h2 data-i18n="menu.return.title">Retour au Jeu</h2>
+        <p data-i18n="menu.return.desc">Retourner à l'application principale (App 2)</p>
+        <div class="enter" id="btn-return-to-game" data-i18n="menu.return">RETOUR</div>
     </div>
+    
     <div class="topbar">
         <span class="wallet-badge" id="menu-wallet-badge"><span class="live-dot"></span><span id="menu-wallet-addr">0x...</span></span>
         <button class="lang-switch" id="lang-switch-2">🌐</button>
@@ -309,11 +292,9 @@ const TRANSLATIONS = {
         'menu.subtitle': 'Un seul compte, trois modes. Choisissez votre terrain de bataille.',
         'menu.bp.title': 'Battle Pool',
         'menu.bp.desc': 'Prédiction de combat en direct. Pierre, papier, ciseaux avec paris ETH, marketplace et parrainage.',
-        'menu.duel.title': 'Duel',
-        'menu.duel.desc': 'Combat 3D Godot en temps réel. 1 vs 1 en direct contre un adversaire.',
-        'menu.br.title': 'Battle Royale',
-        'menu.br.desc': 'Tournoi à élimination. Rejoins un salon ou crée une poule privée.',
-        'menu.play': 'JOUER',
+        'menu.return.title': 'Retour au Jeu',
+        'menu.return.desc': 'Retourner à l\'application principale (App 2)',
+        'menu.return': 'RETOUR',
         'login.required': 'Connectez d\'abord votre wallet pour jouer.',
         'login.connected': 'Connecté — tous les modes sont débloqués.',
         'session.valid': 'Session active détectée.',
@@ -335,13 +316,9 @@ const TRANSLATIONS = {
         'login.lang_switch': '🌐 Change language',
         'menu.title': 'SELECT YOUR GAME MODE',
         'menu.subtitle': 'One account, three modes. Choose your battleground.',
-        'menu.bp.title': 'Battle Pool',
-        'menu.bp.desc': 'Live combat prediction. Rock-paper-scissors with ETH bets, marketplace and referral.',
-        'menu.duel.title': 'Duel',
-        'menu.duel.desc': 'Real-time 3D Godot combat. Live 1 vs 1 against an opponent.',
-        'menu.br.title': 'Battle Royale',
-        'menu.br.desc': 'Elimination tournament. Join a lobby or create a private pool.',
-        'menu.play': 'PLAY',
+        'menu.return.title': 'Return to Game',
+        'menu.return.desc': 'Go back to the main application (App 2)',
+        'menu.return': 'RETURN',
         'login.required': 'Connect your wallet first to play.',
         'login.connected': 'Connected — all modes unlocked.',
         'session.valid': 'Active session detected.',
@@ -698,9 +675,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('app-close').addEventListener('click', closeApp);
     document.getElementById('app-fullscreen').addEventListener('click', toggleFullscreen);
 
-    // Cartes du menu
-    document.querySelectorAll('.menu-card').forEach(card => {
-        card.addEventListener('click', () => openApp(card.dataset.app));
+    // Bouton retour vers App 2 (frontend Godot sur le même domaine)
+    document.getElementById('btn-return-to-game').addEventListener('click', () => {
+        if (!state.connected) {
+            toast(t('login.required'));
+            return;
+        }
+        // Redirection vers l'App 2 (même domaine, port 8080 en dev ou proxy en prod)
+        window.location.href = PORTAL_CONFIG.APP2_URL || '/app2/';
     });
 
     // Si langue connue → connexion ou menu directement
