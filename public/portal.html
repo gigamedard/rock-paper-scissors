@@ -775,14 +775,25 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('app-close').addEventListener('click', closeApp);
     document.getElementById('app-fullscreen').addEventListener('click', toggleFullscreen);
 
-    // Bouton retour vers App 2 (frontend Godot sur le même domaine)
+    // Bouton retour vers App 2 : ferme l'overlay iframe du parent (App 2) via
+    // postMessage (cross-origin : portail 8001 -> App 2 8080). Toujours actif,
+    // même sans session : c'est un bouton de navigation, pas une action de jeu.
     document.getElementById('btn-return-to-game').addEventListener('click', () => {
-        if (!state.connected) {
-            toast(t('login.required'));
-            return;
-        }
-        // Redirection vers l'App 2 (même domaine, port 8080 en dev ou proxy en prod)
-        window.location.href = PORTAL_CONFIG.APP2_URL || '/app2/';
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'BATTLEPOOL_CLOSE' }, '*');
+            }
+        } catch (e) { /* origine isolée : on ignore */ }
+        // Fallback si le portail est ouvert en plein onglet (pas dans une iframe)
+        setTimeout(() => {
+            try {
+                if (window.PORTAL_APP2_URL) {
+                    window.location.href = window.PORTAL_APP2_URL;
+                } else {
+                    window.location.href = `http://${window.location.hostname}:8080/`;
+                }
+            } catch (e) { /* ignore */ }
+        }, 250);
     });
 
     // Si langue connue → connexion ou menu directement
