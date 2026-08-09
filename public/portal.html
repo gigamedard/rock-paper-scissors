@@ -8,17 +8,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* DA officielle du jeu : NEO-STREET FIGHTER / URBAN ANIME POP-CYBER */
-            --bg: #0F0C1B;              /* Night Violet ΓÇö fond global */
-            --bg-card: #1F1B2E;         /* Panel Dark ΓÇö cartes/modales */
-            --bg-panel-light: #2A243D;  /* Panel Light ΓÇö hover/headers */
-            --primary: #00E5FF;         /* Cyan Spark ΓÇö Web3, badges, s├⌐lection */
+            --bg: #0F0C1B;
+            --bg-card: #1F1B2E;
+            --bg-panel-light: #2A243D;
+            --primary: #00E5FF;
             --cyan: #00E5FF;
-            --purple: #7B2CBF;          /* Neon Purple ΓÇö marque secondaire */
-            --gold: #FFC700;            /* Electric Gold ΓÇö CTA primaires */
+            --purple: #7B2CBF;
+            --gold: #FFC700;
             --gold-hover: #FF9100;
-            --pink: #FF0055;            /* Vivid Magenta ΓÇö notifications, HOT */
-            --green: #00E676;           /* Success */
+            --pink: #FF0055;
+            --green: #00E676;
             --red: #FF1744;
             --orange: #FF9100;
             --text: #ffffff;
@@ -47,8 +46,6 @@
                 radial-gradient(600px 400px at 85% 10%, rgba(0,229,255,.14), transparent 60%),
                 radial-gradient(800px 500px at 50% 110%, rgba(255,0,85,.14), transparent 60%);
         }
-
-        /* ===== ├ëCRANS (langue ΓåÆ connexion ΓåÆ menu) ===== */
         .screen {
             position: relative; z-index: 1;
             width: 100vw; height: 100vh;
@@ -59,22 +56,18 @@
             padding: 2rem 1.5rem;
         }
         .screen.active { display: flex; }
-
         .logo {
             position: absolute; top: 2rem; left: 2rem;
             font-family: var(--font-heading);
             font-size: 1.5rem; font-weight: 900; letter-spacing: 3px; z-index: 2;
         }
         .logo span { color: var(--cyan); text-shadow: 0 0 15px rgba(0,229,255,0.5); }
-
         h1 { font-family: var(--font-heading); font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; letter-spacing: 2px; text-align: center; }
         h1 .grad {
             background: linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
             -webkit-background-clip: text; background-clip: text; color: transparent;
         }
         .sub { color: var(--text-dim); margin-top: .8rem; font-size: 1rem; text-align: center; max-width: 520px; }
-
-        /* ===== S├ëLECTEUR DE LANGUE ===== */
         .lang-grid {
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
             max-width: 500px; width: 90%; margin-top: 2rem;
@@ -92,8 +85,6 @@
             box-shadow: 0 0 20px rgba(0,229,255,0.25);
             transform: translateY(-2px);
         }
-
-        /* ===== CONNEXION ===== */
         .auth-card {
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
             clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
@@ -118,8 +109,6 @@
         }
         .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.6s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
-
-        /* ===== MENU UNIFI├ë ===== */
         .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; width: 100%; max-width: 900px; margin-top: 2.5rem; }
         .menu-card {
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
@@ -157,8 +146,6 @@
             transition: all .2s;
         }
         .topbar .logout-btn:hover { background: rgba(255,0,85,.22); box-shadow: 0 0 12px rgba(255,0,85,.25); }
-
-        /* ===== POPUP APPLICATION (iframe) ===== */
         #app-overlay {
             display: none; position: fixed; inset: 0; z-index: 100;
             background: rgba(15,12,27,0.88); backdrop-filter: blur(8px);
@@ -190,7 +177,6 @@
         }
         .bar-btn.back:hover { filter: brightness(1.1); color: #000; box-shadow: 0 0 20px rgba(0,229,255,.55); }
         #app-frame { flex: 1; width: 100%; border: none; background: #000; }
-
         #toast {
             position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
             background: #1F1B2E; border: 1px solid var(--purple); color: #fff;
@@ -204,31 +190,28 @@
 <div class="bg-glow"></div>
 <div class="logo">BATTLE<span>POOL</span></div>
 
-<!-- ===== ├ëCRAN 1 : CHOIX DE LANGUE ===== -->
 <div id="screen-lang" class="screen">
-    <h1 data-i18n="lang.title">Select your Language</h1>
+    <h1 data-i18n="lang.title">Choisissez votre langue</h1>
     <div class="lang-grid" id="lang-grid"></div>
 </div>
 
-<!-- ===== ├ëCRAN 2 : CONNEXION ===== -->
 <div id="screen-login" class="screen">
-    <h1 data-i18n="login.title">Ready to Fight?</h1>
-    <p class="sub" data-i18n="login.subtitle">Connect your wallet to enter the arena and start your session.</p>
+    <h1 data-i18n="login.title">Prêt à Combattre ?</h1>
+    <p class="sub" data-i18n="login.subtitle">Connectez votre wallet pour entrer dans l'arène et démarrer votre session.</p>
     <div class="auth-card">
         <div class="wallet-badge" id="wallet-badge" style="display:none;">
             <span class="live-dot"></span>
             <span id="wallet-addr">0x...</span>
         </div>
-        <h3 data-i18n="login.card_title" style="margin-bottom:.5rem;">Wallet Connection</h3>
-        <p id="login-hint">...</p>
-        <button class="btn" id="connect-btn">≡ƒªè MetaMask</button>
+        <h3 data-i18n="login.card_title" style="margin-bottom:.5rem;">Connexion Wallet</h3>
+        <p id="login-hint">Connectez d'abord votre wallet pour jouer.</p>
+        <button class="btn" id="connect-btn">🦊 Connecter MetaMask</button>
     </div>
     <div class="topbar">
-        <button class="lang-switch" id="lang-switch" data-i18n="login.lang_switch">≡ƒîÉ Change language</button>
+        <button class="lang-switch" id="lang-switch" data-i18n="login.lang_switch">🌐 Changer de langue</button>
     </div>
 </div>
 
-<!-- ===== ÉCRAN 3 : MENU UNIFIÉ DES MODES DE JEU ===== -->
 <div id="screen-menu" class="screen">
     <h1 data-i18n="menu.title">SÉLECTION DU <span class="grad">MODE</span></h1>
     <p class="sub" data-i18n="menu.subtitle">Un seul compte, trois modes. Choisissez votre terrain de bataille.</p>
@@ -259,11 +242,10 @@
     </div>
 </div>
 
-<!-- ===== POPUP APPLICATION ===== -->
 <div id="app-overlay">
     <div id="app-window">
         <div id="app-bar">
-            <button class="bar-btn back" id="app-back">⟵ <span data-i18n="app.back">RETOUR AU JEU</span></button>
+            <button class="bar-btn back" id="app-back">⟵ <span data-i18n="app.back">RETOUR AU MENU</span></button>
             <div class="title" id="app-title">BATTLEPOOL</div>
             <div class="actions">
                 <button class="bar-btn" id="app-fullscreen">⛶</button>
@@ -277,59 +259,44 @@
 <div id="toast"></div>
 
 <script>
-/* ============================================================
- * PORTAL BATTLEPOOL ΓÇö Phase 1 (viabilit├⌐)
- * - Flow inspir├⌐ d'App 1 (rock-paper-scissors) :
- *   1. Choix de langue (localStorage.user_locale) si absent
- *   2. Connexion wallet (challenge ΓåÆ sign ΓåÆ verify) via /api/wallet/*
- *   3. Menu unifi├⌐ : Battle Pool (App 1) / Duel + Battle (App 2)
- * - Le popup charge l'app dans une iframe (origine partag├⌐e)
- * ============================================================ */
-
-/* ===== CONFIGURATION ===== */
 const PORTAL_CONFIG = {
-    // App 1 : servie par Laravel lui-m├¬me (m├¬me origine) ├á la racine
     APP1_URL: window.PORTAL_APP1_URL || '/',
-    // App 2 : frontend statique derri├¿re le proxy (m├¬me domaine)
-    APP2_URL: window.PORTAL_APP2_URL || '/app2/',
-    // D├⌐veloppement : d├⌐commentez pour pointer vers le frontend local App 2
-    // APP2_URL: window.PORTAL_APP2_URL || 'http://localhost:8080/',
+    APP2_URL: window.PORTAL_APP2_URL || 'http://localhost:8080/',
 };
 
-/* ===== I18N (inspir├⌐ de resources/js/modules/i18n.js d'App 1) ===== */
 const SUPPORTED_LOCALES = ['fr', 'en', 'es', 'de', 'pt', 'zh'];
 const FLAGS = {
-    fr: '≡ƒç½≡ƒç╖ Fran├ºais', en: '≡ƒç¼≡ƒçº English', es: '≡ƒç¬≡ƒç╕ Espa├▒ol',
-    de: '≡ƒç⌐≡ƒç¬ Deutsch', pt: '≡ƒç╡≡ƒç╣ Portugu├¬s', zh: '≡ƒç¿≡ƒç│ Σ╕¡µûç'
+    fr: '🇫🇷 Français', en: '🇬🇧 English', es: '🇪🇸 Español',
+    de: '🇩🇪 Deutsch', pt: '🇵🇹 Português', zh: '🇨🇳 中文'
 };
 
 const TRANSLATIONS = {
     fr: {
         'lang.title': 'Choisissez votre langue',
-        'login.title': 'Pr├¬t ├á Combattre ?',
-        'login.subtitle': 'Connectez votre wallet pour entrer dans l\'ar├¿ne et d├⌐marrer votre session.',
+        'login.title': 'Prêt à Combattre ?',
+        'login.subtitle': 'Connectez votre wallet pour entrer dans l\'arène et démarrer votre session.',
         'login.card_title': 'Connexion Wallet',
-        'login.connect': '≡ƒªè Connecter MetaMask',
-        'login.connecting': 'ΓÅ│ Connexion...',
-        'login.lang_switch': '≡ƒîÉ Changer de langue',
-        'menu.title': 'S├ëLECTION DU MODE',
+        'login.connect': '🦊 Connecter MetaMask',
+        'login.connecting': '⏳ Connexion...',
+        'login.lang_switch': '🌐 Changer de langue',
+        'menu.title': 'SÉLECTION DU MODE',
         'menu.subtitle': 'Un seul compte, trois modes. Choisissez votre terrain de bataille.',
-        'menu.bp.title': 'Battle Pool',
-        'menu.bp.desc': 'Pr├⌐diction de combat en direct. Pierre, papier, ciseaux avec paris ETH, marketplace et parrainage.',
+        'menu.bp.title': 'Spirit Fight',
+        'menu.bp.desc': 'Prédiction de combat en direct. Pierre, papier, ciseaux avec paris ETH, marketplace et parrainage.',
         'menu.duel.title': 'Duel',
-        'menu.duel.desc': 'Combat 3D Godot en temps r├⌐el. 1 vs 1 en direct contre un adversaire.',
+        'menu.duel.desc': 'Combat 3D Godot en temps réel. 1 vs 1 en direct contre un adversaire.',
         'menu.br.title': 'Battle Royale',
-        'menu.br.desc': 'Tournoi ├á ├⌐limination. Rejoins un salon ou cr├⌐e une poule priv├⌐e.',
+        'menu.br.desc': 'Tournoi à élimination. Rejoins un salon ou crée une poule privée.',
         'menu.play': 'JOUER',
         'login.required': 'Connectez d\'abord votre wallet pour jouer.',
-        'login.connected': 'Connect├⌐ ΓÇö tous les modes sont d├⌐bloqu├⌐s.',
-        'session.valid': 'Session active d├⌐tect├⌐e.',
-        'errors.metamask': 'MetaMask est requis. Installez l\'extension ou utilisez un navigateur int├⌐gr├⌐ mobile.',
-        'errors.network': 'Erreur de connexion au serveur. Veuillez r├⌐essayer.',
-        'errors.auth': '├ëchec de connexion.',
-        'logout.done': 'D├⌐connect├⌐.',
+        'login.connected': 'Connecté — tous les modes sont débloqués.',
+        'session.valid': 'Session active détectée.',
+        'errors.metamask': 'MetaMask est requis. Installez l\'extension ou utilisez un navigateur intégré mobile.',
+        'errors.network': 'Erreur de connexion au serveur. Veuillez réessayer.',
+        'errors.auth': 'Échec de connexion.',
+        'logout.done': 'Déconnecté.',
         'app.title.bp': 'BATTLE POOL',
-        'app.back': 'RETOUR AU JEU',
+        'app.back': 'RETOUR AU MENU',
         'app.title.duel': 'DUEL',
         'app.title.br': 'BATTLE ROYALE',
     },
@@ -338,12 +305,12 @@ const TRANSLATIONS = {
         'login.title': 'Ready to Fight?',
         'login.subtitle': 'Connect your wallet to enter the arena and start your session.',
         'login.card_title': 'Wallet Connection',
-        'login.connect': '≡ƒªè Connect MetaMask',
-        'login.connecting': 'ΓÅ│ Connecting...',
-        'login.lang_switch': '≡ƒîÉ Change language',
+        'login.connect': '🦊 Connect MetaMask',
+        'login.connecting': '⏳ Connecting...',
+        'login.lang_switch': '🌐 Change language',
         'menu.title': 'SELECT YOUR GAME MODE',
         'menu.subtitle': 'One account, three modes. Choose your battleground.',
-        'menu.bp.title': 'Battle Pool',
+        'menu.bp.title': 'Spirit Fight',
         'menu.bp.desc': 'Live combat prediction. Rock-paper-scissors with ETH bets, marketplace and referral.',
         'menu.duel.title': 'Duel',
         'menu.duel.desc': 'Real-time 3D Godot combat. Live 1 vs 1 against an opponent.',
@@ -351,57 +318,57 @@ const TRANSLATIONS = {
         'menu.br.desc': 'Elimination tournament. Join a lobby or create a private pool.',
         'menu.play': 'PLAY',
         'login.required': 'Connect your wallet first to play.',
-        'login.connected': 'Connected ΓÇö all modes unlocked.',
+        'login.connected': 'Connected — all modes unlocked.',
         'session.valid': 'Active session detected.',
         'errors.metamask': 'MetaMask is required. Install the extension or use a mobile browser.',
         'errors.network': 'Server connection error. Please try again.',
         'errors.auth': 'Connection failed.',
         'logout.done': 'Disconnected.',
         'app.title.bp': 'BATTLE POOL',
-        'app.back': 'BACK TO GAME',
+        'app.back': 'BACK TO MENU',
         'app.title.duel': 'DUEL',
         'app.title.br': 'BATTLE ROYALE',
     },
     es: {
         'lang.title': 'Selecciona tu idioma',
-        'login.title': '┬┐Listo para Luchar?',
-        'login.subtitle': 'Conecta tu wallet para entrar a la arena y comenzar tu sesi├│n.',
-        'login.card_title': 'Conexi├│n Wallet',
-        'login.connect': '≡ƒªè Conectar MetaMask',
-        'login.connecting': 'ΓÅ│ Conectando...',
-        'login.lang_switch': '≡ƒîÉ Cambiar idioma',
-        'menu.title': 'SELECCI├ôN DE MODO',
+        'login.title': '¿Listo para Luchar?',
+        'login.subtitle': 'Conecta tu wallet para entrar a la arena y comenzar tu sesión.',
+        'login.card_title': 'Conexión Wallet',
+        'login.connect': '🦊 Conectar MetaMask',
+        'login.connecting': '⏳ Conectando...',
+        'login.lang_switch': '🌐 Cambiar idioma',
+        'menu.title': 'SELECCIÓN DE MODO',
         'menu.subtitle': 'Una cuenta, tres modos. Elige tu campo de batalla.',
-        'menu.bp.title': 'Battle Pool',
-        'menu.bp.desc': 'Predicci├│n de combate en vivo. Piedra, papel, tijera con apuestas ETH, marketplace y referidos.',
+        'menu.bp.title': 'Spirit Fight',
+        'menu.bp.desc': 'Predicción de combate en vivo. Piedra, papel, tijera con apuestas ETH, marketplace y referidos.',
         'menu.duel.title': 'Duelo',
         'menu.duel.desc': 'Combate 3D Godot en tiempo real. 1 vs 1 en vivo contra un oponente.',
         'menu.br.title': 'Battle Royale',
-        'menu.br.desc': 'Torneo de eliminaci├│n. ├Ünete a una sala o crea un grupo privado.',
+        'menu.br.desc': 'Torneo de eliminación. Únete a una sala o crea un grupo privado.',
         'menu.play': 'JUGAR',
         'login.required': 'Conecta tu wallet primero para jugar.',
-        'login.connected': 'Conectado ΓÇö todos los modos desbloqueados.',
-        'session.valid': 'Sesi├│n activa detectada.',
-        'errors.metamask': 'MetaMask es necesario. Instala la extensi├│n o usa un navegador m├│vil.',
-        'errors.network': 'Error de conexi├│n con el servidor. Int├⌐ntalo de nuevo.',
-        'errors.auth': 'Conexi├│n fallida.',
+        'login.connected': 'Conectado — todos los modos desbloqueados.',
+        'session.valid': 'Sesión activa detectada.',
+        'errors.metamask': 'MetaMask es necesario. Instala la extensión o usa un navegador móvil.',
+        'errors.network': 'Error de conexión con el servidor. Inténtalo de nuevo.',
+        'errors.auth': 'Conexión fallida.',
         'logout.done': 'Desconectado.',
         'app.title.bp': 'BATTLE POOL',
-        'app.back': 'VOLVER AL JUEGO',
+        'app.back': 'VOLVER AL MENÚ',
         'app.title.duel': 'DUELO',
         'app.title.br': 'BATTLE ROYALE',
     },
     de: {
-        'lang.title': 'W├ñhle deine Sprache',
-        'login.title': 'Bereit zu k├ñmpfen?',
+        'lang.title': 'Wähle deine Sprache',
+        'login.title': 'Bereit zu kämpfen?',
         'login.subtitle': 'Verbinde deine Wallet, um die Arena zu betreten und deine Sitzung zu starten.',
         'login.card_title': 'Wallet-Verbindung',
-        'login.connect': '≡ƒªè MetaMask verbinden',
-        'login.connecting': 'ΓÅ│ Verbinden...',
-        'login.lang_switch': '≡ƒîÉ Sprache ├ñndern',
+        'login.connect': '🦊 MetaMask verbinden',
+        'login.connecting': '⏳ Verbinden...',
+        'login.lang_switch': '🌐 Sprache ändern',
         'menu.title': 'MODUS AUSWAHL',
-        'menu.subtitle': 'Ein Konto, drei Modi. W├ñhle dein Schlachtfeld.',
-        'menu.bp.title': 'Battle Pool',
+        'menu.subtitle': 'Ein Konto, drei Modi. Wähle dein Schlachtfeld.',
+        'menu.bp.title': 'Spirit Fight',
         'menu.bp.desc': 'Live-Kampfvorhersage. Schere-Stein-Papier mit ETH-Wetten, Marktplatz und Empfehlung.',
         'menu.duel.title': 'Duell',
         'menu.duel.desc': 'Echtzeit-3D-Godot-Kampf. Live 1 gegen 1 gegen einen Gegner.',
@@ -409,74 +376,74 @@ const TRANSLATIONS = {
         'menu.br.desc': 'Ausscheidungsturnier. Trete einer Lobby bei oder erstelle einen privaten Pool.',
         'menu.play': 'SPIELEN',
         'login.required': 'Verbinde zuerst deine Wallet, um zu spielen.',
-        'login.connected': 'Verbunden ΓÇö alle Modi freigeschaltet.',
+        'login.connected': 'Verbunden — alle Modi freigeschaltet.',
         'session.valid': 'Aktive Sitzung erkannt.',
         'errors.metamask': 'MetaMask ist erforderlich. Installiere die Erweiterung oder nutze einen mobilen Browser.',
         'errors.network': 'Serververbindungsfehler. Bitte erneut versuchen.',
         'errors.auth': 'Verbindung fehlgeschlagen.',
         'logout.done': 'Getrennt.',
         'app.title.bp': 'BATTLE POOL',
-        'app.back': 'ZURÜCK ZUM SPIEL',
+        'app.back': 'ZURÜCK ZUM MENÜ',
         'app.title.duel': 'DUEL',
         'app.title.br': 'BATTLE ROYALE',
     },
     pt: {
         'lang.title': 'Selecione seu idioma',
         'login.title': 'Pronto para Lutar?',
-        'login.subtitle': 'Conecte sua carteira para entrar na arena e iniciar sua sess├úo.',
-        'login.card_title': 'Conex├úo da Carteira',
-        'login.connect': '≡ƒªè Conectar MetaMask',
-        'login.connecting': 'ΓÅ│ Conectando...',
-        'login.lang_switch': '≡ƒîÉ Mudar idioma',
-        'menu.title': 'SELE├ç├âO DE MODO',
-        'menu.subtitle': 'Uma conta, tr├¬s modos. Escolha seu campo de batalha.',
-        'menu.bp.title': 'Battle Pool',
-        'menu.bp.desc': 'Previs├úo de combate ao vivo. Pedra, papel, tesoura com apostas ETH, marketplace e indica├º├úo.',
+        'login.subtitle': 'Conecte sua carteira para entrar na arena e iniciar sua sessão.',
+        'login.card_title': 'Conexão da Carteira',
+        'login.connect': '🦊 Conectar MetaMask',
+        'login.connecting': '⏳ Conectando...',
+        'login.lang_switch': '🌐 Mudar idioma',
+        'menu.title': 'SELEÇÃO DE MODO',
+        'menu.subtitle': 'Uma conta, três modos. Escolha seu campo de batalha.',
+        'menu.bp.title': 'Spirit Fight',
+        'menu.bp.desc': 'Previsão de combate ao vivo. Pedra, papel, tesoura com apostas ETH, marketplace e indicação.',
         'menu.duel.title': 'Duelo',
         'menu.duel.desc': 'Combate 3D Godot em tempo real. 1 vs 1 ao vivo contra um oponente.',
         'menu.br.title': 'Battle Royale',
-        'menu.br.desc': 'Torneio de elimina├º├úo. Entre em um lobby ou crie um grupo privado.',
+        'menu.br.desc': 'Torneio de eliminação. Entre em um lobby ou crie um grupo privado.',
         'menu.play': 'JOGAR',
         'login.required': 'Conecte sua carteira primeiro para jogar.',
-        'login.connected': 'Conectado ΓÇö todos os modos desbloqueados.',
-        'session.valid': 'Sess├úo ativa detectada.',
-        'errors.metamask': 'MetaMask ├⌐ necess├írio. Instale a extens├úo ou use um navegador m├│vel.',
-        'errors.network': 'Erro de conex├úo com o servidor. Tente novamente.',
-        'errors.auth': 'Falha na conex├úo.',
+        'login.connected': 'Conectado — todos os modos desbloqueados.',
+        'session.valid': 'Sessão ativa detectada.',
+        'errors.metamask': 'MetaMask é necessário. Instale a extensão ou use um navegador móvel.',
+        'errors.network': 'Erro de conexão com o servidor. Tente novamente.',
+        'errors.auth': 'Falha na conexão.',
         'logout.done': 'Desconectado.',
         'app.title.bp': 'BATTLE POOL',
-        'app.back': 'VOLTAR AO JOGO',
+        'app.back': 'VOLTAR AO MENU',
         'app.title.duel': 'DUELO',
         'app.title.br': 'BATTLE ROYALE',
     },
     zh: {
-        'lang.title': 'ΘÇëµï⌐µé¿τÜäΦ»¡Φ¿Ç',
-        'login.title': 'σçåσñçµêÿµûù∩╝ƒ',
-        'login.subtitle': 'Φ┐₧µÄÑµé¿τÜäΘÆ▒σîàΦ┐¢σàÑτ½₧µèÇσ£║σ╣╢σ╝Çσºïµé¿τÜäΣ╝ÜΦ»¥πÇé',
-        'login.card_title': 'ΘÆ▒σîàΦ┐₧µÄÑ',
-        'login.connect': '≡ƒªè Φ┐₧µÄÑ MetaMask',
-        'login.connecting': 'ΓÅ│ Φ┐₧µÄÑΣ╕¡...',
-        'login.lang_switch': '≡ƒîÉ µ¢┤µö╣Φ»¡Φ¿Ç',
-        'menu.title': 'µ¿íσ╝ÅΘÇëµï⌐',
-        'menu.subtitle': 'Σ╕ÇΣ╕¬Φ┤ªµê╖∩╝îΣ╕ëτºìµ¿íσ╝ÅπÇéΘÇëµï⌐µé¿τÜäµêÿσ£║πÇé',
-        'menu.bp.title': 'Battle Pool',
-        'menu.bp.desc': 'σ«₧µù╢µêÿµûùΘóäµ╡ïπÇéτƒ│σñ┤σë¬σêÇσ╕âσ╣╢Σ╕ïµ│¿ETH∩╝îσ╕éσ£║Σ╕ÄµÄ¿ΦìÉπÇé',
-        'menu.duel.title': 'σå│µûù',
-        'menu.duel.desc': 'σ«₧µù╢3D GodotµêÿµûùπÇéΣ╕Äσ»╣µëïΦ┐¢Φíî1σ»╣1σ»╣σå│πÇé',
-        'menu.br.title': 'σñºΘÇâµ¥Ç',
-        'menu.br.desc': 'µ╖ÿµ▒░Φ╡¢πÇéσèáσàÑσñºσÄàµêûσê¢σ╗║τºüΣ║║µê┐Θù┤πÇé',
-        'menu.play': 'σ╝Çσºï',
-        'login.required': 'Φ»╖σàêΦ┐₧µÄÑµé¿τÜäΘÆ▒σîàσåìσ╝Çσºïµ╕╕µêÅπÇé',
-        'login.connected': 'σ╖▓Φ┐₧µÄÑ ΓÇö µëÇµ£ëµ¿íσ╝Åσ╖▓ΦºúΘöüπÇé',
-        'session.valid': 'µúÇµ╡ïσê░µ┤╗Φ╖âΣ╝ÜΦ»¥πÇé',
-        'errors.metamask': 'Θ£ÇΦªüMetaMaskπÇéΦ»╖σ«ëΦúàµë⌐σ▒òµêûΣ╜┐τö¿τº╗σè¿µ╡ÅΦºêσÖ¿πÇé',
-        'errors.network': 'µ£ìσèíσÖ¿Φ┐₧µÄÑΘöÖΦ»»πÇéΦ»╖ΘçìΦ»òπÇé',
-        'errors.auth': 'Φ┐₧µÄÑσñ▒Φ┤ÑπÇé',
-        'logout.done': 'σ╖▓µû¡σ╝ÇΦ┐₧µÄÑπÇé',
+        'lang.title': '选择您的语言',
+        'login.title': '准备战斗？',
+        'login.subtitle': '连接您的钱包进入竞技场并开始您的会话。',
+        'login.card_title': '钱包连接',
+        'login.connect': '🦊 连接 MetaMask',
+        'login.connecting': '⏳ 连接中...',
+        'login.lang_switch': '🌐 更改语言',
+        'menu.title': '模式选择',
+        'menu.subtitle': '一个账户，三种模式。选择您的战场。',
+        'menu.bp.title': 'Spirit Fight',
+        'menu.bp.desc': '实时战斗预测。石头剪刀布并下注ETH，市场与推荐。',
+        'menu.duel.title': '决斗',
+        'menu.duel.desc': '实时3D Godot战斗。与对手进行1对1对决。',
+        'menu.br.title': '大逃杀',
+        'menu.br.desc': '淘汰赛。加入大厅或创建私人房间。',
+        'menu.play': '开始',
+        'login.required': '请先连接您的钱包再开始游戏。',
+        'login.connected': '已连接 — 所有模式已解锁。',
+        'session.valid': '检测到活跃会话。',
+        'errors.metamask': '需要MetaMask。请安装扩展或使用移动浏览器。',
+        'errors.network': '服务器连接错误。请重试。',
+        'errors.auth': '连接失败。',
+        'logout.done': '已断开连接。',
         'app.title.bp': 'BATTLE POOL',
-        'app.back': 'Φ┐öσ¢₧µ╕╕µêÅ',
-        'app.title.duel': 'σå│µûù',
-        'app.title.br': 'σñºΘÇâµ¥Ç',
+        'app.back': '返回菜单',
+        'app.title.duel': '决斗',
+        'app.title.br': '大逃杀',
     }
 };
 
@@ -490,22 +457,19 @@ function applyTranslations() {
     document.documentElement.lang = currentLocale;
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        el.innerHTML = t(key); // autorise le <span class="grad"> inline
+        el.innerHTML = t(key);
     });
     const btn = document.getElementById('connect-btn');
     if (btn) btn.textContent = t('login.connect');
 }
 
-/* ===== NAVIGATION ENTRE ├ëCRANS ===== */
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
 }
 
-/* ===== ├ëTAT ===== */
 const state = { connected: false, walletAddress: null };
 
-/* ===== DÉTECTION SESSION EXISTANTE (localStorage partagé) ===== */
 function detectSession() {
     try {
         const raw = localStorage.getItem('user');
@@ -518,34 +482,20 @@ function detectSession() {
                 return true;
             }
         }
-    } catch (e) { /* malformé → non connecté */ }
+    } catch (e) {}
     return false;
 }
 
-// Vérifie que la session stockée correspond bien au compte MetaMask actif.
-// Si l'utilisateur a changé de compte dans MetaMask sans se déconnecter,
-// on nettoie la session pour éviter d'afficher l'ancien compte.
 async function validateSessionAgainstMetamask() {
-    if (typeof window.ethereum === 'undefined') return; // pas de MetaMask
-    detectSession();
+    if (typeof window.ethereum === 'undefined') return;
     if (!state.connected) return;
     try {
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length === 0) {
-            // MetaMask verrouillé ou aucun compte connecté → déconnecter
-            console.log('[Portal] MetaMask sans compte ou non connecté, déconnexion');
-            logout();
-            return;
-        }
+        if (accounts.length === 0) { logout(); return; }
         const mmAddr = accounts[0].toLowerCase();
         const storedAddr = (state.walletAddress || '').toLowerCase();
-        if (storedAddr && mmAddr !== storedAddr) {
-            console.log('[Portal] Session stockée (' + storedAddr + ') ≠ MetaMask (' + mmAddr + '), déconnexion');
-            logout();
-        }
-    } catch (e) {
-        // MetaMask pas encore prêt, on ignore
-    }
+        if (storedAddr && mmAddr !== storedAddr) { logout(); }
+    } catch (e) {}
 }
 
 function shortAddr(a) { return a ? a.slice(0, 6) + '...' + a.slice(-4) : '0x...'; }
@@ -557,13 +507,11 @@ function toast(msg, ms = 3000) {
     toast._t = setTimeout(() => el.classList.remove('show'), ms);
 }
 
-/* ===== CONNEXION WALLET (flow identique ├á App 1) ===== */
 async function connectWallet() {
     const btn = document.getElementById('connect-btn');
     if (!btn) return;
     btn.disabled = true;
     btn.textContent = t('login.connecting');
-
     try {
         if (typeof window.ethereum === 'undefined') {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -576,11 +524,8 @@ async function connectWallet() {
             toast(t('errors.metamask'));
             return;
         }
-
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         const walletAddress = accounts[0];
-
-        // 1. Challenge
         const challengeRes = await fetch('/api/wallet/generate-message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -589,14 +534,10 @@ async function connectWallet() {
         const challengeData = await challengeRes.json();
         if (!challengeRes.ok) throw new Error(challengeData.message || t('errors.network'));
         const message = challengeData.message;
-
-        // 2. Sign
         const signature = await window.ethereum.request({
             method: 'personal_sign',
             params: [message, walletAddress]
         });
-
-        // 3. Verify (locale envoy├⌐ comme App 1)
         const verifyRes = await fetch('/api/wallet/verify-signature', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -608,20 +549,12 @@ async function connectWallet() {
         });
         const data = await verifyRes.json();
         if (!verifyRes.ok) throw new Error(data.message || t('errors.auth'));
-
-        // Persist session (cl├⌐s identiques App 1 ΓåÆ partag├⌐es avec App 1 & App 2)
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('auth_token', data.token);
-
         state.user = data.user;
         state.walletAddress = (data.user.wallet_address || walletAddress).toLowerCase();
         state.connected = true;
-        // Nettoyer le flag de déconnexion (on est reconnecté)
         sessionStorage.removeItem('bp_just_logged_out');
-
-        // Synchroniser la session vers le parent (App 2, origine différente : 8001 -> 8080).
-        // Le localStorage d'une iframe cross-origin peut être isolé selon le navigateur :
-        // le parent conserve la session et nous la redonnera à la prochaine ouverture.
         try {
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({
@@ -630,13 +563,12 @@ async function connectWallet() {
                     auth_token: data.token
                 }, '*');
             }
-        } catch (e) { /* ignore */ }
-
-        toast('Γ£à ' + t('login.connected'));
+        } catch (e) {}
+        toast('✅ ' + t('login.connected'));
         render();
     } catch (error) {
-        console.error('[Portal] ├ëchec connexion :', error);
-        toast('Γ¥î ' + (error?.message || t('errors.auth')));
+        console.error('[Portal] Échec connexion :', error);
+        toast('❌ ' + (error?.message || t('errors.auth')));
     } finally {
         btn.disabled = false;
         btn.textContent = t('login.connect');
@@ -644,25 +576,19 @@ async function connectWallet() {
 }
 
 function logout() {
-    // 1. Fermer l'App 1 dans l'iframe (vide le contenu)
     closeApp();
-    // 2. Nettoyage complet du localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('token');
-    // 3. Réinitialiser l'état local
     state.connected = false;
     state.walletAddress = null;
     state.user = null;
-    // 4. Marquer la déconnexion (bloque la restauration cross-origin)
     sessionStorage.setItem('bp_just_logged_out', '1');
-    // 5. Informer le parent (App 2) de supprimer sa copie de la session
     try {
         if (window.parent && window.parent !== window) {
             window.parent.postMessage({ type: 'BATTLEPOOL_SESSION_CLEAR' }, '*');
         }
-    } catch (e) { /* ignore */ }
-    // 6. Afficher l'écran de connexion
+    } catch (e) {}
     toast(t('logout.done'));
     showScreen('screen-login');
     document.getElementById('wallet-badge').style.display = 'none';
@@ -670,24 +596,22 @@ function logout() {
     document.getElementById('menu-wallet-addr').textContent = '0x...';
 }
 
-/* ===== RENDU ===== */
 function render() {
     document.getElementById('wallet-badge').style.display = state.connected ? 'flex' : 'none';
     document.getElementById('wallet-addr').textContent = shortAddr(state.walletAddress);
     document.getElementById('menu-wallet-addr').textContent = shortAddr(state.walletAddress);
     if (state.connected) {
-        // Connecté : lancer DIRECTEMENT l'UI de l'App 1 (Battlepool) dans l'iframe,
-        // sans écran intermédiaire de choix de mode (Duel/Battle Royale supprimés).
-        openApp('bp');
+        showScreen('screen-menu');
     } else {
         showScreen('screen-login');
         document.getElementById('login-hint').textContent = t('login.required');
     }
 }
 
-/* ===== POPUP APPLICATION (iframe) ===== */
 const APP_ROUTES = {
     bp: { url: PORTAL_CONFIG.APP1_URL, titleKey: 'app.title.bp' },
+    duel: { url: PORTAL_CONFIG.APP2_URL + '?mode=DUEL', titleKey: 'app.title.duel' },
+    br: { url: PORTAL_CONFIG.APP2_URL + '?mode=BATTLE', titleKey: 'app.title.br' },
 };
 
 function openApp(mode) {
@@ -696,14 +620,9 @@ function openApp(mode) {
     if (!state.connected) { toast(t('login.required')); return; }
     document.getElementById('app-title').textContent = t(conf.titleKey);
     const frame = document.getElementById('app-frame');
-    // Forcer le rechargement complet de l'iframe (cache-buster) pour que
-    // checkAuthSession() soit ré-exécutée avec le token fraîchement généré.
-    // Sans cela, si l'iframe était déjà chargée (ex: session restaurée),
-    // frame.src = même URL ne déclenche pas de rechargement → userState
-    // jamais initialisé → marketplace/jeu bloqués.
     frame.src = 'about:blank';
     requestAnimationFrame(() => {
-        frame.src = conf.url + '?_=' + Date.now();
+        frame.src = conf.url + (conf.url.includes('?') ? '&' : '?') + '_=' + Date.now();
     });
     document.getElementById('app-overlay').classList.add('show');
 }
@@ -720,7 +639,6 @@ function toggleFullscreen() {
     }
 }
 
-/* ===== S├ëLECTION DE LANGUE ===== */
 function buildLangGrid() {
     const grid = document.getElementById('lang-grid');
     grid.innerHTML = '';
@@ -736,27 +654,25 @@ function chooseLanguage(lang) {
     if (!SUPPORTED_LOCALES.includes(lang)) return;
     currentLocale = lang;
     localStorage.setItem('user_locale', lang);
+    localStorage.setItem('web3combat_lang', lang);
     applyTranslations();
-    // Apr├¿s choix de langue ΓåÆ connexion (ou menu si d├⌐j├á connect├⌐)
     render();
 }
 
-/* ===== INITIALISATION ===== */
 function initLanguage() {
     const urlParams = new URLSearchParams(window.location.search);
     const urlLang = urlParams.get('lang');
     let savedLang = localStorage.getItem('user_locale');
-
     if (urlLang && SUPPORTED_LOCALES.includes(urlLang)) {
         savedLang = urlLang;
         localStorage.setItem('user_locale', urlLang);
+        localStorage.setItem('web3combat_lang', urlLang);
     }
     if (savedLang && SUPPORTED_LOCALES.includes(savedLang)) {
         currentLocale = savedLang;
         applyTranslations();
-        return true; // langue connue ΓåÆ passer ├á la connexion
+        return true;
     }
-    // Pas de langue ΓåÆ afficher le s├⌐lecteur plein ├⌐cran
     currentLocale = 'en';
     buildLangGrid();
     applyTranslations();
@@ -765,10 +681,7 @@ function initLanguage() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    detectSession();
     const hasLang = initLanguage();
-
-    // Boutons
     document.getElementById('connect-btn').addEventListener('click', connectWallet);
     document.getElementById('lang-switch').addEventListener('click', () => { buildLangGrid(); showScreen('screen-lang'); });
     document.getElementById('lang-switch-2').addEventListener('click', () => { buildLangGrid(); showScreen('screen-lang'); });
@@ -776,44 +689,28 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('app-close').addEventListener('click', closeApp);
     document.getElementById('app-back').addEventListener('click', goBackToGame);
     document.getElementById('app-fullscreen').addEventListener('click', toggleFullscreen);
-
-    // Cartes du menu
     document.querySelectorAll('.menu-card').forEach(card => {
         card.addEventListener('click', () => openApp(card.dataset.app));
     });
 
-    // Détecter le changement de compte dans MetaMask : si l'utilisateur change
-    // de compte, on le déconnecte automatiquement pour qu'il puisse se reconnecter
-    // avec le nouveau compte.
     if (typeof window.ethereum !== 'undefined') {
         window.ethereum.on('accountsChanged', (accounts) => {
-            if (accounts.length === 0) {
-                // MetaMask déconnecté
-                logout();
-                return;
-            }
+            if (accounts.length === 0) { logout(); return; }
             const newAddr = accounts[0].toLowerCase();
             const currentAddr = (state.walletAddress || '').toLowerCase();
-            if (currentAddr && newAddr !== currentAddr) {
-                console.log('[Portal] Changement de compte MetaMask détecté :', currentAddr, '→', newAddr);
-                logout();
-            }
+            if (currentAddr && newAddr !== currentAddr) { logout(); }
         });
     }
 
-    // Session cross-origin : on demande au parent (App 2) une session persistée.
-    // À l'ouverture, le localStorage d'une iframe 8001 peut être vide même si
-    // l'utilisateur est déjà connecté — le parent répond avec la session sauvegardée.
     function requestParentSession() {
         try {
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'BATTLEPOOL_SESSION_GET' }, '*');
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) {}
     }
     window.addEventListener('message', (e) => {
         if (!e.data || e.data.type !== 'BATTLEPOOL_SESSION_RETURN') return;
-        // Si on vient de se déconnecter, ignorer la session renvoyée par le parent
         if (sessionStorage.getItem('bp_just_logged_out')) return;
         const s = e.data;
         if (s.user && s.auth_token) {
@@ -823,31 +720,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const was = state.connected;
                 detectSession();
                 if (was !== state.connected) render();
-            } catch (err) { /* ignore */ }
+            } catch (err) {}
         }
     });
 
-    // Bouton retour vers le jeu principal (App 2) : ferme l'overlay portail du parent.
     function goBackToGame() {
         closeApp();
+        showScreen('screen-menu');
         try {
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'BATTLEPOOL_CLOSE' }, '*');
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) {}
     }
 
-    // Si langue connue ΓåÆ connexion ou menu directement
     if (hasLang) render();
-
-    // Demander la session au parent APRÈS render initial (au cas où render a
-    // affiché l'écran de connexion faute de localStorage local).
-    setTimeout(requestParentSession, 300);
-
-    // Verifier que la session correspond au compte MetaMask actif
     setTimeout(() => validateSessionAgainstMetamask(), 500);
+    setTimeout(requestParentSession, 800);
 
-    // Sync multi-onglet
     window.addEventListener('storage', (e) => {
         if (e.key === 'user' || e.key === 'auth_token' || e.key === 'token') {
             const was = state.connected;
