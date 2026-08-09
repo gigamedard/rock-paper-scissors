@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -493,7 +493,7 @@ function showScreen(id) {
 /* ===== ├ëTAT ===== */
 const state = { connected: false, walletAddress: null };
 
-/* ===== D├ëTECTION SESSION EXISTANTE (localStorage partag├⌐) ===== */
+/* ===== DÉTECTION SESSION EXISTANTE (localStorage partagé) ===== */
 function detectSession() {
     try {
         const raw = localStorage.getItem('user');
@@ -506,8 +506,34 @@ function detectSession() {
                 return true;
             }
         }
-    } catch (e) { /* malform├⌐ ΓåÆ non connect├⌐ */ }
+    } catch (e) { /* malformé → non connecté */ }
     return false;
+}
+
+// Vérifie que la session stockée correspond bien au compte MetaMask actif.
+// Si l'utilisateur a changé de compte dans MetaMask sans se déconnecter,
+// on nettoie la session pour éviter d'afficher l'ancien compte.
+async function validateSessionAgainstMetamask() {
+    if (typeof window.ethereum === 'undefined') return; // pas de MetaMask
+    detectSession();
+    if (!state.connected) return;
+    try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length === 0) {
+            // MetaMask verrouillé ou aucun compte connecté → déconnecter
+            console.log('[Portal] MetaMask sans compte ou non connecté, déconnexion');
+            logout();
+            return;
+        }
+        const mmAddr = accounts[0].toLowerCase();
+        const storedAddr = (state.walletAddress || '').toLowerCase();
+        if (storedAddr && mmAddr !== storedAddr) {
+            console.log('[Portal] Session stockée (' + storedAddr + ') ≠ MetaMask (' + mmAddr + '), déconnexion');
+            logout();
+        }
+    } catch (e) {
+        // MetaMask pas encore prêt, on ignore
+    }
 }
 
 function shortAddr(a) { return a ? a.slice(0, 6) + '...' + a.slice(-4) : '0x...'; }
@@ -578,6 +604,8 @@ async function connectWallet() {
         state.user = data.user;
         state.walletAddress = (data.user.wallet_address || walletAddress).toLowerCase();
         state.connected = true;
+        // Nettoyer le flag de déconnexion (on est reconnecté)
+        sessionStorage.removeItem('bp_just_logged_out');
 
         // Synchroniser la session vers le parent (App 2, origine différente : 8001 -> 8080).
         // Le localStorage d'une iframe cross-origin peut être isolé selon le navigateur :
@@ -604,19 +632,30 @@ async function connectWallet() {
 }
 
 function logout() {
+    // 1. Fermer l'App 1 dans l'iframe (vide le contenu)
+    closeApp();
+    // 2. Nettoyage complet du localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
+    // 3. Réinitialiser l'état local
     state.connected = false;
     state.walletAddress = null;
-    // Informer le parent que la session est terminée
+    state.user = null;
+    // 4. Marquer la déconnexion (bloque la restauration cross-origin)
+    sessionStorage.setItem('bp_just_logged_out', '1');
+    // 5. Informer le parent (App 2) de supprimer sa copie de la session
     try {
         if (window.parent && window.parent !== window) {
             window.parent.postMessage({ type: 'BATTLEPOOL_SESSION_CLEAR' }, '*');
         }
     } catch (e) { /* ignore */ }
+    // 6. Afficher l'écran de connexion
     toast(t('logout.done'));
     showScreen('screen-login');
-    render();
+    document.getElementById('wallet-badge').style.display = 'none';
+    document.getElementById('wallet-addr').textContent = '0x...';
+    document.getElementById('menu-wallet-addr').textContent = '0x...';
 }
 
 /* ===== RENDU ===== */
@@ -645,10 +684,16 @@ function openApp(mode) {
     if (!state.connected) { toast(t('login.required')); return; }
     document.getElementById('app-title').textContent = t(conf.titleKey);
     const frame = document.getElementById('app-frame');
-    frame.src = conf.url;
+    // Forcer le rechargement complet de l'iframe (cache-buster) pour que
+    // checkAuthSession() soit ré-exécutée avec le token fraîchement généré.
+    // Sans cela, si l'iframe était déjà chargée (ex: session restaurée),
+    // frame.src = même URL ne déclenche pas de rechargement → userState
+    // jamais initialisé → marketplace/jeu bloqués.
+    frame.src = 'about:blank';
+    requestAnimationFrame(() => {
+        frame.src = conf.url + '?_=' + Date.now();
+    });
     document.getElementById('app-overlay').classList.add('show');
-    // Un second chargement ├⌐vite le cache si l'utilisateur change de mode
-    document.getElementById('app-frame').onload = null;
 }
 function closeApp() {
     document.getElementById('app-overlay').classList.remove('show');
@@ -708,6 +753,7 @@ function initLanguage() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    detectSession();
     const hasLang = initLanguage();
 
     // Boutons
@@ -724,6 +770,25 @@ document.addEventListener('DOMContentLoaded', () => {
         card.addEventListener('click', () => openApp(card.dataset.app));
     });
 
+    // Détecter le changement de compte dans MetaMask : si l'utilisateur change
+    // de compte, on le déconnecte automatiquement pour qu'il puisse se reconnecter
+    // avec le nouveau compte.
+    if (typeof window.ethereum !== 'undefined') {
+        window.ethereum.on('accountsChanged', (accounts) => {
+            if (accounts.length === 0) {
+                // MetaMask déconnecté
+                logout();
+                return;
+            }
+            const newAddr = accounts[0].toLowerCase();
+            const currentAddr = (state.walletAddress || '').toLowerCase();
+            if (currentAddr && newAddr !== currentAddr) {
+                console.log('[Portal] Changement de compte MetaMask détecté :', currentAddr, '→', newAddr);
+                logout();
+            }
+        });
+    }
+
     // Session cross-origin : on demande au parent (App 2) une session persistée.
     // À l'ouverture, le localStorage d'une iframe 8001 peut être vide même si
     // l'utilisateur est déjà connecté — le parent répond avec la session sauvegardée.
@@ -736,6 +801,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.addEventListener('message', (e) => {
         if (!e.data || e.data.type !== 'BATTLEPOOL_SESSION_RETURN') return;
+        // Si on vient de se déconnecter, ignorer la session renvoyée par le parent
+        if (sessionStorage.getItem('bp_just_logged_out')) return;
         const s = e.data;
         if (s.user && s.auth_token) {
             try {
@@ -764,6 +831,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Demander la session au parent APRÈS render initial (au cas où render a
     // affiché l'écran de connexion faute de localStorage local).
     setTimeout(requestParentSession, 300);
+
+    // Verifier que la session correspond au compte MetaMask actif
+    setTimeout(() => validateSessionAgainstMetamask(), 500);
 
     // Sync multi-onglet
     window.addEventListener('storage', (e) => {

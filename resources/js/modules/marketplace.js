@@ -15,6 +15,7 @@ import { secureFetch } from '../core/api.js';
 import { addToFeed } from './game.js';
 import { t } from './i18n.js';
 import { setAppTimer } from '../core/timers.js';
+import { parseRpcError } from '../core/auth.js';
 import { parseEther, formatEther } from 'ethers';
 
 const SNT_ABI = [
@@ -86,8 +87,16 @@ async function _sendWithFreshNonce(sendFn) {
 
 export async function initMarketplace() {
     console.log("[Marketplace] Initialisation du module Marketplace");
+    console.log("[Marketplace] DOM elements:", {
+        approveBtn: !!document.getElementById('marketplace-approve-btn'),
+        createBtn: !!document.getElementById('marketplace-create-btn'),
+        sntInput: !!document.getElementById('mp-snt-amount'),
+        avaxInput: !!document.getElementById('mp-avax-amount'),
+        banner: !!document.getElementById('mp-contract-error'),
+    });
 
     await loadContractAddresses();
+    console.log("[Marketplace] Après loadContractAddresses:", CONTRACT_ADDRESSES);
     _updateContractStatusBanner();
     await loadMarketplaceData();
 
@@ -303,7 +312,7 @@ window.marketplaceBuyCard = async function(cardId, cardPrice, quantity = 1) {
         switchMarketplaceTab('inventory');
     } catch (e) {
         console.error('[Marketplace] Erreur achat carte:', e);
-        _showMpNotification(t('marketplace.buy_error', { error: e.message }), 'error');
+        _showMpNotification(t('marketplace.buy_error', { error: parseRpcError(e) }), 'error');
     }
 };
 
@@ -584,7 +593,7 @@ async function handleApprove() {
 
     } catch (e) {
         console.error('[Marketplace] Erreur approbation:', e);
-        _showMpNotification(t('marketplace.approve_failed', { error: e.reason || e.message }), 'error');
+        _showMpNotification(t('marketplace.approve_failed', { error: parseRpcError(e) }), 'error');
         btn.disabled = false;
         btn.textContent = t('marketplace.approve_btn_label');
     }
@@ -635,7 +644,7 @@ async function handleCreateOffer() {
 
     } catch (e) {
         console.error('[Marketplace] Erreur création offre:', e);
-        _showMpNotification(t('marketplace.create_offer_failed', { error: e.reason || e.message }), 'error');
+        _showMpNotification(t('marketplace.create_offer_failed', { error: parseRpcError(e) }), 'error');
     } finally {
         btn.disabled  = false;
         btn.textContent = t('marketplace.create_offer') || 'Créer l\'Offre';
@@ -660,7 +669,7 @@ window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
         setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {
         console.error('[Marketplace] Erreur achat:', e);
-        _showMpNotification(t('marketplace.buy_offer_failed', { error: e.reason || e.message }), 'error');
+        _showMpNotification(t('marketplace.buy_offer_failed', { error: parseRpcError(e) }), 'error');
     }
 };
 
@@ -679,6 +688,6 @@ window.marketplaceCancelOffer = async function(offerId) {
         setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {
         console.error('[Marketplace] Erreur annulation:', e);
-        _showMpNotification(t('marketplace.cancel_offer_failed', { error: e.reason || e.message }), 'error');
+        _showMpNotification(t('marketplace.cancel_offer_failed', { error: parseRpcError(e) }), 'error');
     }
 };

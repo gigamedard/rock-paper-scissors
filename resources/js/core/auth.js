@@ -14,14 +14,18 @@ export function parseRpcError(error) {
     if (msg.includes("insufficient funds")) return gt('errors.insufficient_funds');
     if (msg.includes("nonce too low")) return gt('errors.nonce_too_low');
     if (msg.includes("execution reverted")) {
+        // Cas 1 : raison explicite (ex: "Claim payment failed")
         const match = msg.match(/reason="([^"]+)"/);
         if (match && match[1]) return `Action refusée par le contrat : ${match[1]}`;
-        return "Transaction rejetée par le Smart Contract (conditions non remplies).";
+        // Cas 2 : "unknown custom error" → le contrat a revert sans raison lisible
+        if (msg.includes("unknown custom error")) return gt('errors.contract_reverted');
+        return gt('errors.contract_reverted');
     }
     if (msg.includes("User not found") || msg.includes("Signature invalid")) return gt('errors.auth_failed');
     if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) return gt('errors.network_issue');
     
-    return gt('errors.generic_error') + " (" + (msg.length > 100 ? msg.substring(0, 100) + "..." : msg) + ")";
+    // Fallback : message générique SANS exposer le détail technique au client
+    return gt('errors.generic_error');
 }
 
 export async function connectWallet(providerType = 'injected') {
@@ -106,6 +110,12 @@ export function logout() {
     console.log("[Auth] Déconnexion demandée.");
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'BATTLEPOOL_SESSION_CLEAR' }, '*');
+        }
+    } catch (e) { /* ignore */ }
     window.location.reload();
 }
 

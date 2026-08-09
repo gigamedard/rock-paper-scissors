@@ -103,6 +103,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     window.addEventListener('auth:expired', () => {
+        // Éviter la boucle de rechargement : si on vient déjà de recharger
+        // (flag dans sessionStorage), on vide tout et on affiche l'écran de connexion.
+        if (sessionStorage.getItem('auth_expired_reloaded')) {
+            sessionStorage.removeItem('auth_expired_reloaded');
+            localStorage.removeItem('user');
+            localStorage.removeItem('auth_token');
+            window.userState = {
+                id: null, walletAddress: null, userObject: null,
+                balance: 0, bet_amount: 0.01, status: 'disconnected'
+            };
+            if (window.echoInstance) window.echoInstance.disconnect();
+            showToast(window.t ? window.t('connect.session_expired') : "Session expirée. Veuillez vous reconnecter.", 'warn');
+            // Rediriger vers l'écran de connexion au lieu de recharger
+            const connectScreen = document.getElementById('screen-connect') || document.getElementById('view-disconnected');
+            if (connectScreen) {
+                document.querySelectorAll('.page.active, .screen.active').forEach(s => s.classList.remove('active'));
+                connectScreen.classList.add('active');
+            }
+            return;
+        }
+        sessionStorage.setItem('auth_expired_reloaded', '1');
         window.userState = {
             id: null, walletAddress: null, userObject: null,
             balance: 0, bet_amount: 0.01, status: 'disconnected'
@@ -111,7 +132,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast(window.t ? window.t('connect.session_expired') : "Session expirée. Veuillez vous reconnecter.", 'warn');
         window.location.reload();
     });
+
+    // Détection automatique du changement de compte MetaMask
+    if (typeof window.ethereum !== 'undefined') {
+        window.ethereum.on('accountsChanged', (accounts) => {
+            if (accounts.length === 0) {
+                logout();
+                return;
+            }
+            const newAddr = accounts[0].toLowerCase();
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                try {
+                    const u = JSON.parse(storedUser);
+                    const currentAddr = (u.wallet_address || u.wallet || '').toLowerCase();
+                    if (currentAddr && newAddr !== currentAddr) {
+                        console.log('[App] Changement de compte MetaMask détecté :', currentAddr, '→', newAddr);
+                        logout();
+                    }
+                } catch (e) {}
+            }
+        });
+    }
+
+    setTimeout(validateSessionAgainstMetamask, 500);
 });
+
+async function validateSessionAgainstMetamask() {
+    if (typeof window.ethereum === 'undefined') return;
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) return;
+    try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length === 0) {
+            console.log('[Auth] MetaMask sans compte connecté, déconnexion');
+            logout();
+            return;
+        }
+        const mmAddr = accounts[0].toLowerCase();
+        const user = JSON.parse(storedUser);
+        const storedAddr = (user.wallet_address || user.wallet || '').toLowerCase();
+        if (storedAddr && mmAddr !== storedAddr) {
+            console.log(`[Auth] Session stockée (${storedAddr}) ≠ MetaMask (${mmAddr}), déconnexion`);
+            logout();
+        }
+    } catch (e) {}
+}
 
 function checkAuthSession() {
     const token = getAuthToken();
