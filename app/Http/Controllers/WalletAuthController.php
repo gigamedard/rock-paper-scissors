@@ -243,4 +243,60 @@ class WalletAuthController extends Controller
             'user'    => $user,
         ]);
     }
+
+    /**
+     * Dev login sans MetaMask — utilise les comptes Hardhat déterministes.
+     * GET /api/wallet/dev-login?player=1
+     * player=0 → Admin (Hardhat #0), player=1-6 → comptes de test
+     */
+    public function devLogin(Request $request)
+    {
+        if (!app()->environment('local', 'testing', 'staging')) {
+            abort(403, 'Dev login only available in local/testing environment');
+        }
+
+        $player = (int) $request->query('player', 1);
+        $accounts = [
+            0 => '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+            1 => '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+            2 => '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+            3 => '0x90F79bf6EB2c4f870365E785982E1f101E93b906',
+            4 => '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65',
+            5 => '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc',
+            6 => '0x976EA74026E726554dB657fA54763abd0C3a0aa9',
+        ];
+
+        if (!isset($accounts[$player])) {
+            return response()->json(['message' => 'Invalid player index. Use 0-6.'], 400);
+        }
+
+        $address = strtolower($accounts[$player]);
+        $locale = $request->query('locale', 'fr');
+
+        $user = User::firstOrCreate(
+            ['wallet_address' => $address],
+            [
+                'name'     => $this->generateReadableName($address),
+                'email'    => $this->fromUsername($this->generateReadableName($address)),
+                'password' => bcrypt(hash('sha256', $address)),
+                'email_verified_at' => now(),
+            ]
+        );
+        $user->update(['is_online' => true, 'language' => $locale]);
+
+        $token = ApiToken::generateForUser($user, 60 * 24);
+
+        if (!$user->referral_code) {
+            $user->generateReferralCode();
+        }
+        $user->save();
+
+        return response()->json([
+            'message' => 'Dev login OK',
+            'token'   => $token,
+            'user'    => $user,
+            'locale'  => $user->language,
+            'is_admin'=> $user->is_admin,
+        ]);
+    }
 }

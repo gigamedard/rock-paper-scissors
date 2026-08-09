@@ -20,6 +20,9 @@ Route::post('/wallet/generate-message', [WalletAuthController::class, 'generateM
 Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySignature']);
 Route::post('/auth/challenge', [WalletAuthController::class, 'generateMessage']); // Alias for debug-test.html
 Route::post('/auth/verify', [WalletAuthController::class, 'verifySignature']);    // Alias for debug-test.html
+
+// Dev login sans MetaMask (comptes Hardhat déterministes)
+Route::get('/wallet/dev-login', [WalletAuthController::class, 'devLogin']);
 Route::post('/login', [WalletAuthController::class, 'login']);                    // Direct login for UI/Bots
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);           // Publié pour permettre l'init Web3
 

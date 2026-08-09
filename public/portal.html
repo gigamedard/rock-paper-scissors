@@ -508,6 +508,26 @@ function toast(msg, ms = 3000) {
 }
 
 async function connectWallet() {
+
+// Mode dev : login sans MetaMask via l'API /api/wallet/dev-login?player=N
+async function devLogin(playerIndex) {
+    try {
+        const res = await fetch(`/api/wallet/dev-login?player=${playerIndex}&locale=${currentLocale}`);
+        if (!res.ok) throw new Error('Dev login failed');
+        const data = await res.json();
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('auth_token', data.token);
+        state.user = data.user;
+        state.walletAddress = (data.user.wallet_address || '').toLowerCase();
+        state.connected = true;
+        sessionStorage.removeItem('bp_just_logged_out');
+        toast('✅ Dev login — ' + shortAddr(state.walletAddress));
+        render();
+    } catch (e) {
+        console.error('[Portal] Dev login failed:', e);
+        toast('❌ Dev login échoué');
+    }
+}
     const btn = document.getElementById('connect-btn');
     if (!btn) return;
     btn.disabled = true;
@@ -692,6 +712,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.menu-card').forEach(card => {
         card.addEventListener('click', () => openApp(card.dataset.app));
     });
+
+    // Mode dev : ?player=N simule un wallet Hardhat sans MetaMask
+    const urlParams = new URLSearchParams(window.location.search);
+    const devPlayer = urlParams.get('player');
+    if (devPlayer !== null && !isNaN(devPlayer)) {
+        devLogin(parseInt(devPlayer));
+        return;
+    }
 
     if (typeof window.ethereum !== 'undefined') {
         window.ethereum.on('accountsChanged', (accounts) => {
