@@ -507,8 +507,6 @@ function toast(msg, ms = 3000) {
     toast._t = setTimeout(() => el.classList.remove('show'), ms);
 }
 
-async function connectWallet() {
-
 // Mode dev : login sans MetaMask via l'API /api/wallet/dev-login?player=N
 async function devLogin(playerIndex) {
     try {
@@ -528,6 +526,8 @@ async function devLogin(playerIndex) {
         toast('❌ Dev login échoué');
     }
 }
+
+async function connectWallet() {
     const btn = document.getElementById('connect-btn');
     if (!btn) return;
     btn.disabled = true;
