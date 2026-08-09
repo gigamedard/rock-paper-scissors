@@ -228,15 +228,27 @@
     </div>
 </div>
 
-<!-- ===== ÉCRAN 3 : LANCEMENT BATTLEPOOL (App 1 uniquement) ===== -->
+<!-- ===== ÉCRAN 3 : MENU UNIFIÉ DES MODES DE JEU ===== -->
 <div id="screen-menu" class="screen">
-    <h1 data-i18n="menu.title">BATTLE<span class="grad">POOL</span></h1>
-    <p class="sub" data-i18n="menu.subtitle">Votre arène de combat. Prêt à jouer ?</p>
+    <h1 data-i18n="menu.title">SELECTION DU <span class="grad">MODE</span></h1>
+    <p class="sub" data-i18n="menu.subtitle">Un seul compte, trois modes. Choisissez votre terrain de bataille.</p>
     <div class="menu-grid">
         <div class="menu-card card-bp" data-app="bp">
             <span class="icon">🛡️</span>
-            <h2 data-i18n="menu.bp.title">Battle Pool</h2>
+            <h2 data-i18n="menu.bp.title">Spirit Fight</h2>
             <p data-i18n="menu.bp.desc">Prédiction de combat en direct. Pierre, papier, ciseaux avec paris ETH, marketplace et parrainage.</p>
+            <div class="enter" data-i18n="menu.play">JOUER</div>
+        </div>
+        <div class="menu-card card-duel" data-app="duel">
+            <span class="icon">⚔️</span>
+            <h2 data-i18n="menu.duel.title">Duel</h2>
+            <p data-i18n="menu.duel.desc">Combat 3D Godot en temps réel. 1 vs 1 en direct contre un adversaire.</p>
+            <div class="enter" data-i18n="menu.play">JOUER</div>
+        </div>
+        <div class="menu-card card-br" data-app="br">
+            <span class="icon">👑</span>
+            <h2 data-i18n="menu.br.title">Battle Royale</h2>
+            <p data-i18n="menu.br.desc">Tournoi à élimination. Rejoins un salon ou crée une poule privée.</p>
             <div class="enter" data-i18n="menu.play">JOUER</div>
         </div>
     </div>
@@ -664,9 +676,7 @@ function render() {
     document.getElementById('wallet-addr').textContent = shortAddr(state.walletAddress);
     document.getElementById('menu-wallet-addr').textContent = shortAddr(state.walletAddress);
     if (state.connected) {
-        // Connecté : lancer DIRECTEMENT l'UI de l'App 1 (Battlepool) dans l'iframe,
-        // sans écran intermédiaire de choix de mode (Duel/Battle Royale supprimés).
-        openApp('bp');
+        showScreen('screen-menu');
     } else {
         showScreen('screen-login');
         document.getElementById('login-hint').textContent = t('login.required');
@@ -676,6 +686,8 @@ function render() {
 /* ===== POPUP APPLICATION (iframe) ===== */
 const APP_ROUTES = {
     bp: { url: PORTAL_CONFIG.APP1_URL, titleKey: 'app.title.bp' },
+    duel: { url: PORTAL_CONFIG.APP2_URL + '?mode=DUEL', titleKey: 'app.title.duel' },
+    br: { url: PORTAL_CONFIG.APP2_URL + '?mode=BATTLE', titleKey: 'app.title.br' },
 };
 
 function openApp(mode) {
@@ -684,14 +696,9 @@ function openApp(mode) {
     if (!state.connected) { toast(t('login.required')); return; }
     document.getElementById('app-title').textContent = t(conf.titleKey);
     const frame = document.getElementById('app-frame');
-    // Forcer le rechargement complet de l'iframe (cache-buster) pour que
-    // checkAuthSession() soit ré-exécutée avec le token fraîchement généré.
-    // Sans cela, si l'iframe était déjà chargée (ex: session restaurée),
-    // frame.src = même URL ne déclenche pas de rechargement → userState
-    // jamais initialisé → marketplace/jeu bloqués.
     frame.src = 'about:blank';
     requestAnimationFrame(() => {
-        frame.src = conf.url + '?_=' + Date.now();
+        frame.src = conf.url + (conf.url.includes('?') ? '&' : '?') + '_=' + Date.now();
     });
     document.getElementById('app-overlay').classList.add('show');
 }
@@ -708,7 +715,7 @@ function toggleFullscreen() {
     }
 }
 
-/* ===== S├ëLECTION DE LANGUE ===== */
+/* ===== SÉLECTION DE LANGUE ===== */
 function buildLangGrid() {
     const grid = document.getElementById('lang-grid');
     grid.innerHTML = '';
@@ -724,8 +731,8 @@ function chooseLanguage(lang) {
     if (!SUPPORTED_LOCALES.includes(lang)) return;
     currentLocale = lang;
     localStorage.setItem('user_locale', lang);
+    localStorage.setItem('web3combat_lang', lang);
     applyTranslations();
-    // Apr├¿s choix de langue ΓåÆ connexion (ou menu si d├⌐j├á connect├⌐)
     render();
 }
 
@@ -738,13 +745,13 @@ function initLanguage() {
     if (urlLang && SUPPORTED_LOCALES.includes(urlLang)) {
         savedLang = urlLang;
         localStorage.setItem('user_locale', urlLang);
+        localStorage.setItem('web3combat_lang', urlLang);
     }
     if (savedLang && SUPPORTED_LOCALES.includes(savedLang)) {
         currentLocale = savedLang;
         applyTranslations();
-        return true; // langue connue ΓåÆ passer ├á la connexion
+        return true;
     }
-    // Pas de langue ΓåÆ afficher le s├⌐lecteur plein ├⌐cran
     currentLocale = 'en';
     buildLangGrid();
     applyTranslations();
@@ -770,13 +777,9 @@ document.addEventListener('DOMContentLoaded', () => {
         card.addEventListener('click', () => openApp(card.dataset.app));
     });
 
-    // Détecter le changement de compte dans MetaMask : si l'utilisateur change
-    // de compte, on le déconnecte automatiquement pour qu'il puisse se reconnecter
-    // avec le nouveau compte.
     if (typeof window.ethereum !== 'undefined') {
         window.ethereum.on('accountsChanged', (accounts) => {
             if (accounts.length === 0) {
-                // MetaMask déconnecté
                 logout();
                 return;
             }
@@ -789,9 +792,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Session cross-origin : on demande au parent (App 2) une session persistée.
-    // À l'ouverture, le localStorage d'une iframe 8001 peut être vide même si
-    // l'utilisateur est déjà connecté — le parent répond avec la session sauvegardée.
     function requestParentSession() {
         try {
             if (window.parent && window.parent !== window) {
@@ -801,7 +801,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.addEventListener('message', (e) => {
         if (!e.data || e.data.type !== 'BATTLEPOOL_SESSION_RETURN') return;
-        // Si on vient de se déconnecter, ignorer la session renvoyée par le parent
         if (sessionStorage.getItem('bp_just_logged_out')) return;
         const s = e.data;
         if (s.user && s.auth_token) {
@@ -815,9 +814,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Bouton retour vers le jeu principal (App 2) : ferme l'overlay portail du parent.
     function goBackToGame() {
         closeApp();
+        showScreen('screen-menu');
         try {
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'BATTLEPOOL_CLOSE' }, '*');
