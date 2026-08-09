@@ -642,7 +642,10 @@ function openApp(mode) {
     const frame = document.getElementById('app-frame');
     frame.src = 'about:blank';
     requestAnimationFrame(() => {
-        frame.src = conf.url + (conf.url.includes('?') ? '&' : '?') + '_=' + Date.now();
+        // Passer le wallet dans l'URL pour que l'App 2 (port 8080, localStorage
+        // différent) puisse l'utiliser sans dépendre du localStorage partagé.
+        const sep = conf.url.includes('?') ? '&' : '?';
+        frame.src = conf.url + sep + 'wallet=' + encodeURIComponent(state.walletAddress) + '&_=' + Date.now();
     });
     document.getElementById('app-overlay').classList.add('show');
 }
