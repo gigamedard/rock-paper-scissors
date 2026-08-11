@@ -5,7 +5,7 @@ import { t } from '../modules/i18n.js';
 import { showToast } from './toast.js';
 
 export function parseRpcError(error) {
-    const msg = error?.message || error?.toString() || "Unknown error";
+    const msg = error?.message || error?.shortMessage || error?.toString() || "Unknown error";
     
     // Attempt translation via global t function, fallback to French for safety
     const gt = window.t || ((key) => key);
@@ -13,14 +13,21 @@ export function parseRpcError(error) {
     if (msg.includes("user rejected transaction") || msg.includes("User rejected")) return gt('errors.user_rejected');
     if (msg.includes("insufficient funds")) return gt('errors.insufficient_funds');
     if (msg.includes("nonce too low")) return gt('errors.nonce_too_low');
-    if (msg.includes("execution reverted")) {
-        // Cas 1 : raison explicite (ex: "Claim payment failed")
-        const match = msg.match(/reason="([^"]+)"/);
-        if (match && match[1]) return `Action refusée par le contrat : ${match[1]}`;
-        // Cas 2 : "unknown custom error" → le contrat a revert sans raison lisible
-        if (msg.includes("unknown custom error")) return gt('errors.contract_reverted');
-        return gt('errors.contract_reverted');
+    
+    // Extraction de la raison du revert : "reverted with reason string 'XYZ'" ou reason="XYZ"
+    const reasonMatch = msg.match(/reverted with reason string '([^']+)'/i) 
+        || msg.match(/reason="([^"]+)"/);
+    if (reasonMatch && reasonMatch[1]) {
+        return `Action refusée : ${reasonMatch[1]}`;
     }
+    
+    // Extraction d'un custom error : "reverted with custom error 'XYZ(...)'"
+    const customErrorMatch = msg.match(/reverted with custom error '([^']+)'/i);
+    if (customErrorMatch && customErrorMatch[1]) {
+        return `Erreur du contrat : ${customErrorMatch[1]}`;
+    }
+    
+    if (msg.includes("unknown custom error") || msg.includes("execution reverted")) return gt('errors.contract_reverted');
     if (msg.includes("User not found") || msg.includes("Signature invalid")) return gt('errors.auth_failed');
     if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) return gt('errors.network_issue');
     

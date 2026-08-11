@@ -368,6 +368,20 @@ function renderSlots() {
 }
 
 async function startSession() {
+    // Garde : empêcher de rejoindre si déjà en pool/en combat/en cooldown
+    if (window.userState.status === 'in_pool' || window.userState.status === 'in_fight' || window.userState.status === 'waiting') {
+        showToast("Vous êtes déjà dans une battle. Attendez la fin.", 'warn');
+        return;
+    }
+    if (isUserInCooldown()) {
+        const remaining = Math.ceil((new Date(window.userState.cooldown_until).getTime() - Date.now()) / 1000);
+        showToast(`Cooldown actif (${remaining}s restantes).`, 'warn');
+        return;
+    }
+    if (gameState.isStartingSession) {
+        showToast("Session en cours de démarrage...", 'warn');
+        return;
+    }
     if (gameState.preMoves.length < 10) {
         showToast(t('errors.select_premoves'), 'warn');
         return;
