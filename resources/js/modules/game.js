@@ -186,7 +186,28 @@ export function initGame() {
                 icon.style.transform = `rotate(${currentRotation}deg)`;
             }
             addToFeed(t('feed.refreshing'), "var(--primary)");
+            
+            // 1. Status utilisateur (balance, cooldown, payout, etc.)
             await fetchUserStatus();
+            
+            // 2. Recharger la config (security_coefficient, fee, etc.)
+            await fetchConfig();
+            
+            // 3. Recharger l'inventaire des cartes (via event pour le module marketplace)
+            window.dispatchEvent(new CustomEvent('marketplace:refresh'));
+            
+            // 4. Recharger le leaderboard de parrainage
+            window.dispatchEvent(new CustomEvent('referral:refresh'));
+            
+            // 5. Recharger le dashboard influenceur
+            window.dispatchEvent(new CustomEvent('influencer:refresh'));
+            
+            // 6. Recharger les slots de pre-moves (UI locale)
+            renderSlots();
+            
+            // 7. Mettre a jour l'UI
+            updateUI();
+            
             addToFeed(t('feed.status_updated'), "var(--success)");
         });
     }

@@ -68,6 +68,14 @@ export async function initInfluencer() {
             loadInfluencerDashboard();
         }
     });
+
+    // Refresh global (bouton refresh)
+    window.addEventListener('influencer:refresh', () => {
+        const container = document.getElementById('influencer-dashboard-page');
+        if (container && container.classList.contains('active')) {
+            loadInfluencerDashboard();
+        }
+    });
 }
 
 export async function loadInfluencerDashboard() {

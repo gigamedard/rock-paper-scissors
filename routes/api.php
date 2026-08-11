@@ -197,6 +197,7 @@ Route::prefix('shop')->middleware(['token.auth', 'throttle:10,1'])->group(functi
     Route::get('/cards', [\App\Http\Controllers\ShopController::class, 'index']);
     Route::get('/inventory', [\App\Http\Controllers\ShopController::class, 'inventory']);
     Route::post('/buy', [\App\Http\Controllers\ShopController::class, 'buy']);
+    Route::post('/activate-card', [\App\Http\Controllers\ShopController::class, 'activateCard']);
 });
 
 // ===============================================

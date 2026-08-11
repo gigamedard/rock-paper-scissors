@@ -194,16 +194,20 @@ class SessionManager
             // CRITICAL: Sync limits to blockchain BEFORE setting cooldown.
             // The smart contract validates nextTime >= block.timestamp + getUserMinCooldown(user).
             // If we set the cooldown first, the contract still has stale limits and may reject.
-            // Chain jobs to guarantee sequential execution:
-            // SyncUserLimitsJob MUST complete before SetCooldownJob runs,
-            // because the smart contract validates cooldown against current on-chain limits.
+            // Sync limits first (sync dispatch), then dispatch SetCooldownJob with a delay
+            // to ensure the contract has fresh limits before setting the cooldown.
             $user->cooldown_until = \Carbon\Carbon::createFromTimestamp($cooldownData['nextTime']);
             $user->save();
 
-            Bus::chain([
-                new \App\Jobs\SyncUserLimitsJob($user),
-                new \App\Jobs\SetCooldownJob($cooldownData['wallet'], $cooldownData['nextTime']),
-            ])->dispatch();
+            // Sync limits synchronously (not via queue to avoid serialization issues)
+            try {
+                $user->syncLimitsToBlockchain();
+            } catch (\Exception $e) {
+                Log::error("[SESSION_PAYOUT] Failed to sync limits for user {$user->id}: " . $e->getMessage());
+            }
+
+            // Then dispatch SetCooldownJob immediately (syncLimits already done synchronously above)
+            \App\Jobs\SetCooldownJob::dispatch($cooldownData['wallet'], $cooldownData['nextTime']);
 
             $signature = null;
             $payoutTriggered = false;
@@ -338,9 +342,15 @@ class SessionManager
 
         foreach ($activeCooldownCards as $userCard) {
             $effectValue = $userCard->card->effect_value;
-            if ($effectValue < 1) {
+            $absEffect = abs($effectValue);
+            if ($effectValue < 0) {
+                // Valeur négative = minutes fixes à soustraire (ex: -1000 = -1000 min)
+                $minutes = max(0, $minutes - $absEffect);
+            } elseif ($effectValue < 1) {
+                // Pourcentage (ex: 0.5 = -50%)
                 $minutes = $minutes * (1 - $effectValue);
             } else {
+                // Minutes fixes positives (ex: 60 = -60 min)
                 $minutes = max(0, $minutes - $effectValue);
             }
         }
@@ -369,12 +379,17 @@ class SessionManager
             ->get()
             ->sortBy(function ($userCard) {
                 // Apply percentage reductions first, then fixed values for determinism
-                return $userCard->card && $userCard->card->effect_value < 1 ? 0 : 1;
+                $ev = $userCard->card ? $userCard->card->effect_value : 1;
+                return ($ev > 0 && $ev < 1) ? 0 : 1;
             });
 
         foreach ($activeCooldownCards as $userCard) {
-            $effectValue = $userCard->card->effect_value; // ex: 0.5 (50%) ou 60 (60 minutes)
-            if ($effectValue < 1) {
+            $effectValue = $userCard->card->effect_value; // ex: 0.5 (50%), 60 (60 min), -1000 (-1000 min)
+            $absEffect = abs($effectValue);
+            if ($effectValue < 0) {
+                // Valeur négative = minutes fixes à soustraire (ex: -1000 = -1000 min)
+                $minutes = max(0, $minutes - $absEffect);
+            } elseif ($effectValue < 1) {
                 // Pourcentage (ex: 0.5 => -50%)
                 $minutes = $minutes * (1 - $effectValue);
             } else {

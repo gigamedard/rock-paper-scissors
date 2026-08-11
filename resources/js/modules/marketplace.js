@@ -142,6 +142,13 @@ export async function initMarketplace() {
         window.marketplaceListenersInitialized = true;
         window.addEventListener('i18n:changed', renderOffers);
         window.addEventListener('auth:success', () => loadMarketplaceData());
+        window.addEventListener('marketplace:refresh', async () => {
+            await loadMarketplaceData();
+            const tabInventory = document.getElementById('tab-inventory');
+            if (tabInventory && tabInventory.classList.contains('active')) {
+                await loadUserInventory();
+            }
+        });
     }
 }
 
@@ -363,15 +370,26 @@ export async function loadUserInventory() {
 
             let statusDisplay = '';
             let statusColor = '';
-            if (uc.status === 'pending') {
-                statusDisplay = t('marketplace.pending_validation');
-                statusColor = '#f59e0b';
-            } else if (isExpired) {
+            let canActivate = false;
+            if (isExpired) {
+                // Carte épuisée / expirée — ne peut plus être activée
                 statusDisplay = t('marketplace.expired');
                 statusColor = '#ef4444';
+                canActivate = false;
+            } else if (uc.status === 'pending') {
+                // Option C : pending = vérifiée mais dormant, activable manuellement
+                statusDisplay = t('marketplace.pending_activation') || 'En attente d activation';
+                statusColor = '#f59e0b';
+                canActivate = true;
             } else if (uc.status === 'available' || uc.status === 'active') {
                 statusDisplay = t('marketplace.active');
                 statusColor = '#10b981';
+                // Une carte available peut aussi être activée pour effet rétroactif pendant le cooldown
+                // MAIS seulement s'il reste des sessions
+                if (card.effect_type === 'cooldown_reduction' && window.userState?.cooldown_until) {
+                    const cdTime = new Date(window.userState.cooldown_until).getTime();
+                    if (cdTime > Date.now() && uc.remaining_sessions > 0) canActivate = true;
+                }
             } else {
                 statusDisplay = `⚡ ${uc.status}`;
                 statusColor = '#aaa';
@@ -388,6 +406,13 @@ export async function loadUserInventory() {
 
             const cardEl = document.createElement('div');
             cardEl.className = 'holo-card';
+            const activateBtn = canActivate ? `
+                <button class="btn-activate-card" data-user-card-id="${uc.id}"
+                    style="margin-top: 0.75rem; width: 100%; padding: 0.6rem; border: 1px solid #10b981; background: rgba(16,185,129,0.15); color: #10b981; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(16,185,129,0.3)'"
+                    onmouseout="this.style.background='rgba(16,185,129,0.15)'">
+                    ⚡ ${t('marketplace.activate_card') || 'Activer la carte'}
+                </button>` : '';
             cardEl.innerHTML = `
                 <div class="holo-card-content">
                     <div class="holo-card-title">${card.name}</div>
@@ -396,9 +421,45 @@ export async function loadUserInventory() {
                     <div style="font-size: 0.9rem; font-weight: bold; color: ${statusColor}; margin-bottom: 0.5rem;">${statusDisplay}</div>
                     <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">${validityDisplay}</div>
                     <div style="font-size: 0.7rem; color: var(--text-dim); word-break: break-all;">Tx: <a href="#" onclick="event.preventDefault(); window.open('https://subnets-test.avax.network/fuji-wagmi/tx/${uc.tx_hash}', '_blank');" style="color: #6366f1;">${uc.tx_hash.substring(0, 14)}...</a></div>
+                    ${activateBtn}
                 </div>
             `;
             container.appendChild(cardEl);
+        });
+
+        // Bind activation buttons
+        container.querySelectorAll('.btn-activate-card').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const userCardId = btn.dataset.userCardId;
+                btn.disabled = true;
+                btn.textContent = '⏳ Activation...';
+                try {
+                    const res = await secureFetch('/shop/activate-card', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_card_id: parseInt(userCardId) })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Activation échouée');
+                    if (data.reduced_minutes > 0) {
+                        _showMpNotification(`✅ ${data.message} (-${data.reduced_minutes} min)`, 'success');
+                        // Mettre à jour le cooldown local
+                        if (data.cooldown_until === null) {
+                            window.userState.cooldown_until = null;
+                        } else if (data.cooldown_until) {
+                            window.userState.cooldown_until = data.cooldown_until;
+                        }
+                    } else {
+                        _showMpNotification(data.message, 'info');
+                    }
+                    // Recharger l'inventaire
+                    loadUserInventory();
+                } catch (e) {
+                    _showMpNotification('❌ ' + e.message, 'error');
+                    btn.disabled = false;
+                    btn.textContent = '⚡ Réessayer';
+                }
+            });
         });
     } catch (e) {
         console.error('[Marketplace] Erreur chargement inventaire:', e);

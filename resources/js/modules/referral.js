@@ -37,6 +37,11 @@ export function initReferral() {
         window.addEventListener('auth:success', () => {
             loadReferralData();
         });
+
+        window.addEventListener('referral:refresh', () => {
+            loadReferralData();
+            loadLeaderboard();
+        });
     }
 
     // Charger les données à chaque montage/init du module
