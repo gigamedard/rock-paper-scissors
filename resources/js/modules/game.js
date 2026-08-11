@@ -232,7 +232,13 @@ export function initGame() {
     if (!window._cooldownTickerInterval) {
         window._cooldownTickerInterval = setInterval(() => {
             if (isUserInCooldown()) {
-                updateUI();
+                // Mettre à jour juste le texte du cooldown sans re-render complet
+                // (évite le clignotement de l'overlay)
+                const statusText = document.getElementById('status-text');
+                const joinBtn = document.getElementById('join-btn');
+                const remaining = Math.ceil((new Date(window.userState.cooldown_until).getTime() - Date.now()) / 1000);
+                if (statusText) statusText.innerText = `Cooldown actif (${remaining}s)`;
+                if (joinBtn) joinBtn.innerText = `COOLDOWN (${remaining}s)`;
             }
         }, 1000);
     }
@@ -252,11 +258,15 @@ async function fetchUserStatus() {
             window.userState._displayBalance = b + bb;
             window.userState.bet_amount = data.bet_amount;
             window.userState.cooldown_until = data.cooldown_until;
-            // Ne pas écraser l'état 'setup' local si le serveur dit 'available'
-            if (window.userState.status !== 'setup' || data.status !== 'available') {
+            // Ne pas écraser les états actifs locaux (in_pool, in_fight, waiting)
+            // si le serveur dit 'available' (désynchronisation DB/blockchain possible)
+            const activeLocalStatuses = ['in_pool', 'in_fight', 'waiting', 'setup'];
+            if (activeLocalStatuses.includes(window.userState.status) && data.status === 'available') {
+                // Garder le statut local, juste mettre à jour balance/cooldown
+            } else {
                 if (window.userState.status !== data.status) {
                     if (data.status === 'in_pool' || data.status === 'setup') {
-                        gameState.hasClaimed = false; // Reset claim flag on new session
+                        gameState.hasClaimed = false;
                     }
                 }
                 window.userState.status = data.status;
@@ -609,9 +619,9 @@ export function updateUI() {
                         joinBtn.style.cursor = 'pointer';
                         joinBtn.style.display = 'block';
                     }
+                    hideCombatOverlay();
                 }
-                if (joinBtn) joinBtn.style.display = 'block';
-                hideCombatOverlay();
+                // Si en cooldown, ne pas cacher l'overlay (il affiche le cooldown)
             } else if (window.userState.status === 'waiting' || window.userState.status === 'in_pool') {
                 if (joinBtn) joinBtn.style.display = 'none';
                 if (statusText) {
