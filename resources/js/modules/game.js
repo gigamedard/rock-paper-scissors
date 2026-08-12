@@ -277,6 +277,8 @@ async function fetchUserStatus() {
             window.userState._displayBalance = b + bb;
             window.userState.bet_amount = data.bet_amount;
             window.userState.cooldown_until = data.cooldown_until;
+            window.userState.autoplay_active = data.autoplay_active;
+            window.userState.session_started = data.session_started;
             // Ne pas écraser les états actifs locaux (in_pool, in_fight, waiting)
             // si le serveur dit 'available' (désynchronisation DB/blockchain possible)
             const activeLocalStatuses = ['in_pool', 'in_fight', 'waiting', 'setup'];

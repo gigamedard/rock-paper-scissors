@@ -19,7 +19,10 @@ window.userState = {
     userObject: null,
     balance: 0,
     bet_amount: 0.01,
-    status: 'disconnected'
+    status: 'disconnected',
+    autoplay_active: false,
+    session_started: false,
+    cooldown_until: null
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
