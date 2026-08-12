@@ -188,16 +188,12 @@ class SessionManager
             // Calculate cooldown data first while the cards are still marked 'available'
             $cooldownData = $this->calculateCooldownData($user);
 
-            $this->closeSession($user, 'stopped');
-            $this->historyService->archiveSessionHistory($user);
-
-            // CRITICAL: Sync limits to blockchain BEFORE setting cooldown.
-            // The smart contract validates nextTime >= block.timestamp + getUserMinCooldown(user).
-            // If we set the cooldown first, the contract still has stale limits and may reject.
-            // Sync limits first (sync dispatch), then dispatch SetCooldownJob with a delay
-            // to ensure the contract has fresh limits before setting the cooldown.
+            // Set cooldown BEFORE closeSession to avoid race condition with handleClaim
             $user->cooldown_until = \Carbon\Carbon::createFromTimestamp($cooldownData['nextTime']);
             $user->save();
+
+            $this->closeSession($user, 'stopped');
+            $this->historyService->archiveSessionHistory($user);
 
             // Sync limits synchronously (not via queue to avoid serialization issues)
             try {
