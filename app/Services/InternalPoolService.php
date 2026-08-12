@@ -83,8 +83,6 @@ class InternalPoolService
                 $excludedCount = count($excludedIds);
 
                 if ($excludedCount > 0) {
-                    // QA Fix: Auto-stop users with insufficient funds to prevent stagnation
-                    // Also reset bet_amount to base bet so they can re-enter on next session
                     User::whereIn('id', $excludedIds)->update([
                         'status'          => 'stopped',
                         'session_started' => false,
@@ -94,17 +92,44 @@ class InternalPoolService
                         'tier'         => $tierBet,
                         'excluded_ids' => $excludedIds
                     ]);
-
-                    UserTracker::warning("InternalPoolService: {$excludedCount} users at tier {$tierBet} have insufficient funds for base bet. They have been moved to 'stopped'.", ['tier' => $tierBet, 'count' => $excludedCount]);
                 }
 
-                return [
-                    'message' => "Not enough users for tier {$tierBet}. Need {$targetPoolSize}, found {$scanCount}.",
-                    'created_pools' => 0,
-                    'users_processed' => 0,
-                    'current_tier' => $tierBet,
-                    'tier_index' => $currentIndex,
-                ];
+                // Si pas assez d'utilisateurs pour ce tier, essayer les autres tiers
+                // au lieu de retourner immédiatement (évite la stagnation)
+                foreach ($betTiers as $fallbackTier) {
+                    if ($fallbackTier == $tierBet) continue; // déjà essayé
+
+                    $fallbackUsers = User::with('preMove')
+                        ->where('status', 'available')
+                        ->where('bet_amount', $fallbackTier)
+                        ->where('autoplay_active', true)
+                        ->where('balance', '>=', $fallbackTier)
+                        ->limit($limit)
+                        ->lockForUpdate()
+                        ->get();
+
+                    if ($fallbackUsers->count() >= $targetPoolSize) {
+                        $tierBet = $fallbackTier;
+                        $users = $fallbackUsers;
+                        $scanCount = $users->count();
+                        // Mettre à jour le cache pour pointer sur ce tier la prochaine fois
+                        $fallbackIndex = array_search($fallbackTier, $betTiers);
+                        if ($fallbackIndex !== false) {
+                            \Illuminate\Support\Facades\Cache::put($cacheKey, ($fallbackIndex + 1) % count($betTiers), now()->addMinutes(5));
+                        }
+                        break;
+                    }
+                }
+
+                if ($scanCount < $targetPoolSize) {
+                    return [
+                        'message' => "Not enough users for any tier. Need {$targetPoolSize}.",
+                        'created_pools' => 0,
+                        'users_processed' => 0,
+                        'current_tier' => $tierBet,
+                        'tier_index' => $currentIndex,
+                    ];
+                }
             }
 
             $chunks = $users->chunk($targetPoolSize);
