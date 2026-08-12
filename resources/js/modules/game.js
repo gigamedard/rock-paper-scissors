@@ -35,6 +35,11 @@ export function initGame() {
     const joinBtn = document.getElementById('join-btn');
     if (joinBtn) {
         joinBtn.onclick = () => {
+            // Garde : empêcher si déjà en pool/en combat
+            if (window.userState.status === 'in_pool' || window.userState.status === 'in_fight' || window.userState.status === 'waiting') {
+                showToast("Vous êtes déjà dans une battle. Attendez la fin.", 'warn');
+                return;
+            }
             if (gameState.pendingClaim) {
                 showToast(t('errors.claim_previous'), 'warn');
                 return;
@@ -168,8 +173,10 @@ export function initGame() {
 
         window.addEventListener('game:poolEmitted', (e) => {
             if (window.userState?.walletAddress && e.detail.users.includes(window.userState.walletAddress.toLowerCase())) {
-                showCombatOverlay(`POOL FOUND`);
+                window.userState.status = 'in_fight';
+                showCombatOverlay("POOL FOUND — COMBAT EN COURS...");
                 addToFeed(t('feed.match_found'), "var(--primary)");
+                updateUI();
             }
         });
 
@@ -453,11 +460,13 @@ async function startSession() {
         });
 
         if (joinRes.ok) {
-            window.userState.status = 'dashboard';
+            window.userState.status = 'in_pool';
             window.userState.bet_amount = parseFloat(bet) || 0;
             window.userState.session_start_balance = parseFloat(window.userState.balance) || 0;
-            updateUI();
+            // Afficher l'overlay IMMÉDIATEMENT — l'utilisateur est en pool
+            showCombatOverlay("RECHERCHE D'ADVERSAIRES...");
             addToFeed(t('feed.session_initialized'), "var(--primary)");
+            updateUI();
         } else {
             throw new Error("Failed to join pool");
         }
@@ -467,8 +476,11 @@ async function startSession() {
         addToFeed(t('feed.error', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
         gameState.isStartingSession = false;
-        btn.innerText = "INITIALIZE BATTLE SEQUENCE";
-        btn.disabled = false;
+        // Ne pas réactiver le bouton si on est en pool — updateUI() gère l'état du bouton
+        if (window.userState.status !== 'in_pool' && window.userState.status !== 'in_fight' && window.userState.status !== 'waiting') {
+            btn.innerText = "INITIALIZE BATTLE SEQUENCE";
+            btn.disabled = false;
+        }
     }
 }
 
