@@ -122,6 +122,18 @@ export function initGame() {
         });
 
         window.addEventListener('game:sessionFinished', (e) => {
+            // Ne pas cacher l'overlay si c'est un bot autoplay qui est recyclé immédiatement
+            // (le SessionManager émet sessionFinished puis le recycle dans une nouvelle pool)
+            // On ne montre 'stopped' que s'il y a un payout (gain à réclamer) ou un cooldown
+            const hasPayout = e.detail.signature || (e.detail.payout_triggered === true);
+            const hasCooldown = e.detail.user && e.detail.user.cooldown_until;
+            
+            if (!hasPayout && !hasCooldown && window.userState.autoplay_active) {
+                // Bot autoplay recyclé — garder le statut in_pool, ne pas afficher 'stopped'
+                addToFeed('Session recyclée — Nouvelle pool en cours...', 'var(--primary)');
+                return;
+            }
+            
             window.userState.status = 'stopped';
             hideCombatOverlay();
             
