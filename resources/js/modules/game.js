@@ -308,6 +308,11 @@ async function fetchUserStatus() {
             
             if (data.payout_signature && !gameState.hasClaimed) {
                 gameState.pendingClaim = { amount: b + bb, signature: data.payout_signature };
+            } else if (data.payout_signature && gameState.hasClaimed) {
+                // Une nouvelle signature est arrivée après un claim précédent
+                // → reset hasClaimed pour permettre le nouveau claim
+                gameState.hasClaimed = false;
+                gameState.pendingClaim = { amount: b + bb, signature: data.payout_signature };
             } else {
                 gameState.pendingClaim = null;
             }
