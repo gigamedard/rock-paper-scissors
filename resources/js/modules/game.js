@@ -166,8 +166,9 @@ export function initGame() {
         });
 
         window.addEventListener('game:fightResult', (e) => {
+            // Ne pas afficher les résultats de combat si l'utilisateur a claimé
+            if (gameState.hasClaimed || window.userState.status === 'stopped') return;
             triggerClash(e.detail.my_move, e.detail.opponent_move, e.detail.result, e.detail.delta);
-            // Utilise user.balance + user.battle_balance (valeurs correctes après transfert en DB)
             applyBalance(e.detail.user);
         });
 
@@ -184,6 +185,8 @@ export function initGame() {
         });
 
         window.addEventListener('game:poolEmitted', (e) => {
+            // Ne pas afficher l'overlay si l'utilisateur vient de claimer
+            if (gameState.hasClaimed || window.userState.status === 'stopped') return;
             if (window.userState?.walletAddress && e.detail.users.includes(window.userState.walletAddress.toLowerCase())) {
                 window.userState.status = 'in_fight';
                 showCombatOverlay("POOL FOUND — COMBAT EN COURS...");
@@ -527,13 +530,19 @@ async function claim() {
         gameState.hasClaimed = true;
         document.getElementById('claim-section').style.display = 'none';
         gameState.pendingClaim = null;
+        
+        // Cacher l'overlay et remettre le statut à stopped
+        hideCombatOverlay();
+        window.userState.status = 'stopped';
+        window.userState.autoplay_active = false;
+        updateUI();
 
-        // Fast poll for 10 seconds to wait for bridge sync and hide button automatically
+        // Fast poll for 10 seconds to wait for bridge sync
         let attempts = 0;
         const syncInterval = setInterval(async () => {
             attempts++;
             await fetchUserStatus();
-            if (!gameState.pendingClaim || attempts >= 5) {
+            if (attempts >= 5) {
                 clearInterval(syncInterval);
             }
         }, 2000);
