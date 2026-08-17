@@ -18,6 +18,7 @@ import {
     pinata,
     contracts
 } from "./config.js";
+import { startIndexer } from "./indexer/indexer.js";
 
 // ===================================
 // == INITIALISATION
@@ -500,198 +501,23 @@ async function postToLaravel(endpoint, body) {
 }
 
 /**
- * Démarre tous les listeners de blockchain
+ * Démarre tous les listeners de blockchain.
+ * Délègue à l'indexeur robuste (polling par plage de blocs, état persistant,
+ * idempotence, reorg safety, backoff exponentiel).
  */
-let lastBlock = 0;
-
 async function startBlockchainListeners() {
-    console.log("🔄 Starting Polling Listeners (Robust Mode)...");
+    console.log("🔄 Starting Robust Indexer (polling + reorg safety + idempotence)...");
 
-    try {
-        lastBlock = 0; // Start from 0 for local hardhat catch-up
-        console.log(`   Starting from Block: ${lastBlock}`);
-    } catch (e) {
-        console.error("Failed to get initial block:", e);
-    }
+    const sntContract = new Contract(contracts.snt.address, contracts.snt.abi, gameWallet);
 
-    let isPolling = false;
-
-    setInterval(async () => {
-        if (isPolling) return;
-        isPolling = true;
-
-        try {
-            const chainBlock = await gameProvider.getBlockNumber();
-            // Chunking: process max 100 blocks at a time
-            const currentBlock = Math.min(chainBlock, lastBlock + 100);
-
-            if (currentBlock > lastBlock) {
-                console.log(`📡 Catching up: blocks ${lastBlock + 1} to ${currentBlock}...`);
-
-                // 1. PoolEmitted
-                const poolEvents = await gameContract.queryFilter("PoolEmitted", lastBlock + 1, currentBlock);
-                for (const event of poolEvents) {
-                    const { args } = event;
-                    console.log(`🔔 [JEU] PoolEmitted: ${args[0]}`);
-                    postToLaravel('/internal/handle-pool-emited', {
-                        pool_id: args[0].toString(),
-                        base_bet: args[1].toString(),
-                        users: args[2],
-                        premove_cids: args[3],
-                        pool_salt: args[4],
-                        balances: args[5].map(b => b.toString())
-                    });
-                }
-
-                // 2. DepositReceived
-                const depositEvents = await gameContract.queryFilter("DepositReceived", lastBlock + 1, currentBlock);
-                for (const event of depositEvents) {
-                    const { args } = event;
-                    console.log(`🔔 [JEU] DepositReceived: ${args[0]}, ${args[1]}`);
-                    postToLaravel('/internal/update-balance', { wallet_address: args[0], balance: args[1].toString() });
-                }
-
-                // 4. SecurityCoefficientUpdated
-                const coeffEvents = await gameContract.queryFilter("SecurityCoefficientUpdated", lastBlock + 1, currentBlock);
-                for (const event of coeffEvents) {
-                    const { args } = event;
-                    console.log(`🔔 [JEU] SecurityCoefficientUpdated: ${args[0]}`);
-                    postToLaravel('/internal/update-setting', {
-                        key: 'security_coefficient',
-                        value: args[0].toString(),
-                        type: 'integer'
-                    });
-                }
-
-                // 4b. FeeBasisPointsUpdated
-                const feeEvents = await gameContract.queryFilter("FeeBasisPointsUpdated", lastBlock + 1, currentBlock);
-                for (const event of feeEvents) {
-                    const { args } = event;
-                    console.log(`🔔 [JEU] FeeBasisPointsUpdated: ${args[0]}`);
-                    const percentage = parseFloat(args[0]) / 100; // 250 -> 2.5
-                    postToLaravel('/internal/update-setting', {
-                        key: 'smart_contract_fee_percentage',
-                        value: percentage.toString(),
-                        type: 'float'
-                    });
-                }
-
-                // 5. PayoutProcessed
-                const payoutEvents = await gameContract.queryFilter("PayoutProcessed", lastBlock + 1, currentBlock);
-                for (const event of payoutEvents) {
-                    const { args } = event;
-                    console.log(`🔔 [JEU] PayoutProcessed: ${args[0]}, ${args[1]}`);
-                    postToLaravel('/internal/handle-claim', { wallet_address: args[0] });
-                }
-
-                // 6. PlayerClaimed
-                const claimEvents = await gameContract.queryFilter("PlayerClaimed", lastBlock + 1, currentBlock);
-                for (const event of claimEvents) {
-                    const { args } = event;
-                    console.log(`🔔 [JEU] PlayerClaimed: ${args[0]}, Amount=${args[1]}, Nonce=${args[2]}`);
-                    postToLaravel('/internal/handle-claim', { wallet_address: args[0] });
-                }
-
-                // --- LISTENERS MARKETPLACE ---
-
-                // 4. OfferCreated
-                const offerCreatedEvents = await marketplaceContract.queryFilter("OfferCreated", lastBlock + 1, currentBlock);
-                for (const event of offerCreatedEvents) {
-                    const { args } = event;
-                    const offerId = args[0];
-                    console.log(`🔔 [MARKET] OfferCreated: ID=${offerId}, Seller=${args[1]}`);
-
-                    try {
-                        // Fetch details (expiration) form contract
-                        const offerDetails = await marketplaceContract.offers(offerId);
-                        const expiresAt = offerDetails.expiresAt;
-
-                        postToLaravel('/internal/trades/create', {
-                            offerId: offerId.toString(),
-                            seller: args[1],
-                            sntAmount: formatEther(args[2]), // Wei to Eth/Token unit if needed, check controller expectations. 
-                            // Controller validation says numeric. internalTradeController stores strictly what receives.
-                            // Frontend sends Wei to contract. Contract emits Wei.
-                            // However, DB usually stores "human readable" or consistent units.
-                            // 'formatEther' converts Wei to string decimal.
-                            // Let's assume Laravel expects human readable for display or verify internalTradeController logic.
-                            // internalTradeController just stores it. Frontend displays it.
-                            // Frontend `loadTrades` does `parseFloat(trade.snt_amount).toLocaleString()`. 
-                            // If we store Wei, parseFloat might be huge. 
-                            // Let's use formatEther to store as "tokens" not "wei".
-                            avaxAmount: formatEther(args[3]),
-                            expiresAt: expiresAt.toString()
-                        });
-                    } catch (err) {
-                        console.error(`❌ Failed to fetch offer details for ${offerId}:`, err);
-                    }
-                }
-
-                // 5. OfferFulfilled
-                const offerFulfilledEvents = await marketplaceContract.queryFilter("OfferFulfilled", lastBlock + 1, currentBlock);
-                for (const event of offerFulfilledEvents) {
-                    const { args } = event;
-                    console.log(`🔔 [MARKET] OfferFulfilled: ID=${args[0]}, Buyer=${args[1]}`);
-                    postToLaravel('/internal/trades/update-status', {
-                        offerId: args[0].toString(),
-                        newStatus: 'fulfilled',
-                        buyerAddress: args[1]
-                    });
-                }
-
-                // 6. OfferCancelled
-                const offerCancelledEvents = await marketplaceContract.queryFilter("OfferCancelled", lastBlock + 1, currentBlock);
-                for (const event of offerCancelledEvents) {
-                    const { args } = event;
-                    console.log(`🔔 [MARKET] OfferCancelled: ID=${args[0]}`);
-                    postToLaravel('/internal/trades/update-status', {
-                        offerId: args[0].toString(),
-                        newStatus: 'cancelled'
-                    });
-                }
-
-                // 7. SNT Transfer (Sync Balance & Referral Check)
-                // We re-enable this to catch Direct Mints or P2P transfers not covered by Marketplace events.
-                // CRITICAL: We skip if the transfer involves the Marketplace to avoid double-counting (since OfferFulfilled handles that).
-                // Assuming we need to instantiate it similar to gameContract.
-                // Re-using gameWallet (provider) for reading events.
-                const sntContract = new Contract(contracts.snt.address, contracts.snt.abi, gameWallet);
-                const transferEvents = await sntContract.queryFilter("Transfer", lastBlock + 1, currentBlock);
-
-                for (const event of transferEvents) {
-                    const { args } = event;
-                    const from = args[0];
-                    const to = args[1];
-                    const amount = formatEther(args[2]);
-
-                    // DEDUPLICATION: Skip if Marketplace is sender or receiver (handled by OfferFulfilled/OfferCreated logic usually, 
-                    // though OfferCreated doesn't transfer token to buyer, OfferFulfilled does).
-                    // Actually, OfferFulfilled updates DB balance based on trade struct.
-                    // If we also update based on Transfer event, we double count.
-                    // Marketplace address: contracts.marketplace.address
-                    if (from.toLowerCase() === contracts.marketplace.address.toLowerCase() ||
-                        to.toLowerCase() === contracts.marketplace.address.toLowerCase()) {
-                        console.log(`⚠️ [SNT] Ignoring Marketplace Transfer: ${from} -> ${to}`);
-                        continue;
-                    }
-
-                    console.log(`🔔 [SNT] Transfer: From=${from} To=${to} Value=${amount}`);
-
-                    postToLaravel('/internal/trades/sync-transfer', {
-                        from: from,
-                        to: to,
-                        amount: amount
-                    });
-                }
-
-                lastBlock = currentBlock;
-            }
-        } catch (error) {
-            console.error("Polling Error:", error.message);
-        } finally {
-            isPolling = false;
-        }
-    }, 5000); // Poll every 5 seconds
+    await startIndexer({
+        provider: gameProvider,
+        gameContract,
+        marketplaceContract,
+        sntContract,
+        marketplaceAddress: contracts.marketplace.address,
+        postToLaravel,
+    });
 }
 
 
