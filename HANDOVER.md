@@ -337,3 +337,85 @@ La passation décrivait : Fix 1 **cassé** (`public $queue = 'limits'` → confl
 4. `check_onchain_balance.mjs` vérifie le funding des 40 wallets (champ JSON = `address`).
 5. Le fix dépéciation SessionManager est dans le dépôt mais **PAS dans l'image** (déployé par docker cp) : sera perdu à la prochaine recréation de containers → à rebuilder dans l'image lors du prochain rebuild (même pattern que §4/§10).
 
+---
+
+## 14. RAPPORT D'EXÉCUTION — SUCCESSEUR 4 (2026-08-17, 07:35) : REBUILD DURABLE + COMMIT + RESET VIERGE + REPEUPLEMENT OFFICIEL
+
+**Contexte :** reprise post-§13. Objectif de l'utilisateur : (1) rendre le fix dépréciation `SessionManager` durable (plus de docker cp à chaque recréation), (2) repartir d'un état vierge pour tests E2E, (3) utiliser le script officiel `simulation_bots.js` (et non les bots DB-direct du §12) pour un repeuplement réaliste, (4) committer + pusher.
+
+### 14.1 Rebuild durable des images (fix SessionManager dans l'image)
+- **`docker compose build app reverb`** exécuté → les 2 images PHP reconstruites avec le code corrigé du dépôt (fix `protected Web3Helper`/`SessionHistoryService` + routage `onQueue`).
+- **`docker compose up -d --scale queue-worker-limits=2 --force-recreate app queue-worker queue-worker-limits reverb`** → recréation depuis les nouvelles images.
+- **Vérification sans docker cp** : `grep` des propriétés `protected` dans les 5 containers (app, queue-worker, queue-worker-limits-1/2, reverb) → tous OK. Le fix est désormais **bâti dans les couches image**.
+- Le piège §4/§13.4 est **définitivement éliminé** pour le fix dépréciation (déjà éliminé pour `onQueue` au §10).
+
+### 14.2 Adaptation du script `fund_snt.js`
+- **Problème** : le script hardcodait l'adresse SNT `0xDc64a140...` (incorrecte après redéploiement) et fundait 7 comptes (#1 à #7).
+- **Fix** : import de `contracts` depuis `config.js` → `SNT_ADDRESS = contracts.snt.address` (robuste aux redéploiements, `full_deploy.js` met à jour `config.js` automatiquement). Liste `ACCOUNTS` réduite aux seuls comptes **#1 et #2** (réservés tests utilisateur).
+- Port RPC `8546` (host) confirmé correct : interne docker 8545 → exposé host 8546 (docker-compose.yml ligne 71, mapping `8546:8545`).
+
+### 14.3 Reset vierge + repeuplement officiel via `simulation_bots.js`
+- **`docker compose down -v`** → DB + Redis purgés.
+- **`docker compose up -d --scale queue-worker-limits=2`** → stack remontée, contrats redéployés (Battlepool `0x5FbDB...`, SNT `0x5FC8d326...`, Marketplace `0x0165...`), `config.js` rafraîchi par `full_deploy.js`.
+- **`node fund_snt.js`** → 100 SNT transférés à chaque compte #1 et #2 (owner #0 avait 1000 SNT du `full_deploy.js`). ✅
+- **`FUJI_RPC_URL=http://127.0.0.1:8546 node simulation_bots.js 40 3`** → 40 bots (comptes hardhat #3 à #42) créés via le **flow officiel** : auth Laravel (signature wallet) → upload pre-moves à IPFS → store en DB → `submitPremoveCID` au contrat avec dépôt 51.25 ETH (0.05 × 1000 coef + 2.5% fee). **40/40 succès**. ✅
+- **⚠️ Différence vs §12** : ici les bots passent par le pipeline réel (auth + IPFS + DB + contrat), pas par insertion DB directe. Donc **les pre-moves sont créés naturellement** → pas besoin du script `create_premoves_bots.php` du §12 (qui était un palliatif pour l'insertion DB directe). Le piège §13.4 (orphelins `waiting_for_result`) n'existe pas avec ce flow.
+
+### 14.4 État vérifié post-repeuplement (07:35)
+| Métrique | Valeur | Verdict |
+|---|---|---|
+| Containers | 10/10 Up (blockchain, bridge, db, redis healthy) | ✅ |
+| DB | 42 users (1 admin + 40 bots + 1 user résiduel), 0 orphelin | ✅ |
+| Bots | 40 autoplay, 36 in_pool, 6 available | ✅ actifs |
+| Fights | 138 total, **0 `waiting_for_result`** | ✅ pas d'orphelins |
+| Pools | 109 créés | ✅ moteur actif |
+| `queues:default` | **0** | ✅ routage OK |
+| `queues:limits` | 135 (drain par 2 workers) | ⚠️ connue §12.4 |
+| Worker `default` | `FightResult`/`UserBalanceUpdated` en 2-3 ms | ✅ temps réel |
+| Bridge | `healthy`, catch-up blocks + `setUserLimits` actifs | ✅ |
+| SNT | Account #1 = 100, Account #2 = 100 | ✅ |
+| ETH (hardhat) | Comptes #3-#42 ont déposé 51.25 ETH au contrat | ✅ |
+
+### 14.5 Commit + push
+- **Commit `d5559a8`** sur branche `perf/swoole-octane-optimization`, message : `fix(broadcast): durable real-time queues + SessionManager deprecation fix + fund_snt dynamic address`.
+- 19 fichiers, +927/-47 lignes. Inclus : fixes backend (SessionManager, ShopController, VerifyCardPurchaseJob, MatchmakingEngine, BatchProcessingService, BlockchainController, BroadcastHelper), infra (docker-compose service `queue-worker-limits`, `.env.staging` BASE_BET 0.01), frontend (game.js, portal.html, CSS), scripts (`fund_snt.js` adapté, `config.js` rafraîchi, `check_db_users.php`), `HANDOVER.md`.
+- **Pushé** vers `origin/perf/swoole-octane-optimization` (`fee2160..d5559a8`).
+- Fichiers non inclus intentionnellement : `graphify-out/*` (artefacts), `users.txt` (vide).
+
+### 14.6 Comptes réservés (convention utilisateur)
+| Hardhat # | Adresse | Rôle | SNT | ETH |
+|---|---|---|---|---|
+| #0 | `0xf39Fd6...` | Admin/owner/bridge | 1000 | 10000 |
+| #1 | `0x7099...` | **Réservé test utilisateur** | 100 | 10000 |
+| #2 | `0x3C44...` | **Réservé test utilisateur** | 100 | 10000 |
+| #3 à #42 | (dérivés mnemonic) | Bots autoplay (40) | 0 | 10000 - 51.25 déposés |
+| #43 à #98 | (dérivés mnemonic) | Disponibles (non utilisés) | 0 | 10000 |
+| #99 | `0x98D080...` | **Réservé test utilisateur** | 0 | 10000 |
+
+### 14.7 Endpoints pour tests E2E navigateur
+| Ressource | URL (host) |
+|---|---|
+| Frontend | `http://127.0.0.1:8001/` |
+| WebSocket Reverb | `ws://127.0.0.1:8008/` |
+| Hardhat RPC | `http://127.0.0.1:8546` |
+| Bridge API (interne docker) | `http://rock-paper-scissors-bridge-1:3000` |
+
+### 14.8 Leçons pour la reprise
+1. **Pour un repeuplement propre, utiliser `simulation_bots.js N startIndex`** (flow officiel) plutôt que l'insertion DB directe du §12. Le script gère l'auth, les pre-moves, IPFS et le dépôt contrat → pas de risque d'orphelins `waiting_for_result`.
+2. **Surcharger `FUJI_RPC_URL=http://127.0.0.1:8546`** au lancement de `simulation_bots.js` depuis le host (le `.env` pointe vers 8545 qui n'est pas exposé host-side).
+3. **Le fix `SessionManager` est désormais durable** dans les images `app`/`reverb`. Plus besoin de docker cp après recréation.
+4. **`fund_snt.js` est robuste** aux redéploiements (adresse SNT lue depuis `config.js`). Ne plus hardcoder d'adresses de contrats dans les scripts.
+5. **La branche `perf/swoole-octane-optimization`** contient désormais tous les fixes (commit `d5559a8`). Le prochain chantier de performance partira de cette base.
+
+---
+
+## 15. PROCHAIN CHANTIER : ANALYSE DE PERFORMANCE (2026-08-17, 08:00)
+
+**Objet :** l'utilisateur souhaite démarrer une analyse de performance applicative (tests, améliorations possibles, goulets, scalabilité). Avant de lancer les mesures, un prompt de présentation de l'application a été rédigé pour être transmis à des agents d'analyse de performance.
+
+**Applications concernées :**
+- **APP 1** = `G:\DEV\PHP\rock-paper-scissors\` (ce projet) — jeu RPS Web2.5, Laravel + Octane/Swoole + Redis + Reverb + Bridge Node.js + Hardhat. Stack Docker Compose (10 services).
+- **APP 2** = `G:\DEV\GODOT_GAME\Web3_Combat_Game\` — jeu de combat 3D Web2.5, Laravel 12 + Reverb + MySQL + Hardhat + Indexer Node.js + Frontend Godot. Architecture "Backend-First" (Session Key gasless, combat off-chain, escrow on-chain). Stack Docker Compose (5 services).
+
+Le prompt de présentation est transmis séparément aux agents d'analyse. Les résultats de l'analyse seront consignés dans une future section §16+.
+
