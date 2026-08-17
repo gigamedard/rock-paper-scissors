@@ -43,6 +43,7 @@ class User extends Authenticatable
         'target_q',
         'cooldown_time',
         'payout_signature',
+        'last_synced_limits_hash',
     ];
 
     protected $appends = [
@@ -266,7 +267,24 @@ class User extends Authenticatable
         $safetyMarginSeconds = (int) config('game.cooldown_safety_margin_seconds', 20);
         $minCooldownSeconds = max(0, ($limits['min_cooldown'] * 60) - $safetyMarginSeconds);
 
-        return app(\App\Helpers\Web3Helper::class)->setUserLimits(
+        // --- COALESCENCE (perf §A1) ---
+        // Les limites effectives (max_base_bet, max_q, min_cooldown, expiry) sont
+        // déterministes pour un état de cartes donné. Si elles n'ont pas changé
+        // depuis la dernière synchronisation on-chain, on saute l'appel setUserLimits.
+        // Cela évite de saturer la file nonce du bridge avec des txs redondantes
+        // (goulot documenté HANDOVER.md §12.4 : 97 jobs/min produits vs 14 consommés).
+        $effectiveHash = hash('sha256', implode('|', [
+            (string) $limits['max_base_bet'],
+            (string) $limits['max_q'],
+            (string) $minCooldownSeconds,
+            (string) $expiry,
+        ]));
+
+        if ($this->last_synced_limits_hash === $effectiveHash) {
+            return null; // Limites inchangées : rien à synchroniser.
+        }
+
+        $result = app(\App\Helpers\Web3Helper::class)->setUserLimits(
             $nodeUrl,
             $this->wallet_address,
             $limits['max_base_bet'],
@@ -274,5 +292,12 @@ class User extends Authenticatable
             $minCooldownSeconds,
             $expiry
         );
+
+        // Ne mémoriser le hash qu'en cas de succès : en cas d'échec, le job
+        // sera re-tenté (tries=3) et re-synchronisera les limites.
+        $this->last_synced_limits_hash = $effectiveHash;
+        $this->save();
+
+        return $result;
     }
 }
