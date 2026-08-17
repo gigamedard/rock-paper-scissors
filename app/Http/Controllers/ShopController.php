@@ -186,7 +186,7 @@ class ShopController extends Controller
         }
 
         // 4. Sync les limites on-chain (la carte modifie min_cooldown)
-        \App\Jobs\SyncUserLimitsJob::dispatch($user);
+        \App\Jobs\SyncUserLimitsJob::dispatch($user)->onQueue('limits');
 
         $remainingSessions = $userCard->remaining_sessions;
 

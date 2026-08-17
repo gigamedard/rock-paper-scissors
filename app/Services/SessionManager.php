@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Bus;
 
 class SessionManager
 {
+    protected Web3Helper $web3Helper;
+    protected SessionHistoryService $historyService;
     protected NotificationService $notificationService;
     protected SignatureService $signatureService;
 
@@ -53,6 +55,29 @@ class SessionManager
         foreach ($foughtUsers as $user) {
             $this->processFoughtUser($user, $pool);
         }
+    }
+
+    /**
+     * Recovers users left stuck in 'in_pool' when a pool's end evaluation
+     * aborted (e.g. a failed synchronous broadcast). Only touches users still
+     * attached to the given pool, so it is safe to re-run.
+     */
+    public function recoverStuckUsersInPool(Pool $pool): int
+    {
+        $stuckUsers = User::where('status', 'in_pool')
+            ->where('pool_id', $pool->id)
+            ->get();
+
+        if ($stuckUsers->isEmpty()) {
+            return 0;
+        }
+
+        foreach ($stuckUsers as $user) {
+            $this->processFoughtUser($user, $pool);
+            Log::info("[POOL_RECOVERY] 🔧 User {$user->id} recovered from stuck in_pool state for pool {$pool->id}. Status: {$user->status}.");
+        }
+
+        return $stuckUsers->count();
     }
 
     private function refundNoFightUser(User $user): void
@@ -111,8 +136,7 @@ class SessionManager
                 $user->bet_amount = $nextBet;
                 UserTracker::info("[MARTINGALE] 📉 Player {$user->wallet_address} lost pool. Next bet doubled to: {$user->bet_amount}.", ['wallet' => $user->wallet_address, 'next_bet' => $user->bet_amount]);
             }
-            event(new \App\Events\MartingaleUpdated($user, (string)$user->bet_amount));
-
+            \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\MartingaleUpdated($user, (string)$user->bet_amount)), "MartingaleUpdated user {$user->id}");
         } elseif ($user->battle_balance > $pool->base_bet) {
             // POOL WIN: Reset bet_amount to base bet (0.01) — business rule
             $user->bet_amount = $baseBet;
@@ -220,7 +244,7 @@ class SessionManager
                 $user->save();
             }
             
-            event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature));
+            \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} SUCCESS");
             
         } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount)) {
             // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet)
@@ -254,7 +278,7 @@ class SessionManager
                 }
             }
             
-            event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature));
+            \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} {$type}");
             
         } else {
             // CASE 3: Session Continues (RETURN TO POOL QUEUE)
@@ -268,7 +292,7 @@ class SessionManager
         // in the PAYOUT case (CASE 1) to ensure on-chain limits are fresh.
         // For CASE 2 (ruin) and CASE 3 (continue), sync limits here.
         if ($q < $multiplier) {
-            \App\Jobs\SyncUserLimitsJob::dispatch($user);
+            \App\Jobs\SyncUserLimitsJob::dispatch($user)->onQueue('limits');
         }
     }
 

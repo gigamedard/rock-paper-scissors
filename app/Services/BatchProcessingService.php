@@ -23,18 +23,22 @@ class BatchProcessingService
 
     protected $poolProcessorService;
 
+    protected $sessionManager;
+
     public function __construct(
         BatchCriteriaService $batchCriteriaService,
         BatchFinderService $batchFinderService,
         PoolFetcherService $poolFetcherService,
         BatchManagerService $batchManagerService,
-        PoolProcessorService $poolProcessorService
+        PoolProcessorService $poolProcessorService,
+        SessionManager $sessionManager
     ) {
         $this->batchCriteriaService = $batchCriteriaService;
         $this->batchFinderService = $batchFinderService;
         $this->poolFetcherService = $poolFetcherService;
         $this->batchManagerService = $batchManagerService;
         $this->poolProcessorService = $poolProcessorService;
+        $this->sessionManager = $sessionManager;
     }
 
     public function processBatch(float $baseBet): array
@@ -49,6 +53,18 @@ class BatchProcessingService
         $batchForProcessing = null;
 
         try {
+            // Récupération automatique : les batches 'running' depuis trop longtemps
+            // sont remis à 'waiting' pour éviter la stagnation
+            $staleRunningBatches = \App\Models\Batch::where('status', 'running')
+                ->where('updated_at', '<', now()->subSeconds(config('pool.batch_ttl_seconds', 60)))
+                ->lockForUpdate()
+                ->get();
+            foreach ($staleRunningBatches as $staleBatch) {
+                $staleBatch->status = 'waiting';
+                $staleBatch->save();
+                Log::warning("Recovered stale batch {$staleBatch->id} (was 'running' for too long). Reset to 'waiting'.");
+            }
+
             $resultData = DB::transaction(function () use (
                 $targetPoolSize,
                 $baseBet,
@@ -123,7 +139,21 @@ class BatchProcessingService
                 if (! $batchForProcessing || $poolsToProcess->isEmpty()) {
                     return ['status' => 'error', 'message' => 'Internal error during deferred processing setup.', 'http_code' => 500];
                 }
-                $processingResult = $this->poolProcessorService->processPools($poolsToProcess, $batchForProcessing);
+                
+                try {
+                    $processingResult = $this->poolProcessorService->processPools($poolsToProcess, $batchForProcessing);
+                } catch (\Exception $e) {
+                    // Si processPools crash, le batch reste 'running' → bloqué
+                    // Forcer la remise à 'waiting' pour éviter la stagnation
+                    Log::error("Batch {$batchForProcessing->id} processing crashed: " . $e->getMessage());
+                    $this->batchManagerService->updateBatchStatusAfterProcessing($batchForProcessing->id, true, 0);
+                    return [
+                        'status' => 'error',
+                        'message' => "Batch {$batchForProcessing->id} processing crashed. Reset to waiting. Error: " . $e->getMessage(),
+                        'http_code' => 500,
+                    ];
+                }
+                
                 $updatedBatch = $this->batchManagerService->updateBatchStatusAfterProcessing($batchForProcessing->id, ! is_null($processingResult['error']), $processingResult['processedCount']);
 
                 if ($processingResult['error']) {
@@ -170,6 +200,8 @@ class BatchProcessingService
      */
     public function processAllBetTiers(): array
     {
+        $this->recoverFinishedPools();
+
         $criteriaResult = $this->batchCriteriaService->getTargetPoolSize();
         if ($criteriaResult['error']) {
             return ['status' => 'error', 'message' => $criteriaResult['error'], 'http_code' => 500];
@@ -209,5 +241,27 @@ class BatchProcessingService
             'processed_count' => $result['processed_count'] ?? 0,
             'http_code' => $result['http_code'] ?? 200,
         ];
+    }
+
+    /**
+     * Re-evaluates users left stuck in 'in_pool' on pools that reached a
+     * finished state but whose end evaluation aborted (e.g. broadcast failure).
+     */
+    private function recoverFinishedPools(): void
+    {
+        try {
+            $stuckPools = \App\Models\Pool::where('status', 'from_server_finished')
+                ->whereHas('users', fn ($query) => $query->where('status', 'in_pool'))
+                ->get();
+
+            foreach ($stuckPools as $pool) {
+                $recovered = $this->sessionManager->recoverStuckUsersInPool($pool);
+                if ($recovered > 0) {
+                    Log::warning("Pool {$pool->id} recovered: re-evaluated {$recovered} stuck user(s).");
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error during stuck-pool recovery: ' . $e->getMessage());
+        }
     }
 }

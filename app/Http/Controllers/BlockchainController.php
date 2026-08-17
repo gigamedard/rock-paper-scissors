@@ -125,7 +125,6 @@ class BlockchainController extends Controller
                     $user->balance = 0;
                     $user->payout_signature = null;
                     $user->status = 'stopped';
-                    $user->autoplay_active = false; // Empêcher le recyclage automatique après claim
                     $user->save();
 
                     Log::info("✅ [Internal API] User {$user->wallet_address} state fully reset after claim.");

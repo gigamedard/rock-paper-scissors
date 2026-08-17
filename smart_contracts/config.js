@@ -1497,7 +1497,7 @@ export const contracts = {
   },
   // --- Contrat MARKETPLACE (de app.js/server.js) ---
   marketplace: {
-    address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707", // MarketplaceEscrow
+    address: "0x0165878A594ca255338adfa4d48449f69242Eb8F", // MarketplaceEscrow
     abi: [
       {
         "inputs": [
@@ -1864,7 +1864,7 @@ export const contracts = {
   },
   // --- Contrat du JETON (SNT / USDT) ---
   snt: {
-    address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // SNTToken
+    address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707", // SNTToken
     abi: [
       { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
       { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },

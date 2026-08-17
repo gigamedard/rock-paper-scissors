@@ -116,8 +116,8 @@ class MatchmakingEngine
 
             $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
 
-            event(new \App\Events\MatchFound($availableUsers[$i], $fight->id, $availableUsers[$i + 1]->wallet_address));
-            event(new \App\Events\MatchFound($availableUsers[$i + 1], $fight->id, $availableUsers[$i]->wallet_address));
+            \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\MatchFound($availableUsers[$i], $fight->id, $availableUsers[$i + 1]->wallet_address)), "MatchFound user {$availableUsers[$i]->id} fight {$fight->id}");
+            \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\MatchFound($availableUsers[$i + 1], $fight->id, $availableUsers[$i]->wallet_address)), "MatchFound user {$availableUsers[$i + 1]->id} fight {$fight->id}");
 
             $this->notifyBattleStarted($availableUsers[$i], $availableUsers[$i + 1], $fight, $pool->id);
         }

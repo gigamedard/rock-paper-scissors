@@ -1,19 +1,17 @@
 // Distribue des SNT via fetch RPC brut + ethers Wallet pour signer
 import { Wallet, parseEther } from "ethers";
+import { contracts } from "./config.js";
 
-const SNT_ADDRESS = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
+// Adresse SNT lue dynamiquement depuis config.js (mis à jour par full_deploy.js à chaque déploiement)
+const SNT_ADDRESS = contracts.snt.address;
 const RPC_URL = "http://127.0.0.1:8546";
 const OWNER_PK = "***REMOVED***";
 const CHAIN_ID = 31337;
 
+// Uniquement les comptes #1 et #2 (réservés aux tests utilisateur)
 const ACCOUNTS = [
-    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-    "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-    "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
-    "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
-    "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
-    "0x98D08079928FcCB30598c6C6382ABfd7dbFaA1cD",
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", // Account #1
+    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", // Account #2
 ];
 
 const AMOUNT = "100"; // 100 SNT par compte (owner a 1000)

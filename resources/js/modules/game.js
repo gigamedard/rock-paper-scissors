@@ -584,6 +584,12 @@ export function updateUI() {
         }
     }
 
+    const startSessionBtn = document.getElementById('start-session-btn');
+    if (startSessionBtn && !gameState.isStartingSession) {
+        startSessionBtn.innerText = "INITIALIZE BATTLE SEQUENCE";
+        startSessionBtn.disabled = false;
+    }
+
     const connectionButtons = document.getElementById('connection-buttons');
     const connectedUser = document.getElementById('connected-user');
 

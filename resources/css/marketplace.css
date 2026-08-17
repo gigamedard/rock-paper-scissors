@@ -463,3 +463,70 @@
 .mp-offer-actions .btn-mp-cancel {
     flex: 1;
 }
+
+/* ==========================================================================
+   RESPONSIVE MOBILE — MARKETPLACE ARCADE
+   ========================================================================== */
+@media (max-width: 768px) {
+    #marketplace-page {
+        padding: 0.5rem 0.2rem;
+    }
+
+    .mp-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .mp-header h1 {
+        font-size: 1.6rem;
+    }
+
+    .mp-tabs {
+        flex-wrap: wrap;
+        gap: 0.4rem !important;
+    }
+
+    .mp-tab {
+        padding: 0.5rem 1rem !important;
+        font-size: 0.75rem !important;
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    .mp-stats-bar, .mp-stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.6rem !important;
+        margin-bottom: 1.2rem;
+    }
+
+    .mp-stat-card {
+        padding: 0.8rem;
+    }
+
+    .mp-stat-value {
+        font-size: 1.2rem;
+    }
+
+    .mp-create-panel {
+        padding: 1.2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .mp-form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.8rem !important;
+    }
+
+    .mp-offers-list {
+        grid-template-columns: 1fr !important;
+        gap: 0.8rem;
+    }
+
+    #marketplace-cards-list, #marketplace-inventory-list {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
+    .mp-offer-card {
+        padding: 1rem;
+    }
+}

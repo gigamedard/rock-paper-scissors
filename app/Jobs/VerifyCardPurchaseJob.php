@@ -74,7 +74,7 @@ class VerifyCardPurchaseJob implements ShouldQueue
                 'tx_hash' => $baseTxHash,
                 'quantity' => $quantity
             ]);
-            SyncUserLimitsJob::dispatch($user);
+            SyncUserLimitsJob::dispatch($user)->onQueue('limits');
         } else {
             \App\Models\UserCard::where('tx_hash', $baseTxHash)
                 ->orWhere('tx_hash', 'like', $baseTxHash . '_qty_%')

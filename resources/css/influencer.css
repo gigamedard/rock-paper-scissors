@@ -302,3 +302,70 @@
     text-align: center;
     clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
 }
+
+/* ==========================================================================
+   RESPONSIVE MOBILE — INFLUENCER / VIP ARCADE
+   ========================================================================== */
+@media (max-width: 768px) {
+    #influencer-dashboard-page {
+        padding: 0.5rem 0.2rem;
+    }
+
+    .inf-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .inf-header h1 {
+        font-size: 1.6rem;
+    }
+
+    .inf-join-panel {
+        padding: 1.5rem 1rem;
+        margin: 1rem auto;
+    }
+
+    .btn-inf-join {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+
+    .inf-main-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.2rem;
+    }
+
+    .inf-pool-card {
+        padding: 1.2rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .inf-pool-header {
+        flex-direction: column;
+        gap: 0.8rem;
+        align-items: flex-start;
+    }
+
+    .inf-pool-title h2 {
+        font-size: 1.2rem;
+    }
+
+    .inf-stat-mini {
+        padding: 0.8rem;
+    }
+
+    .inf-stat-mini b {
+        font-size: 1rem;
+    }
+
+    .inf-lb-row {
+        grid-template-columns: 35px 1fr 70px;
+        padding: 0.8rem;
+        font-size: 0.82rem;
+    }
+
+    .social-link-row {
+        flex-direction: column;
+        gap: 6px;
+    }
+}

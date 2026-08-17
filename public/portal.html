@@ -27,6 +27,13 @@
             --font-body: 'Rajdhani', sans-serif;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            overscroll-behavior-x: none;
+            touch-action: pan-y;
+        }
         body {
             font-family: var(--font-body);
             background: var(--bg);
@@ -34,10 +41,16 @@
             background-attachment: fixed;
             color: var(--text);
             min-height: 100vh;
+            width: 100%;
+            max-width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior-x: none;
+            touch-action: pan-y;
+            position: relative;
         }
         .bg-glow {
             position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -48,12 +61,14 @@
         }
         .screen {
             position: relative; z-index: 1;
-            width: 100vw; height: 100vh;
+            width: 100%; max-width: 100vw; min-height: 100vh;
             display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 2rem 1.5rem;
+            padding: 5rem 1.5rem 2.5rem 1.5rem;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
         .screen.active { display: flex; }
         .logo {
@@ -62,12 +77,12 @@
             font-size: 1.5rem; font-weight: 900; letter-spacing: 3px; z-index: 2;
         }
         .logo span { color: var(--cyan); text-shadow: 0 0 15px rgba(0,229,255,0.5); }
-        h1 { font-family: var(--font-heading); font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; letter-spacing: 2px; text-align: center; }
+        h1 { font-family: var(--font-heading); font-size: clamp(1.8rem, 4.5vw, 3rem); font-weight: 900; letter-spacing: 2px; text-align: center; }
         h1 .grad {
             background: linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
             -webkit-background-clip: text; background-clip: text; color: transparent;
         }
-        .sub { color: var(--text-dim); margin-top: .8rem; font-size: 1rem; text-align: center; max-width: 520px; }
+        .sub { color: var(--text-dim); margin-top: .8rem; font-size: 0.95rem; text-align: center; max-width: 520px; }
         .lang-grid {
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
             max-width: 500px; width: 90%; margin-top: 2rem;
@@ -184,6 +199,84 @@
             opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 90vw; text-align: center;
         }
         #toast.show { opacity: 1; }
+
+        /* ==========================================================================
+           RESPONSIVE MOBILE — PORTAL HUB ARCADE
+           ========================================================================== */
+        @media (max-width: 768px) {
+            .logo {
+                position: relative;
+                top: auto;
+                left: auto;
+                margin-bottom: 1rem;
+                text-align: center;
+                font-size: 1.3rem;
+            }
+
+            .topbar {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 1.5rem;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .screen {
+                padding: 1.5rem 1rem 2rem 1rem;
+                justify-content: flex-start;
+                min-height: 100vh;
+                height: auto;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
+                margin-top: 1.5rem;
+                width: 100%;
+            }
+
+            .menu-card {
+                padding: 1.2rem;
+                gap: 0.6rem;
+            }
+
+            .menu-card .icon {
+                font-size: 2rem;
+            }
+
+            .menu-card h2 {
+                font-size: 1.1rem;
+            }
+
+            .menu-card p {
+                font-size: 0.82rem;
+            }
+
+            .lang-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                width: 100%;
+            }
+
+            .lang-btn {
+                padding: 12px 14px;
+                font-size: 0.95rem;
+            }
+
+            .auth-card {
+                padding: 1.5rem 1.2rem;
+                margin-top: 1.2rem;
+            }
+
+            #app-window {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+                border: none;
+            }
+        }
     </style>
 </head>
 <body>
