@@ -337,3 +337,48 @@ La passation décrivait : Fix 1 **cassé** (`public $queue = 'limits'` → confl
 4. `check_onchain_balance.mjs` vérifie le funding des 40 wallets (champ JSON = `address`).
 5. Le fix dépéciation SessionManager est dans le dépôt mais **PAS dans l'image** (déployé par docker cp) : sera perdu à la prochaine recréation de containers → à rebuilder dans l'image lors du prochain rebuild (même pattern que §4/§10).
 
+---
+
+## 14. INDEXEUR BLOCKCHAIN ROBUSTE + RÉPARATION LOCK RACINE (2026-08-18)
+
+### 14.1 Contexte
+Deux chantiers menés sur la branche `perf/performance-analysis` :
+1. **Indexeur blockchain robuste & idempotent** (remplace l'ancien `startBlockchainListeners()` en mémoire).
+2. **Réparation du `package-lock.json` racine** (désynchronisé, bloquait `docker compose build`).
+
+### 14.2 Indexeur robuste (commit `3da86c3`)
+L'ancien listener (`smart_contracts/app.js`, `startBlockchainListeners()`) faisait un polling en mémoire avec `lastBlock` en variable locale **reset à 0 à chaque redémarrage**, sans idempotence, sans reorg safety, sans backoff. Remplacé par un module `smart_contracts/indexer/` :
+
+| Fichier | Rôle |
+|---|---|
+| `indexer/config.js` | Paramètres d'indexation (env : `CONFIRMATIONS_REQUIRED`, `POLL_INTERVAL_MS`, `MAX_BLOCK_RANGE`, `BACKOFF_*`) |
+| `indexer/db.js` | Pool MySQL + `initSchema` (création idempotente des tables) |
+| `indexer/blockTracker.js` | État persistant **par contrat** (game, marketplace, snt) |
+| `indexer/eventProcessor.js` | Idempotence "claim-then-process" (clé unique `tx_hash, log_index`) |
+| `indexer/handlers.js` | Handlers fidèles aux 10 événements de l'ancien code |
+| `indexer/indexer.js` | Boucle polling + backoff exponentiel |
+
+**Tables créées en BDD** (auto-créées au démarrage) :
+- `blockchain_sync_states` : `contract_address` (PK), `last_processed_block`, `updated_at`.
+- `processed_blockchain_events` : `tx_hash`, `log_index`, `event_name`, `block_number`, `status`, clé unique `(tx_hash, log_index)`.
+
+**Comportement clé** :
+- **Catch-up** : au redémarrage, reprend au bloc persisté (pas au bloc 0).
+- **Idempotence** : un événement déjà traité est skippé (re-polling d'une plage = `Skipped: N`).
+- **Reorg safety** : `targetBlock = latestBlock - CONFIRMATIONS_REQUIRED` (0 en local Hardhat, 5-12 en prod).
+- **Backoff** : erreur RPC → backoff exponentiel (2s→30s) sans incrémenter `last_processed_block`.
+
+**Validation mesurée** : catch-up 0→11187, redémarrage → reprise au bloc 14237, 4 événements traités sans doublon, jeu non perturbé (fights +32/20s, queue `default` = 0).
+
+### 14.3 Réparation du lock racine (commit `24ed851`)
+**Cause racine** : le commit `6f80ea1` avait ajouté `vitest@^4.1.10` au `package.json` racine **sans régénérer le lock**. Or `vitest@4` requiert **vite 6/7/8** (via `@vitest/mocker`), alors que le projet est verrouillé sur **vite 5** (`@vitejs/plugin-vue@5` et `laravel-vite-plugin@1` ne supportent que `vite ^5 || ^6`). Contradiction insoluble → `npm ci` échouait (`Missing: @noble/hashes@2.3.0`, `esbuild@0.28.2`) → `docker compose build` bloqué.
+
+**Correctif** : downgrade `vitest` `^4.1.10` → `^3.2.4` (dernière 3.x, supporte `vite ^5`) + régénération du lock avec `node:24-slim` (npm 11.17, la version du `Dockerfile` principal).
+
+**Validation** : `npm ci --dry-run` passe sur npm 11.17 (Dockerfile) et npm 10.9.8 (Dockerfile.worker) ; `docker compose build bridge` et `build app` réussissent.
+
+### 14.4 Redéploiement du bridge (validé)
+Le bridge a été redéployé depuis l'image rebuildée (`docker compose up -d --force-recreate bridge`). L'indexeur démarre proprement **depuis l'image** (plus de `docker cp` manuel) : reprise au bloc 14237, rattrapage jusqu'à 14262, 4 événements sans doublon, bridge `healthy`, jeu actif (18758 fights).
+
+**Leçon** : le déploiement par `docker cp` + `npm install --no-save` (pattern §13.2) n'est plus nécessaire pour l'indexeur — le code est dans l'image et le lock est réparé.
+
