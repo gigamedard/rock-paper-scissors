@@ -8,6 +8,9 @@
 .env
 .env.backup
 .env.production
+.env.staging
+.env.staging.*
+!.env.staging.example
 smart_contracts/.env
 smart_contracts/.env.*
 !smart_contracts/.env.example
