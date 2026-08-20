@@ -208,9 +208,15 @@ class WalletAuthController extends Controller
 
     /**
      * Simplified login for UI/Simulation (Bypass signature in local)
+     * SECURITY: restricted to local/testing only. Production must use
+     * verify-signature (real ECDSA signature) instead.
      */
     public function login(Request $request)
     {
+        if (!app()->environment('local', 'testing')) {
+            abort(403, 'Direct login is disabled in this environment. Use signature verification.');
+        }
+
         $validated = $request->validate([
             'wallet_address' => 'required|string|regex:/^0x[a-fA-F0-9]{40}$/',
         ]);
@@ -251,7 +257,7 @@ class WalletAuthController extends Controller
      */
     public function devLogin(Request $request)
     {
-        if (!app()->environment('local', 'testing', 'staging')) {
+        if (!app()->environment('local', 'testing')) {
             abort(403, 'Dev login only available in local/testing environment');
         }
 

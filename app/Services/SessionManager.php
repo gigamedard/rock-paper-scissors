@@ -239,8 +239,10 @@ class SessionManager
                 $payoutTriggered = true;
             } else {
                 // HUMANS (including human autoplay) or Manual Players: Always generate Signature for MetaMask
-                $signature = $this->generateHumanSignature($user);
+                $sigData = $this->generateHumanSignature($user);
+                $signature = $sigData['signature'] ?? null;
                 $user->payout_signature = $signature;
+                $user->payout_deadline = $sigData['deadline'] ?? null;
                 $user->save();
             }
             
@@ -272,8 +274,10 @@ class SessionManager
                     UserTracker::info("[MANUAL_WITHDRAWAL_REQUIRED] 🛑 Human player {$user->wallet_address} ruined. Funds ({$user->balance} ETH) kept in DB. Manual withdraw required.", ['wallet' => $user->wallet_address]);
                     $this->notificationService->notifyInsufficientBalance($user);
                     // Even on ruin, we provide the signature for the remaining funds
-                    $signature = $this->generateHumanSignature($user);
+                    $sigData = $this->generateHumanSignature($user);
+                    $signature = $sigData['signature'] ?? null;
                     $user->payout_signature = $signature;
+                    $user->payout_deadline = $sigData['deadline'] ?? null;
                     $user->save();
                 }
             }
@@ -447,7 +451,7 @@ class SessionManager
         }
     }
 
-    private function generateHumanSignature(User $user): ?string
+    private function generateHumanSignature(User $user): ?array
     {
         try {
             $nodeUrl = config('app.NODE_WORKER_URL');
@@ -461,7 +465,10 @@ class SessionManager
             ]);
 
             if ($response->successful() && $response->json('signature')) {
-                return $response->json('signature');
+                return [
+                    'signature' => $response->json('signature'),
+                    'deadline' => $response->json('deadline'),
+                ];
             }
 
             Log::error("Bridge /generate-signature failed for {$user->wallet_address}: " . $response->body());

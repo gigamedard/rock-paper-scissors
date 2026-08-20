@@ -844,8 +844,9 @@
 
 
     // Pinata Configuration
-    const PINATA_API_KEY = '***REMOVED***';
-    const PINATA_API_SECRET = '***REMOVED***';
+    // SECURITY: keys must NOT be hardcoded client-side. Use the backend /api/ipfs/upload proxy.
+    const PINATA_API_KEY = '';
+    const PINATA_API_SECRET = '';
     const PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
     const PINATA_PIN_LIST_URL = 'https://api.pinata.cloud/data/pinList?status=pinned';
     let cid = '';

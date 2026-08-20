@@ -68,6 +68,14 @@ class PoolAutoMatchController extends Controller
             'cooldown_time' => 'nullable|integer|min:0',
         ]);
 
+        // SECURITY (IDOR fix): the authenticated user must be the one submitting
+        // pre-moves. Never trust the client-supplied user_id.
+        $authUser = $request->user();
+        if (!$authUser) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+        $data['user_id'] = $authUser->id;
+
         $userId = $data['user_id'];
         $lock = \Illuminate\Support\Facades\Cache::lock('join_pool_' . $userId, 5); // 5 seconds lock
 
@@ -127,6 +135,7 @@ class PoolAutoMatchController extends Controller
             'battle_balance' => $user->battle_balance,
             'session_start_battle_balance' => $user->session_start_battle_balance,
             'payout_signature' => $user->payout_signature,
+            'payout_deadline' => $user->payout_deadline,
             'cooldown_until' => $user->cooldown_until ? $user->cooldown_until->toIso8601String() : null,
             'client_batch_interval' => config('game_settings.client_batch_interval', 5000)
         ]);

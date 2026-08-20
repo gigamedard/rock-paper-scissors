@@ -94,9 +94,12 @@ services:
     restart: unless-stopped
     env_file: .env.staging
     volumes:
-      # CRUCIAL : Monter UNIQUEMENT config.js (pas tout le dossier).
+      # CRUCIAL : Monter UNIQUEMENT config.js + .env (pas tout le dossier).
       # Monter tout smart_contracts/ écraserait les node_modules Linux avec ceux de Windows.
+      # .env (gitignoré) contient GAME_WALLET_PK / MARKETPLACE_WALLET_PK : monté au runtime,
+      # jamais copié dans l'image (voir .dockerignore).
       - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
+      - ./smart_contracts/.env:/app/smart_contracts/.env:ro
     depends_on:
       blockchain:
         condition: service_healthy
@@ -145,26 +148,32 @@ services:
       - "8008:8008"
     env_file: .env.staging
     # Le serveur WebSocket Reverb est opérationnel (confirmé dans les logs).
-    # L'image serversideup n'expose pas de tool TCP simple, on désactive le healthcheck.
+    # Healthcheck via l'endpoint HTTP channels (retourne 200 si Reverb est up).
     healthcheck:
-      disable: true
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8008/apps/rps_app_id/channels?auth_key=***REMOVED***&auth_timestamp=9999999999&auth_signature=test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     depends_on:
       init-db:
         condition: service_completed_successfully
 
   # ============================================================
   # 8. WORKER BATCH (Node.js — Run Batch Processor)
+  # DÉSACTIVÉ EN PROD : le tick client (/api/metrics/collect) remplace
+  # ce worker. Décommenter uniquement pour les tests de simulation.
   # ============================================================
-  worker:
-    image: rock-paper-scissors-worker:latest
-    restart: unless-stopped
-    env_file: .env.staging
-    volumes:
-      # Monter UNIQUEMENT config.js pour ne pas écraser les node_modules Linux
-      - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
-    depends_on:
-      bridge:
-        condition: service_healthy
+  # worker:
+  #   image: rock-paper-scissors-worker:latest
+  #   restart: unless-stopped
+  #   env_file: .env.staging
+  #   volumes:
+  #     - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
+  #     - ./smart_contracts/.env:/app/smart_contracts/.env:ro
+  #   depends_on:
+  #     bridge:
+  #       condition: service_healthy
 
   # ============================================================
   # 9. QUEUE WORKER LARAVEL (Traitement des jobs async)
@@ -175,9 +184,13 @@ services:
     command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
     restart: unless-stopped
     env_file: .env.staging
-    # Désactive le healthcheck Nginx interne de l'image serversideup
+    # Healthcheck : vérifie qu'un processus queue:work tourne.
     healthcheck:
-      disable: true
+      test: ["CMD", "pgrep", "-f", "queue:work"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       init-db:
         condition: service_completed_successfully
@@ -191,7 +204,11 @@ services:
     restart: unless-stopped
     env_file: .env.staging
     healthcheck:
-      disable: true
+      test: ["CMD", "pgrep", "-f", "queue:work"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       init-db:
         condition: service_completed_successfully

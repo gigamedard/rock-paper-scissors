@@ -85,7 +85,8 @@ const app = {
                 if (data.payout_signature) {
                     this.pendingClaim = {
                         amount: data.balance,
-                        signature: data.payout_signature
+                        signature: data.payout_signature,
+                        deadline: data.payout_deadline
                     };
                 } else {
                     this.pendingClaim = null;
@@ -431,13 +432,13 @@ const app = {
             const signer = await provider.getSigner();
             
             // Minimal ABI for claimAndExit
-            const abi = ["function claimAndExit(uint256 amount, bytes signature) external"];
+            const abi = ["function claimAndExit(uint256 amount, uint256 deadline, bytes signature) external"];
             const contract = new ethers.Contract(this.contractAddress, abi, signer);
             
             // Amount must be in Wei
             const amountWei = ethers.parseEther(this.pendingClaim.amount.toString());
             
-            const tx = await contract.claimAndExit(amountWei, this.pendingClaim.signature);
+            const tx = await contract.claimAndExit(amountWei, this.pendingClaim.deadline, this.pendingClaim.signature);
             this.addToFeed("⏳ Transaction sent: " + tx.hash.substring(0,10) + "...", "var(--primary)");
             
             await tx.wait();

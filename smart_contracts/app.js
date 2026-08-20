@@ -14,6 +14,7 @@ import {
     NODE_SERVER_PORT,
     GAME_WALLET_PK,
     MARKETPLACE_WALLET_PK,
+    SIGNER_WALLET_PK,
     SECURITY_COEFFICIENT,
     pinata,
     contracts
@@ -64,6 +65,8 @@ app.post("/ipfs/add-json", async (req, res) => {
 const gameProvider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
 const gameWallet = new Wallet(GAME_WALLET_PK, gameProvider);
 const gameContract = new Contract(contracts.game.address, contracts.game.abi, gameWallet);
+// SECURITY: separate signer wallet for claim signatures (rotatable via setSigner).
+const signerWallet = new Wallet(SIGNER_WALLET_PK, gameProvider);
 
 // Queue de transactions globale pour éviter les conflits de nonce
 let txQueue = Promise.resolve();
@@ -263,15 +266,18 @@ app.post("/generate-signature", async (req, res) => {
         
         console.log(`📡 Generating signature for claim: ${wallet} - ${amount} wei`);
         const nonce = await gameContract.nonces(wallet);
+        const chainId = (await gameProvider.getNetwork()).chainId;
+        // Signature valid for 24h (prevents indefinite replay)
+        const deadline = Math.floor(Date.now() / 1000) + 86400;
         
         const messageHash = solidityPackedKeccak256(
-            ["address", "uint256", "uint256", "address"],
-            [wallet, amount, nonce, contracts.game.address]
+            ["address", "uint256", "uint256", "address", "uint256", "uint256"],
+            [wallet, amount, nonce, contracts.game.address, chainId, deadline]
         );
         const messageHashBytes = getBytes(messageHash);
-        const signature = await gameWallet.signMessage(messageHashBytes);
+        const signature = await signerWallet.signMessage(messageHashBytes);
         
-        res.json({ signature });
+        res.json({ signature, deadline });
     } catch (error) {
         console.error("❌ Error generating signature:", error);
         res.status(500).json({ error: error.message });

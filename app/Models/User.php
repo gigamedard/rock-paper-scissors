@@ -43,6 +43,7 @@ class User extends Authenticatable
         'target_q',
         'cooldown_time',
         'payout_signature',
+        'payout_deadline',
         'last_synced_limits_hash',
     ];
 

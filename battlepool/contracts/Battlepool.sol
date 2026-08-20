@@ -2,8 +2,9 @@
 pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Battlepool {
+contract Battlepool is ReentrancyGuard {
     using ECDSA for bytes32;
     struct Pool {
         uint256 poolId;
@@ -34,6 +35,7 @@ contract Battlepool {
     event PremoveCIDUpdated(address indexed user, string cid);
 
     event SecurityCoefficientUpdated(uint256 newCoefficient);
+    event SignerUpdated(address newSigner);
     event PayoutProcessed(address indexed wallet, uint256 amount);
     event DefaultPoolMaxSizeChanged(uint256 newSize); // <<<--- AJOUTEZ CETTE LIGNE
     event PoolStagnantRefund(uint256 indexed poolId, uint256 refundedCount, uint256 timestamp);
@@ -63,6 +65,11 @@ contract Battlepool {
     uint256 public defaultMinCooldown;
 
     address public owner;
+    // SECURITY: signer is a SEPARATE role from owner. The signer signs claim
+    // signatures (claimAndExit) and can be rotated frequently via setSigner()
+    // without touching the owner (admin) role. This isolates the "hot" signing
+    // key (exposed to the bridge) from the "cold" admin key.
+    address public signer;
     uint256 public securityCoefficient = 1000;
     uint256 public defaultPoolMaxSize; // <<<--- AJOUTEZ CETTE LIGNE
     uint256 public stagnantBlockLimit = 100; // Default 100 blocks
@@ -80,11 +87,24 @@ contract Battlepool {
 
     constructor() {
         owner = msg.sender;
+        signer = msg.sender; // Initially the deployer is also the signer
         devWallet = payable(msg.sender); // Default to deployer
         defaultPoolMaxSize = 5; // <<<--- AJOUTEZ CETTE LIGNE
         defaultMaxBaseBet = 100 ether;
         defaultMaxQ = 2.0 * 1e18;
         defaultMinCooldown = 86400;
+    }
+
+    /**
+     * @dev Rotates the signer role (the key that signs claim signatures).
+     * Only the owner can change it. This is the key rotation mechanism:
+     * call setSigner(newKey) to invalidate the old signing key without
+     * redeploying the contract or losing any on-chain state.
+     */
+    function setSigner(address newSigner) external onlyOwner {
+        require(newSigner != address(0), "Invalid signer address");
+        signer = newSigner;
+        emit SignerUpdated(newSigner);
     }
 
     /**
@@ -118,7 +138,7 @@ contract Battlepool {
         emit DevWalletUpdated(newWallet);
     }
 
-    function withdrawDevFees() external {
+    function withdrawDevFees() external nonReentrant {
         require(msg.sender == devWallet || msg.sender == owner, "Only dev or owner can withdraw");
         uint256 amount = devBalance;
         require(amount > 0, "No fees to withdraw");
@@ -137,7 +157,7 @@ contract Battlepool {
         string[] memory premoveCIDs,
         string memory poolSalt, // Changed to string
         uint256[] memory balances
-    ) external {
+    ) external onlyOwner {
         // Emit the PoolEmitted event with the provided parameters
         emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt, balances);
     }
@@ -256,14 +276,14 @@ contract Battlepool {
         return pool.users;
     }
 
-    function storeMatchHistoryCID(uint256 poolId, string memory cid) external {
+    function storeMatchHistoryCID(uint256 poolId, string memory cid) external onlyOwner {
         require(bytes(cid).length > 0, "CID cannot be empty");
         poolHistoryCIDs[poolId] = cid;
         emit MatchHistoryCIDUpdated(poolId, cid);
     }
 
 
-    function storeSessionCID(address user, string memory cid) external {
+    function storeSessionCID(address user, string memory cid) external onlyOwner {
         require(bytes(cid).length > 0, "CID cannot be empty");
         sessionHistoryCIDs[user].push(cid); // Append CID instead of replacing it
         emit sessionHistoryCIDUpdated(user, cid);
@@ -496,16 +516,19 @@ contract Battlepool {
     /**
      * @dev Allows a user to claim their funds using a signature from the admin.
      * Prevents the server from paying gas for human withdrawals.
+     * The signature binds to (address, amount, nonce, contractAddress, chainId, deadline)
+     * to prevent cross-chain replay and indefinite signature validity.
      */
-    function claimAndExit(uint256 amount, bytes memory signature) external {
+    function claimAndExit(uint256 amount, uint256 deadline, bytes memory signature) external nonReentrant {
         require(amount > 0, "Amount must be greater than 0");
+        require(block.timestamp <= deadline, "Signature expired");
 
-        // Verify signature: hash(address, amount, nonce, contractAddress)
-        bytes32 messageHash = keccak256(abi.encodePacked(msg.sender, amount, nonces[msg.sender], address(this)));
+        // Verify signature: hash(address, amount, nonce, contractAddress, chainId, deadline)
+        bytes32 messageHash = keccak256(abi.encodePacked(msg.sender, amount, nonces[msg.sender], address(this), block.chainid, deadline));
         bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
         
-        address signer = ethSignedMessageHash.recover(signature);
-        require(signer == owner, "Invalid admin signature");
+        address recovered = ethSignedMessageHash.recover(signature);
+        require(recovered == signer, "Invalid signer signature");
 
         // Update state
         uint256 nonceUsed = nonces[msg.sender];
@@ -524,7 +547,7 @@ contract Battlepool {
 
 
 
-    function batchPayOut(address[] calldata wallets, uint256[] calldata amounts) external {
+    function batchPayOut(address[] calldata wallets, uint256[] calldata amounts) external onlyOwner nonReentrant {
         require(wallets.length == amounts.length, "Mismatched arrays");
 
         for (uint i = 0; i < wallets.length; i++) {
@@ -553,7 +576,7 @@ contract Battlepool {
         emit NextSessionTimeUpdated(user, nextTime);
     }
 
-    function checkAndRefundStagnantPool(uint256 baseBet) external {
+    function checkAndRefundStagnantPool(uint256 baseBet) external nonReentrant {
         Pool storage pool = pools[baseBet];
         require(pool.poolId != 0, "Pool does not exist");
         require(pool.users.length > 0, "Pool is empty");

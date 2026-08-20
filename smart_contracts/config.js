@@ -40,6 +40,11 @@ export const NODE_SERVER_PORT = process.env.NODE_SERVER_PORT || 3000;
 // (Tu dois remplacer ces clés par les tiennes)
 export const GAME_WALLET_PK = process.env.GAME_WALLET_PK;
 export const MARKETPLACE_WALLET_PK = process.env.MARKETPLACE_WALLET_PK;
+// SECURITY: SIGNER_WALLET_PK is a SEPARATE key that signs claim signatures.
+// It is the "hot" key (exposed to the bridge) and can be rotated via setSigner()
+// without touching GAME_WALLET_PK (the "cold" owner/admin key).
+// Falls back to GAME_WALLET_PK for backward compatibility during transition.
+export const SIGNER_WALLET_PK = process.env.SIGNER_WALLET_PK || GAME_WALLET_PK;
 
 // VALIDATION
 if (!GAME_WALLET_PK || !MARKETPLACE_WALLET_PK) {
@@ -84,6 +89,11 @@ export const contracts = {
       }
     ],
     "name": "ECDSAInvalidSignatureS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ReentrancyGuardReentrantCall",
     "type": "error"
   },
   {
@@ -414,6 +424,19 @@ export const contracts = {
     "inputs": [
       {
         "indexed": false,
+        "internalType": "address",
+        "name": "newSigner",
+        "type": "address"
+      }
+    ],
+    "name": "SignerUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "uint256",
         "name": "newLimit",
         "type": "uint256"
@@ -554,6 +577,11 @@ export const contracts = {
       {
         "internalType": "uint256",
         "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
         "type": "uint256"
       },
       {
@@ -1231,6 +1259,19 @@ export const contracts = {
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "newSigner",
+        "type": "address"
+      }
+    ],
+    "name": "setSigner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "_limit",
         "type": "uint256"
@@ -1290,6 +1331,19 @@ export const contracts = {
     "name": "setUserNextSessionTime",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "signer",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1497,7 +1551,7 @@ export const contracts = {
   },
   // --- Contrat MARKETPLACE (de app.js/server.js) ---
   marketplace: {
-    address: "0x0165878A594ca255338adfa4d48449f69242Eb8F", // MarketplaceEscrow
+    address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853", // MarketplaceEscrow
     abi: [
       {
         "inputs": [
@@ -1864,7 +1918,7 @@ export const contracts = {
   },
   // --- Contrat du JETON (SNT / USDT) ---
   snt: {
-    address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707", // SNTToken
+    address: "0x0165878A594ca255338adfa4d48449f69242Eb8F", // SNTToken
     abi: [
       { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
       { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },
@@ -1884,7 +1938,7 @@ export const contracts = {
 };
 
 export const pinata = {
-  PINATA_API_KEY: "***REMOVED***",
-  PINATA_SECRET: "***REMOVED***",
+  PINATA_API_KEY: process.env.PINATA_API_KEY,
+  PINATA_SECRET: process.env.PINATA_SECRET,
   PINATA_API_URL: "https://api.pinata.cloud/pinning/pinJSONToIPFS"
 };

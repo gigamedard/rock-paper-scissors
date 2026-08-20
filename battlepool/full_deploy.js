@@ -13,6 +13,21 @@ async function main() {
     await battlepool.waitForDeployment();
     const gameAddr = await battlepool.getAddress();
     console.log("Battlepool deployed to:", gameAddr);
+
+    // --- SECURITY: configure the separate signer role (rotatable via setSigner) ---
+    // The signer signs claim signatures. It is a "hot" key distinct from the
+    // owner (deployer). If SIGNER_WALLET_PK is set, derive its address and
+    // assign it as the signer; otherwise the deployer remains the signer.
+    const signerPk = process.env.SIGNER_WALLET_PK;
+    if (signerPk) {
+        const signerWallet = new ethers.Wallet(signerPk);
+        console.log("Setting signer to:", signerWallet.address);
+        const txSigner = await battlepool.setSigner(signerWallet.address);
+        await txSigner.wait();
+        console.log("✅ Signer set to:", signerWallet.address);
+    } else {
+        console.log("⚠️  SIGNER_WALLET_PK not set — deployer remains the signer.");
+    }
     
     console.log("Setting Security Coefficient to 1000...");
     const txCoeff = await battlepool.setSecurityCoefficient(1000);

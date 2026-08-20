@@ -508,8 +508,6 @@ app.get("/get-game-config", (req, res) => {
 		abi: contracts.game.abi,
 		marketplace: contracts.marketplace?.address || "0x5FbDB2315678afecb367f032d93F642f64180aa3",
 		snt: "0x05A26c7f06127710463692263E12c1BF51A34184", // SNT Token Address
-		pinata_api_key: "***REMOVED***",
-		pinata_secret: "***REMOVED***",
 		pinata_api_url: "https://api.pinata.cloud"
 	});
 });

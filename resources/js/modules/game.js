@@ -310,12 +310,12 @@ async function fetchUserStatus() {
             }
             
             if (data.payout_signature && !gameState.hasClaimed) {
-                gameState.pendingClaim = { amount: b + bb, signature: data.payout_signature };
+                gameState.pendingClaim = { amount: b + bb, signature: data.payout_signature, deadline: data.payout_deadline };
             } else if (data.payout_signature && gameState.hasClaimed) {
                 // Une nouvelle signature est arrivée après un claim précédent
                 // → reset hasClaimed pour permettre le nouveau claim
                 gameState.hasClaimed = false;
-                gameState.pendingClaim = { amount: b + bb, signature: data.payout_signature };
+                gameState.pendingClaim = { amount: b + bb, signature: data.payout_signature, deadline: data.payout_deadline };
             } else {
                 gameState.pendingClaim = null;
             }
@@ -517,12 +517,12 @@ async function claim() {
         const provider = await getProvider();
         const signer = await provider.getSigner();
         
-        const abi = ["function claimAndExit(uint256 amount, bytes signature) external"];
+        const abi = ["function claimAndExit(uint256 amount, uint256 deadline, bytes signature) external"];
         const contract = new Contract(gameState.contractAddress, abi, signer);
         
         const amountWei = parseEther(gameState.pendingClaim.amount.toString());
         
-        const tx = await contract.claimAndExit(amountWei, gameState.pendingClaim.signature);
+        const tx = await contract.claimAndExit(amountWei, gameState.pendingClaim.deadline, gameState.pendingClaim.signature);
         addToFeed(t('feed.tx_sent', { hash: tx.hash.substring(0,10) }), "var(--primary)");
         
         await tx.wait();

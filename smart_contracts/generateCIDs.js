@@ -1,7 +1,7 @@
 import fetch from "node-fetch"; // Ensure you have node-fetch installed for backend use
 
-const PINATA_API_KEY = '***REMOVED***';
-const PINATA_API_SECRET = '***REMOVED***';
+const PINATA_API_KEY = process.env.PINATA_API_KEY;
+const PINATA_API_SECRET = process.env.PINATA_SECRET;
 const PINATA_API_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
 
 // Possible moves
