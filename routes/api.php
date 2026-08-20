@@ -78,48 +78,8 @@ Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard'
 
 Route::post('/debug-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
 
-Route::post('/debug/trigger-event', function (Request $request) {
-    $type = $request->input('type');
-    $wallet = $request->input('wallet', '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266');
-    $user = \App\Models\User::where('wallet_address', strtolower($wallet))->first();
-    
-    if (!$user) return response()->json(['error' => 'User not found for address ' . $wallet], 404);
-
-    switch($type) {
-        case 'balance':
-            $newBalance = $request->input('value', 9.99);
-            $user->update(['balance' => $newBalance]);
-            event(new \App\Events\BalanceUpdated($user->id, $newBalance));
-            break;
-        case 'match':
-            // Emit a global arena event that the UI listens to as 'BasicEvent'
-            event(new \App\Events\GlobalArenaEvent("Global Match Found for user " . $user->id, 'match'));
-            break;
-        case 'fight':
-            $outcome = $request->input('value', 'win');
-            $delta = ($outcome === 'win') ? '+0.01' : ($outcome === 'draw' ? '0' : '-0.01');
-            $myMove = $request->input('my_move', 'rock');
-            $oppMove = $request->input('opp_move', ($outcome === 'win' ? 'scissors' : ($outcome === 'draw' ? 'rock' : 'paper')));
-            $newBalance = $user->balance + (float)$delta;
-            $user->update(['balance' => $newBalance]);
-            event(new \App\Events\FightResult($user, $outcome, $delta, (string)$newBalance, $myMove, $oppMove));
-            break;
-        case 'discovery':
-            // Simulates a PoolEmitted event
-            event(new \App\Events\PoolEmitted("pool_".uniqid(), [$user->wallet_address], 0.01));
-            break;
-        case 'victory':
-            event(new \App\Events\SessionFinished($user, 'SUCCESS', '1.25', true));
-            break;
-        case 'ruin':
-            event(new \App\Events\SessionFinished($user, 'RUIN', '0.00', false));
-            break;
-        default:
-            return response()->json(['error' => 'Invalid event type'], 400);
-    }
-
-    return response()->json(['message' => "Event $type triggered successfully"]);
-});
+// SECURITY: /api/debug/trigger-event REMOVED — it was a public backdoor that
+// allowed unauthenticated balance modification and arbitrary event emission.
 
 // Public routes
 Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard']);
@@ -224,7 +184,9 @@ Route::prefix('internal')->middleware('auth.internal')->group(function () {
     Route::post('/batch-processing', [PoolAutoMatchController::class, 'processBatch']);
     Route::post('/batch-processing-all', [PoolAutoMatchController::class, 'processAllBetTiers']);
     Route::post('/internal-pools', [PoolAutoMatchController::class, 'processInternalPools']);
-    Route::post('/payout', [InternalPayoutController::class, 'payout']);
+    // SECURITY: /internal/payout REMOVED — it allowed arbitrary payouts to any
+    // address using only the internal secret (which is in plaintext in git).
+    // Legitimate payouts go through ProcessPayoutJob (dispatched by SessionManager).
     Route::post('/ping', function () {
         \Illuminate\Support\Facades\Cache::put('bridge_last_ping', now()->timestamp, 60);
         return response()->json(['success' => true]);
