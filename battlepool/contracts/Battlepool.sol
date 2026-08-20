@@ -85,6 +85,8 @@ contract Battlepool is ReentrancyGuard {
         _;
     }
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     constructor() {
         owner = msg.sender;
         signer = msg.sender; // Initially the deployer is also the signer
@@ -93,6 +95,19 @@ contract Battlepool is ReentrancyGuard {
         defaultMaxBaseBet = 100 ether;
         defaultMaxQ = 2.0 * 1e18;
         defaultMinCooldown = 86400;
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account.
+     * This is the owner key rotation mechanism: call transferOwnership(newKey)
+     * to invalidate the old (potentially compromised) owner key without
+     * redeploying the contract or losing any on-chain state.
+     */
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Invalid owner address");
+        address previousOwner = owner;
+        owner = newOwner;
+        emit OwnershipTransferred(previousOwner, newOwner);
     }
 
     /**

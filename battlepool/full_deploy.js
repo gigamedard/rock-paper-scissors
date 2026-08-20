@@ -48,6 +48,28 @@ async function main() {
     const txCooldown = await battlepool.setDefaultMinCooldown(10);
     await txCooldown.wait();
     console.log("✅ Default Min Cooldown set to 10 seconds.");
+
+    // --- SECURITY: transfer ownership to a fresh, non-standard key ---
+    // The deployer (Hardhat #0) has a publicly-known private key. We transfer
+    // ownership to a fresh random key (GAME_WALLET_PK) so the compromised key
+    // loses all admin power. This is the owner key rotation mechanism.
+    const ownerPk = process.env.GAME_WALLET_PK;
+    if (ownerPk) {
+        const ownerWallet = new ethers.Wallet(ownerPk);
+        console.log("Transferring ownership to:", ownerWallet.address);
+        if (hre.network.name === "hardhat" || hre.network.name === "localhost") {
+            // Fund the new owner with ETH for gas (admin transactions)
+            await hre.network.provider.send("hardhat_setBalance", [
+                ownerWallet.address,
+                "0x3635C9ADC5DEA00000", // 1000 ETH
+            ]);
+        }
+        const txOwner = await battlepool.transferOwnership(ownerWallet.address);
+        await txOwner.wait();
+        console.log("✅ Ownership transferred to:", ownerWallet.address);
+    } else {
+        console.log("⚠️  GAME_WALLET_PK not set — deployer remains the owner.");
+    }
     
     const SNTToken = await ethers.getContractFactory("SNTToken");
     const sntToken = await SNTToken.deploy({ gasLimit: 5000000 });
