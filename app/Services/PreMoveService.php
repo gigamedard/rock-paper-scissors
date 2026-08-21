@@ -7,6 +7,13 @@ use Illuminate\Support\Facades\Log;
 
 class PreMoveService
 {
+    protected $userDataService;
+
+    public function __construct(UserDataService $userDataService)
+    {
+        $this->userDataService = $userDataService;
+    }
+
     /**
      * Store pre-moves: hash moves with a nonce, update DB, and register user.
      */
@@ -26,30 +33,18 @@ class PreMoveService
                 'nonce'         => $nonce,
                 'current_index' => 0,
                 'session_first_pool_id'=>0,
+                'cid'           => $data['cid'],
             ]
         );
 
         // Register user for autoplay and (stub) store on blockchain.
-        $this->registerForAutoplay($data['user_id'], $bet_amount);
+        $this->userDataService->registerForAutoplay($data['user_id'], $bet_amount);
         $this->storeOnBlockchain($hashedMoves);
 
         return [
             'message' => 'Pre-moves stored successfully!',
             'hash'    => hash('sha3-256', json_encode($hashedMoves)),
         ];
-    }
-
-    protected function registerForAutoplay(int $userId, $bet_amount)
-    {
-        $user = User::find($userId);
-        if (!$user) {
-            throw new \Exception('User not found');
-        }
-        $user->update([
-            'autoplay_active' => true,
-            'bet_amount'      => $bet_amount,
-            'status'          => 'available',
-        ]);
     }
 
     protected function storeOnBlockchain(array $hashedMoves)
@@ -59,13 +54,7 @@ class PreMoveService
 
     public function unregisterFromAutoplay($user)
     {
-        if (!$user) {
-            throw new \Exception('Unauthorized');
-        }
-        $user->update([
-            'autoplay_active' => false,
-            'status'          => 'available',
-        ]);
+        $this->userDataService->unregisterFromAutoplay($user);
 
         return ['message' => 'User unregistered from autoplay successfully!'];
     }

@@ -12,7 +12,8 @@ class Referral extends Model
     protected $fillable = [
         'referrer_id',
         'referred_id',
-        'status'
+        'status',
+        'referral_code', // ✅ add this
     ];
 
     /**

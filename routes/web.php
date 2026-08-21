@@ -8,11 +8,15 @@ use App\Http\Controllers\UserSettingsController;
 use App\Http\Controllers\AutoMatchController;
 use App\Http\Controllers\WalletAuthController;
 use App\Http\Controllers\BlockchainController;
+
+
+use App\Http\Controllers\LanguageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\PoolAutoMatchController;
 use Illuminate\Support\Facades\Http;
+use App\Http\Controllers\Auth\EnhancedRegistrationController;
 
 use Illuminate\Support\Str;
 use kornrunner\Keccak;
@@ -30,9 +34,40 @@ use App\Events\BalanceUpdated;
 use App\Events\BasicEvent;
 
 
+use App\Models\InfluencerFee;
+
+// Language selection
+Route::get('/select-language', [LanguageController::class, 'index'])->name('language.select');
+Route::post('/set-language/{locale}', [LanguageController::class, 'setLanguage'])->name('language.set');
+
+
+
 Route::get('/', function () {
-    return view('welcome');
+    return file_get_contents(public_path('index.html'));
 });
+
+// Route "catch-all" pour que le rafraîchissement (F5) fonctionne sur des sous-pages
+Route::get('/{any}', function () {
+    return file_get_contents(public_path('index.html'));
+})->where('any', '.*');
+
+Route::get('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
+
+
+/*
+
+/*
+Route::get('/', function () {
+    // If no language set, redirect to selection page
+    if (!session()->has('locale')) {
+        return redirect()->route('language.select');
+    }
+
+    // Otherwise load the main game view
+    return view('welcome'); // or your game start view
+});*/
+
 
 Route::get('/counter', function (Request $request) {
     /*Validate the incoming request
@@ -51,7 +86,7 @@ Route::get('/counter', function (Request $request) {
 
     // Return a JSON response
     return response()->json(['message' => 'Counter updated successfully'], 200);*/
-
+/*
     $users = [
         "0xF3A5D3E6A8CFA57Fdb18aAf4aEaf5Dd8A40BF02E",
         "0x1B7d8dF3cF9Ae5A9E8e40f3cB4D3E3eB2aA7e10F",
@@ -60,8 +95,7 @@ Route::get('/counter', function (Request $request) {
         "0xE6B4d7F3a2C1B9e5F8A4d7C2b3E9F1A5C6D8e7F0"
     ];
 
-$addresses = implode("','", $users); // Make sure your values are safe!
-$usersCollection = User::whereRaw("wallet_address IN ('$addresses')")->get();
+    $usersCollection = User::whereIn('wallet_address', $users)->get();
 
 Log::info('===================================>usersCollection: ' . json_encode($usersCollection));
 
@@ -202,7 +236,7 @@ Route::get('/salt',function(){
 
 });
 
-
+/*
 
 Route::get('/test-pinata-upload', function () {
     $data = [
@@ -276,6 +310,19 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     })->name('marketplace');
 });
 
+// Dynamic module routes (HTML with API integration)
+Route::get('/referral-dynamic', function () {
+    return view('referral-dynamic');
+})->name('referral.dynamic');
+
+Route::get('/influencer-dynamic', function () {
+    return view('influencer-dynamic');
+})->name('influencer.dynamic');
+
+Route::get('/marketplace-dynamic', function () {
+    return view('marketplace-dynamic');
+})->name('marketplace.dynamic');
+
 // Challenge routes
 Route::middleware(['auth'])->group(function () {
     Route::post('/challenges', [ChallengeController::class, 'store'])->name('challenges.store');
@@ -321,9 +368,9 @@ Route::get('/triggermatching', [AutoMatchController::class, 'selectSliceInstence
 Route::post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
 Route::get('/batch_pool_processing', [PoolAutoMatchController::class, 'processBatch']);
-
+*/
 Route::get('/autoplay', [AutoMatchController::class, 'index']);
-Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
+/*Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
 
 Route::get('/test-handle-pool-event', [PoolAutoMatchController::class, 'testHandlePoolEmitedEvent']);
@@ -335,9 +382,9 @@ Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySig
 Route::post('/wallet/logout', [WalletAuthController::class, 'logout']);
 Route::get('/wallet/testrecovery', [WalletAuthController::class, 'testRecovery']);
 Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
-Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
+*/
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
-Route::get('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+
 // get route for simulate-user
 Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);
 
@@ -387,7 +434,7 @@ Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);
 */
 
     
-
+/*
 
 Route::get('/debug', function () {
     Log::info('Backtrace', debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10));
@@ -396,9 +443,139 @@ Route::get('/debug', function () {
 });
 
 
+// ==========================================================
+// == ROUTE DE TEST POUR LE DASHBOARD INFLUENCEUR
+use App\Models\Referral;
+use App\Models\Influencer;
+use App\Models\InfluencerPool;
+use App\Models\InfluencerStat;
 
 
+
+Route::get('/setup-test-data', function () {
+
+    // --- ADRESSE DE TEST POUR NOTRE INFLUENCEUR ---
+    // C'est le compte que tu devras importer dans MetaMask
+    $influencerWallet = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
+
+    // On s'assure que les anciens tests sont supprimés
+    DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+    Influencer::truncate();
+    InfluencerPool::truncate();
+    InfluencerStat::truncate();
+    InfluencerFee::truncate();
+    Referral::truncate();
+    DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+    // On supprime et recrée proprement l'utilisateur influenceur et ses filleuls
+    User::where('wallet_address', $influencerWallet)->delete();
+    User::where('email', 'like', 'filleul%@test.com')->delete();
+
+    echo "<h1>Nettoyage... OK</h1>";
+
+    // --- ÉTAPE 1 : CRÉER LE POOL (GROUPE DE LANGUE) ---
+    $poolFr = InfluencerPool::firstOrCreate(
+        ['language' => 'fr'],
+        [
+            'name' => 'Pool Francophone',
+            'milestone' => 10,             // Jalon personnel
+            'pool_milestone' => 50,      // Jalon de groupe
+            'reward_amount' => 10,       // Récompense totale de 10 AVAX
+            'is_active' => true
+        ]
+    );
+    echo "<h2>1. Pool '{$poolFr->name}' créé.</h2>";
+
+    // --- ÉTAPE 2 : CRÉER L'INFLUENCEUR ---
+    $influencerUser = User::create([
+        'wallet_address' => $influencerWallet,
+        'name' => 'Hardhat Influencer #1',
+        'email' => 'influencer@hardhat.test', // Email factice, non utilisé pour le login
+        'password' => bcrypt('password'), // Mot de passe factice
+        'language' => 'fr',
+        'token_balance' => 100,
+        'is_validated' => true, // On le valide pour qu'il puisse générer des frais
+    ]);
+
+    $influencer = Influencer::create([
+        'user_id' => $influencerUser->id,
+        'pool_id' => $poolFr->id,
+        'is_eligible' => true,
+        'has_claimed' => false
+    ]);
+
+    $influencerStats = InfluencerStat::create([
+        'influencer_id' => $influencer->id,
+        'referral_count' => 0,
+        'total_avax_spent' => 0
+    ]);
+    echo "<h2>2. Influenceur '{$influencerUser->name}' ({$influencerWallet}) créé.</h2>";
+
+
+    // --- ÉTAPE 3 : CRÉER DES FILLEULS POUR CET INFLUENCEUR ---
+    $filleulsValides = 0;
+    for ($i = 1; $i <= 15; $i++) {
+        $filleul = User::create([
+            'name' => "Filleul Test #$i",
+            'email' => "filleul$i@test.com",
+            'password' => bcrypt('password'),
+            'wallet_address' => "0xTESTFILLEUL" . str_pad($i, 32, '0', STR_PAD_LEFT), // Adresse factice
+            'language' => 'fr',
+            'token_balance' => 0,
+        ]);
+
+        $status = ($i <= 7) ? 'validated' : 'pending'; // 7 filleuls sont validés
+        if ($status === 'validated') {
+            $filleulsValides++;
+            $filleul->update(['is_validated' => true]);
+        }
+
+        Referral::create([
+            'referrer_id' => $influencerUser->id,
+            'referred_id' => $filleul->id,
+            'status' => $status,
+        ]);
+    }
+    $influencerStats->update(['referral_count' => $filleulsValides]);
+    echo "<h2>3. Créé 15 filleuls pour l'influenceur ($filleulsValides validés).</h2>";
+
+    
+    // --- ÉTAPE 4 : SIMULER DES FRAIS GÉNÉRÉS PAR LE GROUPE ---
+    $filleuls = $influencerUser->referrals()->where('status', 'validated')->get()->pluck('referred');
+    $totalFees = 0;
+    foreach ($filleuls as $filleul) {
+        $fee = 0.05;
+        InfluencerFee::create([
+            'user_id' => $filleul->id,
+            'language_code' => $filleul->language,
+            'fee_amount_avax' => $fee,
+        ]);
+        $totalFees += $fee;
+    }
+    echo "<h2>4. Simulé {$totalFees} AVAX de frais générés.</h2>";
+
+    return "<h1>TERMINÉ !</h1><p>Données de test créées pour le portefeuille {$influencerWallet}.</p>";
+});
+*/
 
 
 // Auth routes
 require __DIR__.'/auth.php';
+
+/*
+// Routes d'inscription améliorée avec parrainage et sélection de langue
+Route::get('/register/enhanced', [EnhancedRegistrationController::class, 'create'])
+    ->name('register.enhanced');
+
+Route::post('/register/enhanced', [EnhancedRegistrationController::class, 'store'])
+    ->name('register.enhanced.store');
+
+Route::get('/register/ref/{code}', [EnhancedRegistrationController::class, 'createWithReferral'])
+    ->name('register.referral')
+    ->where('code', 'REF-[A-Z0-9]{6}');
+
+// Route de redirection pour les liens de parrainage courts
+Route::get('/ref/{code}', function ($code) {
+    return redirect()->route('register.enhanced', ['ref' => $code]);
+})->name('referral.redirect')->where('code', 'REF-[A-Z0-9]{6}');
+*/

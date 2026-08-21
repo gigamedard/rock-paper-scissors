@@ -9,6 +9,7 @@ contract Battlepool {
         address[] users;
         string poolSalt; // Changed to string
         mapping(address => bool) isUserInPool; // Track if a user is already in the pool
+        uint256 lastActivityBlock; // Track last activity block
     }
 
     uint256 public nextPoolId = 1;
@@ -18,6 +19,7 @@ contract Battlepool {
     mapping(address => string[]) public sessionHistoryCIDs; // Allows multiple CIDs per user
     mapping(address => string) public userPremoveCIDs; // Maps user address to IPFS CID for premoves
     mapping(address => bool) public isUserInAnyPool;
+    mapping(address => uint256) public nextSessionAllowedTime; // Track when user can play again
     event PoolCreated(uint256 indexed poolId, uint256 baseBet, uint256 maxSize);
     event PoolEmitted(uint256 indexed poolId, uint256 baseBet, address[] users, string[] premoveCIDs, string poolSalt); // Changed poolSalt to string
     event DepositReceived(address indexed user, uint256 amount);
@@ -27,9 +29,15 @@ contract Battlepool {
 
     event SecurityCoefficientUpdated(uint256 newCoefficient);
     event PayoutProcessed(address indexed wallet, uint256 amount);
+    event DefaultPoolMaxSizeChanged(uint256 newSize); // <<<--- AJOUTEZ CETTE LIGNE
+    event PoolStagnantRefund(uint256 indexed poolId, uint256 refundedCount, uint256 timestamp);
+    event StagnantBlockLimitUpdated(uint256 newLimit);
+    event NextSessionTimeUpdated(address indexed user, uint256 nextTime);
 
     address public owner;
     uint256 public securityCoefficient = 1000;
+    uint256 public defaultPoolMaxSize; // <<<--- AJOUTEZ CETTE LIGNE
+    uint256 public stagnantBlockLimit = 100; // Default 100 blocks
 
    
 
@@ -40,6 +48,16 @@ contract Battlepool {
 
     constructor() {
         owner = msg.sender;
+        defaultPoolMaxSize = 5; // <<<--- AJOUTEZ CETTE LIGNE
+    }
+
+    /**
+     * @dev Permet au propriétaire de changer la taille par défaut des nouveaux pools.
+     */
+    function setDefaultPoolMaxSize(uint256 newSize) external onlyOwner {
+        require(newSize >= 2, "Default size must be at least 2");
+        defaultPoolMaxSize = newSize;
+        emit DefaultPoolMaxSizeChanged(newSize);
     }
 
     function getContractBalance() external view returns (uint256) {
@@ -72,6 +90,7 @@ contract Battlepool {
         newPool.baseBet = baseBet;
         newPool.maxSize = maxSize;
         newPool.poolSalt = ""; // Initialize salt to empty string
+        newPool.lastActivityBlock = block.number; // Initialize activity
         nextPoolId++;
 
         emit PoolCreated(newPool.poolId, baseBet, maxSize);
@@ -84,7 +103,7 @@ contract Battlepool {
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
             // Create a new pool if it doesn't exist
-            createPool(baseBet, 5); // Default maxSize set to 5
+            createPool(baseBet, defaultPoolMaxSize); // Default maxSize set to 5
         }else if (pool.users.length == 0) {
         
             pool.poolId = nextPoolId; // NOT pool.id
@@ -95,10 +114,12 @@ contract Battlepool {
             require(users[i] != address(0), "Invalid user address"); // Validate user address
             require(!pool.isUserInPool[users[i]], "User already in pool"); // Ensure user is not already in the pool
             require(!isUserInAnyPool[users[i]], "User in another pool");
+            require(block.timestamp >= nextSessionAllowedTime[users[i]], "User is in cooldown");
 
             pool.users.push(users[i]);
             pool.isUserInPool[users[i]] = true; // Mark user as added to the pool
             isUserInAnyPool[users[i]] = true; // Mark user as in any pool
+            pool.lastActivityBlock = block.number; // Update activity
 
 
             // Check if the pool is full
@@ -113,11 +134,12 @@ contract Battlepool {
         require(user != address(0), "Invalid user address");
         
         require(!isUserInAnyPool[user], "User in another pool");
+        require(block.timestamp >= nextSessionAllowedTime[user], "User is in cooldown");
         
         
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
-            createPool(baseBet, 5); // Default maxSize set to 5 if pool does not exist
+            createPool(baseBet, defaultPoolMaxSize); // Default maxSize set to defaultPoolMaxSize if pool does not exist
         }else if (pool.users.length == 0 ) {
             pool.poolId = nextPoolId; // NOT pool.id
             nextPoolId++;
@@ -127,6 +149,7 @@ contract Battlepool {
         pool.users.push(user);
         pool.isUserInPool[user] = true; // Mark user as added to the pool
         isUserInAnyPool[user] = true; // Mark user as in any pool
+        pool.lastActivityBlock = block.number; // Update activity
 
 
         if (pool.users.length == pool.maxSize) {
@@ -310,4 +333,46 @@ contract Battlepool {
         }
     }
 
+    function setStagnantBlockLimit(uint256 _limit) external onlyOwner {
+        stagnantBlockLimit = _limit;
+        emit StagnantBlockLimitUpdated(_limit);
+    }
+
+    function setUserNextSessionTime(address user, uint256 nextTime) external onlyOwner {
+        nextSessionAllowedTime[user] = nextTime;
+        emit NextSessionTimeUpdated(user, nextTime);
+    }
+
+    function checkAndRefundStagnantPool(uint256 baseBet) external {
+        Pool storage pool = pools[baseBet];
+        require(pool.poolId != 0, "Pool does not exist");
+        require(pool.users.length > 0, "Pool is empty");
+        require(block.number > pool.lastActivityBlock + stagnantBlockLimit, "Pool is not stagnant");
+
+        uint256 refundedCount = pool.users.length;
+        address[] memory usersToRefund = pool.users;
+
+        for (uint256 i = 0; i < usersToRefund.length; i++) {
+            address user = usersToRefund[i];
+            
+            // Clear user state
+            pool.isUserInPool[user] = false;
+            isUserInAnyPool[user] = false;
+            delete userPremoveCIDs[user];
+
+            // Refund balance
+            uint256 amount = userBalances[user];
+            if (amount > 0) {
+                userBalances[user] = 0;
+                (bool success, ) = payable(user).call{value: amount}("");
+                require(success, "Refund failed");
+            }
+        }
+
+        // Reset pool
+        delete pool.users;
+        pool.lastActivityBlock = block.number; // Reset timer (though pool is empty now)
+
+        emit PoolStagnantRefund(pool.poolId, refundedCount, block.timestamp);
+    }
 } 

@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoPlay - Rock Paper Scissors</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #00f5ff, #0080ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #00f5ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #e0e0e0;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #00f5ff;
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.3);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #00f5ff;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .action-btn {
+            background: linear-gradient(45deg, #00f5ff, #0080ff);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0, 245, 255, 0.4);
+        }
+
+        .action-btn:disabled {
+            background: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .stop-btn {
+            background: linear-gradient(45deg, #ff4757, #ff3838);
+        }
+
+        .stop-btn:hover {
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-active .status-dot {
+            background: #00ff88;
+        }
+
+        .status-inactive .status-dot {
+            background: #ff4757;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00f5ff;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .strategy-info {
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .strategy-info h4 {
+            color: #00f5ff;
+            margin-bottom: 10px;
+        }
+
+        .recent-games {
+            margin-top: 30px;
+        }
+
+        .game-log {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .game-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .game-entry:last-child {
+            border-bottom: none;
+        }
+
+        .game-result {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .win {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .loss {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+        }
+
+        .draw {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AutoPlay</h1>
+            <p>Laissez l'intelligence artificielle jouer pour vous avec des stratégies optimisées</p>
+        </div>
+
+        <div class="navigation">
+            <a href="/home.html" class="nav-btn">🏠 Accueil</a>
+            <a href="/referral.html" class="nav-btn">🤝 Parrainage</a>
+            <a href="/influencer.html" class="nav-btn">🏆 Influenceur</a>
+            <a href="/marketplace.html" class="nav-btn">💱 Marketplace</a>
+            <a href="/autoplay.html" class="nav-btn active">🤖 AutoPlay</a>
+        </div>
+
+        <div class="main-content">
+            <div class="control-panel">
+                <h2 class="panel-title">⚙️ Configuration AutoPlay</h2>
+                
+                <div class="form-group">
+                    <label>Stratégie de Jeu</label>
+                    <select id="strategy">
+                        <option value="adaptive">Adaptative (Recommandé)</option>
+                        <option value="aggressive">Agressive</option>
+                        <option value="conservative">Conservative</option>
+                        <option value="random">Aléatoire</option>
+                        <option value="pattern">Détection de Motifs</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Mise par Partie (SNT)</label>
+                    <input type="number" id="betAmount" value="10" min="1" max="1000" placeholder="Montant de la mise">
+                </div>
+
+                <div class="form-group">
+                    <label>Limite de Perte (SNT)</label>
+                    <input type="number" id="lossLimit" value="100" min="10" max="5000" placeholder="Arrêt automatique">
+                </div>
+
+                <div class="form-group">
+                    <label>Objectif de Gain (SNT)</label>
+                    <input type="number" id="profitTarget" value="200" min="20" max="10000" placeholder="Objectif de profit">
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 15px;">
+                        <span>Mode Turbo</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="turboMode">
+                            <span class="slider"></span>
+                        </label>
+                    </label>
+                </div>
+
+                <button class="action-btn" id="startBtn" onclick="toggleAutoPlay()">
+                    🚀 Démarrer AutoPlay
+                </button>
+
+                <div class="strategy-info">
+                    <h4>📊 Stratégie Sélectionnée</h4>
+                    <p id="strategyDescription">
+                        La stratégie adaptative analyse les patterns de jeu des adversaires et ajuste automatiquement les choix pour maximiser les gains.
+                    </p>
+                </div>
+            </div>
+
+            <div class="status-panel">
+                <h2 class="panel-title">📊 Statut & Performance</h2>
+                
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot"></div>
+                    <div>
+                        <strong id="statusText">AutoPlay Inactif</strong>
+                        <div style="font-size: 0.9rem; opacity: 0.8;" id="statusDetails">
+                            Configurez vos paramètres et cliquez sur Démarrer
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="gamesPlayed">0</div>
+                        <div class="stat-label">Parties Jouées</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="winRate">0%</div>
+                        <div class="stat-label">Taux de Victoire</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalProfit">+0</div>
+                        <div class="stat-label">Profit Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="sessionTime">00:00</div>
+                        <div class="stat-label">Temps de Session</div>
+                    </div>
+                </div>
+
+                <div class="recent-games">
+                    <h3 style="margin-bottom: 15px; color: #00f5ff;">🎮 Parties Récentes</h3>
+                    <div class="game-log" id="gameLog">
+                        <div style="text-align: center; opacity: 0.6; padding: 20px;">
+                            Aucune partie jouée pour le moment
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoPlayActive = false;
+        let gameStats = {
+            gamesPlayed: 0,
+            wins: 0,
+            losses: 0,
+            draws: 0,
+            totalProfit: 0,
+            sessionStartTime: null
+        };
+        let gameInterval = null;
+        let sessionTimer = null;
+
+        const strategies = {
+            adaptive: "La stratégie adaptative analyse les patterns de jeu des adversaires et ajuste automatiquement les choix pour maximiser les gains.",
+            aggressive: "Stratégie agressive qui privilégie les gros gains avec des mises plus importantes et des prises de risque calculées.",
+            conservative: "Approche prudente qui minimise les pertes avec des mises modérées et une gestion stricte du bankroll.",
+            random: "Choix complètement aléatoires pour éviter toute prédictibilité. Efficace contre certains types d'adversaires.",
+            pattern: "Détecte et exploite les motifs répétitifs dans le jeu des adversaires pour prendre l'avantage."
+        };
+
+        function updateStrategyDescription() {
+            const strategy = document.getElementById('strategy').value;
+            document.getElementById('strategyDescription').textContent = strategies[strategy];
+        }
+
+        function toggleAutoPlay() {
+            if (!autoPlayActive) {
+                startAutoPlay();
+            } else {
+                stopAutoPlay();
+            }
+        }
+
+        function startAutoPlay() {
+            // Validation des paramètres
+            const betAmount = parseInt(document.getElementById('betAmount').value);
+            const lossLimit = parseInt(document.getElementById('lossLimit').value);
+            const profitTarget = parseInt(document.getElementById('profitTarget').value);
+
+            if (betAmount < 1 || lossLimit < 10 || profitTarget < 20) {
+                alert('⚠️ Veuillez vérifier vos paramètres de configuration');
+                return;
+            }
+
+            autoPlayActive = true;
+            gameStats.sessionStartTime = Date.now();
+            
+            // Mise à jour de l'interface
+            document.getElementById('startBtn').textContent = '⏹️ Arrêter AutoPlay';
+            document.getElementById('startBtn').classList.add('stop-btn');
+            
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.classList.remove('status-inactive');
+            statusIndicator.classList.add('status-active');
+            
+            document.getElementById('statusText').textContent = 'AutoPlay Actif';
+            document.getElementById('statusDetails').textContent = 'IA en cours d\'exécution...';
+
+            // Désactiver les contrôles
+            document.querySelectorAll('input, select').forEach(input => {
+                input.disabled = true;
+            });
+
+            // Démarrer la simulation de jeu
+            const turboMode = document.getElementById('turboMode').checked;
+            const gameSpeed = turboMode ? 1000 : 3000; // 1s en turbo, 3s normal
+            
+            gameInterval = setInterval(simulateGame, gameSpeed);
+            sessionTimer = setInterval(updateSessionTime, 1000);
+
+            console.log('🤖 AutoPlay démarré avec les paramètres:', {
+                strategy: document.getElementById('strategy').value,
+                betAmount,
+                lossLimit,
+                profitTarget,
+                turboMode
+            });
+        }
+
+        function stopAutoPlay() {
+            autoPlayActive = false;
+            
+            if (gameInterval) {
+                clearInterval(gameInterval);
+                gameInterval = null;
+            }
+            
+            if (sessionTimer) {
+                clearInterval(sessionTimer);
+                sessionTimer = null;
+            }
+
+            // Mise à jour de l'interface
+            document.getElementById('startBtn').textContent = '🚀 Démarrer AutoPlay';
+            document.getElementById('startBtn').classList.remove('stop-btn');
+            
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.classList.remove('status-active');
+            statusIndicator.classList.add('status-inactive');
+            
+            document.getElementById('statusText').textContent = 'AutoPlay Arrêté';
+            document.getElementById('statusDetails').textContent = 'Session terminée';
+
+            // Réactiver les contrôles
+            document.querySelectorAll('input, select').forEach(input => {
+                input.disabled = false;
+            });
+
+            console.log('🛑 AutoPlay arrêté. Statistiques finales:', gameStats);
+        }
+
+        function simulateGame() {
+            const betAmount = parseInt(document.getElementById('betAmount').value);
+            const lossLimit = parseInt(document.getElementById('lossLimit').value);
+            const profitTarget = parseInt(document.getElementById('profitTarget').value);
+
+            // Simulation d'une partie (70% de chance de gagner avec l'IA)
+            const random = Math.random();
+            let result, profit;
+
+            if (random < 0.7) {
+                result = 'win';
+                profit = betAmount * 0.9; // 90% de gain (10% de frais)
+                gameStats.wins++;
+            } else if (random < 0.9) {
+                result = 'loss';
+                profit = -betAmount;
+                gameStats.losses++;
+            } else {
+                result = 'draw';
+                profit = 0;
+                gameStats.draws++;
+            }
+
+            gameStats.gamesPlayed++;
+            gameStats.totalProfit += profit;
+
+            // Ajouter à l'historique
+            addGameToLog(result, profit);
+
+            // Mettre à jour les statistiques
+            updateStats();
+
+            // Vérifier les conditions d'arrêt
+            if (gameStats.totalProfit <= -lossLimit) {
+                alert('🛑 Limite de perte atteinte. AutoPlay arrêté automatiquement.');
+                stopAutoPlay();
+            } else if (gameStats.totalProfit >= profitTarget) {
+                alert('🎉 Objectif de gain atteint ! AutoPlay arrêté automatiquement.');
+                stopAutoPlay();
+            }
+        }
+
+        function addGameToLog(result, profit) {
+            const gameLog = document.getElementById('gameLog');
+            
+            // Supprimer le message "Aucune partie"
+            if (gameStats.gamesPlayed === 1) {
+                gameLog.innerHTML = '';
+            }
+
+            const gameEntry = document.createElement('div');
+            gameEntry.className = 'game-entry';
+            
+            const time = new Date().toLocaleTimeString();
+            const profitText = profit > 0 ? `+${profit}` : profit.toString();
+            
+            gameEntry.innerHTML = `
+                <div>
+                    <strong>Partie #${gameStats.gamesPlayed}</strong>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">${time}</div>
+                </div>
+                <div>
+                    <span class="game-result ${result}">${result === 'win' ? 'Victoire' : result === 'loss' ? 'Défaite' : 'Égalité'}</span>
+                    <div style="font-size: 0.9rem; margin-top: 2px;">${profitText} SNT</div>
+                </div>
+            `;
+
+            gameLog.insertBefore(gameEntry, gameLog.firstChild);
+
+            // Garder seulement les 10 dernières parties
+            while (gameLog.children.length > 10) {
+                gameLog.removeChild(gameLog.lastChild);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('gamesPlayed').textContent = gameStats.gamesPlayed;
+            
+            const winRate = gameStats.gamesPlayed > 0 ? 
+                Math.round((gameStats.wins / gameStats.gamesPlayed) * 100) : 0;
+            document.getElementById('winRate').textContent = winRate + '%';
+            
+            const profitText = gameStats.totalProfit >= 0 ? 
+                `+${gameStats.totalProfit}` : gameStats.totalProfit.toString();
+            document.getElementById('totalProfit').textContent = profitText;
+            document.getElementById('totalProfit').style.color = gameStats.totalProfit >= 0 ? '#00ff88' : '#ff4757';
+        }
+
+        function updateSessionTime() {
+            if (!gameStats.sessionStartTime) return;
+            
+            const elapsed = Date.now() - gameStats.sessionStartTime;
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            
+            document.getElementById('sessionTime').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStrategyDescription();
+            
+            // Écouteur pour le changement de stratégie
+            document.getElementById('strategy').addEventListener('change', updateStrategyDescription);
+            
+            // Validation des champs numériques
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                input.addEventListener('input', function() {
+                    const min = parseInt(this.min);
+                    const max = parseInt(this.max);
+                    const value = parseInt(this.value);
+                    
+                    if (value < min) this.value = min;
+                    if (value > max) this.value = max;
+                });
+            });
+        });
+
+        // Gestion de la fermeture de page
+        window.addEventListener('beforeunload', function(e) {
+            if (autoPlayActive) {
+                e.preventDefault();
+                e.returnValue = 'AutoPlay est en cours. Êtes-vous sûr de vouloir quitter ?';
+            }
+        });
+    </script>
+</body>
+</html>
+

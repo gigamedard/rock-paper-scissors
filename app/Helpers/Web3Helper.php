@@ -199,6 +199,16 @@ class Web3Helper
         return $response->json();
 }
 
+    public static function setUserNextSessionTime($nodeUrl, $walletAddress, $nextTime)
+    {
+        $response = Http::post("{$nodeUrl}/setUserNextSessionTime", [
+            'wallet' => $walletAddress,
+            'nextTime' => $nextTime,
+        ]);
+
+        return $response->json();
+    }
+
 
 
 

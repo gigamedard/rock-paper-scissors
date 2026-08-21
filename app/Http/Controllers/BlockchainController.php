@@ -7,7 +7,8 @@ use App\Traits\UserBalanceTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Events\testevent;
-
+use App\Helpers\Web3Helper;
+use Illuminate\Support\Facades\Http;
 class BlockchainController extends Controller
 {
     use UserBalanceTrait; // Include the trait
@@ -20,23 +21,42 @@ class BlockchainController extends Controller
         ]);
 
         $walletAddress = strtolower($validated['wallet_address']);
-        $balance = $validated['balance'];
+        $balanceWei = $validated['balance'];
+        
+        // Convert from wei to ETH for database storage
+        $balanceEth = Web3Helper::weiToEther($balanceWei);
 
         try {
             $user = User::where('wallet_address', $walletAddress)->first();
 
             if ($user) {
-                $user->update(['balance' => $balance]); // From the trait
+                $user->update(['balance' => $balanceEth]); // From the trait
             } else {
-                $user = $this->createNewUser($walletAddress, $balance); // From the trait
+                $user = $this->createNewUser($walletAddress, $balanceEth); // From the trait
             }
 
-            Log::info("User balance updated: Address: {$walletAddress}, Balance: {$balance}");
+            Log::info("User balance updated: Address: {$walletAddress}, Balance: {$balanceEth} ETH (from {$balanceWei} wei)");
 
             try {
-              event(new testevent(1,$balance));
+              event(new testevent(1,$balanceEth));
             } catch (\Throwable $e) {
                 Log::error("Error emit event: {$e->getMessage()}");
+            }
+
+            // ADDED: Referral Validation Check (Mimicking/Improving)
+            // Even if this updates ETH balance, we check SNT token balance.
+             try {
+                $minimumBalance = 5;
+                if ($user->fresh()->token_balance >= $minimumBalance) {
+                     // We need to instantiate the service manually or inject it. 
+                     // Since we didn't inject it in the controller constructor yet, let's use app() helper or modify constructor.
+                     // Modifying constructor is cleaner but riskier if dependencies vary.
+                     // Let's use resolving from container for minimal disruption in this method.
+                     $referralService = app(\App\Services\ReferralService::class);
+                     $referralService->processReferralValidation($user);
+                }
+            } catch (\Throwable $e) {
+                Log::error("Error checking referral in updateUserBalance: {$e->getMessage()}");
             }
             
 
@@ -44,7 +64,8 @@ class BlockchainController extends Controller
             return response()->json([
                 'message' => 'User balance updated successfully.',
                 'address' => $walletAddress,
-                'balance' => $balance,
+                'balance_eth' => $balanceEth,
+                'balance_wei' => $balanceWei,
             ], 200);
 
         } catch (\Throwable $e) {
@@ -59,16 +80,88 @@ class BlockchainController extends Controller
 
     public function getArtefacts()
     {
-        // Retrieve ABI and contract address from the config
-        $abi = Config('game_settings.abi');
-        $address = Config('game_settings.contractAddress');
+        Log::info("Fetching game config from Node.js worker...");
+        // Récupère l'URL du worker et le secret depuis ton .env
+        $nodeWorkerUrl = config('app.NODE_WORKER_URL');
+        $internalSecret = config('app.INTERNAL_API_SECRET');
 
-        // Return them as a JSON response
-        return response()->json([
-            'abi' => $abi,
-            'address' => $address,
-            'security_coefficient' => Config('game_settings.security_coefficient'),
+        Log::info("Internal API Secret: {$internalSecret}");
+        Log::info("Node Worker URL: {$nodeWorkerUrl}");
+
+
+        try {
+            // Appelle le serveur Node.js en passant le header secret
+            $response = Http::withHeaders([
+                'X-Internal-Secret' => $internalSecret,
+                'Accept' => 'application/json',
+            ])->get("{$nodeWorkerUrl}/get-game-config");
+            Log::info("Response body: " . $response->body());
+            // Si l'appel échoue
+            if (!$response->successful()) {
+                return response()->json([
+                    'error' => 'Erreur: --Le service de configuration est indisponible.--!'
+                ], 503); // 503 Service Unavailable
+            }
+
+            // Si l'appel réussit, renvoie directement la réponse JSON de Node.js
+            return $response->json();
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erreur de communication avec le service interne.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function triggerPayout(Request $request)
+    {
+        $validated = $request->validate([
+            'wallet_address' => 'required|string',
+            'amount' => 'required|numeric|min:0',
         ]);
+
+        $walletAddress = strtolower($validated['wallet_address']);
+        $amountEth = $validated['amount'];
+
+        Log::info("Triggering payout: Wallet: {$walletAddress}, Amount: {$amountEth} ETH");
+
+        try {
+            // Get Node.js worker URL from config
+            $nodeWorkerUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+
+            // Call Node.js worker to send payment via smart contract
+            $result = Web3Helper::sendPayement($nodeWorkerUrl, $walletAddress, $amountEth);
+
+            if (isset($result['success']) && $result['success']) {
+                Log::info("Payout successful: TxHash: {$result['txHash']}");
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payout sent successfully.',
+                    'txHash' => $result['txHash'],
+                    'wallet_address' => $walletAddress,
+                    'amount_eth' => $amountEth,
+                ], 200);
+            } else {
+                Log::error("Payout failed: " . json_encode($result));
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payout failed.',
+                    'error' => $result['error'] ?? 'Unknown error',
+                ], 500);
+            }
+
+        } catch (\Throwable $e) {
+            Log::error("Error triggering payout: {$e->getMessage()}");
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error triggering payout.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
 

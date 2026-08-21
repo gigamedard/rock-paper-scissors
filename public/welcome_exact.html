@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="csrf_token_placeholder">
+    <title>Rock Paper Scissors - Welcome</title>
+    <script src="https://unpkg.com/lucide@0.344.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            color-scheme: dark;
+            --color-bg: #0a0a0a;
+            --color-text: #ffffff;
+            --color-primary: #6366f1;
+            --color-primary-hover: #4f46e5;
+            --color-secondary: #a855f7;
+            --color-accent: #ec4899;
+            --color-success: #22c55e;
+            --color-error: #ef4444;
+            --color-gray-50: #f9fafb;
+            --color-gray-100: #f3f4f6;
+            --color-gray-700: #374151;
+            --color-gray-800: #1f2937;
+            --color-gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+        }
+
+        .bg-gradient {
+            background: linear-gradient(to bottom right, 
+                var(--color-gray-900), 
+                var(--color-secondary), 
+                var(--color-gray-900)
+            );
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 64rem;
+            margin: 0 auto;
+        }
+
+        .title {
+            font-size: 3rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.25rem;
+            color: var(--color-gray-300);
+            margin-bottom: 3rem;
+        }
+
+        .game-modes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .game-mode {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .game-mode:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-mode-icon {
+            width: 4rem;
+            height: 4rem;
+            margin: 0 auto 1rem;
+            background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-mode h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .game-mode p {
+            color: var(--color-gray-300);
+            line-height: 1.6;
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--color-gray-300);
+            font-size: 0.875rem;
+        }
+
+        .cta-section {
+            text-align: center;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
+            color: var(--color-text);
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1.125rem;
+            transition: opacity 0.2s;
+        }
+
+        .cta-button:hover {
+            opacity: 0.9;
+        }
+
+        .features-section {
+            margin-top: 4rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+
+        .feature-icon {
+            width: 3rem;
+            height: 3rem;
+            background: var(--color-primary);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .feature-item h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-item p {
+            color: var(--color-gray-300);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .wallet-connect {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 10;
+        }
+
+        .wallet-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-700);
+            border-radius: 0.5rem;
+            color: var(--color-text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .wallet-btn:hover {
+            background: var(--color-gray-700);
+            border-color: var(--color-primary);
+        }
+
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .game-modes {
+                grid-template-columns: 1fr;
+            }
+            
+            .wallet-connect {
+                position: static;
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wallet-connect">
+        <button class="wallet-btn" onclick="loginWithWallet()">
+            <i data-lucide="wallet"></i>
+            Connect Wallet
+        </button>
+    </div>
+
+    <div class="bg-gradient">
+        <div class="container">
+            <h1 class="title">Rock Paper Scissors</h1>
+            <p class="subtitle">The ultimate blockchain-powered gaming experience</p>
+
+            <div class="game-modes">
+                <div class="game-mode" onclick="window.location.href='/game'">
+                    <div class="game-mode-icon">
+                        <i data-lucide="zap"></i>
+                    </div>
+                    <h3>Quick Play</h3>
+                    <p>Jump into instant matches with other players. Fast-paced action with immediate rewards.</p>
+                </div>
+
+                <div class="game-mode" onclick="window.location.href='/tournament'">
+                    <div class="game-mode-icon">
+                        <i data-lucide="trophy"></i>
+                    </div>
+                    <h3>Tournament</h3>
+                    <p>Compete in structured tournaments with bigger prizes and ranking systems.</p>
+                </div>
+
+                <div class="game-mode" onclick="window.location.href='/autoplay'">
+                    <div class="game-mode-icon">
+                        <i data-lucide="bot"></i>
+                    </div>
+                    <h3>Auto Play</h3>
+                    <p>Let our AI play for you with advanced strategies and automated betting.</p>
+                </div>
+
+                <div class="game-mode" onclick="window.location.href='/pool'">
+                    <div class="game-mode-icon">
+                        <i data-lucide="users"></i>
+                    </div>
+                    <h3>Pool Match</h3>
+                    <p>Join collective pools and share strategies with other players for bigger wins.</p>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">10,247</div>
+                        <div class="stat-label">Active Players</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">1.2M</div>
+                        <div class="stat-label">Games Played</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$2.5M</div>
+                        <div class="stat-label">Total Rewards</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">99.9%</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cta-section">
+                <a href="/game" class="cta-button">
+                    <i data-lucide="play"></i>
+                    Start Playing Now
+                </a>
+            </div>
+
+            <div class="features-section">
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i data-lucide="shield"></i>
+                        </div>
+                        <h4>Blockchain Security</h4>
+                        <p>All games are secured by smart contracts ensuring fair play and transparent outcomes.</p>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i data-lucide="coins"></i>
+                        </div>
+                        <h4>Instant Rewards</h4>
+                        <p>Win and receive your rewards immediately to your wallet with no delays.</p>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i data-lucide="trending-up"></i>
+                        </div>
+                        <h4>Advanced Analytics</h4>
+                        <p>Track your performance with detailed statistics and improve your strategies.</p>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i data-lucide="users"></i>
+                        </div>
+                        <h4>Community Driven</h4>
+                        <p>Join a vibrant community of players and participate in community events.</p>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i data-lucide="smartphone"></i>
+                        </div>
+                        <h4>Mobile Optimized</h4>
+                        <p>Play anywhere, anytime with our fully responsive mobile-optimized interface.</p>
+                    </div>
+
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i data-lucide="globe"></i>
+                        </div>
+                        <h4>Global Tournaments</h4>
+                        <p>Compete with players worldwide in regular tournaments with massive prize pools.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Web3 wallet connection functionality
+        async function loginWithWallet() {
+            if (!window.ethereum) {
+                alert('Please install MetaMask!');
+                return;
+            }
+
+            const web3 = new Web3(window.ethereum);
+
+            try {
+                // Step 1: Connect Wallet
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await web3.eth.getAccounts();
+                const walletAddress = accounts[0];
+                console.log('Connected Wallet:', walletAddress);
+
+                // Step 2: Request signing message from the backend
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const messageResponse = await fetch('/wallet/generate-message', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken, 
+                    },
+                    body: JSON.stringify({ wallet_address: walletAddress }),
+                });
+
+                if (!messageResponse.ok) {
+                    const error = await messageResponse.json();
+                    alert(error.message);
+                    return;
+                }
+
+                const { message } = await messageResponse.json();
+
+                // Step 3: Sign the message with the wallet
+                const signature = await web3.eth.personal.sign(message, walletAddress);
+                console.log("Signature:", signature);
+
+                // Step 4: Verify signature with backend
+                const verifyResponse = await fetch('/wallet/verify-signature', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({ wallet_address: walletAddress, signature }),
+                });
+
+                if (verifyResponse.ok) {
+                    const data = await verifyResponse.json();
+                    console.log(data.user);
+
+                    // Update wallet button to show connected state
+                    const walletBtn = document.querySelector('.wallet-btn');
+                    walletBtn.innerHTML = `
+                        <i data-lucide="check-circle"></i>
+                        Connected: ${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}
+                    `;
+                    walletBtn.style.background = 'var(--color-success)';
+                    walletBtn.style.borderColor = 'var(--color-success)';
+
+                    // Redirect after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/game';
+                    }, 1000);
+
+                } else {
+                    const error = await verifyResponse.json();
+                    alert(error.message);
+                }
+            } catch (error) {
+                console.error('Error during wallet authentication:', error);
+                alert('Authentication failed. Please try again.');
+            }
+        }
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Add some interactive effects
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate stats on scroll
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            // Observe all game modes and features
+            document.querySelectorAll('.game-mode, .feature-item').forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(el);
+            });
+
+            // Add click effects to game modes
+            document.querySelectorAll('.game-mode').forEach(mode => {
+                mode.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = 'translateY(-4px)';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+

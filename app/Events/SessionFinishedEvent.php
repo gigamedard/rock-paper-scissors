@@ -15,9 +15,11 @@ class SessionFinishedEvent
     use Dispatchable, SerializesModels;
 
     public $userId;
+    public $pool;
 
-    public function __construct($userId)
+    public function __construct($userId, $pool)
     {
-        $this->userId= $userId;
+        $this->userId = $userId;
+        $this->pool = $pool;
     }
 }

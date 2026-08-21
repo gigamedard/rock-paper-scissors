@@ -19,7 +19,7 @@ class BatchManagerService
      * @param Collection<Pool> $initialPools
      * @return Batch
      */
-    public function createBatch(int $poolSize, Collection $initialPools): Batch
+    public function createBatch(int $poolSize, float $baseBet, Collection $initialPools): Batch
     {
         $firstPoolId = $initialPools->first()->id;
         $lastPoolId = $initialPools->last()->id;
@@ -28,10 +28,11 @@ class BatchManagerService
         $batchMaxSizeDefault = Config::get('pool.batch_max_size', 100);
         $batchMaxIterationsDefault = Config::get('pool.batch_max_iterations', 5);
 
-        Log::info("Creating new batch for pool size ($poolSize). First Pool ID: ($firstPoolId), Last Pool ID: ($lastPoolId), Count: ($poolCount)");
+        Log::info("Creating new batch for pool size ($poolSize) base bet ($baseBet). First Pool ID: ($firstPoolId), Last Pool ID: ($lastPoolId), Count: ($poolCount)");
         
         $batch = Batch::create([
             'pool_size' => $poolSize,
+            'base_bet' => $baseBet,
             'first_pool_id' => $firstPoolId,
             'last_pool_id' => $lastPoolId,
             'number_of_pools' => $poolCount,

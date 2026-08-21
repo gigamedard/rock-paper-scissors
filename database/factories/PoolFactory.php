@@ -20,14 +20,12 @@ class PoolFactory extends Factory
         $poolSizes = config('pool.size', [100, 500, 1000, 5000]);
 
         return [
-            // 'pool_id' is removed from here. It will be set in afterCreating.
-            'pool_id' => 0, // Keep generating unique salt
-            'salt' => $this->faker->unique()->lexify('??????'), // Keep generating unique salt
+            'pool_id' => 0,
+            'salt' => bin2hex(random_bytes(32)),
             'pool_size' => $this->faker->randomElement($poolSizes),
             'base_bet' => $this->faker->randomFloat(8, 0.00000001, 1),
             'premove_cids' => null,
             'status' => 'from_server_waitting',
-            // 'id' is correctly omitted, allowing the database to generate the primary UUID
         ];
     }
 
@@ -39,14 +37,10 @@ class PoolFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (Pool $pool) {
-            // After the pool is created and has an ID, update pool_id to match it.
             $pool->pool_id = $pool->id;
-            $pool->save(); // Save the change
-            // Optional: Log::info("Set pool_id to match id for Pool {$pool->id}");
+            $pool->save();
         });
     }
-
-    // --- Keep your existing states (running, finished) ---
 
     public function running(): Factory
     {

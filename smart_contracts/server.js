@@ -1,6 +1,6 @@
 import express from "express";
-import { JsonRpcProvider, Wallet, Contract, formatEther} from "ethers";
-import { contractAddress3, privateKey3, localHardhatUrl, abi3 } from "./config.js";
+import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits, parseEther} from "ethers";
+import { contractAddress3, privateKey3, Avax_wallet_privateKey,localHardhatUrl, abi3 } from "./_config.js";
 
 const app = express();
 app.use(express.json());
@@ -9,6 +9,423 @@ app.use(express.json());
 const provider = new JsonRpcProvider(localHardhatUrl);
 const wallet = new Wallet(privateKey3, provider);
 const contract = new Contract(contractAddress3, abi3, wallet);
+
+const fujiRpcUrl = "https://api.avax-test.network/ext/bc/C/rpc";
+const Avax_wallet = new Wallet(Avax_wallet_privateKey, fujiRpcUrl);
+
+
+
+// ABI et Adresse du contrat MarketplaceEscrow
+const marketplaceAbi = [
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_tokenAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_initialOwner",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "EnforcedPause",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ExpectedPause",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "OwnableInvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "OwnableUnauthorizedAccount",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "offerId",
+				"type": "uint256"
+			}
+		],
+		"name": "OfferCancelled",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "offerId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "seller",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "sntAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "avaxAmount",
+				"type": "uint256"
+			}
+		],
+		"name": "OfferCreated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "offerId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "buyer",
+				"type": "address"
+			}
+		],
+		"name": "OfferFulfilled",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "previousOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "Paused",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "Unpaused",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_offerId",
+				"type": "uint256"
+			}
+		],
+		"name": "cancelOffer",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_sntAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_avaxAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_durationHours",
+				"type": "uint256"
+			}
+		],
+		"name": "createOffer",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "feePercentage",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_offerId",
+				"type": "uint256"
+			}
+		],
+		"name": "fulfillOffer",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "nextOfferId",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "offers",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address payable",
+				"name": "seller",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "sntAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "avaxAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "expiresAt",
+				"type": "uint256"
+			},
+			{
+				"internalType": "enum MarketplaceEscrow.Status",
+				"name": "status",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "pause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "paused",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_newFee",
+				"type": "uint256"
+			}
+		],
+		"name": "setFeePercentage",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "sntToken",
+		"outputs": [
+			{
+				"internalType": "contract IERC20",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "unpause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+];
+const marketplaceAddress = "0xb0Fe23c18bCc490CDFe4E244e9F1c4e54A10cE6c"; // <--- METS L'ADRESSE DE TON CONTRAT MARKETPLACEESCROW
+const marketplaceContract = new Contract(marketplaceAddress, marketplaceAbi, Avax_wallet);
+
+// --- NOUVELLE ROUTE ---
+app.post("/create-offer", async (req, res) => {
+    try {
+        const { sellerAddress, sntAmount, avaxAmount, durationHours } = req.body;
+
+        if (!sellerAddress || !sntAmount || !avaxAmount || !durationHours) {
+            return res.status(400).json({ error: "Paramètres manquants." });
+        }
+
+        console.log(`📡 Tentative de création d'offre pour ${sellerAddress}...`);
+
+        // On convertit les montants pour le smart contract (avec 18 décimales)
+        const sntAmountWei = parseUnits(sntAmount.toString(), 18);
+        const avaxAmountWei = parseUnits(avaxAmount.toString(), 18);
+
+        // Appel de la fonction du smart contract
+        // Note: Le 'approve' doit avoir été fait par l'utilisateur côté frontend AVANT
+        const tx = await marketplaceContract.createOffer(sntAmountWei, avaxAmountWei, durationHours);
+
+        await tx.wait(); // On attend que la transaction soit minée
+
+        console.log(`✅ Offre créée avec succès ! Hash: ${tx.hash}`);
+
+        res.json({ success: true, txHash: tx.hash });
+
+    } catch (error) {
+        console.error("❌ Erreur lors de la création de l'offre:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * Handle Laravel request to send data to smart contract

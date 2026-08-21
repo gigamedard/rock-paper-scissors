@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Laravel\Sanctum\HasApiTokens;
 
 use App\Models\Challenge;
 use App\Models\Fight;
@@ -15,7 +16,7 @@ use App\Models\Pool;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     protected $fillable = [
         'name',
@@ -27,12 +28,17 @@ class User extends Authenticatable
         'bet_amount',
         'wallet_address',
         'referral_code',
+        'token_balance',
+        'locked_balance',
         'balance',
         'battle_balance',
         'pool_id',
         'session_start_balance',
         'session_start_battle_balance',
         'session_started',
+        'language',
+        'has_received_signup_bonus',
+        'is_eligible_to_refer',
     ];
 
     protected $hidden = [
@@ -75,22 +81,60 @@ class User extends Authenticatable
         return $this->hasOne(PreMove::class);
     }
 
-    // Referral relationships
-    public function referrals()
-    {
-        return $this->hasMany(Referral::class, 'referrer_id');
-    }
+
 
     public function referredBy()
     {
         return $this->hasOne(Referral::class, 'referred_id');
     }
 
-    // Influencer relationship
+
+
+
+
+    public function referralRewards()
+    {
+        return $this->hasMany(ReferralReward::class, 'referrer_id');
+    }
+
+    public function getReferralStats()
+    {
+        $referrals = $this->referrals; // 'referrals' est la relation hasMany sur le modèle User
+
+        $total = $referrals->count();
+        $pending = $referrals->where('status', 'pending')->count();
+        $validated = $referrals->where('status', 'validated')->count();
+        
+        // --- CORRECTION ICI ---
+        // Au lieu de multiplier, nous allons sommer les récompenses réelles
+        $rewards_earned = $this->referralRewards()->sum('reward_tokens');
+
+        return [
+            'total'          => $total,
+            'pending'        => $pending,
+            'validated'      => $validated,
+            'rewards_earned' => $rewards_earned, // Utilise la somme correcte
+        ];
+    }
+
+    /** L'utilisateur est-il un influenceur ? */
     public function influencer()
     {
         return $this->hasOne(Influencer::class);
     }
+
+    /** Les filleuls que cet utilisateur a parrainés */
+    public function referrals()
+    {
+        return $this->hasMany(Referral::class, 'referrer_id');
+    }
+
+    /** Les frais générés par cet utilisateur (en tant que vendeur) */
+    public function feesGenerated()
+    {
+        return $this->hasMany(InfluencerFee::class);
+    }
+
 
     // Generate unique referral code
     public function generateReferralCode()
@@ -105,18 +149,5 @@ class User extends Authenticatable
         return $code;
     }
 
-    // Get referral statistics
-    public function getReferralStats()
-    {
-        $totalReferrals = $this->referrals()->count();
-        $pendingReferrals = $this->referrals()->pending()->count();
-        $validatedReferrals = $this->referrals()->validated()->count();
-        
-        return [
-            'total' => $totalReferrals,
-            'pending' => $pendingReferrals,
-            'validated' => $validatedReferrals,
-            'rewards_earned' => $validatedReferrals * 100 // 100 SNT per validated referral
-        ];
-    }
+    
 }

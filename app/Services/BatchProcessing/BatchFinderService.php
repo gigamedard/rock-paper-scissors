@@ -14,11 +14,12 @@ class BatchFinderService
      * @param int $poolSize
      * @return Batch|null
      */
-    public function findActiveBatchWithLock(int $poolSize): ?Batch
+    public function findActiveBatchWithLock(int $poolSize, float $baseBet): ?Batch
     {
-        Log::debug("Attempting to find active batch for pool_size: {$poolSize}");
+        Log::debug("Attempting to find active batch for pool_size: {$poolSize} and base_bet: {$baseBet}");
         // NOTE: lockForUpdate() should be applied within the transaction boundary in the controller/main service
         return Batch::where('pool_size', $poolSize)
+                    ->where('base_bet', $baseBet)
                     ->whereIn('status', ['running', 'waiting'])
                     ->orderBy('updated_at')
                     // ->lockForUpdate() // Apply lock where the transaction begins

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sanctum Authentication</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .result {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success { border-left: 4px solid #4CAF50; }
+        .error { border-left: 4px solid #f44336; }
+        .info { border-left: 4px solid #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Sanctum Authentication</h1>
+    
+    <div class="container">
+        <h2>1. Wallet Authentication</h2>
+        <button onclick="loginWithWallet('fr')">🔐 Login with MetaMask (FR)</button>
+        <button onclick="loginWithWallet('en')">🔐 Login with MetaMask (EN)</button>
+        <div id="login-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>2. Protected API Tests</h2>
+        <button onclick="testUserAPI()" id="test-user-btn" disabled>👤 Test /api/user</button>
+        <button onclick="testReferralStatus()" id="test-referral-btn" disabled>📊 Test /api/referral/status</button>
+        <button onclick="testApplyReferral()" id="test-apply-btn" disabled>🎯 Test /api/referral/apply</button>
+        <div id="api-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>3. Public API Tests</h2>
+        <button onclick="testPublicAPIs()">🌐 Test Public APIs</button>
+        <div id="public-result" class="result"></div>
+    </div>
+
+    <div class="container">
+        <h2>4. Logout</h2>
+        <button onclick="logout()" id="logout-btn" disabled>🚪 Logout</button>
+        <div id="logout-result" class="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+        let authToken = localStorage.getItem('auth_token');
+
+        // Update button states based on token
+        function updateButtonStates() {
+            const hasToken = !!authToken;
+            document.getElementById('test-user-btn').disabled = !hasToken;
+            document.getElementById('test-referral-btn').disabled = !hasToken;
+            document.getElementById('test-apply-btn').disabled = !hasToken;
+            document.getElementById('logout-btn').disabled = !hasToken;
+        }
+
+        // Initial button state
+        updateButtonStates();
+
+        function logResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        async function loginWithWallet(locale) {
+            if (!window.ethereum) {
+                logResult('login-result', 'Please install MetaMask!', 'error');
+                return;
+            }
+
+            const web3 = new Web3(window.ethereum);
+
+            try {
+                logResult('login-result', 'Connecting to MetaMask...', 'info');
+
+                // 1. Connect wallet
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await web3.eth.getAccounts();
+                const walletAddress = accounts[0];
+
+                logResult('login-result', `Connected: ${walletAddress}\\nGenerating message...`, 'info');
+
+                // 2. Generate message
+                const messageResponse = await fetch(`${API_URL}/wallet/generate-message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        wallet_address: walletAddress,
+                        locale: locale 
+                    }),
+                });
+
+                if (!messageResponse.ok) {
+                    throw new Error(`Generate message failed: ${messageResponse.status}`);
+                }
+
+                const { message } = await messageResponse.json();
+                logResult('login-result', `Message generated: ${message}\\nSigning...`, 'info');
+
+                // 3. Sign message
+                const signature = await web3.eth.personal.sign(message, walletAddress);
+                logResult('login-result', `Signature: ${signature.substring(0, 20)}...\\nVerifying...`, 'info');
+
+                // 4. Verify signature
+                const verifyResponse = await fetch(`${API_URL}/wallet/verify-signature`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet_address: walletAddress,
+                        signature: signature,
+                        locale: locale
+                    }),
+                });
+
+                const data = await verifyResponse.json();
+
+                if (verifyResponse.ok && data.token) {
+                    // Success!
+                    authToken = data.token;
+                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('locale', data.locale);
+
+                    logResult('login-result', 
+                        `✅ Login successful!\\n` +
+                        `User: ${data.user.name}\\n` +
+                        `Locale: ${data.locale}\\n` +
+                        `Token: ${data.token.substring(0, 20)}...`, 
+                        'success'
+                    );
+
+                    updateButtonStates();
+                } else {
+                    throw new Error(data.message || 'Verification failed');
+                }
+
+            } catch (error) {
+                logResult('login-result', `❌ Login failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUserAPI() {
+            try {
+                logResult('api-result', 'Testing /api/user...', 'info');
+
+                const response = await fetch(`${API_URL}/user`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    logResult('api-result', 
+                        `✅ /api/user success!\\n` +
+                        `User: ${data.user.name}\\n` +
+                        `Email: ${data.user.email}\\n` +
+                        `Locale: ${data.locale}\\n` +
+                        `Wallet: ${data.user.wallet_address}`, 
+                        'success'
+                    );
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${data.message || 'Unknown error'}`);
+                }
+
+            } catch (error) {
+                logResult('api-result', `❌ /api/user failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testReferralStatus() {
+            try {
+                logResult('api-result', 'Testing /api/referral/status...', 'info');
+
+                const response = await fetch(`${API_URL}/referral/status`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    logResult('api-result', 
+                        `✅ /api/referral/status success!\\n` +
+                        `Code: ${data.code}\\n` +
+                        `Total Referrals: ${data.totalReferrals}\\n` +
+                        `Validated: ${data.validatedReferrals}\\n` +
+                        `Rewards: ${data.totalRewards} SNT`, 
+                        'success'
+                    );
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${data.message || 'Unknown error'}`);
+                }
+
+            } catch (error) {
+                logResult('api-result', `❌ /api/referral/status failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testApplyReferral() {
+            try {
+                logResult('api-result', 'Testing /api/referral/apply...', 'info');
+
+                const response = await fetch(`${API_URL}/referral/apply`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        referral_code: 'REF-TEST01' // Code de test
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    logResult('api-result', 
+                        `✅ /api/referral/apply success!\\n` +
+                        `Message: ${data.message}`, 
+                        'success'
+                    );
+                } else {
+                    logResult('api-result', 
+                        `⚠️ /api/referral/apply response (${response.status}):\\n` +
+                        `Message: ${data.message}`, 
+                        'info'
+                    );
+                }
+
+            } catch (error) {
+                logResult('api-result', `❌ /api/referral/apply failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPublicAPIs() {
+            try {
+                logResult('public-result', 'Testing public APIs...', 'info');
+
+                // Test multiple public APIs
+                const tests = [
+                    { url: '/referral/leaderboard', name: 'Referral Leaderboard' },
+                    { url: '/whitelist', name: 'Whitelist' },
+                    { url: '/influencer/pools', name: 'Influencer Pools' },
+                    { url: '/escrow/stats', name: 'Escrow Stats' }
+                ];
+
+                let results = [];
+
+                for (const test of tests) {
+                    try {
+                        const response = await fetch(`${API_URL}${test.url}`);
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            results.push(`✅ ${test.name}: OK (${Object.keys(data).length} keys)`);
+                        } else {
+                            results.push(`❌ ${test.name}: ${response.status} - ${data.message || 'Error'}`);
+                        }
+                    } catch (error) {
+                        results.push(`❌ ${test.name}: ${error.message}`);
+                    }
+                }
+
+                logResult('public-result', results.join('\\n'), 'success');
+
+            } catch (error) {
+                logResult('public-result', `❌ Public API test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function logout() {
+            try {
+                logResult('logout-result', 'Logging out...', 'info');
+
+                const response = await fetch(`${API_URL}/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Clear local storage
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('locale');
+                    authToken = null;
+
+                    logResult('logout-result', `✅ Logout successful: ${data.message}`, 'success');
+                    updateButtonStates();
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${data.message || 'Unknown error'}`);
+                }
+
+            } catch (error) {
+                logResult('logout-result', `❌ Logout failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-test if token exists
+        if (authToken) {
+            logResult('login-result', `Found existing token: ${authToken.substring(0, 20)}...`, 'info');
+        }
+    </script>
+</body>
+</html>
+
