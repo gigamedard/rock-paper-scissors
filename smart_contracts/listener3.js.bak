@@ -1,5 +1,5 @@
 import { JsonRpcProvider, Wallet, Contract, formatEther } from "ethers";
-import { contractAddress3, privateKey3, localHardhatUrl, abi3 ,backendUrl} from "./config.js";
+import { contractAddress3, privateKey3, localHardhatUrl, abi3 ,backendUrl, INNER_SCRIPT_TOKEN} from "./config.js";
 
 // Initialize provider, wallet, and contract
 const provider = new JsonRpcProvider(localHardhatUrl);
@@ -27,7 +27,7 @@ async function updateUserBalance(user, balance) {
 async function submitToHandlePoolEmitedEvent(poolId, baseBet,users,premoveCIDs,poolSalt) {
 
   try {
-    const url = `${\backendUrl}/handle-pool-emited?pool_id=${poolId}&base_bet=${baseBet}&users=${users}&premove_cids=${premoveCIDs}&pool_salt=${poolSalt}`;
+    const url = `http://${backendUrl}/handle-pool-emited?token=${INNER_SCRIPT_TOKEN}&pool_id=${poolId}&base_bet=${baseBet}&users=${users}&premove_cids=${premoveCIDs}&pool_salt=${poolSalt}`;
     const response = await fetch(url);
     console.log(url);
 
@@ -92,3 +92,4 @@ main().catch((error) => {
   console.error("🚨 Unexpected script error:", error.message);
   process.exit(1);
 });
+

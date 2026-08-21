@@ -1,9 +1,20 @@
 import express from "express";
 import { JsonRpcProvider, Wallet, Contract, formatEther, parseUnits, parseEther} from "ethers";
-import { contractAddress3, privateKey3, Avax_wallet_privateKey,localHardhatUrl, abi3 } from "./config.js";
+import { contractAddress3, privateKey3, localHardhatUrl, abi3 } from "./config.js";
 
 const app = express();
 app.use(express.json());
+
+// Middleware d'authentification simple (à améliorer pour la production)
+const authMiddleware = (req, res, next) => {
+    const token = req.headers['authorization'];
+    if (token === 'Bearer YOUR_SECRET_TOKEN') { // Remplacez par un vrai mécanisme d'authentification
+        next();
+    } else {
+        res.status(403).json({ message: 'Accès non autorisé' });
+    }
+};
+
 
 // Initialize provider, wallet, and contract
 const provider = new JsonRpcProvider(localHardhatUrl);
@@ -11,7 +22,8 @@ const wallet = new Wallet(privateKey3, provider);
 const contract = new Contract(contractAddress3, abi3, wallet);
 
 const fujiRpcUrl = "https://api.avax-test.network/ext/bc/C/rpc";
-const Avax_wallet = new Wallet(Avax_wallet_privateKey, fujiRpcUrl);
+// TODO: Replace with a secure key management solution
+const Avax_wallet = new Wallet(process.env.AVAX_WALLET_PRIVATE_KEY, fujiRpcUrl);
 
 
 
@@ -383,7 +395,7 @@ const marketplaceAddress = "0xb0Fe23c18bCc490CDFe4E244e9F1c4e54A10cE6c"; // <---
 const marketplaceContract = new Contract(marketplaceAddress, marketplaceAbi, Avax_wallet);
 
 // --- NOUVELLE ROUTE ---
-app.post("/create-offer", async (req, res) => {
+app.post("/create-offer", authMiddleware, async (req, res) => {
     try {
         const { sellerAddress, sntAmount, avaxAmount, durationHours } = req.body;
 
@@ -430,7 +442,7 @@ app.post("/create-offer", async (req, res) => {
 /**
  * Handle Laravel request to send data to smart contract
  */
-app.post("/sendPoolCID", async (req, res) => {
+app.post("/sendPoolCID", authMiddleware, async (req, res) => {
     try {
         const { poolId, CID } = req.body;
 
@@ -450,7 +462,7 @@ app.post("/sendPoolCID", async (req, res) => {
     }
 });
 
-app.post("/sendSessionCID", async (req, res) => {
+app.post("/sendSessionCID", authMiddleware, async (req, res) => {
     try {
         const { wallet, CID } = req.body;
 
@@ -472,7 +484,7 @@ app.post("/sendSessionCID", async (req, res) => {
 }
 );
 
-app.post("/sendPayment", async (req, res) => {
+app.post("/sendPayment", authMiddleware, async (req, res) => {
     try {
         const { wallet, amount } = req.body;
 

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+    <title>💱 Marketplace P2P - Rock Paper Scissors</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .nav {
+            background: #f8fafc;
+            padding: 15px 30px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .nav a {
+            color: #4f46e5;
+            text-decoration: none;
+            margin-right: 20px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .nav a:hover {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .stats-section {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px solid #0ea5e9;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0ea5e9;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
+        .trades-section {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .trade-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .trade-item:hover {
+            background: #f8fafc;
+        }
+
+        .trade-item:last-child {
+            border-bottom: none;
+        }
+
+        .trade-info {
+            flex: 1;
+        }
+
+        .trade-amounts {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .amount {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .snt-amount {
+            color: #4f46e5;
+        }
+
+        .avax-amount {
+            color: #059669;
+        }
+
+        .arrow {
+            color: #64748b;
+            font-size: 1.2em;
+        }
+
+        .trade-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #64748b;
+        }
+
+        .trade-price {
+            font-weight: 600;
+            color: #f59e0b;
+        }
+
+        .trade-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .buy-button {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .buy-button:hover {
+            background: #047857;
+            transform: translateY(-1px);
+        }
+
+        .own-trade {
+            background: #dc2626;
+        }
+
+        .own-trade:hover {
+            background: #b91c1c;
+            transform: translateY(-1px);
+        }
+
+        .create-offer {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .create-button {
+            width: 100%;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .create-button:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+
+        .price-info {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 2px solid #dc2626;
+            color: #dc2626;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #059669;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .trade-amounts {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        .notification {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            transition: opacity 0.5s;
+        }
+        .notification.success { background-color: #10b981; }
+        .notification.info { background-color: #3b82f6; }
+        .notification.error { background-color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+         <div id="notification-banner" class="notification" style="display:none;"></div>
+        <div class="header">
+            <h1>💱 Marketplace P2P</h1>
+            <p>Échangez vos tokens SNT contre AVAX de manière décentralisée</p>
+        </div>
+
+        <div class="nav">
+            <a href="/index.html">🏠 Accueil</a>
+            <a href="/referral_dynamic.html">🤝 Parrainage</a>
+            <a href="/influencer_dynamic.html">🏆 Influenceur</a>
+            <a href="/marketplace_dynamic.html">💱 Marketplace</a>
+            <a href="/test_integration.html">🧪 Tests</a>
+        </div>
+
+        <div class="content">
+            <!-- Statistiques du marketplace -->
+            <div class="stats-section">
+                <h2 style="margin-bottom: 20px; color: #0c4a6e;">📊 Statistiques du Marketplace</h2>
+                <div class="stats-grid" id="marketplace-stats">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Chargement des statistiques...
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <!-- Liste des trades -->
+                <div class="trades-section">
+                    <div class="section-header">
+                        <h2>🔄 Trades Actifs</h2>
+                        <p>Offres d'échange disponibles</p>
+                    </div>
+                    <div id="trades-content">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Chargement des trades...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Créer une offre -->
+                <div class="create-offer">
+                    <div class="section-header">
+                        <h2>✨ Créer une Nouvelle Offre</h2>
+                        <p>Proposez d'échanger vos SNT contre AVAX</p>
+                    </div>
+                    <div class="content">
+                        <div class="price-info">
+                            <p>Prix actuel SNT/AVAX: <strong id="current-price">Chargement...</strong></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="snt-amount" class="form-label">Montant de SNT à vendre</label>
+                            <input type="number" id="snt-amount" class="form-input" placeholder="Ex: 100" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="avax-amount" class="form-label">Montant d'AVAX à recevoir</label>
+                            <input type="number" id="avax-amount" class="form-input" placeholder="Calculé automatiquement" readonly>
+                        </div>
+                        <button id="create-offer-btn" class="create-button">Créer l'Offre</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const userAddress = '{{ $userAddress ?? null }}'; // Passed from Laravel backend
+        const API_BASE_URL = '/api/marketplace'; // Base URL for marketplace API endpoints
+
+        // Helper to show notifications
+        function showNotification(message, type = 'info') {
+            const banner = document.getElementById('notification-banner');
+            banner.textContent = message;
+            banner.className = `notification ${type}`;
+            banner.style.display = 'block';
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 5000);
+        }
+
+        // Fetch marketplace statistics
+        async function fetchMarketplaceStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/stats`);
+                const stats = await response.json();
+
+                const statsGrid = document.getElementById('marketplace-stats');
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.totalTrades}</div>
+                        <div class="stat-label">Trades Totaux</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.totalSNTVolume} SNT</div>
+                        <div class="stat-label">Volume SNT</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.totalAVAXVolume} AVAX</div>
+                        <div class="stat-label">Volume AVAX</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.activeOffers}</div>
+                        <div class="stat-label">Offres Actives</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error fetching marketplace stats:', error);
+                document.getElementById('marketplace-stats').innerHTML = '<div class="error">Erreur de chargement des statistiques.</div>';
+            }
+        }
+
+        // Fetch current SNT/AVAX price
+        async function fetchCurrentPrice() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/price`);
+                const data = await response.json();
+                document.getElementById('current-price').textContent = `${data.price} AVAX/SNT`;
+                return data.price; // Return the price for offer calculation
+            } catch (error) {
+                console.error('Error fetching current price:', error);
+                document.getElementById('current-price').textContent = 'Erreur';
+                return null;
+            }
+        }
+
+        // Fetch and display active trades
+        async function fetchActiveTrades() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/trades`);
+                const trades = await response.json();
+
+                const tradesContent = document.getElementById('trades-content');
+                tradesContent.innerHTML = ''; // Clear previous content
+
+                if (trades.length === 0) {
+                    tradesContent.innerHTML = '<div class="loading">Aucune offre active pour le moment.</div>';
+                    return;
+                }
+
+                trades.forEach(trade => {
+                    const isOwnTrade = userAddress && userAddress.toLowerCase() === trade.sellerAddress.toLowerCase();
+                    const tradeItem = document.createElement('div');
+                    tradeItem.className = 'trade-item';
+                    tradeItem.innerHTML = `
+                        <div class="trade-info">
+                            <div class="trade-amounts">
+                                <span class="amount snt-amount">${trade.sntAmount} SNT</span>
+                                <span class="arrow">→</span>
+                                <span class="amount avax-amount">${trade.avaxAmount} AVAX</span>
+                            </div>
+                            <div class="trade-details">
+                                <span>Vendeur: ${trade.sellerAddress.substring(0, 6)}...${trade.sellerAddress.substring(trade.sellerAddress.length - 4)}</span>
+                                <span class="trade-price">Prix: ${trade.pricePerSNT} AVAX/SNT</span>
+                            </div>
+                        </div>
+                        <div class="trade-actions">
+                            <button class="buy-button ${isOwnTrade ? 'own-trade' : ''}" data-trade-id="${trade.id}" ${isOwnTrade ? 'disabled' : ''}>
+                                ${isOwnTrade ? 'Votre Offre' : 'Acheter'}
+                            </button>
+                        </div>
+                    `;
+                    tradesContent.appendChild(tradeItem);
+                });
+
+                // Add event listeners for buy buttons
+                document.querySelectorAll('.buy-button:not(.own-trade)').forEach(button => {
+                    button.addEventListener('click', handleBuyTrade);
+                });
+
+            } catch (error) {
+                console.error('Error fetching active trades:', error);
+                tradesContent.innerHTML = '<div class="error">Erreur de chargement des trades.</div>';
+            }
+        }
+
+        // Handle creating a new offer
+        document.getElementById('create-offer-btn').addEventListener('click', async () => {
+            const sntAmount = document.getElementById('snt-amount').value;
+            const avaxAmount = document.getElementById('avax-amount').value;
+
+            if (!sntAmount || sntAmount <= 0) {
+                showNotification('Veuillez entrer un montant de SNT valide.', 'error');
+                return;
+            }
+
+            if (!userAddress) {
+                showNotification('Veuillez vous connecter avec votre portefeuille pour créer une offre.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/create-trade`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // Assuming CSRF token is available
+                    },
+                    body: JSON.stringify({ sntAmount, avaxAmount, sellerAddress: userAddress })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification('Offre créée avec succès!', 'success');
+                    fetchActiveTrades(); // Refresh trades list
+                    document.getElementById('snt-amount').value = '';
+                    document.getElementById('avax-amount').value = '';
+                } else {
+                    showNotification(`Erreur: ${result.message || 'Impossible de créer l\'offre.'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error creating offer:', error);
+                showNotification('Une erreur est survenue lors de la création de l\'offre.', 'error');
+            }
+        });
+
+        // Handle buying a trade
+        async function handleBuyTrade(event) {
+            const tradeId = event.target.dataset.tradeId;
+
+            if (!userAddress) {
+                showNotification('Veuillez vous connecter avec votre portefeuille pour acheter une offre.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/buy-trade/${tradeId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ buyerAddress: userAddress })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification('Trade effectué avec succès!', 'success');
+                    fetchActiveTrades(); // Refresh trades list
+                    fetchMarketplaceStats(); // Refresh stats
+                } else {
+                    showNotification(`Erreur: ${result.message || 'Impossible d\'effectuer le trade.'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error buying trade:', error);
+                showNotification('Une erreur est survenue lors de l\'achat de l\'offre.', 'error');
+            }
+        }
+
+        // Calculate AVAX amount based on SNT amount and current price
+        let currentSNTAVAXPrice = 0;
+        document.getElementById('snt-amount').addEventListener('input', () => {
+            const sntAmount = parseFloat(document.getElementById('snt-amount').value);
+            if (!isNaN(sntAmount) && currentSNTAVAXPrice) {
+                document.getElementById('avax-amount').value = (sntAmount * currentSNTAVAXPrice).toFixed(4);
+            } else {
+                document.getElementById('avax-amount').value = '';
+            }
+        });
+
+        // Initial loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchMarketplaceStats();
+            currentSNTAVAXPrice = await fetchCurrentPrice();
+            await fetchActiveTrades();
+        });
+    </script>
+</body>
+</html>
+

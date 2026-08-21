@@ -9,7 +9,12 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/echo.js'
             ],
-            refresh: true,
+            refresh: {
+                paths: [
+                    'resources/views/**',
+                    'public/**/*.html'
+                ],
+            },
         }),
     ],
 });
