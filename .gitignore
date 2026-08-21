@@ -30,6 +30,12 @@ smart_contracts/ipfs-storage/
 .agents/
 /storage/logs/
 *.log
+# SECURITY: blockchain logs contain private keys — never track them
+blockchain_logs.txt
+scratch/blockchain_logs.txt
+scratch/blockchain_full_logs.txt
+scratch/blockchain_full_logs2.txt
+smart_contracts/bridge_log.txt
 
 # Boucle de collaboration (état volatile)
 /collab/
