@@ -9,14 +9,15 @@ services:
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_DATABASE: rock_paper_scissors
-      MYSQL_ROOT_PASSWORD: ***REMOVED***
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
     ports:
       # 3307 hôte pour ne pas entrer en conflit avec l'autre app (3306)
-      - "3307:3306"
+      # SECURITY: bind to loopback only (not 0.0.0.0)
+      - "127.0.0.1:3307:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p***REMOVED***"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -47,7 +48,7 @@ services:
       - |
         cd /var/www/html &&
         echo "Attente de la base de données..." &&
-        until php -r "new PDO('mysql:host=db;dbname=rock_paper_scissors', 'root', '***REMOVED***');" 2>/dev/null; do sleep 2; done;
+        until php -r "new PDO('mysql:host=db;dbname=rock_paper_scissors', 'root', '${MYSQL_PASSWORD}');" 2>/dev/null; do sleep 2; done;
         echo "Base de données prête !" &&
         php artisan migrate --force &&
         php artisan db:seed --force &&
@@ -68,7 +69,8 @@ services:
     restart: unless-stopped
     ports:
       # 8546 hôte pour ne pas entrer en conflit avec l'autre app (8545)
-      - "8546:8545"
+      # SECURITY: bind to loopback only (not 0.0.0.0)
+      - "127.0.0.1:8546:8545"
     volumes:
       # Permet à full_deploy.js d'écrire les nouvelles adresses dans config.js (sur le host)
       - ./smart_contracts:/smart_contracts
@@ -93,13 +95,18 @@ services:
     command: ["node", "smart_contracts/app.js"]
     restart: unless-stopped
     env_file: .env.staging
+    environment:
+      # SECURITY: wallet keys injected via environment (NOT via a mounted .env file).
+      # This keeps the private keys out of the container filesystem, so a
+      # filesystem read on the bridge container no longer exposes them.
+      GAME_WALLET_PK: ${GAME_WALLET_PK}
+      MARKETPLACE_WALLET_PK: ${MARKETPLACE_WALLET_PK}
+      SIGNER_WALLET_PK: ${SIGNER_WALLET_PK}
     volumes:
-      # CRUCIAL : Monter UNIQUEMENT config.js + .env (pas tout le dossier).
+      # CRUCIAL : Monter UNIQUEMENT config.js (pas tout le dossier).
       # Monter tout smart_contracts/ écraserait les node_modules Linux avec ceux de Windows.
-      # .env (gitignoré) contient GAME_WALLET_PK / MARKETPLACE_WALLET_PK : monté au runtime,
-      # jamais copié dans l'image (voir .dockerignore).
+      # Les clés privées sont injectées via `environment:` ci-dessus, PAS via un .env monté.
       - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
-      - ./smart_contracts/.env:/app/smart_contracts/.env:ro
     depends_on:
       blockchain:
         condition: service_healthy
@@ -125,7 +132,8 @@ services:
     command: ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=8080"]
     ports:
       # 8001 hôte pour ne pas entrer en conflit avec l'autre app (8000)
-      - "8001:8080"
+      # SECURITY: bind to loopback only (not 0.0.0.0)
+      - "127.0.0.1:8001:8080"
     env_file: .env.staging
     depends_on:
       init-db:
@@ -145,12 +153,13 @@ services:
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8008"]
     restart: unless-stopped
     ports:
-      - "8008:8008"
+      # SECURITY: bind to loopback only (not 0.0.0.0)
+      - "127.0.0.1:8008:8008"
     env_file: .env.staging
     # Le serveur WebSocket Reverb est opérationnel (confirmé dans les logs).
     # Healthcheck via l'endpoint HTTP channels (retourne 200 si Reverb est up).
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8008/apps/rps_app_id/channels?auth_key=***REMOVED***&auth_timestamp=9999999999&auth_signature=test"]
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8008/apps/rps_app_id/channels?auth_key=${REVERB_APP_KEY}&auth_timestamp=9999999999&auth_signature=test"]
       interval: 10s
       timeout: 5s
       retries: 5
