@@ -27,9 +27,11 @@ contract Battlepool {
 
     event SecurityCoefficientUpdated(uint256 newCoefficient);
     event PayoutProcessed(address indexed wallet, uint256 amount);
+    event DefaultPoolMaxSizeChanged(uint256 newSize); // <<<--- AJOUTEZ CETTE LIGNE
 
     address public owner;
     uint256 public securityCoefficient = 1000;
+    uint256 public defaultPoolMaxSize; // <<<--- AJOUTEZ CETTE LIGNE
 
    
 
@@ -40,6 +42,16 @@ contract Battlepool {
 
     constructor() {
         owner = msg.sender;
+        defaultPoolMaxSize = 5; // <<<--- AJOUTEZ CETTE LIGNE
+    }
+
+    /**
+     * @dev Permet au propriétaire de changer la taille par défaut des nouveaux pools.
+     */
+    function setDefaultPoolMaxSize(uint256 newSize) external onlyOwner {
+        require(newSize >= 2, "Default size must be at least 2");
+        defaultPoolMaxSize = newSize;
+        emit DefaultPoolMaxSizeChanged(newSize);
     }
 
     function getContractBalance() external view returns (uint256) {
@@ -84,7 +96,7 @@ contract Battlepool {
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
             // Create a new pool if it doesn't exist
-            createPool(baseBet, 5); // Default maxSize set to 5
+            createPool(baseBet, defaultPoolMaxSize); // Default maxSize set to 5
         }else if (pool.users.length == 0) {
         
             pool.poolId = nextPoolId; // NOT pool.id
@@ -117,7 +129,7 @@ contract Battlepool {
         
         Pool storage pool = pools[baseBet];
         if (pool.poolId == 0) {
-            createPool(baseBet, 5); // Default maxSize set to 5 if pool does not exist
+            createPool(baseBet, defaultPoolMaxSize); // Default maxSize set to defaultPoolMaxSize if pool does not exist
         }else if (pool.users.length == 0 ) {
             pool.poolId = nextPoolId; // NOT pool.id
             nextPoolId++;

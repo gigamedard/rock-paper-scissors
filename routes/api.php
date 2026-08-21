@@ -25,7 +25,8 @@ Route::middleware('token.auth')->group(function () {
     Route::get('/referral/reward-history', [ReferralController::class, 'getRewardHistory']);
     Route::post('/referral/validate', [ReferralController::class, 'validateReferral']);
     Route::post('/marketplace/purchase', [MarketplaceController::class, 'handleTokenPurchase']);
-    Route::post('/storePremove', [PoolAutoMatchController::class, 'storePremove']);
+    Route::post('/user/pre-moves', [PoolAutoMatchController::class, 'storePremoves']);
+    Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
 
 });
 
@@ -55,8 +56,8 @@ Route::prefix('marketplace')->middleware('token.auth')->group(function () {
 
     // --- Routes d'Écriture (que nous implémenterons plus tard) ---
     Route::post('/create-offer', [MarketplaceController::class, 'createOffer']);
-    // Route::post('/fulfill-offer', [MarketplaceController::class, 'fulfillOffer']);
-    // Route::post('/cancel-offer', [MarketplaceController::class, 'cancelOffer']);
+    Route::post('/fulfill-offer', [MarketplaceController::class, 'fulfillOffer']);
+    Route::post('/cancel-offer', [MarketplaceController::class, 'cancelOffer']);
 });
 
 

@@ -98,8 +98,11 @@ return [
     'cipher' => 'AES-256-CBC',
 
     'key' => env('APP_KEY'),
-    'internal_api_secret' => env('INNER_SCRIPT_TOKEN'),
+    'internal_api_secret' => env('INTERNAL_API_SECRET'),
     'MARKETPLACE_ADDRESS' => env('MARKETPLACE_ADDRESS'),
+    // --- AJOUTE CES LIGNES ---
+    'INTERNAL_API_SECRET' => env('INTERNAL_API_SECRET'),
+    'NODE_WORKER_URL' => env('NODE_WORKER_URL'),
 
 
     'previous_keys' => [

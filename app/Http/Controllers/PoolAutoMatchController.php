@@ -96,11 +96,15 @@ class PoolAutoMatchController extends Controller
 
     // Endpoint for storing pre-moves
     public function storePreMoves(Request $request)
-    {
+    {   
+                Log::info('--- storePreMoves function started ---');
+        Log::info('Request Data: ' . json_encode($request->all()));
+
         $data = $request->validate([
             'pre_moves'  => 'required|array|min:1',
             'user_id'    => 'required|integer|exists:users,id',
-            'bet_amount' => 'required|numeric|min:0.0001',
+            'bet_amount' => 'required|numeric|min:0.000001',
+            'cid'        => 'required|string',
         ]);
 
         $response = $this->preMoveService->storePreMoves($data);
@@ -117,38 +121,50 @@ class PoolAutoMatchController extends Controller
     // Endpoint for processing a pool emitted event
     public function poolEmitedRequest(Request $request)
     {
+            
+            $token = $request->query('token');
+
+            // Validate the token
+            if ($token !== env('INNER_SCRIPT_TOKEN')) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            Log::info('===================================>befor validation ');
+            Log::info('PoolAutoMatchController : poolEmitedRequest :  Data received: ' . json_encode($request->all()));
         
-        $token = $request->query('token');
+            // Validation (elle est correcte, on la garde)
+            $validated = $request->validate([
+                'pool_id' => 'required|string',
+                'base_bet' => 'required|string',
+                'users' => 'required|array',
+                'premove_cids' => 'required|array',
+                'pool_salt' => 'required|string',
+            ]);
+        
+            Log::info('===================================>after validation ');
+            Log::info('PoolAutoMatchController : poolEmitedRequest :  Validated values: ' . json_encode($validated));
 
-        // Validate the token
-        if ($token !== env('INNER_SCRIPT_TOKEN')) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
+            try {
+                Log::info('PoolAutoMatchController : poolEmitedRequest :  into try block');
+                
+                // === AJOUT DE LA CORRECTION ICI ===
+                // Le service "handlePoolEmitedEvent" s'attend à des chaînes JSON,
+                // pas à des tableaux PHP natifs. Convertissons-les.
+                $serviceData = $validated; // Copie les données validées
+                $serviceData['users'] = json_encode($validated['users']);
+                $serviceData['premove_cids'] = json_encode($validated['premove_cids']);
+                // ==================================
 
-        Log::info('===================================>befor validation ');
-    
-        // Validate all fields as strings
-        $validated = $request->validate([
-            'pool_id' => 'required|string',
-            'base_bet' => 'required|string', // Validate as string first
-            'users' => 'required|string',    // Validate as string first
-            'premove_cids' => 'required|string', // Validate as string first
-            'pool_salt' => 'required|string',
-        ]);
-    
-        Log::info('===================================>after validation ');
-
-        Log::info('PoolAutoMatchController : poolEmitedRequest :  Validated values: ' . json_encode($validated));
-
-        try {
-            Log::info('PoolAutoMatchController : poolEmitedRequest :  into try block');
-            $result = $this->poolService->handlePoolEmitedEvent($validated);
-            Log::info('PoolAutoMatchController : poolEmitedRequest : after handlePoolEmitedEvent');
-            return response()->json(['message' => 'Pool emitted Request handled successfully', 'data' => $result], 200);
-        } catch (\Exception $e) {
-            Log::error('Error in poolEmitedRequest: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+                // On passe les données modifiées ($serviceData) au service
+                $result = $this->poolService->handlePoolEmitedEvent($serviceData); 
+                
+                Log::info('PoolAutoMatchController : poolEmitedRequest : after handlePoolEmitedEvent');
+                return response()->json(['message' => 'Pool emitted Request handled successfully', 'data' => $result], 200);
+            
+            } catch (\Exception $e) {
+                Log::error('Error in poolEmitedRequest: ' . $e->getMessage());
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
     }
 
     // Endpoint for archiving pool fights (after pool is complete)

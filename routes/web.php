@@ -51,9 +51,11 @@ Route::get('/{any}', function () {
     return file_get_contents(public_path('index.html'));
 })->where('any', '.*');
 
+Route::get('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
 
 
-
+/*
 
 /*
 Route::get('/', function () {
@@ -84,7 +86,7 @@ Route::get('/counter', function (Request $request) {
 
     // Return a JSON response
     return response()->json(['message' => 'Counter updated successfully'], 200);*/
-
+/*
     $users = [
         "0xF3A5D3E6A8CFA57Fdb18aAf4aEaf5Dd8A40BF02E",
         "0x1B7d8dF3cF9Ae5A9E8e40f3cB4D3E3eB2aA7e10F",
@@ -235,7 +237,7 @@ Route::get('/salt',function(){
 
 });
 
-
+/*
 
 Route::get('/test-pinata-upload', function () {
     $data = [
@@ -367,9 +369,9 @@ Route::get('/triggermatching', [AutoMatchController::class, 'selectSliceInstence
 Route::post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
 Route::get('/batch_pool_processing', [PoolAutoMatchController::class, 'processBatch']);
-
+*/
 Route::get('/autoplay', [AutoMatchController::class, 'index']);
-Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
+/*Route::middleware(['auth'])->post('/user/pre-moves', [AutoMatchController::class, 'storePreMoves']);
 
 
 Route::get('/test-handle-pool-event', [PoolAutoMatchController::class, 'testHandlePoolEmitedEvent']);
@@ -381,9 +383,9 @@ Route::post('/wallet/verify-signature', [WalletAuthController::class, 'verifySig
 Route::post('/wallet/logout', [WalletAuthController::class, 'logout']);
 Route::get('/wallet/testrecovery', [WalletAuthController::class, 'testRecovery']);
 Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
-Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
+*/
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
-Route::get('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
+
 // get route for simulate-user
 Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);
 
@@ -433,7 +435,7 @@ Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);
 */
 
     
-
+/*
 
 Route::get('/debug', function () {
     Log::info('Backtrace', debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10));
@@ -555,13 +557,13 @@ Route::get('/setup-test-data', function () {
 
     return "<h1>TERMINÉ !</h1><p>Données de test créées pour le portefeuille {$influencerWallet}.</p>";
 });
-
+*/
 
 
 // Auth routes
 require __DIR__.'/auth.php';
 
-
+/*
 // Routes d'inscription améliorée avec parrainage et sélection de langue
 Route::get('/register/enhanced', [EnhancedRegistrationController::class, 'create'])
     ->name('register.enhanced');
@@ -577,4 +579,4 @@ Route::get('/register/ref/{code}', [EnhancedRegistrationController::class, 'crea
 Route::get('/ref/{code}', function ($code) {
     return redirect()->route('register.enhanced', ['ref' => $code]);
 })->name('referral.redirect')->where('code', 'REF-[A-Z0-9]{6}');
-
+*/

@@ -26,6 +26,7 @@ class PreMoveService
                 'nonce'         => $nonce,
                 'current_index' => 0,
                 'session_first_pool_id'=>0,
+                'cid'           => $data['cid'],
             ]
         );
 
