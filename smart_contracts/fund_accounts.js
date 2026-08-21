@@ -9,8 +9,11 @@ import { FUJI_RPC_URL } from "./config.js"; // On importe l'URL RPC de Fuji
 // ==========================================================
 
 // 1. Clé privée de votre portefeuille "principal" (celui qui a des AVAX de test)
-//    NE COMMETEZ JAMAIS CE FICHIER SUR GIT AVEC CETTE CLÉ REMPLIE !
-const MAIN_WALLET_PK = "***REMOVED***";
+//    SECURITY: provide via env var MAIN_WALLET_PK, never hardcode.
+const MAIN_WALLET_PK = process.env.MAIN_WALLET_PK;
+if (!MAIN_WALLET_PK) {
+    throw new Error('❌ MAIN_WALLET_PK env var is required');
+}
 
 // 2. Le montant à envoyer à CHAQUE compte (en AVAX)
 const AMOUNT_TO_SEND = "0.5"; // (ex: 0.5 AVAX)

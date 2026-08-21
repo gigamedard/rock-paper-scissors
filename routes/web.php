@@ -48,9 +48,10 @@ Route::get('/', function () {
 
 // Route "catch-all" pour que le rafraîchissement (F5) fonctionne sur des sous-pages
 
-
-Route::get('/handle-pool-emited', [PoolAutoMatchController::class, 'poolEmitedRequest']);
-Route::get('/update-balance', [BlockchainController::class, 'updateUserBalance']);
+// SECURITY: public GET /handle-pool-emited and /update-balance REMOVED.
+// They were unauthenticated duplicates of the internal routes
+// (/api/internal/*) and allowed arbitrary balance modification.
+// The bridge uses the protected /api/internal/* routes instead.
 
 
 /*
