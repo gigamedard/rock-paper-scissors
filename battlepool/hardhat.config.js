@@ -25,6 +25,10 @@ module.exports = {
       // compatible avec les deux apps du portail (App 2 = 31337).
       chainId: 31337,
       accounts: {
+        // NOTE: uses the default Hardhat mnemonic ("test test ... junk").
+        // This is a KNOWN residual risk for a LOCAL test node, but it is
+        // mitigated by binding the RPC port to 127.0.0.1 (loopback only),
+        // so the node is not reachable from outside the host.
         count: 101, // Change this number to get more accounts
       },
       mining: {
