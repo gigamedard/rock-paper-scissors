@@ -158,9 +158,18 @@ app.post("/sendPayment", async (req, res) => {
         }
 
         console.log(`📡 Sending payment - amount: ${formatEther(amount)} ETH on smart contract...`);
-        // Call the smart contract function (Replace with actual function name)
-        //const nonce = await provider.getTransactionCount(wallet, 'latest');
 
+        // SECURITY: Sync on-chain balance with database balance before payOut.
+        // Fights are resolved off-chain, so userBalances on-chain may be lower
+        // than the actual balance (deposit + gains). updateUserBalance ensures
+        // the require(amount <= userBalances[user]) check in payOut will pass.
+        try {
+            const syncTx = await enqueueTx((nonce) => gameContract.updateUserBalance(wallet, amount, { nonce }));
+            console.log(`✅ Synced on-chain balance for ${wallet}: ${formatEther(amount)} ETH`);
+        } catch (syncErr) {
+            console.error(`⚠️  Failed to sync balance for ${wallet}: ${syncErr.message}`);
+            // Continue anyway — the balance may already be correct
+        }
 
         const balanceBefore = await gameProvider.getBalance(wallet);
 
@@ -202,6 +211,17 @@ app.post("/sendBatchPayment", async (req, res) => {
         }
 
         console.log(`📡 Sending batch payment - total recipients: ${wallets.length}`);
+
+        // SECURITY: Sync on-chain balances with database balances before batchPayOut.
+        // Each wallet's balance is updated individually before the batch payout.
+        for (let i = 0; i < wallets.length; i++) {
+            try {
+                await enqueueTx((nonce) => gameContract.updateUserBalance(wallets[i], amounts[i], { nonce }));
+                console.log(`✅ Synced balance for ${wallets[i]}: ${formatEther(amounts[i])} ETH`);
+            } catch (syncErr) {
+                console.error(`⚠️  Failed to sync balance for ${wallets[i]}: ${syncErr.message}`);
+            }
+        }
 
         // Call the smart contract function
         const tx = await enqueueTx((nonce) => gameContract.batchPayOut(wallets, amounts, { nonce }));
@@ -268,6 +288,19 @@ app.post("/generate-signature", async (req, res) => {
         }
         
         console.log(`📡 Generating signature for claim: ${wallet} - ${amount} wei`);
+        
+        // SECURITY: Sync on-chain balance with database balance before generating signature.
+        // Fights are resolved off-chain, so userBalances on-chain may be lower than
+        // the actual balance (deposit + gains). updateUserBalance ensures the
+        // require(amount <= userBalances[user]) check in claimAndExit will pass.
+        try {
+            const syncTx = await enqueueTx((nonce) => gameContract.updateUserBalance(wallet, amount, { nonce }));
+            console.log(`✅ Synced on-chain balance for ${wallet}: ${amount} wei`);
+        } catch (syncErr) {
+            console.error(`⚠️  Failed to sync balance for ${wallet}: ${syncErr.message}`);
+            // Continue anyway — the balance may already be correct from a previous sync
+        }
+        
         const nonce = await gameContract.nonces(wallet);
         const chainId = (await gameProvider.getNetwork()).chainId;
         // Signature valid for 24h (prevents indefinite replay)

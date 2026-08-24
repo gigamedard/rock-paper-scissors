@@ -98,8 +98,8 @@ services:
       test: ["CMD", "test", "-f", "/app/deployed.txt"]
       interval: 5s
       timeout: 3s
-      retries: 60
-      start_period: 30s
+      retries: 120
+      start_period: 600s
 
   # ============================================================
   # 5. BRIDGE NODE.JS (Listener Smart Contracts + API interne)

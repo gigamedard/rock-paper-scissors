@@ -38,6 +38,7 @@ contract Battlepool is ReentrancyGuard {
     event SignerUpdated(address newSigner);
     event PayoutOperatorUpdated(address newOperator);
     event PayoutProcessed(address indexed wallet, uint256 amount);
+    event UserBalanceUpdated(address indexed user, uint256 oldBalance, uint256 newBalance);
     event DefaultPoolMaxSizeChanged(uint256 newSize); // <<<--- AJOUTEZ CETTE LIGNE
     event PoolStagnantRefund(uint256 indexed poolId, uint256 refundedCount, uint256 timestamp);
     event StagnantBlockLimitUpdated(uint256 newLimit);
@@ -637,6 +638,31 @@ contract Battlepool is ReentrancyGuard {
 
     function isUserInPoolByBaseBet(uint256 baseBet, address user) public view returns (bool) {
         return pools[baseBet].isUserInPool[user];
+    }
+
+    /**
+     * @dev Synchronizes a user's on-chain balance with their off-chain (database) balance.
+     * Called by the payoutOperator (bridge) BEFORE generating a claim signature
+     * or calling payOut. This is necessary because fights are resolved off-chain
+     * (in Laravel), so the on-chain userBalances may be lower than the actual
+     * balance (initial deposit + gains - losses).
+     *
+     * SECURITY: Only the payoutOperator can call this. An attacker cannot
+     * inflate a user's balance without compromising the bridge.
+     * The new balance cannot exceed the contract's ETH balance (prevents
+     * setting a balance that the contract cannot pay out).
+     *
+     * @param user The user whose balance to update
+     * @param newBalance The authoritative balance from the database (in wei)
+     */
+    function updateUserBalance(address user, uint256 newBalance) external onlyPayoutOperator {
+        require(user != address(0), "Invalid user address");
+        // SECURITY: the new balance cannot exceed the contract's total ETH
+        // (prevents setting a balance that the contract cannot honor)
+        require(newBalance <= address(this).balance, "New balance exceeds contract ETH");
+        uint256 oldBalance = userBalances[user];
+        userBalances[user] = newBalance;
+        emit UserBalanceUpdated(user, oldBalance, newBalance);
     }
 
     //payOut function

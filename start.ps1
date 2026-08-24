@@ -22,12 +22,12 @@ docker compose up -d
 
 Write-Host ""
 Write-Host "Waiting for containers to be healthy..." -ForegroundColor Cyan
-$maxWait = 180
+$maxWait = 600
 $waited = 0
 $allHealthy = $false
 while ($waited -lt $maxWait) {
-    Start-Sleep -Seconds 5
-    $waited += 5
+    Start-Sleep -Seconds 10
+    $waited += 10
     $containers = docker compose ps --format json 2>&1
     $allHealthy = $true
     $runningCount = 0
@@ -35,15 +35,18 @@ while ($waited -lt $maxWait) {
         try {
             $s = $line | ConvertFrom-Json
             $status = $s.Status
+            $name = $s.Name
             if ($status -match "Exited") {
-                # init-db exits after success - that is OK
                 continue
             }
             if ($status -match "Up") {
                 $runningCount++
-                # If it says "Up" but no "healthy", and it has no healthcheck, treat as OK
-                # But we require healthcheck containers to be "healthy"
-                if ($status -notmatch "healthy" -and $status -match "health: starting") {
+                # blockchain has a long start_period — check for "healthy" explicitly
+                if ($name -match "blockchain") {
+                    if ($status -notmatch "healthy") {
+                        $allHealthy = $false
+                    }
+                } elseif ($status -match "health: starting") {
                     $allHealthy = $false
                 }
             } else {
