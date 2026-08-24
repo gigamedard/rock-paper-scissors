@@ -382,3 +382,142 @@ Le bridge a été redéployé depuis l'image rebuildée (`docker compose up -d -
 
 **Leçon** : le déploiement par `docker cp` + `npm install --no-save` (pattern §13.2) n'est plus nécessaire pour l'indexeur — le code est dans l'image et le lock est réparé.
 
+---
+
+## 15. AUDIT DE SÉCURITÉ + 3 ROUNDS DE PENTEST (2026-08-20 → 2026-08-24)
+
+**Branche :** `pentest/blackbox-2026-08-20` (commits `e018e16` → `82c7390`)
+**Pentester :** black-box, accès lecture filesystem + docker inspect + API HTTP
+
+### 15.1 Résumé — 21/21 vulnérabilités corrigées
+
+| Round | CRITICAL corrigés | Restant |
+|---|---|---|
+| Round 1 | 3/8 (drain direct ×3) | 5 CRITICAL |
+| Round 2 | 3/5 (fee cap, withdrawDevFees, setDevWallet timelock, rotation secrets, Docker secrets) | 2 (Reverb entrypoint + Linux DPAPI) |
+| Round 3 | 2/2 (Reverb entrypoint + Linux secrets-manager) | **0** ✅ |
+
+### 15.2 Contrat Solidity — Modifications (Battlepool.sol)
+
+**P0 — Drain du contrat (round 1) :**
+- `payOut`, `batchPayOut`, `claimAndExit` : ajout `require(amount <= userBalances[user], "Amount exceeds user balance")`
+- `userBalances -= amount` au lieu de `= 0` (prévient la perte de fonds sur paiements partiels)
+- `isUserInAnyPool` / `userPremoveCIDs` effacés seulement quand le solde atteint 0
+
+**P0 — Vol via owner (round 2) :**
+- `feeBasisPoints` cap à `MAX_FEE_BASIS_POINTS = 1000` (10% max) — `setFeeBasisPoints(10000)` revert
+- `withdrawDevFees` : `require(msg.sender == devWallet)` — owner ne peut plus retirer
+- `setDevWallet` : Timelock 2 jours (`queueSetDevWallet` → `executeSetDevWallet`)
+- `transferOwnership`, `setSigner`, `setPayoutOperator` : Timelock 2 jours (queue/execute pattern)
+- `cancelTimelock(opHash)` : permet d'annuler une opération en attente
+- `initializeRoles()` : setup one-time au déploiement (bypass timelock, fenêtre 100 blocks)
+- `triggerPoolEmittedEventForTesting` : `require(block.chainid == 31337)` — local uniquement
+
+**P1 — Séparation des rôles :**
+- `payoutOperator` : rôle séparé pour `payOut`/`batchPayOut` (`onlyPayoutOperator`)
+- Bridge utilise `PAYOUT_OPERATOR_PK` (hot) au lieu de `GAME_WALLET_PK` (owner/cold)
+- `GAME_WALLET_PK` n'est PAS injecté dans le bridge — compromission du bridge ≠ accès admin
+
+### 15.3 Secrets — Rotation + Chiffrement au repos
+
+**Rotation (round 2) :**
+- `GAME_WALLET_PK` (owner) : roté → `0x60748137...` (on-chain: `0x4B35f60D...`)
+- `SIGNER_WALLET_PK` : roté → `0x810b8270...` (on-chain: `0x8E22598D...`)
+- `PAYOUT_OPERATOR_PK` : nouveau → `0x5e908fce...` (on-chain: `0x5aa8eb45...`)
+- `INTERNAL_API_SECRET` : roté → `04152e09...` (ancien `59fafb...` → 403)
+- `MYSQL_ROOT_PASSWORD` : roté → `N6wrdC5F...` (ancien `xUra3b4...` → Access denied)
+- `REVERB_APP_KEY` / `REVERB_APP_SECRET` : rotés
+- `APP_KEY` : roté → `base64:Bd5pJr...`
+
+**Chiffrement au repos (round 2-3) :**
+- `secrets-manager.mjs` : chiffre `.secrets/*` en `.secrets/*.enc` (AES-256-GCM, scrypt 16384/8/1)
+- Passphrase stockée via Windows DPAPI (lié au compte Windows) ou Linux GPG
+- `.env` vidé de TOUS les secrets (toutes les valeurs vides)
+- `docker inspect` ne révèle PLUS aucun secret (tous vides dans `.Config.Env`)
+- Workflow : `provision` → `docker compose up` → `deprovision` → 0 plaintext sur disque
+
+### 15.4 Infrastructure Docker
+
+**Docker secrets (round 1-2) :**
+- Tous les secrets montés via `secrets:` (fichiers dans `/run/secrets/`) — pas dans `environment:`
+- `security-entrypoint.sh` : lit `/run/secrets/` et exporte en env vars avant de démarrer PHP
+- `db-entrypoint.sh` : lit `/run/secrets/mysql_password` pour MySQL root (pas dans env)
+- `docker-compose.yml` `secrets:` block : `game_wallet_pk`, `signer_wallet_pk`, `payout_operator_pk`, `marketplace_wallet_pk`, `internal_api_secret`, `app_key`, `mysql_password`, `db_app_password`, `reverb_app_key`, `reverb_app_secret`
+
+**User MySQL dédié (round 2) :**
+- `rps_app` créé par `init-db` avec droits limités (pas root)
+- App utilise `rps_app` + `DB_APP_PASSWORD` (Docker secret)
+- Root password seulement pour `db` container + `init-db`
+
+**Ports (round 1) :**
+- Tous les ports bind à `127.0.0.1` (3307, 8546, 8001, 8008)
+
+### 15.5 Routes debug supprimées (round 2)
+- `/salt`, `/simulate-user`, `/test-ipfs-direct` supprimés de `routes/web.php`
+
+### 15.6 Clés en dur nettoyées (round 1-2)
+- `fund_accounts.js`, `prepare_simulation.js`, `fund_and_test.js`, `e2e_test.js` : utilisent `config.js` (env/secret)
+- `fund_snt.js` : Hardhat #0 key documenté "accepted residual risk for local dev"
+
+### 15.7 Fichiers de configuration de sécurité
+
+| Fichier | Rôle |
+|---|---|
+| `secrets-manager.mjs` | Chiffrement/déchiffrement des secrets au repos (AES-256-GCM + DPAPI/GPG) |
+| `security-entrypoint.sh` | Lit `/run/secrets/` → exporte en env vars (app, reverb, queue-workers) |
+| `db-entrypoint.sh` | Lit `/run/secrets/mysql_password` → MySQL root password |
+| `start.ps1` | Workflow sécurisé : provision → docker up → wait healthy → deprovision |
+| `.secrets/*.enc` | Secrets chiffrés (AES-256-GCM) — jamais en clair sur disque |
+| `.secrets/.passphrase.enc` | Passphrase chiffrée (DPAPI Windows / GPG Linux) |
+
+### 15.8 Workflow de démarrage sécurisé
+
+```powershell
+# Démarrage complet (provisionne les secrets, démarre Docker, déprovisionne)
+.\start.ps1
+
+# Ou manuel :
+node secrets-manager.mjs provision     # déchiffre .enc → plaintext (pour Docker)
+docker compose up -d                   # Docker monte les fichiers → /run/secrets/
+# Attendre que tous les containers soient healthy...
+node secrets-manager.mjs deprovision   # supprime plaintext (host chiffré au repos)
+```
+
+**Après démarrage :**
+- 0 fichier plaintext sur le host
+- 0 secret dans `.env` (toutes valeurs vides)
+- 0 secret dans `docker inspect` (toutes valeurs vides)
+- Containers ont les secrets en RAM (`/run/secrets/` bind mounts + env vars du PID 1)
+
+### 15.9 Vérifications de sécurité (round 3 — toutes passent)
+
+| Test | Résultat |
+|---|---|
+| `payOut(user, 999 ETH)` | revert "Amount exceeds user balance" ✅ |
+| `setFeeBasisPoints(10000)` | revert "Fee cannot exceed 10%" ✅ |
+| `withdrawDevFees()` par owner | revert "Only dev wallet can withdraw" ✅ |
+| `triggerPoolEmittedEventForTesting()` sur chainId ≠ 31337 | revert ✅ |
+| Ancien `INTERNAL_API_SECRET` | 403 Forbidden ✅ |
+| Ancien `MYSQL_PASSWORD` | Access denied ✅ |
+| `docker inspect` secrets | tous vides ✅ |
+| `.env` secrets | tous vides ✅ |
+| `.secrets/` plaintext files | 0 (tous .enc) ✅ |
+| Reverb WebSocket | `{"channels":[]}` (fonctionnel) ✅ |
+| API health | `{"status":"OK","database":"OK"}` ✅ |
+| E2E Puppeteer auth test | PASS ✅ |
+
+### 15.10 Commits de sécurité (branche `pentest/blackbox-2026-08-20`)
+
+| Commit | Description |
+|---|---|
+| `e018e16` | security: separate signer/owner roles + fix P0/P1/P3 audit findings |
+| `eebca41` | security: inject wallet keys via env + bind ports to loopback + strong MySQL password |
+| `2b1dc91` | security: remove public backdoor + internal payout route + untrack .env.staging |
+| `a56d33c` | security: rotate owner key + fix deadlock DoS + e2e auth test |
+| `015a628` | security: fix CRITICAL drain bug + add payoutOperator role + Docker secrets |
+| `e89d917` | security round 2: Timelock + fee cap + secret rotation + Docker secrets for all |
+| `933f173` | security: remove ALL secrets from .env, read from .secrets/ on host |
+| `8403f8a` | security: encrypt secrets at rest with AES-256-GCM + DPAPI |
+| `72653c2` | security: remove MYSQL_ROOT_PASSWORD from .env + encrypted-at-rest workflow |
+| `82c7390` | fix: Reverb entrypoint + Linux support for secrets-manager |
+
