@@ -103,7 +103,7 @@ export const contracts = {
   // --- Contrat du JEU (de listener3.js) ---
   game: {
     address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    abi: [
+    abi:  [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
@@ -301,6 +301,38 @@ export const contracts = {
       {
         "indexed": true,
         "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newOperator",
+        "type": "address"
+      }
+    ],
+    "name": "PayoutOperatorUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "wallet",
         "type": "address"
       },
@@ -482,25 +514,57 @@ export const contracts = {
     "inputs": [
       {
         "indexed": false,
-        "internalType": "address",
-        "name": "newOperator",
-        "type": "address"
-      }
-    ],
-    "name": "PayoutOperatorUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
         "internalType": "uint256",
         "name": "newLimit",
         "type": "uint256"
       }
     ],
     "name": "StagnantBlockLimitUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "opHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "TimelockCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "opHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "TimelockExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "opHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "readyAt",
+        "type": "uint256"
+      }
+    ],
+    "name": "TimelockQueued",
     "type": "event"
   },
   {
@@ -564,6 +628,32 @@ export const contracts = {
     "type": "fallback"
   },
   {
+    "inputs": [],
+    "name": "MAX_FEE_BASIS_POINTS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "TIMELOCK_DELAY",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -613,6 +703,19 @@ export const contracts = {
       }
     ],
     "name": "batchPayOut",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "opHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "cancelTimelock",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -707,6 +810,19 @@ export const contracts = {
   },
   {
     "inputs": [],
+    "name": "deployBlock",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "deposit",
     "outputs": [],
     "stateMutability": "payable",
@@ -736,6 +852,58 @@ export const contracts = {
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "newWallet",
+        "type": "address"
+      }
+    ],
+    "name": "executeSetDevWallet",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOperator",
+        "type": "address"
+      }
+    ],
+    "name": "executeSetPayoutOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newSigner",
+        "type": "address"
+      }
+    ],
+    "name": "executeSetSigner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "executeTransferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -985,6 +1153,34 @@ export const contracts = {
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_signer",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_payoutOperator",
+        "type": "address"
+      },
+      {
+        "internalType": "address payable",
+        "name": "_devWallet",
+        "type": "address"
+      }
+    ],
+    "name": "initializeRoles",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "baseBet",
         "type": "uint256"
@@ -1126,6 +1322,43 @@ export const contracts = {
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "payoutOperator",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "pendingTimelock",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "hash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "readyAt",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -1166,6 +1399,58 @@ export const contracts = {
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "newWallet",
+        "type": "address"
+      }
+    ],
+    "name": "queueSetDevWallet",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOperator",
+        "type": "address"
+      }
+    ],
+    "name": "queueSetPayoutOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newSigner",
+        "type": "address"
+      }
+    ],
+    "name": "queueSetSigner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "queueTransferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1260,19 +1545,6 @@ export const contracts = {
   {
     "inputs": [
       {
-        "internalType": "address payable",
-        "name": "newWallet",
-        "type": "address"
-      }
-    ],
-    "name": "setDevWallet",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
         "name": "newFee",
         "type": "uint256"
@@ -1310,32 +1582,6 @@ export const contracts = {
       }
     ],
     "name": "setSecurityCoefficient",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "newSigner",
-        "type": "address"
-      }
-    ],
-    "name": "setSigner",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "newOperator",
-        "type": "address"
-      }
-    ],
-    "name": "setPayoutOperator",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1407,19 +1653,6 @@ export const contracts = {
   {
     "inputs": [],
     "name": "signer",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "payoutOperator",
     "outputs": [
       {
         "internalType": "address",

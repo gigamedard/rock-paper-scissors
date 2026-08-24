@@ -48,3 +48,12 @@ COPY --from=frontend-builder --chown=www-data:www-data /app/public/build /var/ww
 
 # Corriger les permissions pour Laravel (le serveur doit pouvoir écrire dans storage)
 RUN chmod -R 775 storage bootstrap/cache
+
+# SECURITY: entrypoint script that reads Docker secrets from /run/secrets/
+# and exports them as environment variables before starting the application.
+COPY --chown=www-data:www-data security-entrypoint.sh /usr/local/bin/security-entrypoint.sh
+USER root
+RUN chmod +x /usr/local/bin/security-entrypoint.sh
+USER www-data
+
+ENTRYPOINT ["/usr/local/bin/security-entrypoint.sh"]

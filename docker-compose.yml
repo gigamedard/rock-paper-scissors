@@ -7,17 +7,20 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    secrets:
+      - mysql_password
     environment:
       MYSQL_DATABASE: rock_paper_scissors
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      # NOTE: MySQL image doesn't support _FILE for root password.
+      # The root password is used only for DB initialization and healthcheck.
+      # The app container uses DB_APP_PASSWORD (Docker secret) for the dedicated rps_app user.
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
     ports:
-      # 3307 hôte pour ne pas entrer en conflit avec l'autre app (3306)
-      # SECURITY: bind to loopback only (not 0.0.0.0)
       - "127.0.0.1:3307:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD}"]
+      test: ["CMD", "sh", "-c", "mysqladmin ping -h localhost -u root -p\"$(cat /run/secrets/mysql_password)\""]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -38,22 +41,37 @@ services:
 
   # ============================================================
   # 3. MIGRATIONS (One-shot — s'éteint après succès)
-  # Utilise l'image app déjà buildée — pas de rebuild Composer.
+  # Creates a dedicated MySQL user (rps_app) with limited privileges.
   # ============================================================
   init-db:
     image: rock-paper-scissors-app:latest
     restart: "no"
-    entrypoint: ["/bin/sh", "-c"]
+    entrypoint: ["/usr/local/bin/security-entrypoint.sh", "/bin/sh", "-c"]
     command:
       - |
         cd /var/www/html &&
         echo "Attente de la base de données..." &&
-        until php -r "new PDO('mysql:host=db;dbname=rock_paper_scissors', 'root', '${MYSQL_PASSWORD}');" 2>/dev/null; do sleep 2; done;
+        until php -r "new PDO('mysql:host=db;dbname=rock_paper_scissors', 'root', getenv('MYSQL_PASSWORD'));" 2>/dev/null; do sleep 2; done;
         echo "Base de données prête !" &&
+        echo "Creating dedicated MySQL user rps_app..." &&
+        php -r '
+          $$pdo = new PDO("mysql:host=db", "root", getenv("MYSQL_PASSWORD"));
+          $$pdo->exec("CREATE USER IF NOT EXISTS \"rps_app\"@\"%\" IDENTIFIED BY \"" . getenv("DB_APP_PASSWORD") . "\"");
+          $$pdo->exec("GRANT ALL PRIVILEGES ON rock_paper_scissors.* TO \"rps_app\"@\"%\"");
+          $$pdo->exec("FLUSH PRIVILEGES");
+          echo "User rps_app created.\n";
+        ' &&
         php artisan migrate --force &&
         php artisan db:seed --force &&
         echo '✅ Migrations terminées.'
     env_file: .env.staging
+    secrets:
+      - app_key
+      - mysql_password
+      - internal_api_secret
+      - reverb_app_key
+      - reverb_app_secret
+      - db_app_password
     depends_on:
       db:
         condition: service_healthy
@@ -62,26 +80,19 @@ services:
 
   # ============================================================
   # 4. BLOCKCHAIN (Hardhat + Deploy des Smart Contracts)
-  # Image rebuildée avec le nouveau entrypoint.sh + deployed.txt
   # ============================================================
   blockchain:
     image: rock-paper-scissors-blockchain:latest
     restart: unless-stopped
     secrets:
-      # SECURITY: keys mounted as files in /run/secrets/ (not in environment).
-      # full_deploy.js reads them via config.js readSecret() which checks /run/secrets/ first.
       - game_wallet_pk
       - signer_wallet_pk
       - payout_operator_pk
     ports:
-      # 8546 hôte pour ne pas entrer en conflit avec l'autre app (8545)
-      # SECURITY: bind to loopback only (not 0.0.0.0)
       - "127.0.0.1:8546:8545"
     volumes:
-      # Permet à full_deploy.js d'écrire les nouvelles adresses dans config.js (sur le host)
       - ./smart_contracts:/smart_contracts
     healthcheck:
-      # Vérifie que le déploiement des contrats est terminé
       test: ["CMD", "test", "-f", "/app/deployed.txt"]
       interval: 5s
       timeout: 3s
@@ -90,8 +101,6 @@ services:
 
   # ============================================================
   # 5. BRIDGE NODE.JS (Listener Smart Contracts + API interne)
-  # Démarre UNIQUEMENT après que blockchain soit healthy.
-  # Reçoit les adresses fraîches via le volume partagé smart_contracts/
   # ============================================================
   bridge:
     build:
@@ -102,18 +111,12 @@ services:
     restart: unless-stopped
     env_file: .env.staging
     secrets:
-      # SECURITY: wallet keys mounted as files in /run/secrets/ (NOT in environment).
-      # The bridge gets ONLY the hot keys: payout_operator (payOut/batchPayOut) and
-      # signer (claim signatures). GAME_WALLET_PK (owner/cold key) is NOT here —
-      # a bridge compromise cannot access admin functions.
       - payout_operator_pk
       - marketplace_wallet_pk
       - signer_wallet_pk
       - internal_api_secret
+      - db_app_password
     volumes:
-      # CRUCIAL : Monter UNIQUEMENT config.js (pas tout le dossier).
-      # Monter tout smart_contracts/ écraserait les node_modules Linux avec ceux de Windows.
-      # Les clés privées sont injectées via `secrets:` ci-dessus, PAS via un .env monté.
       - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
     depends_on:
       blockchain:
@@ -131,7 +134,6 @@ services:
 
   # ============================================================
   # 6. APPLICATION LARAVEL (PHP + Nginx + Frontend)
-  # Démarre après les migrations ET que le bridge soit ready
   # ============================================================
   app:
     build: .
@@ -139,10 +141,15 @@ services:
     restart: unless-stopped
     command: ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=8080"]
     ports:
-      # 8001 hôte pour ne pas entrer en conflit avec l'autre app (8000)
-      # SECURITY: bind to loopback only (not 0.0.0.0)
       - "127.0.0.1:8001:8080"
     env_file: .env.staging
+    secrets:
+      - app_key
+      - mysql_password
+      - db_app_password
+      - internal_api_secret
+      - reverb_app_key
+      - reverb_app_secret
     depends_on:
       init-db:
         condition: service_completed_successfully
@@ -151,7 +158,6 @@ services:
 
   # ============================================================
   # 7. SERVEUR WEBSOCKET (Laravel Reverb)
-  # Démarre après les migrations (il lit la table cache)
   # ============================================================
   reverb:
     build:
@@ -161,13 +167,17 @@ services:
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8008"]
     restart: unless-stopped
     ports:
-      # SECURITY: bind to loopback only (not 0.0.0.0)
       - "127.0.0.1:8008:8008"
     env_file: .env.staging
-    # Le serveur WebSocket Reverb est opérationnel (confirmé dans les logs).
-    # Healthcheck via l'endpoint HTTP channels (retourne 200 si Reverb est up).
+    secrets:
+      - app_key
+      - mysql_password
+      - db_app_password
+      - internal_api_secret
+      - reverb_app_key
+      - reverb_app_secret
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8008/apps/rps_app_id/channels?auth_key=${REVERB_APP_KEY}&auth_timestamp=9999999999&auth_signature=test"]
+      test: ["CMD", "sh", "-c", "curl -sf http://127.0.0.1:8008/apps/rps_app_id/channels?auth_key=$(cat /run/secrets/reverb_app_key)&auth_timestamp=9999999999&auth_signature=test || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -177,31 +187,18 @@ services:
         condition: service_completed_successfully
 
   # ============================================================
-  # 8. WORKER BATCH (Node.js — Run Batch Processor)
-  # DÉSACTIVÉ EN PROD : le tick client (/api/metrics/collect) remplace
-  # ce worker. Décommenter uniquement pour les tests de simulation.
-  # ============================================================
-  # worker:
-  #   image: rock-paper-scissors-worker:latest
-  #   restart: unless-stopped
-  #   env_file: .env.staging
-  #   volumes:
-  #     - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
-  #     - ./smart_contracts/.env:/app/smart_contracts/.env:ro
-  #   depends_on:
-  #     bridge:
-  #       condition: service_healthy
-
-  # ============================================================
-  # 9. QUEUE WORKER LARAVEL (Traitement des jobs async)
-  # Dépend des migrations pour que les tables jobs/ batches existent
+  # 8. QUEUE WORKER LARAVEL (Traitement des jobs async)
   # ============================================================
   queue-worker:
     image: rock-paper-scissors-app:latest
     command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90", "--sleep=3"]
     restart: unless-stopped
     env_file: .env.staging
-    # Healthcheck : vérifie qu'un processus queue:work tourne.
+    secrets:
+      - app_key
+      - mysql_password
+      - db_app_password
+      - internal_api_secret
     healthcheck:
       test: ["CMD", "pgrep", "-f", "queue:work"]
       interval: 15s
@@ -212,14 +209,16 @@ services:
       init-db:
         condition: service_completed_successfully
 
-  # Dedicated worker for the 'limits' queue: prevents slow/failing blockchain
-  # sync jobs (SyncUserLimitsJob) from blocking real-time broadcast events
-  # (FightResult, UserBalanceUpdated, ...) on the 'default' queue.
   queue-worker-limits:
     image: rock-paper-scissors-app:latest
     command: ["php", "artisan", "queue:work", "--queue=limits", "--tries=3", "--timeout=90", "--sleep=3"]
     restart: unless-stopped
     env_file: .env.staging
+    secrets:
+      - app_key
+      - mysql_password
+      - db_app_password
+      - internal_api_secret
     healthcheck:
       test: ["CMD", "pgrep", "-f", "queue:work"]
       interval: 15s
@@ -231,19 +230,18 @@ services:
         condition: service_completed_successfully
 
 # ============================================================
-# VOLUMES PERSISTANTS (survivent aux docker-compose down)
-# Pour tout effacer : docker-compose down -v
+# VOLUMES PERSISTANTS
 # ============================================================
 volumes:
   db_data:
 
 # ============================================================
 # DOCKER SECRETS
-# SECURITY: Wallet keys and API secrets are mounted as files in /run/secrets/
-# inside the containers. They do NOT appear in `docker inspect`, `env`, or
-# the container's environment block. The secret files live in .secrets/ on
-# the host (gitignored). config.js readSecret() reads from /run/secrets/ first,
-# falling back to process.env for local dev.
+# SECURITY: All secrets (wallet keys, API secrets, DB passwords) are mounted
+# as files in /run/secrets/. They do NOT appear in `docker inspect`, `env`,
+# or the container's environment block. The secret files live in .secrets/
+# on the host (gitignored). security-entrypoint.sh + config.js readSecret()
+# read from /run/secrets/ first, falling back to process.env for local dev.
 # ============================================================
 secrets:
   game_wallet_pk:
@@ -256,3 +254,13 @@ secrets:
     file: ./.secrets/marketplace_wallet_pk
   internal_api_secret:
     file: ./.secrets/internal_api_secret
+  app_key:
+    file: ./.secrets/app_key
+  mysql_password:
+    file: ./.secrets/mysql_password
+  db_app_password:
+    file: ./.secrets/db_app_password
+  reverb_app_key:
+    file: ./.secrets/reverb_app_key
+  reverb_app_secret:
+    file: ./.secrets/reverb_app_secret

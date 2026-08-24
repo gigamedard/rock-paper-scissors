@@ -1,13 +1,13 @@
 // Fund test account and fire a PoolEmitted event
 import { JsonRpcProvider, Wallet, Contract, parseEther } from "ethers";
-import { LOCAL_HARDHAT_URL, contracts, FUJI_RPC_URL } from "./config.js";
+import { LOCAL_HARDHAT_URL, contracts, FUJI_RPC_URL, GAME_WALLET_PK } from "./config.js";
 
 async function main() {
     const provider = new JsonRpcProvider(FUJI_RPC_URL);
 
-    // Use Hardhat default account #0 (has 10000 ETH)
-    const HARDHAT_ACCOUNT_0_PK = "***REMOVED***";
-    const funder = new Wallet(HARDHAT_ACCOUNT_0_PK, provider);
+    // SECURITY: Use GAME_WALLET_PK (owner) from config.js — no hardcoded keys.
+    // The owner can call triggerPoolEmittedEventForTesting (onlyOwner + chainId 31337).
+    const funder = new Wallet(GAME_WALLET_PK, provider);
 
     // Test account from test_event.js
     const TEST_ADDRESS = "0xb8195e6e7761ab2758803dcf2fd38016b2bea079";
@@ -21,9 +21,8 @@ async function main() {
     await fundTx.wait();
     console.log("✅ Test account funded with 1 ETH");
 
-    // Step 2: Connect as the test account and call triggerPoolEmittedEventForTesting
-    const TEST_PK = "0x8351c039abec71bfb0338862fcbc129b487108e8e84a7aa8957f407a1c1d2162";
-    const tester = new Wallet(TEST_PK, provider);
+    // Step 2: Connect as the owner and call triggerPoolEmittedEventForTesting
+    const tester = new Wallet(GAME_WALLET_PK, provider);
     const contract = new Contract(contracts.game.address, contracts.game.abi, tester);
 
     console.log(`\n🚀 Firing PoolEmitted event on contract ${contracts.game.address}...`);

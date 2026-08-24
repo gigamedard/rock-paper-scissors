@@ -80,10 +80,23 @@ contract Battlepool is ReentrancyGuard {
     uint256 public stagnantBlockLimit = 100; // Default 100 blocks
     
     uint256 public feeBasisPoints = 500; // Default 5.0% fee
+    uint256 public constant MAX_FEE_BASIS_POINTS = 1000; // SECURITY: max 10% fee — prevents owner from setting 100% to drain via fees
     uint256 public devBalance; // Accumulated fees
     address payable public devWallet;
 
-   
+    // SECURITY: Timelock for sensitive admin operations. Prevents instant
+    // exploitation of a compromised owner key — users/monitors have a window
+    // (TIMELOCK_DELAY) to detect and react before changes take effect.
+    uint256 public constant TIMELOCK_DELAY = 2 days; // 24-48h window
+    struct TimelockOperation {
+        bytes32 hash;       // hash of (function selector, target, data)
+        uint256 readyAt;    // block.timestamp when the operation can be executed
+    }
+    mapping(bytes32 => TimelockOperation) public pendingTimelock;
+
+    event TimelockQueued(bytes32 indexed opHash, uint256 readyAt);
+    event TimelockExecuted(bytes32 indexed opHash);
+    event TimelockCancelled(bytes32 indexed opHash);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
@@ -95,7 +108,44 @@ contract Battlepool is ReentrancyGuard {
         _;
     }
 
+    /// @dev Computes a deterministic hash for a timelocked operation.
+    function _timelockHash(bytes4 selector, address target, bytes memory data) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(selector, target, data));
+    }
+
+    /// @dev Queue a timelocked operation. Returns the opHash.
+    function _queueTimelock(bytes4 selector, address target, bytes memory data) internal returns (bytes32) {
+        bytes32 opHash = _timelockHash(selector, target, data);
+        require(pendingTimelock[opHash].readyAt == 0, "Operation already queued");
+        pendingTimelock[opHash] = TimelockOperation({
+            hash: opHash,
+            readyAt: block.timestamp + TIMELOCK_DELAY
+        });
+        emit TimelockQueued(opHash, block.timestamp + TIMELOCK_DELAY);
+        return opHash;
+    }
+
+    /// @dev Execute a timelocked operation after the delay has passed.
+    modifier afterTimelock(bytes4 selector, address target, bytes memory data) {
+        bytes32 opHash = _timelockHash(selector, target, data);
+        require(pendingTimelock[opHash].readyAt > 0, "Operation not queued");
+        require(block.timestamp >= pendingTimelock[opHash].readyAt, "Timelock delay not elapsed");
+        _;
+        delete pendingTimelock[opHash];
+        emit TimelockExecuted(opHash);
+    }
+
+    /// @dev Cancel a pending timelocked operation.
+    function cancelTimelock(bytes32 opHash) external onlyOwner {
+        require(pendingTimelock[opHash].readyAt > 0, "Operation not queued");
+        delete pendingTimelock[opHash];
+        emit TimelockCancelled(opHash);
+    }
+
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    bool private rolesInitialized;
+    uint256 public deployBlock; // Block number at deployment (for test-only checks)
 
     constructor() {
         owner = msg.sender;
@@ -106,16 +156,48 @@ contract Battlepool is ReentrancyGuard {
         defaultMaxBaseBet = 100 ether;
         defaultMaxQ = 2.0 * 1e18;
         defaultMinCooldown = 86400;
+        deployBlock = block.number;
+    }
+
+    /**
+     * @dev One-time initialization of roles (owner, signer, payoutOperator, devWallet).
+     * Can only be called by the deployer (initial owner) and only once, within
+     * the same block range as deployment. This bypasses the timelock for the
+     * initial setup (since the deployer is trusted at deploy time).
+     * SECURITY: rolesInitialized flag prevents re-calling after deployment.
+     */
+    function initializeRoles(
+        address _owner,
+        address _signer,
+        address _payoutOperator,
+        address payable _devWallet
+    ) external onlyOwner {
+        require(!rolesInitialized, "Roles already initialized");
+        require(block.number <= deployBlock + 100, "Initialization window expired"); // ~200s on Hardhat (2s blocks)
+        if (_signer != address(0)) signer = _signer;
+        if (_payoutOperator != address(0)) payoutOperator = _payoutOperator;
+        if (_devWallet != address(0)) devWallet = _devWallet;
+        if (_owner != address(0)) {
+            address previousOwner = owner;
+            owner = _owner;
+            emit OwnershipTransferred(previousOwner, _owner);
+        }
+        rolesInitialized = true;
     }
 
     /**
      * @dev Transfers ownership of the contract to a new account.
-     * This is the owner key rotation mechanism: call transferOwnership(newKey)
-     * to invalidate the old (potentially compromised) owner key without
-     * redeploying the contract or losing any on-chain state.
+     * SECURITY: Two-phase transfer with timelock to prevent instant
+     * exploitation of a compromised owner key.
      */
-    function transferOwnership(address newOwner) external onlyOwner {
+    function queueTransferOwnership(address newOwner) external onlyOwner {
         require(newOwner != address(0), "Invalid owner address");
+        _queueTimelock(this.executeTransferOwnership.selector, address(this), abi.encode(newOwner));
+    }
+
+    function executeTransferOwnership(address newOwner) external
+        afterTimelock(this.executeTransferOwnership.selector, address(this), abi.encode(newOwner)) onlyOwner
+    {
         address previousOwner = owner;
         owner = newOwner;
         emit OwnershipTransferred(previousOwner, newOwner);
@@ -123,23 +205,32 @@ contract Battlepool is ReentrancyGuard {
 
     /**
      * @dev Rotates the signer role (the key that signs claim signatures).
-     * Only the owner can change it. This is the key rotation mechanism:
-     * call setSigner(newKey) to invalidate the old signing key without
-     * redeploying the contract or losing any on-chain state.
+     * SECURITY: Two-phase with timelock.
      */
-    function setSigner(address newSigner) external onlyOwner {
+    function queueSetSigner(address newSigner) external onlyOwner {
         require(newSigner != address(0), "Invalid signer address");
+        _queueTimelock(this.executeSetSigner.selector, address(this), abi.encode(newSigner));
+    }
+
+    function executeSetSigner(address newSigner) external
+        afterTimelock(this.executeSetSigner.selector, address(this), abi.encode(newSigner)) onlyOwner
+    {
         signer = newSigner;
         emit SignerUpdated(newSigner);
     }
 
     /**
      * @dev Rotates the payoutOperator role (the hot key that calls payOut/batchPayOut).
-     * Only the owner can change it. The bridge uses this key instead of the owner
-     * key, so a bridge compromise cannot access admin functions.
+     * SECURITY: Two-phase with timelock.
      */
-    function setPayoutOperator(address newOperator) external onlyOwner {
+    function queueSetPayoutOperator(address newOperator) external onlyOwner {
         require(newOperator != address(0), "Invalid payout operator address");
+        _queueTimelock(this.executeSetPayoutOperator.selector, address(this), abi.encode(newOperator));
+    }
+
+    function executeSetPayoutOperator(address newOperator) external
+        afterTimelock(this.executeSetPayoutOperator.selector, address(this), abi.encode(newOperator)) onlyOwner
+    {
         payoutOperator = newOperator;
         emit PayoutOperatorUpdated(newOperator);
     }
@@ -164,19 +255,33 @@ contract Battlepool is ReentrancyGuard {
     }
 
     function setFeeBasisPoints(uint256 newFee) external onlyOwner {
-        require(newFee <= 10000, "Fee cannot exceed 100%");
+        // SECURITY: cap fee at 10% to prevent owner from draining via 100% fees
+        require(newFee <= MAX_FEE_BASIS_POINTS, "Fee cannot exceed 10%");
         feeBasisPoints = newFee;
         emit FeeBasisPointsUpdated(newFee);
     }
 
-    function setDevWallet(address payable newWallet) external onlyOwner {
+    /**
+     * @dev Sets the dev wallet. SECURITY: Two-phase with timelock to prevent
+     * an attacker with a compromised owner key from instantly redirecting fees.
+     */
+    function queueSetDevWallet(address payable newWallet) external onlyOwner {
         require(newWallet != address(0), "Invalid wallet address");
+        _queueTimelock(this.executeSetDevWallet.selector, address(this), abi.encode(newWallet));
+    }
+
+    function executeSetDevWallet(address payable newWallet) external
+        afterTimelock(this.executeSetDevWallet.selector, address(this), abi.encode(newWallet)) onlyOwner
+    {
         devWallet = newWallet;
         emit DevWalletUpdated(newWallet);
     }
 
     function withdrawDevFees() external nonReentrant {
-        require(msg.sender == devWallet || msg.sender == owner, "Only dev or owner can withdraw");
+        // SECURITY: Only the devWallet can withdraw fees (NOT the owner).
+        // This prevents a compromised owner key from directly withdrawing
+        // accumulated fees to themselves.
+        require(msg.sender == devWallet, "Only dev wallet can withdraw");
         uint256 amount = devBalance;
         require(amount > 0, "No fees to withdraw");
 
@@ -195,6 +300,10 @@ contract Battlepool is ReentrancyGuard {
         string memory poolSalt, // Changed to string
         uint256[] memory balances
     ) external onlyOwner {
+        // SECURITY: Only available on local Hardhat test network (chainId 31337).
+        // Prevents an attacker with a compromised owner key from injecting fake
+        // PoolEmitted events in production.
+        require(block.chainid == 31337, "Test-only function: not available on this network");
         // Emit the PoolEmitted event with the provided parameters
         emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt, balances);
     }

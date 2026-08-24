@@ -199,40 +199,9 @@ Route::get('/get_indexes', function () {
     
 });
 
-Route::get('/salt',function(){
-            /*// Retrieve the pool with its available users
-            $pool = Pool::find(1);
-
-            //dd($pool);
-
-            $availableUsers = $pool->users;
-
-            Log::info('===================================>availableUsers befor sorting: ' . json_encode($availableUsers));
-
-            // Get available users from the pool
-           
-            
-            Log::info('===================================>availableUsers befor sorting: ' . json_encode($availableUsers));
-            // sort the users by their wallet address hashed with salt
-
-            $sortedUsers = Web3Helper::sortAddressesWithSalt($availableUsers->pluck('wallet_address')->toArray(), $pool->salt);
-            $availableUsers = $availableUsers->sortBy(function ($user) use ($sortedUsers) {
-                return array_search($user->wallet_address, $sortedUsers);
-            })->values();
-
-
-            Log::info('===================================>availableUsers after sorting: ' . json_encode($availableUsers));*/
-            $addr =  [
-                "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
-                "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
-                "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
-            ];
-
-            $salt = Web3Helper::generateHash($addr);
-            Log::info('===================================>salt: ' . $salt);
-            return response()->json(['message' => 'Salt generated successfully'], 200);
-
-});
+// SECURITY: Debug routes removed (pentest round 2)
+// /salt, /simulate-user, /test-ipfs-direct were public debug endpoints
+// that exposed internal functionality without authentication.
 
 /*
 
@@ -387,8 +356,7 @@ Route::get('/update-counter', [BlockchainController::class, 'updateCounter']);
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);
 Route::middleware('auth:sanctum')->get('/notifications/poll', [\App\Http\Controllers\NotificationController::class, 'poll']);
 
-// get route for simulate-user
-Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);
+// SECURITY: /simulate-user debug route removed (pentest round 2)
 
 
 
@@ -437,28 +405,7 @@ Route::get('/simulate-user', [PoolAutoMatchController::class, 'simulateUser']);
 
     
 
-Route::get('/test-ipfs-direct', function () {
-    $data = ['message' => 'Hello from Direct IPFS!', 'timestamp' => time()];
-    $ipfsService = app(\App\Services\IpfsService::class);
-    
-    // Test Upload
-    $cid = $ipfsService->uploadJson($data);
-    
-    if (!$cid) {
-        return response()->json(['success' => false, 'message' => 'Upload failed'], 500);
-    }
-    
-    // Test Retrieve
-    $retrievedData = $ipfsService->retrieveJson($cid);
-    
-    return response()->json([
-        'success' => true,
-        'cid' => $cid,
-        'original_data' => $data,
-        'retrieved_data' => $retrievedData,
-        'match' => ($data == $retrievedData)
-    ]);
-});
+// SECURITY: /test-ipfs-direct debug route removed (pentest round 2)
 
 /*
 

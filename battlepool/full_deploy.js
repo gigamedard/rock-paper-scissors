@@ -31,36 +31,43 @@ async function main() {
     const gameAddr = await battlepool.getAddress();
     console.log("Battlepool deployed to:", gameAddr);
 
-    // --- SECURITY: configure the separate signer role (rotatable via setSigner) ---
-    // The signer signs claim signatures. It is a "hot" key distinct from the
-    // owner (deployer). If SIGNER_WALLET_PK is set, derive its address and
-    // assign it as the signer; otherwise the deployer remains the signer.
+    // --- SECURITY: initialize all roles in one call (bypasses timelock, one-time only) ---
+    // Read all keys from Docker secrets / env, derive addresses, and call
+    // initializeRoles() which sets owner, signer, payoutOperator, and devWallet.
+    // This can only be called once, within 100 blocks of deployment.
     const signerPk = readSecret("SIGNER_WALLET_PK");
-    if (signerPk) {
-        const signerWallet = new ethers.Wallet(signerPk);
-        console.log("Setting signer to:", signerWallet.address);
-        const txSigner = await battlepool.setSigner(signerWallet.address);
-        await txSigner.wait();
-        console.log("✅ Signer set to:", signerWallet.address);
-    } else {
-        console.log("⚠️  SIGNER_WALLET_PK not set — deployer remains the signer.");
-    }
-
-    // --- SECURITY: configure the separate payoutOperator role ---
-    // The payoutOperator is the "hot" key the bridge uses to call payOut/batchPayOut.
-    // It is DISTINCT from the owner (admin) key, so a bridge compromise cannot
-    // access admin functions (setFee, withdrawDevFees, transferOwnership, etc.).
-    // If PAYOUT_OPERATOR_PK is set, derive its address and assign it; otherwise
-    // fall back to the signer key (still distinct from owner).
     const operatorPk = readSecret("PAYOUT_OPERATOR_PK") || signerPk;
-    if (operatorPk) {
-        const operatorWallet = new ethers.Wallet(operatorPk);
-        console.log("Setting payoutOperator to:", operatorWallet.address);
-        const txOp = await battlepool.setPayoutOperator(operatorWallet.address);
-        await txOp.wait();
-        console.log("✅ PayoutOperator set to:", operatorWallet.address);
+    const ownerPk = readSecret("GAME_WALLET_PK");
+
+    const signerAddr = signerPk ? new ethers.Wallet(signerPk).address : ethers.ZeroAddress;
+    const operatorAddr = operatorPk ? new ethers.Wallet(operatorPk).address : ethers.ZeroAddress;
+    const ownerAddr = ownerPk ? new ethers.Wallet(ownerPk).address : ethers.ZeroAddress;
+
+    console.log("Initializing roles:");
+    console.log("  owner →", ownerAddr !== ethers.ZeroAddress ? ownerAddr : "(deployer remains)");
+    console.log("  signer →", signerAddr !== ethers.ZeroAddress ? signerAddr : "(deployer remains)");
+    console.log("  payoutOperator →", operatorAddr !== ethers.ZeroAddress ? operatorAddr : "(deployer remains)");
+
+    if (ownerAddr !== ethers.ZeroAddress || signerAddr !== ethers.ZeroAddress || operatorAddr !== ethers.ZeroAddress) {
+        const txInit = await battlepool.initializeRoles(
+            ownerAddr !== ethers.ZeroAddress ? ownerAddr : ethers.ZeroAddress,
+            signerAddr !== ethers.ZeroAddress ? signerAddr : ethers.ZeroAddress,
+            operatorAddr !== ethers.ZeroAddress ? operatorAddr : ethers.ZeroAddress,
+            ethers.ZeroAddress // devWallet stays as deployer (set via timelock later if needed)
+        );
+        await txInit.wait();
+        console.log("✅ Roles initialized.");
+
+        // Fund the new owner with ETH for gas (local dev only)
+        if (ownerAddr !== ethers.ZeroAddress && (hre.network.name === "hardhat" || hre.network.name === "localhost")) {
+            await hre.network.provider.send("hardhat_setBalance", [
+                ownerAddr,
+                "0x3635C9ADC5DEA00000", // 1000 ETH
+            ]);
+            console.log("✅ Funded new owner with 1000 ETH.");
+        }
     } else {
-        console.log("⚠️  PAYOUT_OPERATOR_PK not set — deployer remains the payout operator.");
+        console.log("⚠️  No keys set — deployer retains all roles.");
     }
     
     console.log("Setting Security Coefficient to 1000...");
@@ -83,27 +90,8 @@ async function main() {
     await txCooldown.wait();
     console.log("✅ Default Min Cooldown set to 10 seconds.");
 
-    // --- SECURITY: transfer ownership to a fresh, non-standard key ---
-    // The deployer (Hardhat #0) has a publicly-known private key. We transfer
-    // ownership to a fresh random key (GAME_WALLET_PK) so the compromised key
-    // loses all admin power. This is the owner key rotation mechanism.
-    const ownerPk = readSecret("GAME_WALLET_PK");
-    if (ownerPk) {
-        const ownerWallet = new ethers.Wallet(ownerPk);
-        console.log("Transferring ownership to:", ownerWallet.address);
-        if (hre.network.name === "hardhat" || hre.network.name === "localhost") {
-            // Fund the new owner with ETH for gas (admin transactions)
-            await hre.network.provider.send("hardhat_setBalance", [
-                ownerWallet.address,
-                "0x3635C9ADC5DEA00000", // 1000 ETH
-            ]);
-        }
-        const txOwner = await battlepool.transferOwnership(ownerWallet.address);
-        await txOwner.wait();
-        console.log("✅ Ownership transferred to:", ownerWallet.address);
-    } else {
-        console.log("⚠️  GAME_WALLET_PK not set — deployer remains the owner.");
-    }
+    // Ownership was already transferred via initializeRoles() above.
+    // Future owner changes require the timelock (queueTransferOwnership → executeTransferOwnership).
     
     const SNTToken = await ethers.getContractFactory("SNTToken");
     const sntToken = await SNTToken.deploy({ gasLimit: 5000000 });

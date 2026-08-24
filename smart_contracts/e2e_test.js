@@ -12,9 +12,10 @@
  * Then run: node e2e_test.js
  */
 import { JsonRpcProvider, Wallet, Contract, parseEther } from "ethers";
-import { LOCAL_HARDHAT_URL, contracts, FUJI_RPC_URL } from "./config.js";
+import { LOCAL_HARDHAT_URL, contracts, FUJI_RPC_URL, GAME_WALLET_PK } from "./config.js";
 
-const HARDHAT_ACCOUNT_0_PK = "***REMOVED***";
+// SECURITY: Use GAME_WALLET_PK (owner) from config.js instead of hardcoded key.
+const HARDHAT_ACCOUNT_0_PK = GAME_WALLET_PK;
 
 // 4 Hardhat default accounts matching E2ETestSeeder
 const USERS = [
@@ -44,6 +45,8 @@ async function main() {
 
     // Step 1: Fund the test account
     const TEST_ADDRESS = "0xb8195e6e7761ab2758803dcf2fd38016b2bea079";
+    // SECURITY: This is a TEST-ONLY key for a throwaway test account, not a production key.
+    // It does not control any production funds or contract roles.
     const TEST_PK = "0x8351c039abec71bfb0338862fcbc129b487108e8e84a7aa8957f407a1c1d2162";
 
     console.log("\n💰 Step 1: Funding test account...");

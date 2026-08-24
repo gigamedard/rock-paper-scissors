@@ -1,9 +1,23 @@
 // ============================================================
 // Configuration de l'indexeur blockchain (APP1 - bridge)
 // Paramètres d'indexation (polling, reorg safety, backoff).
-// Les identifiants DB sont lus depuis l'environnement du bridge
-// (DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD).
+// Les identifiants DB sont lus depuis Docker secrets (/run/secrets/)
+// ou l'environnement du bridge (DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD).
 // ============================================================
+
+import { readFileSync, existsSync } from 'fs';
+
+function readSecret(envVarName, secretName) {
+  const secretPath = `/run/secrets/${secretName || envVarName.toLowerCase()}`;
+  if (existsSync(secretPath)) {
+    try {
+      return readFileSync(secretPath, 'utf8').trim();
+    } catch (e) {
+      // fall through to env
+    }
+  }
+  return process.env[envVarName];
+}
 
 function intEnv(name, fallback) {
   const raw = process.env[name];
@@ -36,8 +50,8 @@ export const indexerConfig = {
   db: {
     host: process.env.DB_HOST || 'db',
     port: intEnv('DB_PORT', 3306),
-    user: process.env.DB_USERNAME || 'root',
-    password: process.env.DB_PASSWORD || '',
+    user: process.env.DB_USERNAME || 'rps_app',
+    password: readSecret('DB_PASSWORD', 'db_app_password') || '',
     database: process.env.DB_DATABASE || 'rock_paper_scissors',
   },
 };

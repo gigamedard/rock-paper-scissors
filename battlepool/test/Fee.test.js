@@ -15,8 +15,13 @@ describe("Battlepool - Fees and Payout", function () {
         battlepool = await Battlepool.deploy();
         await battlepool.waitForDeployment();
 
-        // Setup separate dev wallet to track fees easily
-        await battlepool.setDevWallet(devWallet.address);
+        // Setup separate dev wallet via initializeRoles (one-time, bypasses timelock)
+        await battlepool.initializeRoles(
+            ethers.ZeroAddress,              // owner stays as deployer
+            ethers.ZeroAddress,              // signer stays as deployer
+            ethers.ZeroAddress,              // payoutOperator stays as deployer
+            devWallet.address                // devWallet set to devWallet signer
+        );
 
         baseBet = ethers.parseEther("0.01");
         securityCoefficient = await battlepool.securityCoefficient();
