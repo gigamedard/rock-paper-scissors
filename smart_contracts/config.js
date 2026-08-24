@@ -17,24 +17,38 @@ dotenv.config({ path: join(__dirname, '.env') });
 dotenv.config({ path: join(__dirname, '..', '.env') });
 
 /**
- * SECURITY: readSecret reads a value from a Docker secret file (/run/secrets/<name>)
- * if it exists, falling back to the process.env variable. This allows wallet
- * private keys to be mounted as Docker secrets (not visible in `env` or in the
- * container's environment block) while keeping env-var fallback for local dev.
+ * SECURITY: readSecret reads a secret value from multiple sources in order:
+ * 1. Docker secret file: /run/secrets/<name> (inside containers)
+ * 2. Host secret file: ../.secrets/<name> (local dev scripts on the host)
+ * 3. process.env variable (last-resort fallback)
+ *
+ * This allows wallet private keys and API secrets to be stored ONLY in .secrets/
+ * (gitignored, restricted permissions) on the host, or as Docker secrets inside
+ * containers — never in .env plaintext or environment variables.
  *
  * @param {string} envVarName - The environment variable name (e.g. "GAME_WALLET_PK")
- * @param {string} secretName - The Docker secret name (defaults to envVarName lowercased)
- * @returns {string|undefined} The secret value or the env var value
+ * @param {string} secretName - The secret file name (defaults to envVarName lowercased)
+ * @returns {string|undefined} The secret value or undefined
  */
 function readSecret(envVarName, secretName) {
-  const secretPath = join('/run/secrets', secretName || envVarName.toLowerCase());
-  if (existsSync(secretPath)) {
-    try {
-      return readFileSync(secretPath, 'utf8').trim();
-    } catch (e) {
-      console.error(`⚠️  Failed to read secret ${secretName}:`, e.message);
+  const name = secretName || envVarName.toLowerCase();
+  // 1. Docker secret (inside containers)
+  const dockerPath = join('/run/secrets', name);
+  if (existsSync(dockerPath)) {
+    try { return readFileSync(dockerPath, 'utf8').trim(); } catch (e) { /* fall through */ }
+  }
+  // 2. Host secret file (local dev scripts)
+  // Try .secrets/ relative to the project root (2 levels up from smart_contracts/)
+  const hostPaths = [
+    join(__dirname, '..', '.secrets', name),   // from smart_contracts/
+    join(__dirname, '.secrets', name),          // from smart_contracts/ itself
+  ];
+  for (const p of hostPaths) {
+    if (existsSync(p)) {
+      try { return readFileSync(p, 'utf8').trim(); } catch (e) { /* try next */ }
     }
   }
+  // 3. Env var fallback (last resort — should be empty in .env)
   return process.env[envVarName];
 }
 
