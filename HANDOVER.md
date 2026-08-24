@@ -520,4 +520,101 @@ node secrets-manager.mjs deprovision   # supprime plaintext (host chiffré au re
 | `8403f8a` | security: encrypt secrets at rest with AES-256-GCM + DPAPI |
 | `72653c2` | security: remove MYSQL_ROOT_PASSWORD from .env + encrypted-at-rest workflow |
 | `82c7390` | fix: Reverb entrypoint + Linux support for secrets-manager |
+| `c7790a2` | docs: update HANDOVER.md with security audit + 3 pentest rounds (section 15) |
+| `58f815d` | docs: add PRODUCTION_DEPLOYMENT_GUIDE.md with full deployment instructions |
+| `577d18e` | fix: add updateUserBalance to sync off-chain gains before payout |
+| `57d65d9` | contract: zero userBalances on payout instead of subtracting |
+
+---
+
+## 16. FIX ARCHITECTURAL : updateUserBalance + userBalances = 0 (2026-08-24)
+
+### 16.1 Probleme decouvert
+
+Le fix P0 `require(amount <= userBalances[user])` bloquait les retraits legitimes.
+Cause : les fights sont resolus **off-chain** dans Laravel. Le solde DB (depot + gains)
+est superieur au `userBalances` on-chain (depot initial seulement).
+
+```
+1. User depose 0.01 ETH → userBalances = 0.01 (on-chain)
+2. Fights off-chain (Laravel) → solde DB = 0.05 ETH
+3. User veut retirer 0.05 → claimAndExit(0.05)
+4. require(0.05 <= 0.01) → REVERT ! Le user ne peut pas retirer ses gains.
+```
+
+### 16.2 Solution : updateUserBalance (commit `577d18e`)
+
+Nouvelle fonction dans Battlepool.sol :
+
+```solidity
+function updateUserBalance(address user, uint256 newBalance) external onlyPayoutOperator {
+    require(user != address(0), "Invalid user address");
+    require(newBalance <= address(this).balance, "New balance exceeds contract ETH");
+    uint256 oldBalance = userBalances[user];
+    userBalances[user] = newBalance;
+    emit UserBalanceUpdated(user, oldBalance, newBalance);
+}
+```
+
+Le bridge appelle `updateUserBalance` **avant** chaque paiement pour synchroniser
+le solde DB vers on-chain :
+
+- `/generate-signature` : sync avant de signer (pour les humains via MetaMask)
+- `/sendPayment` : sync avant `payOut` (pour les bots)
+- `/sendBatchPayment` : sync pour chaque wallet avant `batchPayOut`
+
+### 16.3 Flow corrige
+
+```
+1. User depose 0.01 ETH → userBalances = 0.01 (on-chain)
+2. Fights off-chain → solde DB = 0.05 ETH
+3. Bridge appelle updateUserBalance(user, 0.05) → userBalances = 0.05 (on-chain)
+4. claimAndExit(0.05) → require(0.05 <= 0.05) → OK
+```
+
+### 16.4 Securite preservee
+
+| Attaquant | Peut-il drainer ? |
+|---|---|
+| User sans signature signer | Non — claimAndExit revert "Invalid signer signature" |
+| Attaquant avec cle signer sans updateUserBalance | Non — claimAndExit(999) revert "Amount exceeds user balance" |
+| Attaquant avec cle payoutOperator (bridge) | Non — updateUserBalance limite a address(this).balance |
+| Attaquant avec cle owner | Non — withdrawDevFees revert "Only dev wallet can withdraw" + timelock 2 jours |
+
+### 16.5 userBalances = 0 au lieu de -= amount (commit `57d65d9`)
+
+Avec `updateUserBalance` appele avant chaque paiement, `userBalances == amount`
+dans le flow normal. Zeroing au lieu de soustraire :
+
+```solidity
+// payOut, claimAndExit, batchPayOut :
+userBalances[user] = 0;           // etait: -= amount
+isUserInAnyPool[user] = false;    // toujours nettoye
+delete userPremoveCIDs[user];     // toujours nettoye
+```
+
+Raisons :
+- Evite tout residu (dust) qui pourrait s'accumuler avec des cas limites
+- `uint256` ne peut pas etre negatif (Solidity revert si underflow)
+- Pas d'arrondi en Solidity (entiers en wei)
+- Dans le flow normal avec updateUserBalance, `= 0` et `-= amount` donnent 0
+- `= 0` est plus robuste contre les edge cases (sync echoue, paiement partiel)
+
+### 16.6 ABI mis a jour
+
+`config.js` ABI regenere depuis les artifacts Hardhat (108 entrees).
+`updateUserBalance` et `UserBalanceUpdated` event ajoutes a l'ABI.
+
+### 16.7 start.ps1 ameliore
+
+- Timeout augmente a 600s (le blockchain compile en ~5 min au premier build)
+- healthcheck blockchain : `start_period: 600s`, `retries: 120`
+- Le script attend que le blockchain soit vraiment "healthy" avant de deprovisionner
+
+### 16.8 Commits
+
+| Commit | Description |
+|---|---|
+| `577d18e` | fix: add updateUserBalance to sync off-chain gains before payout |
+| `57d65d9` | contract: zero userBalances on payout instead of subtracting |
 
