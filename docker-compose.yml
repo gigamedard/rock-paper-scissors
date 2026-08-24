@@ -7,16 +7,18 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    # SECURITY: root password read from Docker secret (not env var)
+    # db-entrypoint.sh reads /run/secrets/mysql_password and sets MYSQL_ROOT_PASSWORD
+    # before delegating to the official MySQL entrypoint.
+    entrypoint: ["/usr/local/bin/db-entrypoint.sh"]
     secrets:
       - mysql_password
     environment:
       MYSQL_DATABASE: rock_paper_scissors
-      # NOTE: MySQL image doesn't support _FILE for root password.
-      # The root password is used only for DB initialization and healthcheck.
-      # The app container uses DB_APP_PASSWORD (Docker secret) for the dedicated rps_app user.
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # MYSQL_ROOT_PASSWORD is set by db-entrypoint.sh from the Docker secret
     volumes:
       - db_data:/var/lib/mysql
+      - ./db-entrypoint.sh:/usr/local/bin/db-entrypoint.sh:ro
     ports:
       - "127.0.0.1:3307:3306"
     healthcheck:
