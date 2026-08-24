@@ -69,30 +69,53 @@ function readSecret(envVarName, secretName) {
 }
 
 /**
- * Decrypts an AES-256-GCM encrypted secret file using a passphrase from
- * Windows DPAPI. The key is derived via scrypt.
+ * Decrypts an AES-256-GCM encrypted secret file using a passphrase.
+ * The passphrase is loaded from:
+ * - Windows: DPAPI-encrypted file (.passphrase.enc via PowerShell ConvertFrom-SecureString)
+ * - Linux: GPG-encrypted file, env var SECRETS_PASSPHRASE, or ~/.config/rps/secrets-passphrase
+ * The AES key is derived via scrypt.
  * @param {string} encPath - Path to the .enc file
  * @returns {string} Decrypted plaintext
  */
 function decryptSecret(encPath) {
+  const isWindows = process.platform === 'win32';
   const passphraseEncPath = join(__dirname, '..', '.secrets', '.passphrase.enc');
-
-  // Load passphrase from DPAPI-encrypted file
   let passphrase;
-  try {
-    const psScript = `
-      $encrypted = Get-Content -Path '${passphraseEncPath.replace(/\\/g, '\\\\')}' -Raw
-      $secure = ConvertTo-SecureString $encrypted
-      $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-      $plain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
-      Write-Output $plain
-    `;
-    const tmpFile = join(tmpdir(), 'rps_load_pass_' + process.pid + '.ps1');
-    writeFileSync(tmpFile, psScript);
-    passphrase = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${tmpFile}"`, { encoding: 'utf8', stdio: 'pipe' }).trim();
-    try { unlinkSync(tmpFile); } catch (e) { /* ignore */ }
-  } catch (e) {
-    throw new Error('No passphrase in DPAPI (run: node secrets-manager.mjs init)');
+
+  if (isWindows) {
+    // Load passphrase from DPAPI-encrypted file
+    try {
+      const psScript = `
+        $encrypted = Get-Content -Path '${passphraseEncPath.replace(/\\/g, '\\\\')}' -Raw
+        $secure = ConvertTo-SecureString $encrypted
+        $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+        $plain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+        Write-Output $plain
+      `;
+      const tmpFile = join(tmpdir(), 'rps_load_pass_' + process.pid + '.ps1');
+      writeFileSync(tmpFile, psScript);
+      passphrase = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${tmpFile}"`, { encoding: 'utf8', stdio: 'pipe' }).trim();
+      try { unlinkSync(tmpFile); } catch (e) { /* ignore */ }
+    } catch (e) {
+      throw new Error('No passphrase in DPAPI (run: node secrets-manager.mjs init)');
+    }
+  } else {
+    // Linux: try env var, then GPG, then fallback file
+    passphrase = process.env.SECRETS_PASSPHRASE;
+    if (!passphrase && existsSync(passphraseEncPath)) {
+      try {
+        passphrase = execSync(`gpg --batch --yes --decrypt '${passphraseEncPath}' 2>/dev/null`, { encoding: 'utf8', stdio: 'pipe' }).trim();
+      } catch (e) { /* try fallback */ }
+    }
+    if (!passphrase) {
+      const fallbackPath = join(process.env.HOME || '/root', '.config', 'rps', 'secrets-passphrase');
+      if (existsSync(fallbackPath)) {
+        passphrase = readFileSync(fallbackPath, 'utf8').trim();
+      }
+    }
+    if (!passphrase) {
+      throw new Error('No passphrase found (set SECRETS_PASSPHRASE env var or run: node secrets-manager.mjs init)');
+    }
   }
 
   const encrypted = readFileSync(encPath);

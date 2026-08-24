@@ -15,17 +15,27 @@ const __dirname = dirname(__filename);
 const SECRETS_DIR = join(__dirname, '.secrets');
 const CRED_TARGET = 'rock-paper-scissors:secrets-passphrase';
 
-// ─── Credential Storage (Windows DPAPI) ──────────────────────
-// The passphrase is stored encrypted via DPAPI (tied to Windows user account).
-// It is written to a small file .secrets/.passphrase.enc which is encrypted by
-// Windows itself — only the current user can decrypt it. An attacker who copies
-// the file to another machine or another user account cannot decrypt it.
+// ─── Credential Storage (Windows DPAPI / Linux GPG) ──────────
+// The passphrase is stored encrypted at rest:
+// - Windows: DPAPI (ConvertTo-SecureString / ConvertFrom-SecureString)
+//   tied to the Windows user account. Cannot be decrypted on another machine/user.
+// - Linux: GPG symmetric encryption (gpg -c) with passphrase from env var
+//   SECRETS_PASSPHRASE or from ~/.config/rps/secrets-passphrase (chmod 600).
+//   Alternatively, use `pass` (password-store) if available.
+const isWindows = process.platform === 'win32';
 const PASSPHRASE_ENC_PATH = join(SECRETS_DIR, '.passphrase.enc');
+const LINUX_PASSPHRASE_FILE = join(process.env.HOME || '/root', '.config', 'rps', 'secrets-passphrase');
 
 function storePassphrase(passphrase) {
+  if (isWindows) {
+    return storePassphraseWindows(passphrase);
+  } else {
+    return storePassphraseLinux(passphrase);
+  }
+}
+
+function storePassphraseWindows(passphrase) {
   try {
-    // Use DPAPI to encrypt: only current Windows user can decrypt
-    // Write a PowerShell script to a temp file to avoid quoting issues
     const psScript = `
       $plain = ConvertTo-SecureString '${passphrase}' -AsPlainText -Force
       $encrypted = ConvertFrom-SecureString $plain
@@ -42,10 +52,38 @@ function storePassphrase(passphrase) {
   }
 }
 
+function storePassphraseLinux(passphrase) {
+  try {
+    // Try GPG symmetric encryption first
+    try {
+      execSync(`echo '${passphrase}' | gpg --batch --yes --passphrase-file /dev/stdin --symmetric --cipher-algo AES256 -o '${PASSPHRASE_ENC_PATH}'`, { stdio: 'pipe' });
+      return true;
+    } catch (e) {
+      // GPG not available — fallback to file with restricted permissions
+      const dir = dirname(LINUX_PASSPHRASE_FILE);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 });
+      writeFileSync(LINUX_PASSPHRASE_FILE, passphrase, { mode: 0o600 });
+      console.log('⚠️  GPG not available — passphrase stored in plaintext file (chmod 600).');
+      console.log('   Install GPG for encryption at rest: apt-get install gnupg');
+      return true;
+    }
+  } catch (e) {
+    console.error('❌ Failed to store passphrase:', e.message);
+    return false;
+  }
+}
+
 function loadPassphrase() {
+  if (isWindows) {
+    return loadPassphraseWindows();
+  } else {
+    return loadPassphraseLinux();
+  }
+}
+
+function loadPassphraseWindows() {
   try {
     if (!existsSync(PASSPHRASE_ENC_PATH)) return null;
-    // Use DPAPI to decrypt: only current Windows user can decrypt
     const psScript = `
       $encrypted = Get-Content -Path '${PASSPHRASE_ENC_PATH}' -Raw
       $secure = ConvertTo-SecureString $encrypted
@@ -61,6 +99,27 @@ function loadPassphrase() {
   } catch (e) {
     return null;
   }
+}
+
+function loadPassphraseLinux() {
+  // 1. Try env var (for CI/CD or scripts)
+  if (process.env.SECRETS_PASSPHRASE) {
+    return process.env.SECRETS_PASSPHRASE;
+  }
+  // 2. Try GPG-encrypted file
+  if (existsSync(PASSPHRASE_ENC_PATH)) {
+    try {
+      const result = execSync(`gpg --batch --yes --decrypt '${PASSPHRASE_ENC_PATH}' 2>/dev/null`, { encoding: 'utf8', stdio: 'pipe' });
+      return result.trim();
+    } catch (e) {
+      // GPG decryption failed — try fallback file
+    }
+  }
+  // 3. Fallback: plaintext file (chmod 600)
+  if (existsSync(LINUX_PASSPHRASE_FILE)) {
+    return readFileSync(LINUX_PASSPHRASE_FILE, 'utf8').trim();
+  }
+  return null;
 }
 
 function deletePassphrase() {
