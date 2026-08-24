@@ -4,7 +4,10 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
+import { execSync } from 'child_process';
+import { scryptSync, createDecipheriv } from 'crypto';
+import { tmpdir } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,12 +22,13 @@ dotenv.config({ path: join(__dirname, '..', '.env') });
 /**
  * SECURITY: readSecret reads a secret value from multiple sources in order:
  * 1. Docker secret file: /run/secrets/<name> (inside containers)
- * 2. Host secret file: ../.secrets/<name> (local dev scripts on the host)
- * 3. process.env variable (last-resort fallback)
+ * 2. Host plaintext file: ../.secrets/<name> (provisioned for docker compose up)
+ * 3. Host encrypted file: ../.secrets/<name>.enc (decrypted in memory)
+ * 4. process.env variable (last-resort fallback)
  *
- * This allows wallet private keys and API secrets to be stored ONLY in .secrets/
- * (gitignored, restricted permissions) on the host, or as Docker secrets inside
- * containers — never in .env plaintext or environment variables.
+ * Sources 1-2 are plaintext (only available when provisioned or in Docker).
+ * Source 3 is encrypted at rest (AES-256-GCM), decrypted in memory — no plaintext
+ * on disk after deprovision. The passphrase is in Windows Credential Manager.
  *
  * @param {string} envVarName - The environment variable name (e.g. "GAME_WALLET_PK")
  * @param {string} secretName - The secret file name (defaults to envVarName lowercased)
@@ -37,19 +41,71 @@ function readSecret(envVarName, secretName) {
   if (existsSync(dockerPath)) {
     try { return readFileSync(dockerPath, 'utf8').trim(); } catch (e) { /* fall through */ }
   }
-  // 2. Host secret file (local dev scripts)
-  // Try .secrets/ relative to the project root (2 levels up from smart_contracts/)
+  // Host secret paths
   const hostPaths = [
     join(__dirname, '..', '.secrets', name),   // from smart_contracts/
     join(__dirname, '.secrets', name),          // from smart_contracts/ itself
   ];
+  // 2. Plaintext file (provisioned for docker compose)
   for (const p of hostPaths) {
     if (existsSync(p)) {
       try { return readFileSync(p, 'utf8').trim(); } catch (e) { /* try next */ }
     }
   }
-  // 3. Env var fallback (last resort — should be empty in .env)
+  // 3. Encrypted file (.enc) — decrypt in memory (passphrase from Credential Manager)
+  for (const p of hostPaths) {
+    const encPath = p + '.enc';
+    if (existsSync(encPath)) {
+      try {
+        return decryptSecret(encPath);
+      } catch (e) {
+        console.error(`⚠️  Failed to decrypt secret ${name}:`, e.message);
+        /* fall through to env */
+      }
+    }
+  }
+  // 4. Env var fallback (last resort — should be empty in .env)
   return process.env[envVarName];
+}
+
+/**
+ * Decrypts an AES-256-GCM encrypted secret file using a passphrase from
+ * Windows DPAPI. The key is derived via scrypt.
+ * @param {string} encPath - Path to the .enc file
+ * @returns {string} Decrypted plaintext
+ */
+function decryptSecret(encPath) {
+  const passphraseEncPath = join(__dirname, '..', '.secrets', '.passphrase.enc');
+
+  // Load passphrase from DPAPI-encrypted file
+  let passphrase;
+  try {
+    const psScript = `
+      $encrypted = Get-Content -Path '${passphraseEncPath.replace(/\\/g, '\\\\')}' -Raw
+      $secure = ConvertTo-SecureString $encrypted
+      $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+      $plain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+      Write-Output $plain
+    `;
+    const tmpFile = join(tmpdir(), 'rps_load_pass_' + process.pid + '.ps1');
+    writeFileSync(tmpFile, psScript);
+    passphrase = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${tmpFile}"`, { encoding: 'utf8', stdio: 'pipe' }).trim();
+    try { unlinkSync(tmpFile); } catch (e) { /* ignore */ }
+  } catch (e) {
+    throw new Error('No passphrase in DPAPI (run: node secrets-manager.mjs init)');
+  }
+
+  const encrypted = readFileSync(encPath);
+  const SALT_LEN = 16, IV_LEN = 12, TAG_LEN = 16, KEY_LEN = 32;
+  const salt = encrypted.subarray(0, SALT_LEN);
+  const iv = encrypted.subarray(SALT_LEN, SALT_LEN + IV_LEN);
+  const tag = encrypted.subarray(SALT_LEN + IV_LEN, SALT_LEN + IV_LEN + TAG_LEN);
+  const ciphertext = encrypted.subarray(SALT_LEN + IV_LEN + TAG_LEN);
+  const key = scryptSync(passphrase, salt, KEY_LEN, { N: 16384, r: 8, p: 1 });
+  const decipher = createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(tag);
+  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  return decrypted.toString('utf8').trim();
 }
 
 // ===================================
