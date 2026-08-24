@@ -672,11 +672,12 @@ contract Battlepool is ReentrancyGuard {
         require(amount <= userBalances[user], "Amount exceeds user balance");
 
         // 🛑 1. Update state **before** sending ETH (prevents reentrancy)
-        userBalances[user] -= amount;
-        if (userBalances[user] == 0) {
-            isUserInAnyPool[user] = false;
-            delete userPremoveCIDs[user]; // Cleanup residual CID
-        }
+        // With updateUserBalance called before payout, userBalances == amount
+        // in the normal flow. We zero the balance to avoid any residual dust
+        // from edge cases (failed sync, partial payout, rounding artifacts).
+        userBalances[user] = 0;
+        isUserInAnyPool[user] = false;
+        delete userPremoveCIDs[user]; // Cleanup residual CID
 
         // ✅ 2. Use `.call{value: amount}("")` instead of `.transfer()`
         (bool success, ) = user.call{value: amount}("");
@@ -708,11 +709,12 @@ contract Battlepool is ReentrancyGuard {
         // Update state
         uint256 nonceUsed = nonces[msg.sender];
         nonces[msg.sender]++;
-        userBalances[msg.sender] -= amount;
-        if (userBalances[msg.sender] == 0) {
-            isUserInAnyPool[msg.sender] = false;
-            delete userPremoveCIDs[msg.sender];
-        }
+        // Zero the balance (updateUserBalance syncs before payout, so
+        // userBalances == amount in the normal flow; zeroing avoids any
+        // residual dust from edge cases).
+        userBalances[msg.sender] = 0;
+        isUserInAnyPool[msg.sender] = false;
+        delete userPremoveCIDs[msg.sender];
 
         // Transfer funds
         (bool success, ) = payable(msg.sender).call{value: amount}("");
@@ -731,10 +733,9 @@ contract Battlepool is ReentrancyGuard {
             require(amounts[i] <= userBalances[wallets[i]], "Amount exceeds user balance");
 
             // 🛑 1. Update state first (prevents reentrancy)
-            userBalances[wallets[i]] -= amounts[i];
-            if (userBalances[wallets[i]] == 0) {
-                isUserInAnyPool[wallets[i]] = false;
-            }
+            // Zero the balance (updateUserBalance syncs before payout).
+            userBalances[wallets[i]] = 0;
+            isUserInAnyPool[wallets[i]] = false;
 
             // ✅ 2. Send ETH safely using `.call{value: amount}("")`
             (bool success, ) = payable(wallets[i]).call{value: amounts[i]}("");
