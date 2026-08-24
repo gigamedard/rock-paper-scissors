@@ -31,6 +31,29 @@ async function main() {
     const gameAddr = await battlepool.getAddress();
     console.log("Battlepool deployed to:", gameAddr);
 
+    // --- Set contract parameters BEFORE initializeRoles (deployer is still owner) ---
+    // These onlyOwner calls must happen before ownership is transferred,
+    // otherwise the deployer (Hardhat #0) can't call them.
+    console.log("Setting Security Coefficient to 1000...");
+    const txCoeff = await battlepool.setSecurityCoefficient(1000);
+    await txCoeff.wait();
+    console.log("✅ Security Coefficient set to 1000.");
+    
+    console.log("Setting Fee Basis Points to 250...");
+    const txFee = await battlepool.setFeeBasisPoints(250);
+    await txFee.wait();
+    console.log("✓ Fee Basis Points set to 250.");
+
+    console.log("Setting default max base bet to 100 ETH...");
+    const txMaxBet = await battlepool.setDefaultMaxBaseBet(ethers.parseEther("100"));
+    await txMaxBet.wait();
+    console.log("✓ Default Max Base Bet set to 100 ETH.");
+    
+    console.log("Setting Default Min Cooldown to 10 seconds...");
+    const txCooldown = await battlepool.setDefaultMinCooldown(10);
+    await txCooldown.wait();
+    console.log("✅ Default Min Cooldown set to 10 seconds.");
+
     // --- SECURITY: initialize all roles in one call (bypasses timelock, one-time only) ---
     // Read all keys from Docker secrets / env, derive addresses, and call
     // initializeRoles() which sets owner, signer, payoutOperator, and devWallet.
@@ -69,29 +92,6 @@ async function main() {
     } else {
         console.log("⚠️  No keys set — deployer retains all roles.");
     }
-    
-    console.log("Setting Security Coefficient to 1000...");
-    const txCoeff = await battlepool.setSecurityCoefficient(1000);
-    await txCoeff.wait();
-    console.log("✅ Security Coefficient set to 1000.");
-    
-    console.log("Setting Fee Basis Points to 250...");
-    const txFee = await battlepool.setFeeBasisPoints(250);
-    await txFee.wait();
-    console.log("✓ Fee Basis Points set to 250.");
-
-    console.log("Setting default max base bet to 100 ETH...");
-    const txMaxBet = await battlepool.setDefaultMaxBaseBet(ethers.parseEther("100"));
-    await txMaxBet.wait();
-    console.log("✓ Default Max Base Bet set to 100 ETH.");
-    
-    console.log("Setting Default Min Cooldown to 10 seconds...");
-    const txCooldown = await battlepool.setDefaultMinCooldown(10);
-    await txCooldown.wait();
-    console.log("✅ Default Min Cooldown set to 10 seconds.");
-
-    // Ownership was already transferred via initializeRoles() above.
-    // Future owner changes require the timelock (queueTransferOwnership → executeTransferOwnership).
     
     const SNTToken = await ethers.getContractFactory("SNTToken");
     const sntToken = await SNTToken.deploy({ gasLimit: 5000000 });
