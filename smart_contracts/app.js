@@ -12,7 +12,7 @@ import {
     LOCAL_HARDHAT_URL,
     FUJI_RPC_URL,
     NODE_SERVER_PORT,
-    GAME_WALLET_PK,
+    PAYOUT_OPERATOR_PK,
     MARKETPLACE_WALLET_PK,
     SIGNER_WALLET_PK,
     SECURITY_COEFFICIENT,
@@ -62,8 +62,11 @@ app.post("/ipfs/add-json", async (req, res) => {
 });
 
 // --- Connexion au Jeu (Hardhat) ---
+// SECURITY: The bridge uses PAYOUT_OPERATOR_PK (hot key) instead of GAME_WALLET_PK (owner/cold key).
+// This way, even if the bridge is compromised, the attacker cannot call admin functions
+// (setFeeBasisPoints, withdrawDevFees, transferOwnership, etc.) — only payOut/batchPayOut.
 const gameProvider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
-const gameWallet = new Wallet(GAME_WALLET_PK, gameProvider);
+const gameWallet = new Wallet(PAYOUT_OPERATOR_PK, gameProvider);
 const gameContract = new Contract(contracts.game.address, contracts.game.abi, gameWallet);
 // SECURITY: separate signer wallet for claim signatures (rotatable via setSigner).
 const signerWallet = new Wallet(SIGNER_WALLET_PK, gameProvider);

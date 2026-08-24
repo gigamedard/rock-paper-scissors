@@ -1,9 +1,10 @@
 import { JsonRpcProvider, Wallet, parseEther, formatEther, keccak256, toUtf8Bytes } from "ethers";
 import fs from "fs";
-import { FUJI_RPC_URL } from "./config.js";
+import { FUJI_RPC_URL, GAME_WALLET_PK } from "./config.js";
 
 // Configuration
-const MAIN_WALLET_PK = "***REMOVED***";
+// SECURITY: read owner key from config.js (env/Docker secret) instead of hardcoding.
+const MAIN_WALLET_PK = GAME_WALLET_PK;
 const BASE_SEED = "rock paper scissors simulation deterministic seed ";
 const ACCOUNT_COUNT = 70; // Number of accounts to generate
 const AMOUNT_PER_ACCOUNT = "2.0"; // AVAX to send (Gas + Bets + Security Margin)

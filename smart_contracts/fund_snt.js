@@ -5,7 +5,11 @@ import { contracts } from "./config.js";
 // Adresse SNT lue dynamiquement depuis config.js (mis à jour par full_deploy.js à chaque déploiement)
 const SNT_ADDRESS = contracts.snt.address;
 const RPC_URL = "http://127.0.0.1:8546";
-const OWNER_PK = "***REMOVED***";
+// SECURITY: The SNT tokens are minted to Hardhat #0 (the deployer) at deployment.
+// This is a TEST-ONLY script that uses the well-known Hardhat #0 key to distribute
+// SNT to test accounts. In production, the deployer would use their own key.
+// The Hardhat #0 key is a publicly-known test key — accepted residual risk for local dev.
+const OWNER_PK = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 const CHAIN_ID = 31337;
 
 // Uniquement les comptes #1 et #2 (réservés aux tests utilisateur)

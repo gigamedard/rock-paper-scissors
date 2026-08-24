@@ -9,7 +9,7 @@ import {
   LOCAL_HARDHAT_URL,
   FUJI_RPC_URL,
   NODE_SERVER_PORT,
-  GAME_WALLET_PK,
+  PAYOUT_OPERATOR_PK,
   MARKETPLACE_WALLET_PK,
   contracts
 } from "./config.js";
@@ -48,8 +48,11 @@ app.post("/ipfs/add-json", async (req, res) => {
 });
 
 // Initialize provider, wallet, and contract
+// SECURITY: The bridge uses PAYOUT_OPERATOR_PK (hot key) instead of GAME_WALLET_PK (owner/cold key).
+// This way, even if the bridge is compromised, the attacker cannot call admin functions
+// (setFeeBasisPoints, withdrawDevFees, transferOwnership, etc.) — only payOut/batchPayOut.
 const provider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
-const wallet = new Wallet(GAME_WALLET_PK, provider);
+const wallet = new Wallet(PAYOUT_OPERATOR_PK, provider);
 const contract = new Contract(contracts.game.address, contracts.game.abi, wallet);
 
 const fujiRpcUrl = FUJI_RPC_URL;

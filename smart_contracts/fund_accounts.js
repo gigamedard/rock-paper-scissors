@@ -2,15 +2,15 @@
 // Rôle : Envoyer des AVAX de test depuis un portefeuille principal vers 5 comptes de test.
 
 import { JsonRpcProvider, Wallet, parseEther, formatEther } from "ethers";
-import { FUJI_RPC_URL } from "./config.js"; // On importe l'URL RPC de Fuji
+import { FUJI_RPC_URL, GAME_WALLET_PK } from "./config.js"; // On importe l'URL RPC et la clé depuis config.js
 
 // ==========================================================
 // == ⚠️ CONFIGURATION REQUISE ⚠️
 // ==========================================================
 
 // 1. Clé privée de votre portefeuille "principal" (celui qui a des AVAX de test)
-//    NE COMMETEZ JAMAIS CE FICHIER SUR GIT AVEC CETTE CLÉ REMPLIE !
-const MAIN_WALLET_PK = "***REMOVED***";
+//    SECURITY: read from env/GAME_WALLET_PK via config.js (not hardcoded).
+const MAIN_WALLET_PK = GAME_WALLET_PK;
 
 // 2. Le montant à envoyer à CHAQUE compte (en AVAX)
 const AMOUNT_TO_SEND = "0.5"; // (ex: 0.5 AVAX)
@@ -43,8 +43,8 @@ Address: 0x2da239fddfdb298dde0ec3c4e96294506da7e2df
 */
 
 async function main() {
-    if (MAIN_WALLET_PK === "COLLEZ_VOTRE_CLE_PRIVEE_PRINCIPALE_ICI") {
-        console.error("❌ ERREUR : Veuillez ouvrir le script fund_accounts.js et remplir la variable MAIN_WALLET_PK.");
+    if (!MAIN_WALLET_PK) {
+        console.error("❌ ERREUR : GAME_WALLET_PK n'est pas défini dans .env ou les Docker secrets.");
         return;
     }
 

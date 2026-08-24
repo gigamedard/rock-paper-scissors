@@ -111,15 +111,20 @@ describe("Battlepool", function () {
     it("Should handle batch payout correctly", async function () {
       const baseBet = 1;
       const users = [user1.address, user2.address];
-      const amounts = [100, 200];
+      // After the 5% fee (feeBasisPoints=500), depositing X credits X*10000/10500.
+      // To get a credited balance of exactly 100 and 200 we deposit:
+      //   deposit = desired * 10500 / 10000
+      const desiredAmounts = [100, 200];
+      const depositAmounts = desiredAmounts.map(a => Math.ceil(a * 10500 / 10000));
 
-      // Fund contract to allow payouts
-      await owner.sendTransaction({
-        to: battlepool.target,
-        value: 1000,
-      });
+      // Credit each user's on-chain balance via deposit()
+      await battlepool.connect(user1).deposit({ value: depositAmounts[0] });
+      await battlepool.connect(user2).deposit({ value: depositAmounts[1] });
 
-      await battlepool.batchPayOut(users, amounts);
+      // Fund contract with extra ETH so the contract has enough to pay out
+      await owner.sendTransaction({ to: battlepool.target, value: 1000 });
+
+      await battlepool.batchPayOut(users, desiredAmounts);
 
       for (let i = 0; i < users.length; i++) {
         const userBal = await battlepool.getUserBalance(users[i]);

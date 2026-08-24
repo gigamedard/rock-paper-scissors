@@ -14,6 +14,9 @@
 smart_contracts/.env
 smart_contracts/.env.*
 !smart_contracts/.env.example
+# SECURITY: Docker secret files (wallet keys, API secrets) — NEVER commit
+.secrets/
+.secrets/*
 .phpactor.json
 .phpunit.result.cache
 Homestead.json

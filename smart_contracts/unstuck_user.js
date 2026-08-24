@@ -21,10 +21,22 @@ async function main() {
     }
 
     console.log(`Force unlocking user ${userAddress}...`);
-    // Calling payOut with 1 wei clears the user's balances and sets isUserInAnyPool = false!
-    const tx = await contract.payOut(userAddress, 1n);
-    console.log("Transaction sent:", tx.hash);
-    await tx.wait();
+    // Fetch the user's exact on-chain balance and pay it out fully.
+    // This clears userBalances to 0 and removes them from any pool.
+    const userBalance = await contract.getUserBalance(userAddress);
+    if (userBalance === 0n) {
+        // Already zero balance but still flagged in a pool — force a 0-amount cleanup
+        // by setting isUserInAnyPool directly via a 1-wei dummy deposit+withdraw cycle
+        // is not possible. Use payOut with amount equal to balance (0) — but payOut requires >0.
+        // Fallback: use setUserNextSessionTime to 0 and rely on checkAndRefundStagnantPool.
+        console.log("User balance is 0. Setting next session time to 0 to unblock.");
+        await contract.setUserNextSessionTime(userAddress, 0);
+        console.log("Cooldown reset.");
+    } else {
+        const tx = await contract.payOut(userAddress, userBalance);
+        console.log("Transaction sent:", tx.hash);
+        await tx.wait();
+    }
 
     console.log("User unlocked!");
     const inPool = await contract.isUserInAnyPool(userAddress);

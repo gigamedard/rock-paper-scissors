@@ -3,6 +3,23 @@ const hre = require("hardhat");
 const fs = require("fs");
 const path = require("path");
 
+/**
+ * SECURITY: readSecret reads a value from a Docker secret file (/run/secrets/<name>)
+ * if it exists, falling back to the process.env variable. This allows wallet keys
+ * to be mounted as Docker secrets (not visible in `env` or `docker inspect`).
+ */
+function readSecret(envVarName, secretName) {
+    const secretPath = path.join("/run/secrets", secretName || envVarName.toLowerCase());
+    if (fs.existsSync(secretPath)) {
+        try {
+            return fs.readFileSync(secretPath, "utf8").trim();
+        } catch (e) {
+            console.error(`⚠️  Failed to read secret ${secretName}:`, e.message);
+        }
+    }
+    return process.env[envVarName];
+}
+
 async function main() {
     console.log("Starting deployment...");
     const [deployer] = await ethers.getSigners();
@@ -18,7 +35,7 @@ async function main() {
     // The signer signs claim signatures. It is a "hot" key distinct from the
     // owner (deployer). If SIGNER_WALLET_PK is set, derive its address and
     // assign it as the signer; otherwise the deployer remains the signer.
-    const signerPk = process.env.SIGNER_WALLET_PK;
+    const signerPk = readSecret("SIGNER_WALLET_PK");
     if (signerPk) {
         const signerWallet = new ethers.Wallet(signerPk);
         console.log("Setting signer to:", signerWallet.address);
@@ -27,6 +44,23 @@ async function main() {
         console.log("✅ Signer set to:", signerWallet.address);
     } else {
         console.log("⚠️  SIGNER_WALLET_PK not set — deployer remains the signer.");
+    }
+
+    // --- SECURITY: configure the separate payoutOperator role ---
+    // The payoutOperator is the "hot" key the bridge uses to call payOut/batchPayOut.
+    // It is DISTINCT from the owner (admin) key, so a bridge compromise cannot
+    // access admin functions (setFee, withdrawDevFees, transferOwnership, etc.).
+    // If PAYOUT_OPERATOR_PK is set, derive its address and assign it; otherwise
+    // fall back to the signer key (still distinct from owner).
+    const operatorPk = readSecret("PAYOUT_OPERATOR_PK") || signerPk;
+    if (operatorPk) {
+        const operatorWallet = new ethers.Wallet(operatorPk);
+        console.log("Setting payoutOperator to:", operatorWallet.address);
+        const txOp = await battlepool.setPayoutOperator(operatorWallet.address);
+        await txOp.wait();
+        console.log("✅ PayoutOperator set to:", operatorWallet.address);
+    } else {
+        console.log("⚠️  PAYOUT_OPERATOR_PK not set — deployer remains the payout operator.");
     }
     
     console.log("Setting Security Coefficient to 1000...");
@@ -53,7 +87,7 @@ async function main() {
     // The deployer (Hardhat #0) has a publicly-known private key. We transfer
     // ownership to a fresh random key (GAME_WALLET_PK) so the compromised key
     // loses all admin power. This is the owner key rotation mechanism.
-    const ownerPk = process.env.GAME_WALLET_PK;
+    const ownerPk = readSecret("GAME_WALLET_PK");
     if (ownerPk) {
         const ownerWallet = new ethers.Wallet(ownerPk);
         console.log("Transferring ownership to:", ownerWallet.address);

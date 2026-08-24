@@ -67,6 +67,12 @@ services:
   blockchain:
     image: rock-paper-scissors-blockchain:latest
     restart: unless-stopped
+    secrets:
+      # SECURITY: keys mounted as files in /run/secrets/ (not in environment).
+      # full_deploy.js reads them via config.js readSecret() which checks /run/secrets/ first.
+      - game_wallet_pk
+      - signer_wallet_pk
+      - payout_operator_pk
     ports:
       # 8546 hôte pour ne pas entrer en conflit avec l'autre app (8545)
       # SECURITY: bind to loopback only (not 0.0.0.0)
@@ -95,17 +101,19 @@ services:
     command: ["node", "smart_contracts/app.js"]
     restart: unless-stopped
     env_file: .env.staging
-    environment:
-      # SECURITY: wallet keys injected via environment (NOT via a mounted .env file).
-      # This keeps the private keys out of the container filesystem, so a
-      # filesystem read on the bridge container no longer exposes them.
-      GAME_WALLET_PK: ${GAME_WALLET_PK}
-      MARKETPLACE_WALLET_PK: ${MARKETPLACE_WALLET_PK}
-      SIGNER_WALLET_PK: ${SIGNER_WALLET_PK}
+    secrets:
+      # SECURITY: wallet keys mounted as files in /run/secrets/ (NOT in environment).
+      # The bridge gets ONLY the hot keys: payout_operator (payOut/batchPayOut) and
+      # signer (claim signatures). GAME_WALLET_PK (owner/cold key) is NOT here —
+      # a bridge compromise cannot access admin functions.
+      - payout_operator_pk
+      - marketplace_wallet_pk
+      - signer_wallet_pk
+      - internal_api_secret
     volumes:
       # CRUCIAL : Monter UNIQUEMENT config.js (pas tout le dossier).
       # Monter tout smart_contracts/ écraserait les node_modules Linux avec ceux de Windows.
-      # Les clés privées sont injectées via `environment:` ci-dessus, PAS via un .env monté.
+      # Les clés privées sont injectées via `secrets:` ci-dessus, PAS via un .env monté.
       - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
     depends_on:
       blockchain:
@@ -228,3 +236,23 @@ services:
 # ============================================================
 volumes:
   db_data:
+
+# ============================================================
+# DOCKER SECRETS
+# SECURITY: Wallet keys and API secrets are mounted as files in /run/secrets/
+# inside the containers. They do NOT appear in `docker inspect`, `env`, or
+# the container's environment block. The secret files live in .secrets/ on
+# the host (gitignored). config.js readSecret() reads from /run/secrets/ first,
+# falling back to process.env for local dev.
+# ============================================================
+secrets:
+  game_wallet_pk:
+    file: ./.secrets/game_wallet_pk
+  signer_wallet_pk:
+    file: ./.secrets/signer_wallet_pk
+  payout_operator_pk:
+    file: ./.secrets/payout_operator_pk
+  marketplace_wallet_pk:
+    file: ./.secrets/marketplace_wallet_pk
+  internal_api_secret:
+    file: ./.secrets/internal_api_secret

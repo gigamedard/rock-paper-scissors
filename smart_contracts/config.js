@@ -4,18 +4,45 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readFileSync, existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Charger les variables d'environnement
+// SECURITY: smart_contracts/.env was deleted — merged into root .env (single source of truth).
+// In Docker, env vars are injected via `environment:` in docker-compose (dotenv is a no-op).
+// On the host (local scripts), load from the root .env two levels up.
 dotenv.config({ path: join(__dirname, '.env') });
+dotenv.config({ path: join(__dirname, '..', '.env') });
+
+/**
+ * SECURITY: readSecret reads a value from a Docker secret file (/run/secrets/<name>)
+ * if it exists, falling back to the process.env variable. This allows wallet
+ * private keys to be mounted as Docker secrets (not visible in `env` or in the
+ * container's environment block) while keeping env-var fallback for local dev.
+ *
+ * @param {string} envVarName - The environment variable name (e.g. "GAME_WALLET_PK")
+ * @param {string} secretName - The Docker secret name (defaults to envVarName lowercased)
+ * @returns {string|undefined} The secret value or the env var value
+ */
+function readSecret(envVarName, secretName) {
+  const secretPath = join('/run/secrets', secretName || envVarName.toLowerCase());
+  if (existsSync(secretPath)) {
+    try {
+      return readFileSync(secretPath, 'utf8').trim();
+    } catch (e) {
+      console.error(`⚠️  Failed to read secret ${secretName}:`, e.message);
+    }
+  }
+  return process.env[envVarName];
+}
 
 // ===================================
 // == CONFIGURATION PRINCIPALE
 // ===================================
 export const LARAVEL_API_URL = process.env.LARAVEL_API_URL || "http://127.0.0.1:8000/api";
-export const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
+export const INTERNAL_API_SECRET = readSecret('INTERNAL_API_SECRET');
 export const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:8000";
 
 
@@ -37,18 +64,36 @@ export const NODE_SERVER_PORT = process.env.NODE_SERVER_PORT || 3000;
 // ===================================
 // == PORTEFEUILLES (WALLETS)
 // ===================================
-// (Tu dois remplacer ces clés par les tiennes)
-export const GAME_WALLET_PK = process.env.GAME_WALLET_PK;
-export const MARKETPLACE_WALLET_PK = process.env.MARKETPLACE_WALLET_PK;
+// SECURITY: Wallet keys are read from Docker secrets (/run/secrets/) if available,
+// falling back to env vars (for local dev). In Docker, keys are mounted as secrets
+// and NOT passed via `environment:` so they don't appear in `docker inspect` or `env`.
+export const GAME_WALLET_PK = readSecret('GAME_WALLET_PK');
+export const MARKETPLACE_WALLET_PK = readSecret('MARKETPLACE_WALLET_PK');
 // SECURITY: SIGNER_WALLET_PK is a SEPARATE key that signs claim signatures.
 // It is the "hot" key (exposed to the bridge) and can be rotated via setSigner()
 // without touching GAME_WALLET_PK (the "cold" owner/admin key).
 // Falls back to GAME_WALLET_PK for backward compatibility during transition.
-export const SIGNER_WALLET_PK = process.env.SIGNER_WALLET_PK || GAME_WALLET_PK;
+export const SIGNER_WALLET_PK = readSecret('SIGNER_WALLET_PK') || GAME_WALLET_PK;
+// SECURITY: PAYOUT_OPERATOR_PK is the "hot" key the bridge uses to call
+// payOut/batchPayOut. It is DISTINCT from the owner key (GAME_WALLET_PK),
+// so a bridge compromise cannot access admin functions. Falls back to
+// SIGNER_WALLET_PK for backward compatibility during transition.
+export const PAYOUT_OPERATOR_PK = readSecret('PAYOUT_OPERATOR_PK') || SIGNER_WALLET_PK;
 
 // VALIDATION
-if (!GAME_WALLET_PK || !MARKETPLACE_WALLET_PK) {
-  console.error('❌ Wallet private keys must be defined in .env file');
+// SECURITY: GAME_WALLET_PK (owner/cold key) is NOT required in the bridge container
+// (deliberately not mounted as a secret). Only MARKETPLACE_WALLET_PK and either
+// PAYOUT_OPERATOR_PK or SIGNER_WALLET_PK are required for the bridge to function.
+if (!MARKETPLACE_WALLET_PK) {
+  console.error('❌ MARKETPLACE_WALLET_PK must be defined (env var or Docker secret)');
+}
+if (!PAYOUT_OPERATOR_PK) {
+  console.error('❌ PAYOUT_OPERATOR_PK (or SIGNER_WALLET_PK) must be defined (env var or Docker secret)');
+}
+// GAME_WALLET_PK is only needed by admin scripts (fund_bots, unstuck_user, etc.)
+// and by the blockchain container for deployment. The bridge does NOT need it.
+if (!GAME_WALLET_PK) {
+  console.warn('⚠️  GAME_WALLET_PK not set — admin scripts will not work (OK for bridge container)');
 }
 
 // ===================================
@@ -430,6 +475,19 @@ export const contracts = {
       }
     ],
     "name": "SignerUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newOperator",
+        "type": "address"
+      }
+    ],
+    "name": "PayoutOperatorUpdated",
     "type": "event"
   },
   {
@@ -1272,6 +1330,19 @@ export const contracts = {
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "newOperator",
+        "type": "address"
+      }
+    ],
+    "name": "setPayoutOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "_limit",
         "type": "uint256"
@@ -1336,6 +1407,19 @@ export const contracts = {
   {
     "inputs": [],
     "name": "signer",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "payoutOperator",
     "outputs": [
       {
         "internalType": "address",
@@ -1551,7 +1635,7 @@ export const contracts = {
   },
   // --- Contrat MARKETPLACE (de app.js/server.js) ---
   marketplace: {
-    address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6", // MarketplaceEscrow
+    address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318", // MarketplaceEscrow
     abi: [
       {
         "inputs": [
@@ -1918,7 +2002,7 @@ export const contracts = {
   },
   // --- Contrat du JETON (SNT / USDT) ---
   snt: {
-    address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853", // SNTToken
+    address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6", // SNTToken
     abi: [
       { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "amount", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "payable": false, "stateMutability": "nonpayable", "type": "function" },
       { "constant": true, "inputs": [{ "name": "account", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },

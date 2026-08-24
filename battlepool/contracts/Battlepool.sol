@@ -36,6 +36,7 @@ contract Battlepool is ReentrancyGuard {
 
     event SecurityCoefficientUpdated(uint256 newCoefficient);
     event SignerUpdated(address newSigner);
+    event PayoutOperatorUpdated(address newOperator);
     event PayoutProcessed(address indexed wallet, uint256 amount);
     event DefaultPoolMaxSizeChanged(uint256 newSize); // <<<--- AJOUTEZ CETTE LIGNE
     event PoolStagnantRefund(uint256 indexed poolId, uint256 refundedCount, uint256 timestamp);
@@ -70,6 +71,10 @@ contract Battlepool is ReentrancyGuard {
     // without touching the owner (admin) role. This isolates the "hot" signing
     // key (exposed to the bridge) from the "cold" admin key.
     address public signer;
+    // SECURITY: payoutOperator is a SEPARATE hot role allowed to call payOut/batchPayOut.
+    // The bridge uses this key (PAYOUT_OPERATOR_PK) instead of the owner key,
+    // so a bridge compromise cannot access admin functions (setFee, withdrawDevFees, etc.).
+    address public payoutOperator;
     uint256 public securityCoefficient = 1000;
     uint256 public defaultPoolMaxSize; // <<<--- AJOUTEZ CETTE LIGNE
     uint256 public stagnantBlockLimit = 100; // Default 100 blocks
@@ -85,11 +90,17 @@ contract Battlepool is ReentrancyGuard {
         _;
     }
 
+    modifier onlyPayoutOperator() {
+        require(msg.sender == payoutOperator || msg.sender == owner, "Only payout operator or owner");
+        _;
+    }
+
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     constructor() {
         owner = msg.sender;
         signer = msg.sender; // Initially the deployer is also the signer
+        payoutOperator = msg.sender; // Initially the deployer is also the payout operator
         devWallet = payable(msg.sender); // Default to deployer
         defaultPoolMaxSize = 5; // <<<--- AJOUTEZ CETTE LIGNE
         defaultMaxBaseBet = 100 ether;
@@ -120,6 +131,17 @@ contract Battlepool is ReentrancyGuard {
         require(newSigner != address(0), "Invalid signer address");
         signer = newSigner;
         emit SignerUpdated(newSigner);
+    }
+
+    /**
+     * @dev Rotates the payoutOperator role (the hot key that calls payOut/batchPayOut).
+     * Only the owner can change it. The bridge uses this key instead of the owner
+     * key, so a bridge compromise cannot access admin functions.
+     */
+    function setPayoutOperator(address newOperator) external onlyOwner {
+        require(newOperator != address(0), "Invalid payout operator address");
+        payoutOperator = newOperator;
+        emit PayoutOperatorUpdated(newOperator);
     }
 
     /**
@@ -509,15 +531,17 @@ contract Battlepool is ReentrancyGuard {
     }
 
     //payOut function
-    function payOut(address payable user, uint256 amount) external onlyOwner {
+    function payOut(address payable user, uint256 amount) external onlyPayoutOperator {
         require(user != address(0), "Invalid user address");
         require(amount > 0, "Amount must be greater than 0");
-       
+        require(amount <= userBalances[user], "Amount exceeds user balance");
 
         // 🛑 1. Update state **before** sending ETH (prevents reentrancy)
-        userBalances[user] = 0;
-        isUserInAnyPool[user] = false;
-        delete userPremoveCIDs[user]; // Cleanup residual CID
+        userBalances[user] -= amount;
+        if (userBalances[user] == 0) {
+            isUserInAnyPool[user] = false;
+            delete userPremoveCIDs[user]; // Cleanup residual CID
+        }
 
         // ✅ 2. Use `.call{value: amount}("")` instead of `.transfer()`
         (bool success, ) = user.call{value: amount}("");
@@ -536,6 +560,7 @@ contract Battlepool is ReentrancyGuard {
      */
     function claimAndExit(uint256 amount, uint256 deadline, bytes memory signature) external nonReentrant {
         require(amount > 0, "Amount must be greater than 0");
+        require(amount <= userBalances[msg.sender], "Amount exceeds user balance");
         require(block.timestamp <= deadline, "Signature expired");
 
         // Verify signature: hash(address, amount, nonce, contractAddress, chainId, deadline)
@@ -548,9 +573,11 @@ contract Battlepool is ReentrancyGuard {
         // Update state
         uint256 nonceUsed = nonces[msg.sender];
         nonces[msg.sender]++;
-        userBalances[msg.sender] = 0;
-        isUserInAnyPool[msg.sender] = false;
-        delete userPremoveCIDs[msg.sender];
+        userBalances[msg.sender] -= amount;
+        if (userBalances[msg.sender] == 0) {
+            isUserInAnyPool[msg.sender] = false;
+            delete userPremoveCIDs[msg.sender];
+        }
 
         // Transfer funds
         (bool success, ) = payable(msg.sender).call{value: amount}("");
@@ -562,15 +589,17 @@ contract Battlepool is ReentrancyGuard {
 
 
 
-    function batchPayOut(address[] calldata wallets, uint256[] calldata amounts) external onlyOwner nonReentrant {
+    function batchPayOut(address[] calldata wallets, uint256[] calldata amounts) external onlyPayoutOperator nonReentrant {
         require(wallets.length == amounts.length, "Mismatched arrays");
 
         for (uint i = 0; i < wallets.length; i++) {
-            
+            require(amounts[i] <= userBalances[wallets[i]], "Amount exceeds user balance");
 
             // 🛑 1. Update state first (prevents reentrancy)
-            userBalances[wallets[i]] = 0;
-            isUserInAnyPool[wallets[i]] = false;
+            userBalances[wallets[i]] -= amounts[i];
+            if (userBalances[wallets[i]] == 0) {
+                isUserInAnyPool[wallets[i]] = false;
+            }
 
             // ✅ 2. Send ETH safely using `.call{value: amount}("")`
             (bool success, ) = payable(wallets[i]).call{value: amounts[i]}("");
