@@ -6,8 +6,8 @@ import { Wallet } from 'ethers';
 const FRONTEND_URL = 'http://127.0.0.1:8001/';
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
-// Compte Hardhat #1 (réservé aux tests utilisateur)
-const TEST_PK = '***REMOVED***';
+// Compte Hardhat #1 (réservé aux tests utilisateur) — public test key, not a production secret
+const TEST_PK = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
 const TEST_ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
 
 const wallet = new Wallet(TEST_PK);
