@@ -266,7 +266,12 @@ window.marketplaceBuyCard = async function(cardId, cardPrice, quantity = 1) {
         return;
     }
     
-    const OWNER_ADDRESS = '0x4B35f60D18F2Caf3534bEcE3Df38FBc02c818E63';
+    // Destinataire des achats de cartes : le PAYOUT_OPERATOR (wallet "hot" du bridge).
+    // C'est LUI que /verify-snt-transfer (smart_contracts/app.js:390) attend comme
+    // platformWallet (SNT_RECEIVER_WALLET n'étant pas défini, le fallback est gameWallet
+    // = PAYOUT_OPERATOR). Payer un autre wallet (owner/treasury) → transaction marquée
+    // 'failed' par VerifyCardPurchaseJob → activation carte impossible (HTTP 422).
+    const PAYOUT_OPERATOR_ADDRESS = '0x5aa8eb45a9F6F87D8c51c51ea2639559Df632ebd';
     const totalSntPrice = cardPrice * quantity;
     
     try {
@@ -292,7 +297,7 @@ window.marketplaceBuyCard = async function(cardId, cardPrice, quantity = 1) {
         addToFeed(t('feed.verify_snt'), 'var(--primary)');
         _showMpNotification(t('marketplace.sign_tx_info'), 'info');
         
-        const tx = await sntContract.transfer(OWNER_ADDRESS, amountInWei);
+        const tx = await sntContract.transfer(PAYOUT_OPERATOR_ADDRESS, amountInWei);
         addToFeed(t('feed.sending_snt', { amount: totalSntPrice, hash: tx.hash.substring(0,10) }), 'var(--primary)');
         _showMpNotification(t('marketplace.tx_pending_info'), 'info');
         
