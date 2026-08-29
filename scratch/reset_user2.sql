@@ -1,0 +1,2 @@
+UPDATE users SET balance=0, payout_signature=NULL, payout_deadline=NULL, autoplay_active=0, session_started=0 WHERE id=2;
+SELECT id, status, balance, autoplay_active, payout_signature FROM users WHERE id=2;

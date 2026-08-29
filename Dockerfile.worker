@@ -7,16 +7,22 @@ WORKDIR /app
 # On copie d'abord uniquement les fichiers de configuration NPM
 COPY package.json package-lock.json ./
 
-# On installe les paquets Node.js. 
-# --omit=dev permet de ne pas installer les outils de développement (Vite, Tailwind...) 
+# On installe les paquets Node.js.
+# --omit=dev permet de ne pas installer les outils de développement (Vite, Tailwind...)
 # car le worker n'en a pas besoin, ce qui allège l'image.
 RUN npm ci --omit=dev
 
-# On copie tout le reste du code source (scripts, ABI des smart contracts, etc.)
-COPY . .
-
-# On installe AUSSI les dépendances spécifiques aux smart contracts (comme helia) après la copie
+# --- OPTIMISATION CACHE : installer les deps smart_contracts AVANT le COPY . .
+# Ainsi, tant que package.json/package-lock.json ne changent pas, cette couche lourde
+# (helia, hardhat) reste en cache même si le code applicatif change (builds ~secondes
+# au lieu de 25+ min).
+COPY smart_contracts/package.json smart_contracts/package-lock.json* ./smart_contracts/
 RUN cd smart_contracts && npm ci --omit=dev
+
+# On copie tout le reste du code source (scripts, ABI des smart contracts, etc.)
+# (nécessaire pour smart_contracts/node_modules existants ? Non : npm ci les régénère ;
+#  le .dockerignore exclut node_modules/)
+COPY . .
 
 # La commande qui sera lancée automatiquement quand le conteneur démarrera
 CMD ["node", "smart_contracts/run_batch_processor.js"]

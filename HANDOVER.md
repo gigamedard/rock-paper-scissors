@@ -1,8 +1,9 @@
 # PASSATION DE CHARGES — Broadcasts temps réel (FightResult / UserBalanceUpdated)
 
-**Rédigé le :** 2026-08-16, 07:40 (Mis à jour à 07:54)
+**Rédigé le :** 2026-08-16, 07:40 (Mis à jour à 07:54 — dernière section ajoutée : §18, 2026-08-28)
 **Projet :** `G:\DEV\PHP\rock-paper-scissors\` (Laravel + Octane/Swoole + Redis + Reverb + Bridge Node.js + Hardhat, orchestré par Docker Compose)
 **État au moment de la passation :** ✅ FIXES RENDUS DURABLES — Images Docker `app` & `reverb` reconstruites et validées en production locale.
+**🆕 INTÉVENANT URGENT :** va DIRECTEMENT au **TEST_RUNBOOK.md §0 (PROTOCOLE P.R.O.T.)** — c'est la procédure normalisée d'intervention (symptômes → remèdes, arbre de décision). Détails du contexte dans §18 ci-dessous.
 
 ---
 
@@ -617,4 +618,352 @@ Raisons :
 |---|---|
 | `577d18e` | fix: add updateUserBalance to sync off-chain gains before payout |
 | `57d65d9` | contract: zero userBalances on payout instead of subtracting |
+
+---
+
+## 17. PIÈGES À ÉVITER POUR LES TESTS MANUELS NAVIGATEUR (2026-08-25)
+
+**Contexte :** session de test manuel (compte Hardhat #1 réservé à l'humain + bots autoplay).
+**Référence procédurale complète :** voir le fichier `TEST_RUNBOOK.md` (à côté de ce handover).
+
+### 17.1 `SyncUserLimitsJob` FAIL en boucle = wallet de gas à sec
+
+**Symptôme :** `queue-worker-limits-1` log des `SyncUserLimitsJob ... FAIL` (~80ms chacun). Le bridge log
+`Sender doesn't have enough funds to send tx. The sender's balance is: 0.`
+
+**Cause :** le wallet `PAYOUT_OPERATOR` (qui signe `setUserLimits` et `payOut`) est tombé à **0 ETH** → il ne
+peut plus payer le gas. Ce n'est PAS un bug du contrat, c'est un manque de fonds.
+
+**Piège :** le `PAYOUT_OPERATOR` n'est PAS le `GAME_WALLET` (owner). C'est une clé "hot" dédiée (§15.2). Après un
+redéploiement de la blockchain Hardhat (état vierge), ces wallets de service sont remis à 0 ETH et doivent être
+**re-fundés manuellement** (Hardhat ne pré-funde que les comptes de la mnémonique, pas les wallets dérivés de
+`GAME_WALLET_PK`/`SIGNER_WALLET_PK`/`PAYOUT_OPERATOR_PK`).
+
+**Correctif :** funder depuis le compte Hardhat #0 (PK `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`)
+vers les 3 wallets de service (100 ETH chacun suffit largement). Vérifier ensuite que les jobs passent en `DONE`.
+
+### 17.2 "Amount exceeds user balance" au claim = solde on-chain désynchronisé
+
+**Symptôme :** le bouton "CLAIM" du navigateur échoue avec
+`execution reverted: "Amount exceeds user balance"`.
+
+**Cause :** les fights sont résolus **off-chain** (Laravel). Le solde DB (dépôt + gains) est supérieur au
+`userBalances` on-chain (dépôt seul). `claimAndExit(amount)` exige `amount <= userBalances[user]`.
+
+**Piège :** le bridge synchronise normalement via `updateUserBalance` AVANT de signer (`app.js:296`), mais si cette
+synchro échoue silencieusement (ex: gas à sec, §17.1), la signature est émise pour un montant supérieur au solde
+on-chain → revert au claim.
+
+**Correctif :** appeler manuellement `updateUserBalance(user, soldeDB)` (depuis le `PAYOUT_OPERATOR`) pour aligner
+l'on-chain avec la DB, puis re-cliquer "CLAIM" (la signature reste valide : nonce inchangé, deadline non expirée).
+
+### 17.3 Overlay de combat bloquant le bouton claim (frontend)
+
+**Symptôme :** l'overlay translucide "WAITING FOR OPPONENT..." reste affiché PAR-DESSUS le bouton claim (visible
+en arrière-plan flouté, non cliquable).
+
+**Cause double :**
+1. **Bug UI** : dans `resources/js/modules/game.js`, la branche `pendingClaim` du statut `stopped` n'appelait pas
+   `hideCombatOverlay()`. → corrigé (ajout de `hideCombatOverlay()`).
+2. **Autoplay resté actif** : le compte réservé à l'humain avait encore `autoplay_active = 1` (hérité de
+   `simulation_bots.js`), donc le moteur le recyclait en continu → overlay "WAITING FOR OPPONENT..." en boucle.
+
+**Piège :** après avoir créé un compte "humain" à partir d'un compte Hardhat, TOUJOURS désactiver `autoplay_active`
+en DB, sinon le worker le traite comme un bot.
+
+**Correctif :** `autoplay_active = false` + `status = stopped` + `pool_id = null` en DB, puis recompiler le frontend
+(`npm run build` sur l'hôte) et copier `public/build` dans le conteneur `app` (le bundle Vite est servi depuis là).
+
+### 17.4 Le frontend servi est le bundle Vite compilé, PAS les sources
+
+**Piège :** `public/index.html` charge `/build/assets/app.js` (bundle compilé). `public/js/app.js` et
+`resources/js/modules/game.js` sont les **sources** ; toute modif ne prend effet qu'après `npm run build` + copie
+du dossier `public/build` dans le conteneur `app` (le conteneur n'a pas `node`/`npm`).
+
+### 17.5 `docker exec` sous PowerShell : guillemets et $()
+
+**Piège :** `docker exec conteneur sh -c '...'` avec quotes imbriquées ou `$(...)` casse sous PowerShell (qui
+interprète `$()` et les backslashes). **Pattern fiable :** écrire un script `.sh` local, `docker cp` vers
+`/tmp/`, puis `docker exec conteneur sh /tmp/script.sh`.
+
+### 17.6 Secrets : provisionner AVANT toute opération, déprovisionner APRÈS
+
+**Piège :** après `deprovision`, les fichiers plaintext `.secrets/*` sont supprimés → les bind mounts Docker des
+conteneurs pointent vers des fichiers inexistants → les secrets deviennent illisibles. Toujours :
+```
+node secrets-manager.mjs provision    # déchiffre .enc → plaintext
+# ... opérations ...
+node secrets-manager.mjs deprovision  # supprime le plaintext
+```
+
+### 17.7 Le bridge n'a PAS la clé owner (`GAME_WALLET_PK`)
+
+**Piège :** par design de sécurité (§15.2), le conteneur `bridge` ne monte que `payout_operator_pk`,
+`signer_wallet_pk`, `marketplace_wallet_pk` (PAS `game_wallet_pk`). Pour toute opération admin (fund des wallets,
+`initializeRoles`, etc.), utiliser le conteneur `blockchain` (qui a les 3 secrets + `ethers`) ou un script côté hôte.
+
+### 17.8 Contrat : `initializeRoles` prend 4 arguments
+
+**Piège :** la signature est `initializeRoles(address _owner, address _signer, address _payoutOperator, address payable _devWallet)`
+(PAS 2 args). Avec une ABI incomplète, ethers encode mal l'appel → la tx touche la `fallback()` qui revert
+("Deposit must be greater than 0"). Toujours utiliser l'ABI complète (`config.contracts.game.abi`).
+
+### 17.9 Adresses déterministes Hardhat (via `full_deploy.js`)
+
+Les 3 contrats déployés par `full_deploy.js` obtiennent toujours :
+- Battlepool : `0x5FbDB2315678afecb367f032d93F642f64180aa3`
+- SNTToken : `0x0165878A594ca255338adfa4d48449f69242Eb8F` (PAS `0xe7f1725E...` — cf. §17.10)
+- MarketplaceEscrow : `0xa513E6E4b8f2a923D98304ec87F64353C4D5C853`
+
+Comptes Hardhat réservés à l'humain : #0 `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`, #1
+`0x70997970C51812dc3A010C7d01b50e0d17dc79C8`, #2 `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC`, #99
+`0x98d08079928fccb30598c6c6382abfd7dbfaa1cd`.
+
+### 17.10 Le SNT est minté au compte #100, PAS au déployeur #0
+
+**Symptôme :** les comptes réservés (#1, #2, #99) ont 0 SNT, et le script `fund_snt.js` existant ne les funde pas.
+
+**Cause :** le contrat `SNTToken.sol` a un `INITIAL_OWNER_ADDRESS` **codé en dur** = `0x8C3229EC621644789d7F61FAa82c6d0E5F97d43D`
+(le compte Hardhat **#100**). Les 1M SNT sont mintés à ce compte #100 au déploiement, PAS au déployeur #0.
+
+**Piège :** `fund_snt.js` signe avec la PK de Hardhat #0 (`0xac0974bec3...`), mais #0 n'est PAS le owner du SNT.
+Il faut signer avec la PK du compte **#100**, dérivée de la mnémonique standard Hardhat à l'index 100 :
+`HDNodeWallet.fromPhrase("test test ... junk", undefined, "m/44'/60'/0'/0/100")`.
+
+**Autre piège :** l'adresse SNT réelle est celle de `config.js` (`0x0165878A594ca255338adfa4d48449f69242Eb8F`), PAS
+celle déployée par un script de reset naïf (`0xe7f1725E...`). Toujours vérifier `contracts.snt.address` dans `config.js`.
+
+**Correctif :** dériver la PK de #100, puis `snt.transfer(compte, 100e18)` pour chaque compte réservé. Attention aux
+nonces stale d'ethers (relancer par compte si "nonce too low").
+
+### 17.11 Fix définitif du 25/08 — 5 fonctions passées de `onlyOwner` à `onlyPayoutOperator`
+
+**Symptôme :** après le fix `setUserLimits` (seule fonction corrigée le 25/08 matin), le bridge spammait toujours :
+
+```
+📡 Setting next session time ... Only owner can call this function (from 0x5aa8...)
+📡 Setting user limits ... (OK après fix)
+📡 Generating signature ... (OK, mais sync absent car queue bloquée)
+→ claim revert "Amount exceeds user balance" (DB 10.01 > on-chain 10.0)
+```
+
+**Cause :** le bridge signe **toutes** les txs du contrat avec `PAYOUT_OPERATOR_PK` (hot key, §15.2),
+mais 5 fonctions restaient `onlyOwner` :
+
+| Fonction | Bridge l'appelle avec | Modificateur avant fix | Effet |
+|---|---|---|---|
+| `setUserLimits` | `PAYOUT_OPERATOR` | `onlyOwner` → **déjà fixé** à `onlyPayoutOperator` | `SyncUserLimitsJob` FAIL (corrigé) |
+| `setUserNextSessionTime` | `PAYOUT_OPERATOR` | `onlyOwner` | `SetCooldownJob` FAIL + spam, bloque `enqueueTx` |
+| `storeSessionCID` | `PAYOUT_OPERATOR` | `onlyOwner` | session history non stockée |
+| `storeMatchHistoryCID` | `PAYOUT_OPERATOR` | `onlyOwner` | match history non stockée |
+| `validatePool` / `invalidatePoolUsers` | `PAYOUT_OPERATOR` | `onlyOwner` | validation des pools bloquée |
+
+`enqueueTx` est une file sérialisée unique (nonce global, §12.4). Un `estimateGas` qui revert avec
+"Only owner" reset le `managedNonce` à `null` et rejette la tx, mais le slot est perdu : le `updateUserBalance`
+suivant (qui doit précéder `generate-signature`, §16.2) n'est pas exécuté → le solde on-chain reste à 10.0
+alors que la DB est à 10.01 → `claimAndExit(10.01)` revert.
+
+**Correctif définitif (25/08 23h) :** `battlepool/contracts/Battlepool.sol` — les 5 fonctions passent à
+`onlyPayoutOperator` :
+
+```solidity
+function storeMatchHistoryCID(...) external onlyPayoutOperator { ... }
+function storeSessionCID(...)      external onlyPayoutOperator { ... }
+function setUserNextSessionTime(...) external onlyPayoutOperator { ... }
+function validatePool(...)         external onlyPayoutOperator { ... }
+function invalidatePoolUsers(...)  external onlyPayoutOperator { ... }
+// setUserLimits déjà fixé précédemment
+```
+
+Recompilation (`npx hardhat compile` → 1 fichier) + redéploiement via `full_deploy.js` (qui met à jour
+`smart_contracts/config.js` et funde le owner). Le fix est **durable** (dans l'image, plus de `docker cp`).
+
+**Leçon :** toute fonction que le bridge doit appeler avec `PAYOUT_OPERATOR_PK` DOIT être `onlyPayoutOperator`
+(ou `onlyOwnerOrPayoutOperator`), jamais `onlyOwner` seul.
+
+---
+
+## 18. RAPPORT D'EXÉCUTION — SUCCESSEUR 4 (2026-08-28) : STACK FRAÎCHE + FIX DURABLE MARKETPLACE (ABIs) + AUTO-RÉPARATION AU BOOT
+
+**Contexte de la session :** remise en route après extinction de la machine (Docker Desktop down), rafraîchissement
+complet demandé par l'utilisateur (DB + blockchain + bots), puis correction d'un bug marketplace découvert en test
+manuel, et enfin rendu **durable** de ce fix.
+
+### 18.1 Chronologie de la session
+
+1. **Démarrage Docker Desktop** (daemon down au départ) → `start.ps1` workflow (provision → up → deprovision).
+2. **Incident bridge** : crash au boot (`Access denied for 'rps_app' (using password: NO)`) — cause : restart du
+   bridge **après** `deprovision` (piège §17.6) ; re-provision → restart → healthy.
+3. **Wallets de service fundés** (piège §17.1 : chaîne Hardhat éphémère → PAYOUT_OPERATOR/SIGNER à 0 ETH).
+   Script réutilisable : `C:\Users\GWX1223153\AppData\Local\Temp\opencode\bp-test\fund_services.cjs`
+   (docker cp dans le container blockchain `/app/`, exécuter avec **idempotence + relance en cas de
+   "nonce too low"** — erreur ethers classique, cf. §17.10).
+4. **Rafraîchissement demandé par l'utilisateur** : `migrate:fresh --seed` (§3 runbook), reset blockchain,
+   re-fund des wallets, reset état indexeur (tables `blockchain_sync_states` + `processed_blockchain_events`),
+   `simulation_bots.js 20 3` (20 bots OK, dépôts 10.25 ETH on-chain confirmés).
+5. **Pré-création des comptes humains** via l'API d'auth (script `create_humans.mjs` dans bp-test) :
+   users #22 (Hardhat #1), #23 (#2), #24 (#99) — évite le piège §17.3 (autoplay résiduel).
+   NB : Node 25 sur l'hôte = fetch natif, pas besoin de node-fetch ; fichiers `.mjs` = syntaxe `import`.
+6. **Distribution SNT** : 100 SNT à chacun des 3 comptes réservés (script `fund_snt.cjs`, runbook §9bis —
+   signature avec la PK du compte **#100**, piège §17.10).
+7. **BUG DÉCOUVERT EN TEST** : l'utilisateur crée une offre marketplace (tx confirmée on-chain, événement
+   `OfferCreated` émis) mais **l'offre n'apparaît pas dans l'UI** → diagnostic §18.2.
+
+### 18.2 LE BUG : ABI Battlepool écrasait l'ABI MarketplaceEscrow dans config.js
+
+**Cause racine (introduite à la §16.6)** : la régénération de l'ABI dans `smart_contracts/config.js` a utilisé
+les artifacts **Battlepool** pour les 3 contrats. Résultat vérifié : `contracts.game.abi ===
+contracts.marketplace.abi === contracts.snt.abi` (108 entrées Battlepool partout).
+
+**Conséquence silencieuse** : `contract.interface.parseLog(log)` échouait (throw attrapé par `catch(_) { continue; }`
+dans `indexer/indexer.js:76`) pour TOUS les événements marketplace (`OfferCreated`/`OfferFulfilled`/
+`OfferCancelled`) et snt (`Transfer`). L'indexeur sautait les logs, sauvait `last_processed_block` quand même →
+**aucun `POST /internal/trades/create`** → table `trades` vide → UI marketplace vide. Aucune erreur dans les logs.
+
+**Diagnostic (réutilisable)** :
+- `eth_getTransactionReceipt` sur la tx → 2 logs : Transfer (SNT) + OfferCreated (topic0 `0xbf26a47e...`).
+- Vérif topic0 : `ethers.id('OfferCreated(uint256,address,uint256,uint256)')` = `0xbf26a47e...` → l'événement
+  on-chain CORRESPOND à l'ABI théorique. Le problème est donc côté ABI **chargée** par le bridge.
+- `node -e "require('./smart_contracts/config.js')"` → comparer `contracts.marketplace.abi.length` (attendu 26,
+  bug = 108) et la liste des events.
+- Tables de contrôle : `processed_blockchain_events` (aucun event marketplace), `trades` (vide).
+
+**Correctifs du moment** : ABIs réécrites dans `config.js` depuis
+`battlepool/artifacts/contracts/MarketplaceEscrow.sol/MarketplaceEscrow.json` (26 entrées) et
+`SNTToken.sol/SNTToken.json` (25 entrées) + **adresses ré-alignées** sur le déploiement courant
+(game `0x5FbDB231...`, snt `0x0165878A...`, marketplace `0xa513E6E4...`) + reset `blockchain_sync_states`
+pour marketplace/snt (ils avaient "traité" les blocs avec la mauvaise ABI) + restart bridge
+→ `marketplace synced blocks 1 -> 371 | Events processed: 1` → offre de l'utilisateur visible en UI. ✅
+
+### 18.3 LE FIX DURABLE : auto-réparation des ABIs à chaque boot + garde-fou bridge
+
+**Principe :** le container blockchain exécute `entrypoint.sh` → `full_deploy.js` **à chaque boot** et le compose
+garantit que le bridge ne démarre qu'après (`depends_on: blockchain: service_healthy`, basé sur `/app/deployed.txt`).
+Donc si `full_deploy.js` resynchronise les ABIs, c'est **avant** chaque lecture du config par le bridge.
+
+**Fix 1 — `battlepool/full_deploy.js`** (section "AUTOMATION: Update smart_contracts/config.js") :
+- Après la mise à jour des adresses, **resynchronise les 3 ABIs** (game/snt/marketplace) depuis les artifacts
+  Hardhat (`/app/artifacts/contracts/*.json`) via un remplacement par comptage de profondeur de crochets
+  (fonctions `findArrayEnd` + `replaceAbi`, robustes aux chaînes contenant `[`/`]`).
+- ⚠️ **Piège WSL2 découvert** : `fs.readFileSync` direct sur le bind mount Windows (`./smart_contracts:/smart_contracts`)
+  peut échouer avec `Error: ENODATA: no data available, read` (cache d'inode incohérent après modification côté
+  hôte). **Pattern robuste implémenté** : `copyFileSync` vers `/tmp/config.js.work` → lecture/modification locale →
+  écriture locale → `copyFileSync` retour vers le mount → `unlinkSync`. Le tout dans try/catch (le déploiement
+  continue même si l'update config échoue).
+- Log attendu au boot : `✅ ABIs synced from artifacts: game(108), snt(25), marketplace(26)`.
+
+**Fix 2 — `smart_contracts/app.js`** (garde-fou fail-fast, en tête de `startBlockchainListeners()`) :
+- Vérifie la présence des événements requis avant de démarrer l'indexeur :
+  `game: [PoolEmitted, DepositReceived]`, `marketplace: [OfferCreated, OfferFulfilled, OfferCancelled]`,
+  `snt: [Transfer]`.
+- ABI invalide → `process.exit(1)` avec message explicite (au lieu du bug silencieux §18.2).
+
+**Fix 3 — `docker-compose.yml`** (service `bridge`) : bind mount ajouté
+`./smart_contracts/app.js:/app/smart_contracts/app.js:ro` (en plus de `config.js`). Le code bridge est pris
+depuis l'hôte → les futures corrections bridge s'appliquent **sans rebuild**.
+
+**Durabilité image** : le container blockchain exécute `/app/full_deploy.js` **depuis son image** (piège §4).
+La version patchée a été intégrée à l'image via `docker commit rock-paper-scissors-blockchain-1
+rock-paper-scissors-blockchain:latest` (solution de cette session). ⚠️ **Le commit est volatile** : un
+`docker compose build`/récréation depuis le Dockerfile SANS les sources patchées réintroduirait l'ancienne
+version — mais `battlepool/full_deploy.js` est patché dans le dépôt git, donc tout futur `docker build`
+l'embarquera. (Le `docker build` complet a bloqué sur `npm ci` de battlepool >25 min côté WSL2 — à retenter
+quand le réseau le permet ; non bloquant.)
+
+**Validation effectuée (boot réel)** : corruption volontaire de l'ABI marketplace (bug historique simulé,
+108 entrées) → restart blockchain → auto-déploiement → `✅ ABIs synced from artifacts` dans les logs →
+config.js réparé (26 entrées, events OfferCreated/Fulfilled/Cancelled) → bridge (re) démarré →
+`✅ [BRIDGE] ABIs validées` → indexation normale. Le cycle est **auto-correctif**.
+
+### 18.4 Pièges NOUVEAUX rencontrés cette session
+
+1. **`docker cp` capricieux** (Docker Desktop/WSL2) : échoue avec `Could not find the file /tmp` alors que
+   `/tmp` existe et est writable. **Fallback fiable** : `Get-Content -Raw file | docker exec -i CONT sh -c "cat > /tmp/x"`.
+2. **ENODATA sur bind mount Windows** (voir §18.3) : readFileSync Node sur `/smart_contracts/config.js` depuis
+   le container échoue après une modification hôte → toujours passer par copie locale /tmp.
+3. **`node -e` + quotes imbriquées sous PowerShell** : interdiction formelle — écrire un fichier `.cjs` et
+   l'exécuter (même pattern que §17.5 pour les `.sh`).
+4. **Fichiers `.mjs` sous Node 25 (hôte)** : `require` interdit (module ES) → utiliser `import` ; `fetch` est
+   natif (pas de node-fetch) ; les chemins relatifs `./x` sont résolus depuis l'emplacement du script
+   (bp-test), pas du CWD → utiliser des chemins absolus.
+5. **Le `git checkout -- config.js` restaure aussi les VIEILLES ADRESSES** : les adresses écrites par
+   l'auto-deploy sont des modifs non commitées. Après tout `git checkout` de config.js, re-vérifier/réécrire
+   les adresses (script `fix_addresses.cjs` dans bp-test).
+6. **Le rebuild de l'image blockchain recrée le container** → `/app/fund_services.cjs` (mis par docker cp)
+   disparaît ; le re-copier avant usage. Idem pour tout script dans `/app` ou `/tmp`.
+7. **Après chaque restart blockchain**, TOUJOURS : (a) vérifier `eth_blockNumber` vs `blockchain_sync_states`
+   (si la chaîne est plus jeune que l'état indexeur → reset des sync_states, sinon événements ratés) ;
+   (b) re-funder les wallets de service (§17.1) ; (c) restart bridge APRÈS le reset éventuel.
+8. **Le "nonce too low" ethers** pendant les boucles de funding : relancer le script (idempotent) jusqu'à
+   `deja funde` partout — ne PAS supposer l'échec.
+
+### 18.5 État final de la session (vérifié 13:39)
+
+| Élément | Valeur |
+|---|---|
+| Containers | 10/10 Up (8 healthy, app/worker sans healthcheck) |
+| Chaîne | bloc ~163, contrats déployés adresses canoniques, wallets fundés 100/100/1000 ETH |
+| Indexeur | game/marketplace/snt synchro, ABIs validées au boot |
+| DB | 24 users (20 bots autoplay + 4 humains #1/#22/#23/#24), fights actifs, 0 waiting |
+| Queues | default ≈ 0–5 (drain immédiat, ~3–5 ms/job), limits = 0 |
+| Marketplace | `config.js` avec vraies ABIs (26/25), garde-fou actif, auto-réparation au boot |
+| Secrets | déprovisionnés (0 plaintext sur disque) |
+| Offre marketplace test | visible en UI (trades #1 : 40 SNT @ 12 AVAX, open) |
+
+### 18.6 Tâches restantes / recommandations
+
+1. **Rebuild propre des images `blockchain` et `bridge`** quand le réseau/WSL2 le permettra
+   (`docker build -f Dockerfile.blockchain .` OK fait ; `Dockerfile.worker` bloque sur `npm ci` smart_contracts
+   >25 min). Non bloquant : le boot auto-répare, et `app.js`/`config.js` sont bind-mountés dans le bridge.
+2. **Le `docker commit` (§18.3) est un cache**, pas un substitut au build : la version git de
+   `battlepool/full_deploy.js` est la référence durable.
+3. **Script bp-test à connaître** : `fund_services.cjs` (funding wallets après reset chaîne),
+   `reset_indexer_marketplace.sh` (reset sync_states marketplace+snt), `fix_marketplace_abi.cjs` +
+   `fix_addresses.cjs` (réparation manuelle de secours de config.js), `check_trades.sh` (diagnostic marketplace),
+   `create_humans.mjs` (pré-création comptes humains), `test_config_repair.cjs` (test du mécanisme d'auto-réparation).
+4. **Si une offre marketplace disparaît encore** : vérifier dans l'ordre (a) log bridge `✅ [BRIDGE] ABIs validées`,
+   (b) `processed_blockchain_events` contient OfferCreated, (c) table `trades`, (d) expires_at > now().
+
+### 18.7 Scripts ajoutés dans `C:\Users\GWX1223153\AppData\Local\Temp\opencode\bp-test\`
+
+| Script | Usage |
+|---|---|
+| `fund_services.cjs` | Funder PAYOUT_OPERATOR/SIGNER/OWNER (100/100/1000 ETH) depuis Hardhat #0, idempotent. Copier dans le container blockchain `/app/`. |
+| `fund_snt.cjs` | 100 SNT aux comptes #1/#2/#99 via la PK du compte #100 (runbook §9bis version corrigée). |
+| `reset_indexer.sh` / `reset_indexer_marketplace.sh` | Vider `blockchain_sync_states` (+ `processed_blockchain_events`) après reset chaîne. |
+| `check_trades.sh` | Diagnostic marketplace : sync_states, events, table trades, colonnes. |
+| `create_humans.mjs` | Pré-créer les comptes humains #1/#2/#99 via API auth (autoplay=0). |
+| `fix_marketplace_abi.cjs` + `fix_addresses.cjs` | Réparation manuelle de config.js (ABIs + adresses) — secours si le boot auto-réparateur n'a pas tourné. |
+| `corrupt_marketplace_abi.cjs` | Simulateur du bug (pour tester la réparation). |
+| `test_config_repair.cjs` | Version container du fix (test isolé de la partie config de full_deploy.js). |
+| `verify_config.cjs` | Vérifier config.js depuis le container (events + tailles ABIs + adresses). |
+| `db_check.sh` / `check_humans.sh` / `check_db_state.sh` | État DB (users/bots/pools/fights) et comptes humains. |
+| `reset_db.sh` | migrate:fresh --seed avec secrets (runbook §3). |
+
+### 18.8 PROTOCOLE P.R.O.T. — LA référence pour toute intervention manuelle (2026-08-28)
+
+Suite au cold-start réel validé (compose down complet → start.ps1 → protocole post-restart → stack saine),
+la procédure d'intervention manuelle a été **normalisée et nommée** :
+
+> **P.R.O.T. = Provision → Recreate (never restart) → Operate → Teardown (deprovision)**
+
+**La découverte clé** : après un `deprovision`, les bind mounts `/run/secrets/` des containers existants
+deviennent des **fantômes** (stale mounts : `ls -la /run/secrets/` montre des `?????????`, `cat` → ENOENT).
+Un nouveau `provision` ne les répare PAS pour un container existant, et un `docker restart` conserve le
+mount fantôme. **Seule la RECRÉATION du container** (`docker compose up -d --force-recreate <service>`
+ou passage par `start.ps1`) re-binde les secrets.
+
+**La procédure complète (arbre de décision, POST-RESTART PROTOCOL, table symptômes→remèdes) est
+documentée en tête du TEST_RUNBOOK.md (§0)** — c'est LE document à ouvrir en premier pour toute
+intervention. start.ps1 automatise P et T (plus MTU WSL2, fantômes .secrets, Docker Desktop down,
+`--scale queue-worker-limits=2`).
+
+**Séquences validées** :
+- Cold-start complet : `docker compose down` (réseau inclus) → `.\start.ps1` → stack healthy 10 s →
+  POST-RESTART PROTOCOL (reset sync_states + fund_services + restart bridge) → jeu actif (bots, fights,
+  marketplace) → `deprovision`. **Testé bout en bout le 2026-08-28.**
+- Intervention script ponctuelle : `provision` → `docker exec .../tinker/node` → `deprovision` (SANS restart).
+
+**Règle simplifiée à retenir** : *si tu as déprovisionné depuis la (re)création d'un container, ce container
+est "aveugle" — recrée-le ou repasse par start.ps1 ; jamais un simple restart.*
 

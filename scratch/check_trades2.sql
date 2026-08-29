@@ -1,0 +1,10 @@
+SELECT '=== SCHEMA trades ===' AS section;
+SHOW COLUMNS FROM trades;
+SELECT '=== TRADES ===' AS section;
+SELECT * FROM trades ORDER BY id DESC LIMIT 3;
+SELECT '=== EVENTS OFFRE ===' AS section;
+SELECT id, event_name, block_number, status, created_at FROM processed_blockchain_events WHERE event_name LIKE '%Offer%' OR event_name LIKE '%Trade%' ORDER BY id DESC LIMIT 5;
+SELECT '=== DERNIERS EVENTS ===' AS section;
+SELECT id, event_name, block_number, status FROM processed_blockchain_events ORDER BY id DESC LIMIT 8;
+SELECT '=== SYNC STATES ===' AS section;
+SELECT contract_address, last_processed_block, updated_at FROM blockchain_sync_states;

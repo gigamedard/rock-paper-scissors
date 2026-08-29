@@ -132,14 +132,70 @@ async function main() {
     }
 
     // --- AUTOMATION: Update smart_contracts/config.js ---
+    // NB: configPath est un bind mount Windows (./smart_contracts:/smart_contracts).
+    // Bug WSL2 connu : readFileSync direct sur le mount peut echouer avec ENODATA
+    // (cache d'inode incoherent apres modification cote hote). Pattern robuste :
+    // copier le fichier en local (/tmp), modifier, puis reecrire via le mount.
     const configPath = path.join(__dirname, "..", "smart_contracts", "config.js");
+    const configTmp = "/tmp/config.js.work";
+    let configUsable = false;
     if (fs.existsSync(configPath)) {
-        let configContent = fs.readFileSync(configPath, "utf8");
+        try {
+            fs.copyFileSync(configPath, configTmp);
+            let configContent = fs.readFileSync(configTmp, "utf8");
         configContent = configContent.replace(/game:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `game: {\n    address: "${gameAddr}"`);
         configContent = configContent.replace(/snt:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `snt: {\n    address: "${sntAddr}"`);
         configContent = configContent.replace(/marketplace:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `marketplace: {\n    address: "${marketplaceAddr}"`);
-        fs.writeFileSync(configPath, configContent);
+
+        // --- ABI SYNC (durabilite) : resynchronise les ABIs game/snt/marketplace depuis les
+        // artifacts Hardhat (source de verite compilee). Corrige durablement la regression
+        // ou l'ABI Battlepool (108 entrees) ecrasait les ABIs MarketplaceEscrow (26) et
+        // SNTToken (25) : les evenements OfferCreated/Transfer devenaient invisibles pour
+        // l'indexeur du bridge (parseLog silencieux) -> marketplace UI vide.
+        const findArrayEnd = (str, startIdx) => {
+            let depth = 0, inString = false, escape = false;
+            for (let i = startIdx; i < str.length; i++) {
+                const ch = str[i];
+                if (escape) { escape = false; continue; }
+                if (ch === "\\") { escape = true; continue; }
+                if (ch === '"') { inString = !inString; continue; }
+                if (inString) continue;
+                if (ch === "[") depth++;
+                else if (ch === "]") { depth--; if (depth === 0) return i; }
+            }
+            return -1;
+        };
+        const replaceAbi = (str, sectionName, abi) => {
+            const secIdx = str.indexOf(sectionName + ": {");
+            if (secIdx === -1) throw new Error("section " + sectionName + " introuvable dans config.js");
+            const abiIdx = str.indexOf("abi:", secIdx);
+            const arrStart = str.indexOf("[", abiIdx);
+            const arrEnd = findArrayEnd(str, arrStart);
+            if (arrEnd === -1) throw new Error("fin de tableau ABI introuvable pour " + sectionName);
+            return str.slice(0, arrStart) + JSON.stringify(abi, null, 2) + str.slice(arrEnd + 1);
+        };
+        const battlepoolArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, "artifacts", "contracts", "Battlepool.sol", "Battlepool.json"), "utf8"));
+        const sntArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, "artifacts", "contracts", "SNTToken.sol", "SNTToken.json"), "utf8"));
+        const mpArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, "artifacts", "contracts", "MarketplaceEscrow.sol", "MarketplaceEscrow.json"), "utf8"));
+        // Remplacer game en premier (sa section precede snt/marketplace) : le remplacement
+        // recale les indices a chaque appel, donc l'ordre n'a pas d'importance technique,
+        // mais on garde game -> snt -> marketplace pour la lisibilite des logs.
+        configContent = replaceAbi(configContent, "game", battlepoolArtifact.abi);
+        configContent = replaceAbi(configContent, "snt", sntArtifact.abi);
+        configContent = replaceAbi(configContent, "marketplace", mpArtifact.abi);
+
+        fs.writeFileSync(configTmp, configContent);
+        // Ecriture atomique via le mount : write temp + rename (evite ETXTBSY/ENODATA)
+        fs.copyFileSync(configTmp, configPath);
+        fs.unlinkSync(configTmp);
+        configUsable = true;
         console.log("✅ Updated smart_contracts/config.js with new addresses.");
+        console.log(`✅ ABIs synced from artifacts: game(${battlepoolArtifact.abi.length}), snt(${sntArtifact.abi.length}), marketplace(${mpArtifact.abi.length})`);
+        } catch (e) {
+            console.warn("⚠️  Impossible de mettre a jour config.js :", e.message);
+            console.warn("    Les ABIs/adresses ne seront PAS resynchronisees ce cycle.");
+            try { if (fs.existsSync(configTmp)) fs.unlinkSync(configTmp); } catch (_) {}
+        }
     } else {
         console.warn("⚠️  config.js not found at", configPath, "- skipping address update.");
     }

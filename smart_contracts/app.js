@@ -550,6 +550,29 @@ async function postToLaravel(endpoint, body) {
 async function startBlockchainListeners() {
     console.log("🔄 Starting Robust Indexer (polling + reorg safety + idempotence)...");
 
+    // --- GARDE-FOU (fail-fast) : valider les ABIs AVANT de demarrer l'indexeur.
+    // Sans cette validation, une ABI incorrecte (ex: ABI Battlepool a la place de
+    // MarketplaceEscrow/SNTToken) fait echouer parseLog silencieusement -> les
+    // evenements OfferCreated/Transfer sont ignores -> marketplace UI vide.
+    const requiredAbiEvents = {
+        game: ["PoolEmitted", "DepositReceived"],
+        marketplace: ["OfferCreated", "OfferFulfilled", "OfferCancelled"],
+        snt: ["Transfer"],
+    };
+    for (const [contractName, requiredEvents] of Object.entries(requiredAbiEvents)) {
+        const abi = contracts[contractName].abi;
+        const eventNames = new Set(abi.filter(x => x.type === "event").map(x => x.name));
+        const missing = requiredEvents.filter(e => !eventNames.has(e));
+        if (missing.length > 0) {
+            console.error(`❌ [BRIDGE] ABI '${contractName}' invalide : événements manquants [${missing.join(", ")}].`);
+            console.error(`   → smart_contracts/config.js contient probablement la mauvaise ABI (copier-coller Battlepool ?).`);
+            console.error(`   → Relancer le déploiement blockchain (full_deploy.js resynchronise les ABIs depuis les artifacts)`);
+            console.error(`     ou exécuter node battlepool/full_deploy.js pour régénérer config.js.`);
+            process.exit(1);
+        }
+    }
+    console.log("✅ [BRIDGE] ABIs validées (game/marketplace/snt contiennent leurs événements requis).");
+
     const sntContract = new Contract(contracts.snt.address, contracts.snt.abi, gameWallet);
 
     await startIndexer({

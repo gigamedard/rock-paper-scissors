@@ -1,5 +1,5 @@
 // resources/js/core/auth.js
-import { getProvider, getSigner } from '../web3/web3-core.js';
+import { getProvider, getSigner, resetProvider } from '../web3/web3-core.js';
 import { secureFetch } from './api.js';
 import { t } from '../modules/i18n.js';
 import { showToast } from './toast.js';
@@ -52,6 +52,10 @@ export async function connectWallet(providerType = 'injected') {
 
     try {
         console.log(`[Auth] Connexion ${providerType} en cours...`);
+        // Réinitialiser le cache du provider/signer AVANT de se connecter,
+        // pour garantir que le signer correspond au compte MetaMask ACTUEL
+        // (sinon un ancien signer #1 peut être réutilisé après un changement de compte).
+        await resetProvider();
         const provider = await getProvider(providerType);
         const signer = await getSigner(providerType);
         const walletAddress = await signer.getAddress();
@@ -118,6 +122,9 @@ export function logout() {
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('token');
+    // Réinitialiser le cache du provider/signer pour permettre la reconnexion
+    // avec un AUTRE compte MetaMask (sinon le signer #1 reste en cache).
+    resetProvider();
     try {
         if (window.parent && window.parent !== window) {
             window.parent.postMessage({ type: 'BATTLEPOOL_SESSION_CLEAR' }, '*');

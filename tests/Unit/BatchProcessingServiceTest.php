@@ -9,6 +9,7 @@ use App\Services\BatchProcessing\BatchFinderService;
 use App\Services\BatchProcessing\PoolFetcherService;
 use App\Services\BatchProcessing\BatchManagerService;
 use App\Services\BatchProcessing\PoolProcessorService;
+use App\Services\SessionManager;
 use App\Models\Batch;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
@@ -22,6 +23,7 @@ class BatchProcessingServiceTest extends TestCase
     protected $poolFetcherMock;
     protected $batchManagerMock;
     protected $poolProcessorMock;
+    protected $sessionManagerMock;
     protected $service;
 
     protected function setUp(): void
@@ -33,13 +35,15 @@ class BatchProcessingServiceTest extends TestCase
         $this->poolFetcherMock = Mockery::mock(PoolFetcherService::class);
         $this->batchManagerMock = Mockery::mock(BatchManagerService::class);
         $this->poolProcessorMock = Mockery::mock(PoolProcessorService::class);
+        $this->sessionManagerMock = Mockery::mock(SessionManager::class);
 
         $this->service = new BatchProcessingService(
             $this->batchCriteriaMock,
             $this->batchFinderMock,
             $this->poolFetcherMock,
             $this->batchManagerMock,
-            $this->poolProcessorMock
+            $this->poolProcessorMock,
+            $this->sessionManagerMock
         );
     }
 

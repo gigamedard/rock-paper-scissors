@@ -641,6 +641,9 @@ export function updateUI() {
                         joinBtn.style.opacity = '0.5';
                         joinBtn.style.cursor = 'not-allowed';
                     }
+                    // Le compte a des gains à réclamer : on libère l'overlay
+                    // pour que le bouton "CLAIM" soit cliquable.
+                    hideCombatOverlay();
                 } else if (isUserInCooldown()) {
                     const remaining = Math.ceil((new Date(window.userState.cooldown_until).getTime() - Date.now()) / 1000);
                     if (statusText) {

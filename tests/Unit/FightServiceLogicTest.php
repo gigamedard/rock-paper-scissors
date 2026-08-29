@@ -68,13 +68,16 @@ class FightServiceLogicTest extends TestCase
             $this->signatureService
         );
 
+        // Pool must exist before users (FK constraint users.pool_id -> pools.id)
+        $this->pool = Pool::create(['base_bet' => 5, 'pool_size' => 2, 'salt' => 'test', 'status' => 'from_server_running']);
+
         // Setup users (autoplay_active => true for automatic payout mock paths)
         $this->user1 = User::factory()->create([
             'balance' => 100,
             'battle_balance' => 10,
             'bet_amount' => 5,
             'status' => 'in_pool',
-            'pool_id' => 1,
+            'pool_id' => $this->pool->id,
             'autoplay_active' => true,
             'session_started' => true,
             'session_start_balance' => 100,
@@ -85,7 +88,7 @@ class FightServiceLogicTest extends TestCase
             'battle_balance' => 10,
             'bet_amount' => 5,
             'status' => 'in_pool',
-            'pool_id' => 1,
+            'pool_id' => $this->pool->id,
             'autoplay_active' => true,
             'session_started' => true,
             'session_start_balance' => 100,
@@ -97,11 +100,6 @@ class FightServiceLogicTest extends TestCase
             ['user_id' => $this->user1->id, 'moves' => json_encode(['rock']), 'current_index' => 0],
             ['user_id' => $this->user2->id, 'moves' => json_encode(['scissors']), 'current_index' => 0]
         ]);
-
-        // Pool
-        $this->pool = Pool::create(['base_bet' => 5, 'pool_size' => 2, 'salt' => 'test', 'status' => 'from_server_running']);
-        $this->user1->update(['pool_id' => $this->pool->id]);
-        $this->user2->update(['pool_id' => $this->pool->id]);
     }
 
     public function testWinnerGainsBaseBetAndLoserLosesBaseBet()

@@ -423,14 +423,14 @@ contract Battlepool is ReentrancyGuard {
         return pool.users;
     }
 
-    function storeMatchHistoryCID(uint256 poolId, string memory cid) external onlyOwner {
+    function storeMatchHistoryCID(uint256 poolId, string memory cid) external onlyPayoutOperator {
         require(bytes(cid).length > 0, "CID cannot be empty");
         poolHistoryCIDs[poolId] = cid;
         emit MatchHistoryCIDUpdated(poolId, cid);
     }
 
 
-    function storeSessionCID(address user, string memory cid) external onlyOwner {
+    function storeSessionCID(address user, string memory cid) external onlyPayoutOperator {
         require(bytes(cid).length > 0, "CID cannot be empty");
         sessionHistoryCIDs[user].push(cid); // Append CID instead of replacing it
         emit sessionHistoryCIDUpdated(user, cid);
@@ -457,7 +457,7 @@ contract Battlepool is ReentrancyGuard {
 
 
 
-    function validatePool(uint256 baseBet) external onlyOwner {
+    function validatePool(uint256 baseBet) external onlyPayoutOperator {
         Pool storage pool = pools[baseBet];
         require(pool.isLockedForValidation, "Pool is not locked for validation");
 
@@ -474,7 +474,7 @@ contract Battlepool is ReentrancyGuard {
         _processQueue(baseBet);
     }
 
-    function invalidatePoolUsers(uint256 baseBet, address[] calldata invalidUsers) external onlyOwner {
+    function invalidatePoolUsers(uint256 baseBet, address[] calldata invalidUsers) external onlyPayoutOperator {
         Pool storage pool = pools[baseBet];
         require(pool.isLockedForValidation, "Pool is not locked for validation");
 
@@ -751,7 +751,7 @@ contract Battlepool is ReentrancyGuard {
         emit StagnantBlockLimitUpdated(_limit);
     }
 
-    function setUserNextSessionTime(address user, uint256 nextTime) external onlyOwner {
+    function setUserNextSessionTime(address user, uint256 nextTime) external onlyPayoutOperator {
         nextSessionAllowedTime[user] = nextTime;
         emit NextSessionTimeUpdated(user, nextTime);
     }
@@ -852,7 +852,7 @@ contract Battlepool is ReentrancyGuard {
         uint256 maxQ,
         uint256 minCooldown,
         uint256 expiry
-    ) external onlyOwner {
+    ) external onlyPayoutOperator {
         userLimits[user] = UserLimit(maxBaseBet, maxQ, minCooldown, expiry);
         emit UserLimitsUpdated(user, maxBaseBet, maxQ, minCooldown, expiry);
     }

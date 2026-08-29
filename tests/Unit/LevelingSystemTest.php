@@ -5,6 +5,8 @@ namespace Tests\Unit;
 use App\Models\Pool;
 use App\Models\User;
 use App\Models\Fight;
+use App\Jobs\ProcessPayoutJob;
+use App\Jobs\SetCooldownJob;
 use App\Services\SessionManager;
 use App\Services\SessionHistoryService;
 use App\Services\NotificationService;
@@ -12,6 +14,7 @@ use App\Services\SignatureService;
 use App\Helpers\Web3Helper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Tests\TestCase;
 
@@ -28,6 +31,8 @@ class LevelingSystemTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Queue::fake();
 
         \Illuminate\Support\Facades\Http::fake([
             '*' => \Illuminate\Support\Facades\Http::response([], 200)
@@ -63,6 +68,9 @@ class LevelingSystemTest extends TestCase
         Config::set('game_levels.recovery_time.1', 1440);
 
         // Create User in DB
+        // Use a wallet address present in simulation_accounts.json so isBotUser() returns true
+        // (bot index 0 from smart_contracts/simulation_accounts.json)
+        $botWallet = '0x326593d1FF5F7c5Bb3B9ab995Eba9F3A30Da2F81';
         $user = User::factory()->create([
             'multiplier_level' => 5, // Should use 7.5x
             'recovery_level' => 1,
@@ -71,7 +79,7 @@ class LevelingSystemTest extends TestCase
             'session_start_balance' => 100,
             'session_start_battle_balance' => 0,
             'status' => 'in_pool',
-            'wallet_address' => '0x123',
+            'wallet_address' => $botWallet,
             'autoplay_active' => true,
             'bet_amount' => 1,
         ]);
@@ -99,23 +107,23 @@ class LevelingSystemTest extends TestCase
             'status' => 'completed',
         ]);
 
-        // Expect sendPayement because Q = 1100 / 100 = 11 >= 7.5
-        $this->web3HelperMock->shouldReceive('sendPayement')
-            ->once()
-            ->with(Mockery::any(), '0x123', 1100.0);
-
-        // Expect setUserNextSessionTime call with correct cooldown based on recovery level 1 (1440 mins = 24 hours)
-        $this->web3HelperMock->shouldReceive('setUserNextSessionTime')
-            ->once()
-            ->withArgs(function ($url, $wallet, $time) {
-                $diff = $time - time();
-                return $wallet === '0x123' && abs($diff - 86400) < 60;
-            });
-
         // Act
         $this->sessionManager->evaluatePoolEnd($pool);
 
         // Assert
+        // Expect ProcessPayoutJob dispatched because Q = 1100 / 100 = 11 >= 7.5
+        // (SessionManager::sendPayment dispatches ProcessPayoutJob, not Web3Helper directly)
+        Queue::assertPushed(ProcessPayoutJob::class, function ($job) use ($botWallet) {
+            return $job->walletAddress === $botWallet
+                && abs($job->amount - 1100.0) < 0.01;
+        });
+
+        // Expect SetCooldownJob dispatched with correct cooldown based on recovery level 1 (1440 mins = 24 hours)
+        Queue::assertPushed(SetCooldownJob::class, function ($job) use ($botWallet) {
+            $diff = $job->nextTime - time();
+            return $job->walletAddress === $botWallet && abs($diff - 86400) < 60;
+        });
+
         $user->refresh();
         $this->assertNull($user->pool_id);
         $this->assertFalse((bool)$user->session_started);

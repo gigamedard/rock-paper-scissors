@@ -266,7 +266,7 @@ window.marketplaceBuyCard = async function(cardId, cardPrice, quantity = 1) {
         return;
     }
     
-    const OWNER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
+    const OWNER_ADDRESS = '0x4B35f60D18F2Caf3534bEcE3Df38FBc02c818E63';
     const totalSntPrice = cardPrice * quantity;
     
     try {
