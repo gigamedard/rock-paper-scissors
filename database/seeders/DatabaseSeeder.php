@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             SeedAdminSettings::class,
+            CardSeeder::class,
         ]);
 
         // Seed Account #0 as Admin
