@@ -940,30 +940,139 @@ config.js réparé (26 entrées, events OfferCreated/Fulfilled/Cancelled) → br
 | `db_check.sh` / `check_humans.sh` / `check_db_state.sh` | État DB (users/bots/pools/fights) et comptes humains. |
 | `reset_db.sh` | migrate:fresh --seed avec secrets (runbook §3). |
 
-### 18.8 PROTOCOLE P.R.O.T. — LA référence pour toute intervention manuelle (2026-08-28)
-
-Suite au cold-start réel validé (compose down complet → start.ps1 → protocole post-restart → stack saine),
-la procédure d'intervention manuelle a été **normalisée et nommée** :
-
-> **P.R.O.T. = Provision → Recreate (never restart) → Operate → Teardown (deprovision)**
-
-**La découverte clé** : après un `deprovision`, les bind mounts `/run/secrets/` des containers existants
-deviennent des **fantômes** (stale mounts : `ls -la /run/secrets/` montre des `?????????`, `cat` → ENOENT).
-Un nouveau `provision` ne les répare PAS pour un container existant, et un `docker restart` conserve le
-mount fantôme. **Seule la RECRÉATION du container** (`docker compose up -d --force-recreate <service>`
-ou passage par `start.ps1`) re-binde les secrets.
-
-**La procédure complète (arbre de décision, POST-RESTART PROTOCOL, table symptômes→remèdes) est
-documentée en tête du TEST_RUNBOOK.md (§0)** — c'est LE document à ouvrir en premier pour toute
-intervention. start.ps1 automatise P et T (plus MTU WSL2, fantômes .secrets, Docker Desktop down,
-`--scale queue-worker-limits=2`).
-
-**Séquences validées** :
-- Cold-start complet : `docker compose down` (réseau inclus) → `.\start.ps1` → stack healthy 10 s →
-  POST-RESTART PROTOCOL (reset sync_states + fund_services + restart bridge) → jeu actif (bots, fights,
-  marketplace) → `deprovision`. **Testé bout en bout le 2026-08-28.**
-- Intervention script ponctuelle : `provision` → `docker exec .../tinker/node` → `deprovision` (SANS restart).
+---
 
 **Règle simplifiée à retenir** : *si tu as déprovisionné depuis la (re)création d'un container, ce container
 est "aveugle" — recrée-le ou repasse par start.ps1 ; jamais un simple restart.*
+
+> **La référence complète et détaillée du protocole** (arbre de décision, POST-RESTART PROTOCOL,
+> table symptômes→remèdes) vit en tête du **TEST_RUNBOOK.md §0** — c'est LE document à ouvrir en
+> premier pour toute intervention manuelle.
+
+---
+
+## 19. CARTE DU PROJET — Fichiers clés pour l'agent successeur (2026-08-29)
+
+Où chercher quoi. Avant de modifier quoi que ce soit, localise la couche ici ; après modification,
+consulte la colonne "Redéploiement" (le déploiement change selon la couche !).
+
+### 19.1 FRONTEND (SPA Vite servie en bundle — piège §17.4 + §19.4)
+
+| Fichier | Rôle | Couplé à |
+|---|---|---|
+| `public/index.html` | Point d'entrée unique SPA. Écrans (view-disconnected/setup/dashboard), onglets marketplace (`tab-p2p`/`tab-cards`/`tab-inventory`), boutons (`enter-arena-btn`, `start-session-btn`, `claim-btn`) | resources/js/app.js bind les listeners |
+| `resources/js/app.js` | Bootstrap SPA, initialisation modules, listeners boutons globaux | index.html |
+| `resources/js/core/auth.js` | `connectWallet` (MetaMask), persistance session (`localStorage.auth_token`), `parseRpcError` (trad erreurs contract) | web3-core.js, api.js |
+| `resources/js/core/api.js` | `secureFetch` : injecte `Authorization: Bearer <auth_token>`, retry 5xx — **TOUTES** les calls API passent ici | localStorage `auth_token` (posé par auth.js:98) |
+| `resources/js/core/router.js` | Routing hash `#/`, `#/marketplace`, `#/referral`... fallback `autoplay-page` | index.html id des pages |
+| `resources/js/modules/game.js` | **Cœur jeu côté client** : `startSession` (IPFS→on-chain→pre-moves, :409), `claim` (:509), polling `fetchUserStatus` (:269, 30s), cooldown ticker, `updateUI` | `/api/user/pre-moves`, `/api/user/status` |
+| `resources/js/modules/marketplace.js` | **Commerce** : `marketplaceBuyCard` (:259, SNT transfer → **PAYOUT_OPERATOR** `0x5aa8eb45...`, fix commit `1d5b635`), `createOffer` escrow, `loadShopCards` (onglet cartés), `loadUserInventory`, `switchMarketplaceTab` (:156) | `/api/shop/*`, escrow contract, bridge `/verify-snt-transfer` |
+| `resources/js/modules/referral.js`, `influencer.js`, i18n | modules annexes | — |
+
+**⚠️ Le frontend servi = bundle compilé `/public/build/assets/app.js`, PAS les sources.** Rebuild :
+`npm run build` (hôte, 9 s) **PUIS déploiement dans le container** (§19.4).
+
+### 19.2 BACKEND LARAVEL (container `app` — API + jobs + services)
+
+| Fichier | Rôle |
+|---|---|
+| `routes/api.php` | Toutes les routes API. Zones clés : `shop` (prefix, lignes 156+ : `/activate-card` :160), `marketplace` (94+ : `/trades` :97), `internal` (169+ : `/trades/create` etc. — protégées X-Internal-Secret) |
+| `routes/web.php` | Routes web (`/artefacts` :356 — config publique contrats) |
+| `app/Http/Controllers/PoolAutoMatchController.php` | `storePreMoves` (:60) — **point d'entrée "rejoindre pool"** : verrou cache, FSM check, appel PreMoveService. `getPollingStatus` (:121) — statut complet user |
+| `app/Services/PreMoveService.php` | Validation limites (bet/Q/cooldown), hash sha3-256 des moves, **registerForAutoplay (autoplay_active=true automatiquement)**, clear payout_signature |
+| `app/Services/UserDataService.php` | `registerForAutoplay` (:9) / `unregisterFromAutoplay` — le switch autoplay |
+| `app/Services/SessionManager.php` | Moteur de session : recyclage bots (:236, :264), sync limits, recoverStuckUsersInPool. Déclare `$web3Helper`/`$historyService` (fix dépréciation §13.2) |
+| `app/Services/InternalPoolService.php` | Matchmaking pools (filtre `autoplay_active=true` :32,64,79,105) |
+| `app/Http/Controllers/ShopController.php` | `activateCard` (:86) — **statuts acceptés : `pending`/`available` seulement** (failed → 422). Effets cooldown rétroactifs + sync on-chain |
+| `app/Jobs/VerifyCardPurchaseJob.php` | Vérif achat carte asynchrone : appelle bridge `/verify-snt-transfer`; succès → statut `pending` (+ SyncUserLimitsJob), échec → `failed` |
+| `app/Http/Controllers/MarketplaceController.php` | `getActiveTrades` (:83 — liste offres UI, filtre `status=open` + `expires_at > now()`), `createOffer` (:110 — dispatch CreateOfferJob) |
+| `app/Http/Controllers/BlockchainController.php` | `getArtefacts` (:151) — **source des adresses contrats pour le frontend** (cache 5 min) |
+| `app/Helpers/Web3Helper.php` | Client HTTP → bridge : `verifySntTransfer` (:274), sendPayement, setUserLimits, batch... |
+| `app/Jobs/` (SyncUserLimitsJob — queue `limits`, CreateOfferJob, ProcessPayoutJob, SetCooldownJob, ReconstructPoolJob) | Jobs queue. Routing `onQueue('limits')` = fix §2 handover — **ne jamais réintroduire `public $queue`** |
+| `app/Models/` | User, Pool, Fight, Trade, Card, UserCard, PreMove... |
+| `database/seeders/DatabaseSeeder.php` | **appelle CardSeeder (commit `dc1f294`)** + SeedAdminSettings + admin #0 |
+| `database/seeders/CardSeeder.php` | 3 cartes shop (super sayen 0.5 SNT / ki boost / ceiling up) — idempotent |
+| `database/migrations/` | Schéma complet. `user_cards` : status enum, tx_hash, remaining_sessions |
+
+Le container `app` = PHP 8 + Octane/Swoole port **8080 interne** (8001 exposé), **NE contient PAS node/npm**.
+
+### 19.3 BRIDGE NODE.JS (container `bridge`) — oracle + indexeur + API interne
+
+| Fichier | Rôle |
+|---|---|
+| `smart_contracts/app.js` | Serveur API (port 3000) + **garde-fou ABIs** au boot (validate `OfferCreated`/`Transfer`/`PoolEmitted` — fail-fast sinon exit 1). Endpoints clés : `/verify-snt-transfer` (:353 — **platformWallet = SNT_RECEIVER_WALLET env OU gameWallet=PAYOUT_OPERATOR**, :390), `/generate-signature`, `/sendPayment`, `/setUserLimits`, `/get-game-config` (:418). `enqueueTx` = file nonce sérialisée |
+| `smart_contracts/config.js` | **Adresses + ABIs des 3 contrats. RESYNCHRONISÉ AU BOOT du container blockchain par `full_deploy.js` depuis les artifacts** (§18.3). Bind-mounté depuis l'hôte (ro) — toute édition hôte est visible du bridge |
+| `smart_contracts/indexer/` | Indexeur robuste (polling, idempotent, reorg safe) : `indexer.js` (boucle), `handlers.js` (mapping events→webhooks Laravel), `db.js` (persistance MySQL tables `blockchain_sync_states` + `processed_blockchain_events`), `eventProcessor.js` (claim-then-process) |
+| `smart_contracts/simulation_bots.js` | Création bots autoplay : auth API→IPFS→pre-moves→submitPremoveCID. Usage : `node smart_contracts/simulation_bots.js <nombre> <indexDépart>` (skip #0,#1,#2,#99 = humains) |
+
+Container bridge : secrets montés = payout_operator_pk, marketplace_wallet_pk, signer_wallet_pk, internal_api_secret, db_app_password. `config.js` **et** `app.js` bind-mountés ro depuis l'hôte.
+
+### 19.4 BLOCKCHAIN (container `blockchain`) — Hardhat + contrats
+
+| Fichier | Rôle |
+|---|---|
+| `battlepool/contracts/Battlepool.sol` | Contrat jeu (pools, fights, claims, timelock, roles). **5 fonctions onlyPayoutOperator** (fix §17.11) |
+| `battlepool/contracts/MarketplaceEscrow.sol` | Escrow P2P SNT. Events : `OfferCreated(uint256,address,uint256,uint256)` (topic0 `0xbf26a47e...`), OfferFulfilled, OfferCancelled |
+| `battlepool/contracts/SNTToken.sol` | ERC20. **Mint initial au compte #100** (`0x8C3229EC...`), owner hardcodé (piège §17.10) |
+| `battlepool/full_deploy.js` | **Déploiement auto au boot** (entrypoint.sh) : déploie 3 contrats + setSecurityCoefficient(1000) + setFeeBasisPoints(250) + initializeRoles + fund owner 1000 ETH + **RESYNC ABIs+adresses dans config.js depuis artifacts** (section AUTOMATION, avec pattern /tmp anti-ENODATA) |
+| `battlepool/entrypoint.sh` | hardhat node (bg) → wait 8545 → full_deploy → touch deployed.txt (signal healthcheck) |
+| `battlepool/artifacts/contracts/*/` | **Source de vérité des ABIs** (compilés). Battlepool=108, MarketplaceEscrow=26, SNTToken=25 entrées |
+
+Le bridge ne démarre qu'après `blockchain` healthy (compose `depends_on`), donc config.js est toujours à jour.
+Adresses canoniques : Battlepool `0x5FbDB2315678afecb367f032d93F642f64180aa3`, SNT `0x0165878A594ca255338adfa4d48449f69242Eb8F`, Marketplace `0xa513E6E4b8f2a923D98304ec87F64353C4D5C853` (déterministes Hardhat 1er/2e/3e déploiement du compte #0).
+
+### 19.5 DOCKER / COMPOSE (topologie)
+
+| Service | Image | Notes |
+|---|---|---|
+| `blockchain` | `rock-paper-scissors-blockchain:latest` | port 8546→8545 ; **monte `./smart_contracts:/smart_contracts`** (écrit config.js au boot via le mount !) ; healthcheck = deployed.txt |
+| `bridge` | `rock-paper-scissors-bridge:latest` | port interne 3000 (jamais exposé hôte) ; bind mounts **ro** : config.js + app.js |
+| `app` | `rock-paper-scissors-app:latest` | 8001→8080 ; **public/build est DANS l'image, PAS un mount** (piège §19.7) |
+| `reverb` | `rock-paper-scissors-reverb:latest` | 8008→8008 websockets |
+| `queue-worker` / `queue-worker-limits` (×2) | idem app | queues default / limits |
+| `worker` | idem app | `schedule:run` loop — conteneur créé hors compose dans certaines sessions (voir §18.4 n°6) |
+| `db` | mysql | 3307→3306 |
+| `redis` | redis | queues Laravel, préfixe `laravel_database_` |
+| `init-db` | one-shot | migrate + seed, Exited(0) attendu |
+
+Secrets (Docker secretsbind `/run/secrets/`) — **voir P.R.O.T. §0 TEST_RUNBOOK pour la règle provision/recreate**.
+
+### 19.6 TESTS E2E (Puppeteer, hôte Windows)
+
+| Fichier | Rôle |
+|---|---|
+| `bp-test/e2e_full.cjs` | **Harnais E2E complet** : metaflask mock (eth_requestAccounts/personal_sign/eth_send...), 10 tests T1-T10 (conn, état, achat carte, activation, cooldown, join pool, watchdog, claim, vente SNT, offres). Usage : `node e2e_full.cjs <userIndex>` — rapport `e2e_full_report.log` + shots `shots_e2e_full/` |
+| `bp-test/e2e_full_report.log` | derniers résultats |
+| `bp-test/check_served_bundle.cjs` | vérifie que le bundle SERVI (container) == bundle hôte (détecte le piège §19.7) |
+| `bp-test/decode_latest.cjs` | décode un transfert SNT (from/to/amount) pour auditer un achat |
+| `bp-test/obs_live.js` | observateur temps réel pusher (FightResult/UserBalanceUpdated) |
+
+Dépendances : `puppeteer-core@25.7.0` + `ethers@6` dans `bp-test/node_modules/`, Chrome système (`C:\Program Files\Google\Chrome\Application\chrome.exe`). Comptes Humains : **#0, #1, #2, #99** (jamais bots). Seed bots : index 3+.
+
+### 19.7 LE PIÈGE CRITIQUE DU BUNDLE (nouveau, session 2026-08-29)
+
+**`public/build` vit DANS L'IMAGE du container `app`** (pas un mount !). Conséquences :
+1. `docker compose up --force-recreate app` (par exemple lors d'une intervention P.R.O.T.) **écrase le bundle déployé** par celui de l'image (potentiellement vieux).
+2. Symptôme : l'UI sert du JS obsolète → bugs "déjà corrigés" réapparaissent (ex: paiements carte vers OWNER au lieu de PAYOUT_OPERATOR).
+3. Détection immédiate : `node bp-test/check_served_bundle.cjs` (compare taille + marqueur `0x5aa8eb45...`).
+4. Redéploiement fiable (docker cp capricieux → passer par base64+stdin, bytes-safe) :
+
+```powershell
+npm run build                                                        # 9 s, côté hôte
+$b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("G:\DEV\PHP\rock-paper-scissors\public\build\assets\app.js"));
+[IO.File]::WriteAllText("$env:TEMP\app_b64.txt", $b64);
+cmd /c "type ""$env:TEMP\app_b64.txt"" | docker exec -i -u root rock-paper-scissors-app-1 sh -c ""base64 -d > /var/www/html/public/build/assets/app.js && chown -R www-data:www-data /var/www/html/public/build && chmod -R 755 /var/www/html/public/build && grep -c '0x5aa8eb45a9F6F87D8c51c51ea2639559Df632ebd' /var/www/html/public/build/assets/app.js && echo DEPLOYED"""
+node bp-test/check_served_bundle.cjs     # doit répondre identiques? true
+```
+
+**Option durable recommandée (pas encore faite)** : monter `./public/build:/var/www/html/public/build:ro` dans le compose (comme config.js/app.js pour le bridge) pour que le bundle soit servi depuis l'hôte et survive aux recréations.
+
+### 19.8 SESSION 2026-08-29 : faits saillants supplémentaires
+
+1. **Achat de cartes E2E validé** (T3) : SNT → PAYOUT_OPERATOR → VerifyCardPurchaseJob → statut `available` automatiquement (Option 2 : frontend fixed + bundle redeployed, commit `1d5b635`).
+2. **`cards` table jamais seedée** → **CardSeeder** créé (commit `dc1f294`) : super sayen (0.5 SNT, -1000 min, 5 sessions), ki boost (0.3 SNT, -50%, 3), ceiling up (0.4 SNT). Idempotent, intégré à DatabaseSeeder → **futurs `migrate:fresh --seed` peuplent le shop**.
+3. **T4 nuance UX** : post-fix, la vérification bridge réussit → la carte passe directement `available` (jamais `pending` visible) → **pas besoin de bouton "activate"** pour les nouveaux achats. (ShopController::activateCard reste le fallback pour les `pending`.)
+4. Les cartes historiques `failed` (txs authentiques mais paiement mal dirigé avant fix) ont été réparées manuellement → `available` (txs vérifiées on-chain : 0.5 SNT, statut 1).
+5. **CRLF Windows → bug `--force\r`** lors de l'exécution de scripts .sh hérités de fichiers Windows dans le container. **Pattern obligatoire** : `sed 's/\r$//'` après copie (ou écrire le fichier depuis le pipe avec déjà le strip CRLF).
+6. **41 bots actifs** en fin de session (indices 3-42, base bet 0.01, dépôt 10.25 ETH chacun), pools de 5, fights/payouts en continu.
 
