@@ -99,7 +99,7 @@ export function initGame() {
             } else {
                 const el = document.getElementById('balance-val');
                 if (el && !el.classList.contains('animating')) {
-                    el.innerHTML = total.toFixed(4) + ' <span class="unit">ETH</span>';
+                    el.innerHTML = total.toFixed(4) + ' <span class="unit">AVAX</span>';
                 }
             }
             updateUI();
@@ -371,10 +371,10 @@ function updateFeeDisplay() {
     const elTotal = document.getElementById('display-total-deposit');
 
     if (elCoeff) elCoeff.innerText = coeff;
-    if (elStake) elStake.innerText = stake.toFixed(4) + " ETH";
+    if (elStake) elStake.innerText = stake.toFixed(4) + " AVAX";
     if (elFeePct) elFeePct.innerText = feePct;
-    if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " ETH";
-    if (elTotal) elTotal.innerText = total.toFixed(4) + " ETH";
+    if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " AVAX";
+    if (elTotal) elTotal.innerText = total.toFixed(4) + " AVAX";
 }
 
 function getIcon(move) {
@@ -612,11 +612,11 @@ export function updateUI() {
         
         const balanceEl = document.getElementById('balance-val');
         if(balanceEl && !balanceEl.classList.contains('animating')) {
-            balanceEl.innerHTML = displayBalance.toFixed(4) + ' <span class="unit">ETH</span>';
+            balanceEl.innerHTML = displayBalance.toFixed(4) + ' <span class="unit">AVAX</span>';
         }
         
         const betEl = document.getElementById('bet-val');
-        if(betEl) betEl.innerHTML = bet.toFixed(4) + ' <span class="unit">ETH</span>';
+        if(betEl) betEl.innerHTML = bet.toFixed(4) + ' <span class="unit">AVAX</span>';
 
         if (activeView === views['dashboard']) {
             const joinBtn = document.getElementById('join-btn');
@@ -715,7 +715,7 @@ function animateValue(id, start, end, decimals) {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
         const val = progress * (eVal - sVal) + sVal;
-        obj.innerHTML = val.toFixed(decimals) + ' <span class="unit">ETH</span>';
+        obj.innerHTML = val.toFixed(decimals) + ' <span class="unit">AVAX</span>';
         if (progress < 1) window.requestAnimationFrame(step);
         else {
             obj.classList.remove('animating');
@@ -759,7 +759,7 @@ function triggerClash(myMove, opponentMove, result, delta) {
         const color = result === 'win' ? 'var(--success)' : (result === 'draw' ? 'var(--primary)' : 'var(--accent)');
         if(combatText) {
             combatText.style.color = color;
-            combatText.innerText = result.toUpperCase() + " (" + delta + " ETH)";
+            combatText.innerText = result.toUpperCase() + " (" + delta + " AVAX)";
         }
         clashDiv.classList.add('fade-out');
         setTimeout(() => overlay.removeChild(clashDiv), 500);

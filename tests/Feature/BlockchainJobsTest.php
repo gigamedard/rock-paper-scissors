@@ -40,12 +40,15 @@ class BlockchainJobsTest extends TestCase
     {
         $user = User::factory()->create([
             'wallet_address' => '0xUserLimit',
-            'bet_amount' => 0.01
+            'bet_amount' => 0.0004,
+            'initial_base_bet' => 0.0004,
         ]);
 
+        // Valeurs actuelles de getActiveLimits : max_base_bet 100, max_q 1.2 (sans filleul),
+        // cooldown palier 0.0004 = 4320 min -> (4320*60)-20 = 259180 s.
         $this->web3Mock->shouldReceive('setUserLimits')
             ->once()
-            ->with(Mockery::any(), '0xUserLimit', 0.01, 2.0, 86380, 0)
+            ->with(Mockery::any(), '0xUserLimit', 100.0, 1.2, 259180, 0)
             ->andReturn(['success' => true]);
 
         $job = new SyncUserLimitsJob($user);
@@ -170,6 +173,7 @@ class BlockchainJobsTest extends TestCase
         $job = new VerifyCardPurchaseJob($userCard);
         $job->handle();
 
-        $this->assertEquals('available', $userCard->fresh()->status);
+        // OPTION C : après vérification, la carte reste 'pending' jusqu'à activation manuelle.
+        $this->assertEquals('pending', $userCard->fresh()->status);
     }
 }

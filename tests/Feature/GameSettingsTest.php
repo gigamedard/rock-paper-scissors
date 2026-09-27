@@ -32,9 +32,10 @@ class GameSettingsTest extends TestCase
         $this->assertIsInt($chunkSize);
         $this->assertEquals(10, $chunkSize);
 
-        // Assert that 'base_bet' exists and matches the expected value
+        // Assert that 'base_bet' reflects the primary base bet tier.
+        // Source de vérité : config/economy.php (base_bets) ; game_settings est un fallback.
         $baseBet = config('game_settings.base_bet');
         $this->assertIsFloat($baseBet);
-        $this->assertEquals(0.01, $baseBet);
+        $this->assertEquals(config('economy.base_bets')[0] ?? 0.0004, $baseBet);
     }
 }

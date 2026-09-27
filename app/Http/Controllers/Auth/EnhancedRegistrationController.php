@@ -123,18 +123,19 @@ class EnhancedRegistrationController extends Controller
             throw new \Exception('Vous ne pouvez pas utiliser votre propre code de parrainage');
         }
 
-        $bonusAmount = 1;
+        // Bonus de jeu NON VENDABLE (locked_balance) : aligné sur la règle de parrainage.
+        // De quoi acheter 2 cartes de cooldown (Kaioken = 20 SNT).
+        $bonusAmount = (float) config('economy.referral.referee_bonus', 40);
 
         // Créer l'enregistrement de parrainage
         Referral::create([
             'referrer_id' => $referrer->id,
             'referred_id' => $user->id,
             'referral_code' => $referralCode,
-            'status' => 'pending', // Sera validé après la première transaction
+            'status' => 'pending', // Sera validé à la première session
         ]);
 
-        // Ajouter le bonus immédiat au nouvel utilisateur (SNT)
-        $user->increment('token_balance', $bonusAmount);
+        // Ajouter le bonus immédiat au nouvel utilisateur (crédit verrouillé, non vendable)
         $user->increment('locked_balance', $bonusAmount);
         $user->update(['has_received_signup_bonus' => true]);
 

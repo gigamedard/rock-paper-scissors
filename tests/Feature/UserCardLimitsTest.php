@@ -36,9 +36,11 @@ class UserCardLimitsTest extends TestCase
         ])->getJson('/api/user');
 
         $response->assertStatus(200);
-        $this->assertEquals(0.01, $response->json('active_limits.max_base_bet'));
-        $this->assertEquals(2.0, $response->json('active_limits.max_q'));
-        $this->assertEquals(1440, $response->json('active_limits.min_cooldown'));
+        $this->assertEquals(100.0, $response->json('active_limits.max_base_bet'));
+        // Sans filleuls validés, plafond Q par défaut = 1.2
+        $this->assertEquals(1.2, $response->json('active_limits.max_q'));
+        // Cooldown FIXE par palier : défaut 3 jours (4320 min)
+        $this->assertEquals(4320, $response->json('active_limits.min_cooldown'));
     }
 
     public function test_user_profile_returns_expanded_limits_with_active_card()
@@ -86,9 +88,12 @@ class UserCardLimitsTest extends TestCase
         ])->getJson('/api/user');
 
         $response->assertStatus(200);
-        $this->assertEquals(0.05, $response->json('active_limits.max_base_bet'));
-        $this->assertEquals(3.0, $response->json('active_limits.max_q'));
-        $this->assertEquals(1440, $response->json('active_limits.min_cooldown'));
+        // 100.0 (plafond base) + 0.04 (carte) = 100.04
+        $this->assertEquals(100.04, $response->json('active_limits.max_base_bet'));
+        // 1.2 (base, pas de filleuls) + 1.0 (carte) = 2.2 (< hard cap 3.0)
+        $this->assertEquals(2.2, $response->json('active_limits.max_q'));
+        // Cooldown FIXE par palier (défaut 3 jours = 4320 min)
+        $this->assertEquals(4320, $response->json('active_limits.min_cooldown'));
     }
 
     public function test_buying_card_triggers_blockchain_limits_sync()
@@ -135,10 +140,9 @@ class UserCardLimitsTest extends TestCase
         ])->postJson('/api/user/pre-moves', [
             'user_id' => $user->id,
             'pre_moves' => ['rock', 'paper', 'scissors'],
-            'bet_amount' => 0.01,
+            'bet_amount' => 0.0004,
             'cid' => 'QmTest',
-            'target_q' => 2.0,
-            'cooldown_time' => 1440
+            'target_q' => 1.2,
         ]);
 
         $response->assertStatus(200);
@@ -154,7 +158,7 @@ class UserCardLimitsTest extends TestCase
         ])->postJson('/api/user/pre-moves', [
             'user_id' => $user->id,
             'pre_moves' => ['rock', 'paper', 'scissors'],
-            'bet_amount' => 0.02, // Exceeds default limit of 0.01
+            'bet_amount' => 200, // Exceeds default max_base_bet of 100
             'cid' => 'QmTest',
         ]);
 
@@ -171,30 +175,32 @@ class UserCardLimitsTest extends TestCase
         ])->postJson('/api/user/pre-moves', [
             'user_id' => $user->id,
             'pre_moves' => ['rock', 'paper', 'scissors'],
-            'bet_amount' => 0.01,
-            'target_q' => 2.5, // Exceeds default limit of 2.0
+            'bet_amount' => 0.0004,
+            'target_q' => 2.0, // Exceeds default max_q of 1.2 (no validated referrals)
             'cid' => 'QmTest',
         ]);
 
         $response->assertStatus(422);
     }
 
-    public function test_starting_session_exceeding_cooldown_limit_fails()
+    public function test_cooldown_is_fixed_per_tier_and_not_player_chosen()
     {
         $user = User::factory()->create(['status' => 'available']);
         $token = ApiToken::generateForUser($user, 60);
 
+        // Le joueur ne choisit plus le cooldown : la valeur transmise est ignorée
+        // et remplacée par le cooldown fixe du palier.
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
         ])->postJson('/api/user/pre-moves', [
             'user_id' => $user->id,
             'pre_moves' => ['rock', 'paper', 'scissors'],
-            'bet_amount' => 0.01,
-            'cooldown_time' => 720, // Less than default min cooldown 1440
+            'bet_amount' => 0.0004,
+            'cooldown_time' => 720, // ignoré
             'cid' => 'QmTest',
         ]);
 
-        $response->assertStatus(422);
+        $response->assertStatus(200);
     }
 
     public function test_cards_are_not_consumed_until_session_ends()
@@ -209,6 +215,7 @@ class UserCardLimitsTest extends TestCase
             'multiplier_level' => 2,
             'recovery_level' => 1,
             'bet_amount' => 1,
+            'target_q' => 1.2,
             'status' => 'in_pool',
             'autoplay_active' => true,
         ]);

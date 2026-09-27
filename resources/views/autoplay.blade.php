@@ -612,15 +612,13 @@
                 <h3>Bet Amount</h3>
               </div>
               <div class="bet-buttons">
-                <button class="bet-btn active" data-bet="0.01">0.01</button>
-                <button class="bet-btn" data-bet="0.02">0.02</button>
-                <button class="bet-btn" data-bet="0.05">0.05</button>
-                <button class="bet-btn" data-bet="0.10">0.10</button>
+                <button class="bet-btn active" data-bet="0.0004">0.0004 AVAX</button>
+                <button class="bet-btn" data-bet="0.15">0.15 AVAX</button>
               </div>
               <div class="bet-info" style="margin-top: 0.8rem; padding: 0.5rem; background: rgba(99, 102, 241, 0.1); border-radius: 0.5rem; border-left: 3px solid var(--color-primary);">
                 <small style="display: flex; justify-content: space-between;">
                   <span>Entry Fee: <span id="entry-fee-display">2.5</span>%</span>
-                  <span style="font-weight: bold; color: var(--color-primary);"><span id="fee-amount-display">0.00025</span> ETH</span>
+                  <span style="font-weight: bold; color: var(--color-primary);"><span id="fee-amount-display">0.00025</span> AVAX</span>
                 </small>
               </div>
             </div>
@@ -718,7 +716,7 @@
               <i data-lucide="award" style="width: 32px; height: 32px;"></i>
               <div style="flex: 1;">
                 <p class="balance-label" style="font-weight: bold; color: #fff; margin-bottom: 0.25rem;">🏆 SESSION COMPLETE - CLAIM NOW</p>
-                <p class="balance-amount"><span id="claim-amount-display">0.0000</span> ETH</p>
+                <p class="balance-amount"><span id="claim-amount-display">0.0000</span> AVAX</p>
               </div>
               <button id="claim-btn" class="submit-btn" style="width: auto; padding: 0.75rem 1.5rem; background: #fff; color: var(--color-accent); font-weight: bold; border-radius: 0.5rem;" onclick="app.claim()">
                 CLAIM & EXIT
@@ -932,10 +930,10 @@
       }
 
       function updateBudgetStatsDisplay(stats) {
-        document.getElementById('current-budget').textContent = stats.current_budget + ' ETH';
+        document.getElementById('current-budget').textContent = stats.current_budget + ' AVAX';
         document.getElementById('current-q-value').textContent = stats.q_value;
         document.getElementById('target-q-display').textContent = stats.target_q_value;
-        document.getElementById('next-bet-amount').textContent = stats.next_bet_amount + ' ETH';
+        document.getElementById('next-bet-amount').textContent = stats.next_bet_amount + ' AVAX';
         document.getElementById('current-k-value').textContent = stats.current_k_value;
         document.getElementById('win-rate').textContent = stats.win_rate.toFixed(1) + '%';
         document.getElementById('total-fights').textContent = stats.total_fights;
@@ -1024,7 +1022,7 @@
         document.getElementById('final-q-value').textContent = sessionData.q_value;
         document.getElementById('final-total-fights').textContent = sessionData.total_fights;
         document.getElementById('final-win-rate').textContent = sessionData.win_rate.toFixed(1) + '%';
-        document.getElementById('final-profit').textContent = sessionData.total_profit + ' ETH';
+        document.getElementById('final-profit').textContent = sessionData.total_profit + ' AVAX';
         document.getElementById('session-complete-modal').classList.remove('hidden');
       }
 
@@ -1191,7 +1189,7 @@
 
       function renderBalance() {
         const balanceAmount = document.querySelector('.balance-amount');
-        balanceAmount.textContent = `${gameState.balance} ETH`;
+        balanceAmount.textContent = `${gameState.balance} AVAX`;
       }
       function updateBalance(pBalance){
         console.log("updating balance");

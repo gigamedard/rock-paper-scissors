@@ -66,18 +66,11 @@ class BlockchainController extends Controller
                 Log::error("Error emit event: {$e->getMessage()}");
             }
 
-            // ADDED: Referral Validation Check (Mimicking/Improving)
-            // Even if this updates ETH balance, we check SNT token balance.
+            // Referral Validation Check — le seuil de solde a été retiré :
+            // la validation se fait désormais à la PREMIÈRE SESSION du filleul.
              try {
-                $minimumBalance = 5;
-                if ($user->fresh()->token_balance >= $minimumBalance) {
-                     // We need to instantiate the service manually or inject it. 
-                     // Since we didn't inject it in the controller constructor yet, let's use app() helper or modify constructor.
-                     // Modifying constructor is cleaner but riskier if dependencies vary.
-                     // Let's use resolving from container for minimal disruption in this method.
-                     $referralService = app(\App\Services\ReferralService::class);
-                     $referralService->processReferralValidation($user);
-                }
+                 $referralService = app(\App\Services\ReferralService::class);
+                 $referralService->processReferralValidation($user);
             } catch (\Throwable $e) {
                 Log::error("Error checking referral in updateUserBalance: {$e->getMessage()}");
             }

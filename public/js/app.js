@@ -140,10 +140,10 @@ const app = {
         const elTotal = document.getElementById('display-total-deposit');
 
         if (elCoeff) elCoeff.innerText = this.config.security_coefficient;
-        if (elStake) elStake.innerText = stake.toFixed(4) + " ETH";
+        if (elStake) elStake.innerText = stake.toFixed(4) + " AVAX";
         if (elFeePct) elFeePct.innerText = this.config.smart_contract_fee_percentage;
-        if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " ETH";
-        if (elTotal) elTotal.innerText = total.toFixed(4) + " ETH";
+        if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " AVAX";
+        if (elTotal) elTotal.innerText = total.toFixed(4) + " AVAX";
     },
 
     renderSlots() {
@@ -504,8 +504,8 @@ const app = {
             const balance = parseFloat(this.user.balance) || 0;
             const bet = parseFloat(this.user.bet_amount) || 0;
             
-            document.getElementById('balance-val').innerHTML = balance.toFixed(4) + ' <span class="unit">ETH</span>';
-            document.getElementById('bet-val').innerHTML = bet.toFixed(4) + ' <span class="unit">ETH</span>';
+            document.getElementById('balance-val').innerHTML = balance.toFixed(4) + ' <span class="unit">AVAX</span>';
+            document.getElementById('bet-val').innerHTML = bet.toFixed(4) + ' <span class="unit">AVAX</span>';
 
             // Handle sub-statuses in dashboard
             if (activeView === views['dashboard']) {
@@ -576,7 +576,7 @@ const app = {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
             const val = progress * (eVal - sVal) + sVal;
-            obj.innerHTML = val.toFixed(decimals) + ' <span class="unit">ETH</span>';
+            obj.innerHTML = val.toFixed(decimals) + ' <span class="unit">AVAX</span>';
             if (progress < 1) window.requestAnimationFrame(step);
             else {
                 obj.classList.add('hud-value-update');
@@ -610,7 +610,7 @@ const app = {
         setTimeout(() => {
             const color = result === 'win' ? 'var(--success)' : (result === 'draw' ? 'var(--primary)' : 'var(--accent)');
             combatText.style.color = color;
-            combatText.innerText = result.toUpperCase() + " (" + delta + " ETH)";
+            combatText.innerText = result.toUpperCase() + " (" + delta + " AVAX)";
             clashDiv.classList.add('fade-out');
             setTimeout(() => overlay.removeChild(clashDiv), 500);
         }, 1500);

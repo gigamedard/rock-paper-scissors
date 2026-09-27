@@ -77,6 +77,61 @@ class ShopController extends Controller
     }
 
     /**
+     * Achat de carte payé avec le CRÉDIT DE JEU (locked_balance, non vendable).
+     * Aucune transaction on-chain : le crédit provient des bonus de parrainage.
+     */
+    public function buyWithCredit(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $validated = $request->validate([
+            'card_id' => 'required|exists:cards,id',
+            'quantity' => 'nullable|integer|min:1',
+        ]);
+
+        $card = \App\Models\Card::where('id', $validated['card_id'])->where('is_active', true)->firstOrFail();
+        $quantity = (int) ($validated['quantity'] ?? 1);
+        $totalPrice = (float) $card->price * $quantity;
+
+        $userCard = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $card, $quantity, $totalPrice) {
+            $locked = \App\Models\User::where('id', $user->id)->lockForUpdate()->first();
+
+            if ((float) $locked->locked_balance < $totalPrice) {
+                abort(422, 'Solde de crédit insuffisant. Le crédit est non vendable et s\'obtient via le parrainage.');
+            }
+
+            $locked->decrement('locked_balance', $totalPrice);
+
+            $created = [];
+            for ($i = 0; $i < $quantity; $i++) {
+                $created[] = \App\Models\UserCard::create([
+                    'user_id' => $user->id,
+                    'card_id' => $card->id,
+                    'status' => 'available', // Payé par crédit : pas de vérification on-chain nécessaire
+                    'remaining_sessions' => $card->duration_type === 'sessions' ? $card->duration_value : null,
+                    'expires_at' => $card->duration_type === 'time' ? now()->addHours($card->duration_value) : null,
+                    'tx_hash' => 'credit_' . uniqid('', true),
+                ]);
+            }
+
+            return $created;
+        });
+
+        \App\Jobs\SyncUserLimitsJob::dispatch($user)->onQueue('limits');
+
+        return response()->json([
+            'message' => 'Achat avec crédit réussi.',
+            'user_card' => $userCard[0],
+            'user_cards' => $userCard,
+            'locked_balance' => $user->fresh()->locked_balance,
+            'new_balance' => $user->fresh()->token_balance,
+        ]);
+    }
+
+    /**
      * Active manuellement une carte achetée (statut 'pending' ou 'available').
      * Si l'utilisateur est en cooldown, la réduction est appliquée immédiatement
      * (cooldown rétroactif) pour un effet visible tout de suite.

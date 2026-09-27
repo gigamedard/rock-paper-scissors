@@ -98,10 +98,10 @@ class InternalTradeController extends Controller
                             $buyer->increment('token_balance', $trade->snt_amount);
                             Log::info("Incremented {$trade->snt_amount} SNT for buyer {$buyer->wallet_address} from trade fulfillment.");
                             
-                            // Déclencher la validation du parrainage si éligible (solde >= 5)
-                            $minimumBalance = 5;
+                            // Déclencher la validation du parrainage si en attente
+                            // (le seuil de solde a été retiré : validation à la 1ère session)
                             $pendingReferral = Referral::where('referred_id', $buyer->id)->where('status', 'pending')->exists();
-                            if ($pendingReferral && $buyer->fresh()->token_balance >= $minimumBalance) {
+                            if ($pendingReferral) {
                                 Log::info("Validation parrainage déclenchée pour User {$buyer->id} suite à l'achat sur le marketplace.");
                                 $this->referralService->processReferralValidation($buyer);
                             }
@@ -148,20 +148,16 @@ class InternalTradeController extends Controller
                 return response()->json(['status' => 'user_not_found'], 404);
             }
 
-            $minimumBalanceForReferral = 5;
-            
-            // On rafraîchit le modèle pour être sûr d'avoir le solde mis à jour par l'étape précédente
+            // Seuil de solde retiré : la validation se fait désormais à la 1ère session.
             $referredUser->refresh(); 
             $pendingReferral = Referral::where('referred_id', $referredUser->id)->where('status', 'pending')->exists();
             
             Log::info('==> [LISTENER] Vérification des conditions de parrainage.', [
                 'user_id' => $referredUser->id,
                 'has_pending_referral' => $pendingReferral,
-                'token_balance' => $referredUser->token_balance,
-                'balance_is_sufficient' => $referredUser->token_balance >= $minimumBalanceForReferral
             ]);
 
-            if ($pendingReferral && $referredUser->token_balance >= $minimumBalanceForReferral) {
+            if ($pendingReferral) {
                 Log::info('==> [LISTENER] Conditions remplies, déclenchement de la validation.');
                 $this->referralService->processReferralValidation($referredUser);
                 return response()->json(['status' => 'referral_processed']);
@@ -212,16 +208,10 @@ class InternalTradeController extends Controller
 
     private function checkReferralForUser(User $user)
     {
-        $minimumBalance = 5;
         $pendingReferral = Referral::where('referred_id', $user->id)->where('status', 'pending')->exists();
 
-        // Refresh user to get updated balance is optional inside transaction if we just incremented, 
-        // but $user->increment changes DB, not the model instance immediately unless refreshed or set.
-        // Usually increment() doesn't update the model instance attributes in memory automatically in old Laravel, 
-        // but we can just use fresh() or refresh().
-        $currentBalance = $user->fresh()->token_balance;
-
-        if ($pendingReferral && $currentBalance >= $minimumBalance) {
+        // Seuil de solde retiré : validation à la 1ère session (PoolReconstructionService).
+        if ($pendingReferral) {
             Log::info("Validation parrainage déclenchée pour User {$user->id} suite à un transfert.");
             $this->referralService->processReferralValidation($user);
         }

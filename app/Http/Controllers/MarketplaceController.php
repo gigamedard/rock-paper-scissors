@@ -28,18 +28,17 @@ class MarketplaceController extends Controller
 
         $buyer = $request->user();
         $amountPurchased = $validated['amount'];
-        $minimumPurchaseForReferral = 5;
 
         $buyer->increment('token_balance', $amountPurchased);
 
         // --- OPTIMISATION ---
-        // On vérifie d'abord si l'utilisateur a un parrainage en attente.
+        // Le seuil de solde a été retiré : la validation du parrainage se fait
+        // désormais à la PREMIÈRE SESSION du filleul (cf. PoolReconstructionService).
         $pendingReferral = Referral::where('referred_id', $buyer->id)
                                 ->where('status', 'pending')
-                                ->exists(); // exists() est plus performant que first() si on n'a besoin que de savoir si la ligne existe.
+                                ->exists();
 
-        // Si le solde est suffisant ET qu'il y a bien un parrainage à valider, alors on appelle le service.
-        if ($pendingReferral && $buyer->fresh()->token_balance >= $minimumPurchaseForReferral) {
+        if ($pendingReferral) {
             $this->referralService->processReferralValidation($buyer);
         }
 

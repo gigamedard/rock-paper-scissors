@@ -106,14 +106,12 @@
                         </div>
                     </div>
                     <div>
-                        <label class="label" data-i18n="setup.base_bet">BASE BET AMOUNT (ETH)</label>
+                        <label class="label" data-i18n="setup.base_bet">BASE BET AMOUNT (AVAX)</label>
                         <div class="bet-input-container">
                             <span style="font-size: 1.5rem; color: var(--primary);">Ξ</span>
                             <select id="base-bet-input" class="bet-input" style="font-size: 1.5rem;">
-                                <option value="0.01" selected>0.01 ETH</option>
-                                <option value="0.02">0.02 ETH</option>
-                                <option value="0.05">0.05 ETH</option>
-                                <option value="0.10">0.10 ETH</option>
+                                <option value="0.0004" selected>0.0004 AVAX</option>
+                                <option value="0.15">0.15 AVAX</option>
                             </select>
                         </div>
 
@@ -122,10 +120,12 @@
                             <span style="font-size: 1.5rem; color: var(--primary);">q</span>
                             <select id="target-q-input" class="bet-input" style="font-size: 1.5rem;">
                                 <option value="1.001">1.001x</option>
+                                <option value="1.2" selected>1.2x</option>
+                                <option value="1.3">1.3x</option>
                                 <option value="1.5">1.5x</option>
-                                <option value="2.0" selected>2.0x</option>
-                                <option value="2.5">2.5x</option>
-                                <option value="3.0">3.0x</option>
+                                <option value="2">2x</option>
+                                <option value="3">3x</option>
+                                <option value="4">4x</option>
                             </select>
                         </div>
 
@@ -137,10 +137,10 @@
                         </div>
 
                         <div id="fee-breakdown" style="margin-top:1rem; font-size:0.85rem; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.required_stake">Required Stake</span> (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 ETH</span></div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.fee">Matchmaking Fee</span> (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 ETH</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.required_stake">Required Stake</span> (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 AVAX</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.fee">Matchmaking Fee</span> (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 AVAX</span></div>
                             <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:0.5rem 0;">
-                            <div style="display:flex; justify-content:space-between; font-weight:800; color:var(--primary);"><span data-i18n="setup.total_deposit">TOTAL DEPOSIT:</span><span id="display-total-deposit">0.0000 ETH</span></div>
+                            <div style="display:flex; justify-content:space-between; font-weight:800; color:var(--primary);"><span data-i18n="setup.total_deposit">TOTAL DEPOSIT:</span><span id="display-total-deposit">0.0000 AVAX</span></div>
                         </div>
 
                         <button class="btn-primary" id="start-session-btn" style="margin-top: 1rem; width: 100%;" data-i18n="setup.btn">INITIALIZE BATTLE SEQUENCE</button>
@@ -154,12 +154,12 @@
                     <div class="arena-grid">
                         <div class="card stat-card pulse-primary">
                             <div class="card-label" data-i18n="dashboard.balance">Main Balance</div>
-                            <div class="card-value" id="balance-val">0.0000 <span class="unit">ETH</span></div>
+                            <div class="card-value" id="balance-val">0.0000 <span class="unit">AVAX</span></div>
                             <div class="card-trend up">↑ Live Sync</div>
                         </div>
                         <div class="card stat-card">
                             <div class="card-label" data-i18n="dashboard.bet">Current Bet</div>
-                            <div class="card-value" id="bet-val">0.0100 <span class="unit">ETH</span></div>
+                            <div class="card-value" id="bet-val">0.0100 <span class="unit">AVAX</span></div>
                             <div id="status-text" class="battle-status-tag status-online">Available</div>
                         </div>
                     </div>
@@ -171,7 +171,7 @@
                         <!-- Claim Section (Hidden by default) -->
                         <div id="claim-section" class="claim-panel fade-in" style="display: none;">
                             <h3 data-i18n="claim.title">SESSION COMPLETE - REWARDS READY</h3>
-                            <div class="claim-amount"><span id="claim-amount-display">0.0000</span> ETH</div>
+                            <div class="claim-amount"><span id="claim-amount-display">0.0000</span> AVAX</div>
                             <button class="btn-claim" id="claim-btn" data-i18n="claim.btn">CLAIM & WITHDRAW TO WALLET</button>
                         </div>
                     </div>

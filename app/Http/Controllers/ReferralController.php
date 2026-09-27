@@ -72,25 +72,23 @@ class ReferralController extends Controller
 
             $message = 'Referral code applied successfully!';
 
-            // ===> Give 1 SNT Bonus (Locked) <===
-            // Fix race condition using DB transaction and lockForUpdate
+            // ===> Give signup bonus as LOCKED (non-vendable) game credit <===
+            // De quoi acheter 2 cartes de cooldown (Kaioken = 20 SNT).
             DB::transaction(function () use ($referredUser, &$message) {
-                // Lock the user row to prevent concurrent updates
                 $user = User::where('id', $referredUser->id)->lockForUpdate()->first();
+                $bonus = (float) config('economy.referral.referee_bonus', 40);
 
                 if (!$user->has_received_signup_bonus) {
-                    $user->increment('token_balance', 1);
-                    $user->increment('locked_balance', 1);
+                    $user->increment('locked_balance', $bonus);
                     $user->update(['has_received_signup_bonus' => true]);
 
-                    Log::info('🎉 Signup bonus granted (LOCKED) to referred user', [
+                    Log::info('🎉 Signup bonus granted (LOCKED credit) to referred user', [
                         'user_id' => $user->id,
-                        'bonus_amount' => 1,
-                        'new_token_balance' => $user->fresh()->token_balance,
+                        'bonus_amount' => $bonus,
                         'new_locked_balance' => $user->fresh()->locked_balance
                     ]);
 
-                    $message .= ' You received 1 SNT (Locked).';
+                    $message .= ' You received ' . $bonus . ' locked credits (usable in the shop).';
                 }
             });
 

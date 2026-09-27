@@ -32,8 +32,11 @@ class PreMoveService
         $limits = $user->getActiveLimits();
 
         $bet_amount = $data['bet_amount'];
-        $target_q = $data['target_q'] ?? 2.0;
-        $cooldown_time = $data['cooldown_time'] ?? 1440;
+        $target_q = $data['target_q'] ?? config('economy.q.default_target_q', 1.2);
+
+        // Cooldown FIXE par palier de mise (déjà réduit par les cartes actives
+        // via getActiveLimits). Le joueur ne choisit pas sa durée.
+        $cooldown_time = (float) $limits['min_cooldown'];
 
         // Perform validations against limits
         if ($bet_amount > $limits['max_base_bet']) {
@@ -42,10 +45,6 @@ class PreMoveService
 
         if ($target_q > $limits['max_q']) {
             abort(422, 'Target multiplier Q exceeds the authorized limit.');
-        }
-
-        if ($cooldown_time < $limits['min_cooldown']) {
-            abort(422, 'Cooldown time is less than the authorized minimum limit.');
         }
 
         $nonce = bin2hex(random_bytes(16));

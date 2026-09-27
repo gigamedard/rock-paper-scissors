@@ -58,10 +58,10 @@ class SeedAdminSettings extends Seeder
             ],
             [
                 'key' => 'min_bet_eth',
-                'value' => '0.01',
+                'value' => '0.0004',
                 'type' => 'float',
                 'group' => 'gameplay',
-                'description' => 'Mise minimale autorisée en ETH (base_bet)'
+                'description' => 'Mise minimale autorisée (palier 1 ≈ 2000 XOF)'
             ],
             [
                 'key' => 'max_martingale_level',
@@ -69,6 +69,41 @@ class SeedAdminSettings extends Seeder
                 'type' => 'integer',
                 'group' => 'gameplay',
                 'description' => 'Nombre maximum de doublements avant réinitialisation de la mise'
+            ],
+            [
+                'key' => 'max_q_base',
+                'value' => '1.2',
+                'type' => 'float',
+                'group' => 'economy',
+                'description' => 'Plafond target_q par défaut (joueur sans condition)'
+            ],
+            [
+                'key' => 'max_q_referral',
+                'value' => '2.0',
+                'type' => 'float',
+                'group' => 'economy',
+                'description' => 'Plafond target_q débloqué avec le nombre requis de filleuls validés'
+            ],
+            [
+                'key' => 'max_q_hard',
+                'value' => '3.0',
+                'type' => 'float',
+                'group' => 'economy',
+                'description' => 'Plafond absolu target_q atteignable via cartes ceiling_increase'
+            ],
+            [
+                'key' => 'max_q_special',
+                'value' => '4.0',
+                'type' => 'float',
+                'group' => 'economy',
+                'description' => 'Plafond target_q pour cas spéciaux (carte q_special_unlock)'
+            ],
+            [
+                'key' => 'referrals_required_for_max',
+                'value' => '2',
+                'type' => 'integer',
+                'group' => 'economy',
+                'description' => 'Nombre de filleuls validés requis pour débloquer le plafond target_q referral'
             ],
         ];
 

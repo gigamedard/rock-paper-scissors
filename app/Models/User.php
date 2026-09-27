@@ -167,12 +167,68 @@ class User extends Authenticatable
         return $this->hasMany(UserCard::class);
     }
 
+    /**
+     * Cooldown de base (minutes) fixé par le PALIER de mise de base.
+     * Le joueur subit exactement cette durée ; seules les cartes la réduisent.
+     * Le palier de référence est `initial_base_bet` (fallback : bet_amount).
+     */
+    public function getBaseCooldownMinutes(): float
+    {
+        $cooldowns = config('economy.cooldowns', []);
+        $tier = $this->initial_base_bet ?? $this->bet_amount;
+
+        if ($tier !== null) {
+            if (isset($cooldowns[(string) $tier])) {
+                return (float) $cooldowns[(string) $tier];
+            }
+            foreach ($cooldowns as $key => $minutes) {
+                if (abs((float) $key - (float) $tier) < 1e-9) {
+                    return (float) $minutes;
+                }
+            }
+        }
+
+        return (float) config('economy.cooldown_default', 3 * 24 * 60);
+    }
+
+    /**
+     * Le joueur a-t-il un déblocage "cas spécial" du plafond Q (au-delà du hard cap) ?
+     * Représenté par une carte active `q_special_unlock` (récompense dédiée).
+     */
+    public function hasSpecialQUnlock(): bool
+    {
+        return $this->userCards()
+            ->where('status', 'available')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->whereHas('card', fn ($q) => $q->where('effect_type', 'q_special_unlock'))
+            ->exists();
+    }
+
     public function getActiveLimits()
     {
         $maxBaseBet = 100.0;
-        $maxQ = 2.0;
-        $recoveryLevel = $this->recovery_level ?? 0;
-        $minCooldown = config("game_levels.recovery_time.{$recoveryLevel}", 1440); // in minutes (from configuration)
+
+        // --- Q ceiling : par défaut 1.2, débloqué à 2.0 avec >= N filleuls validés ---
+        $referralsRequired = (int) \App\Models\GameSetting::getValue(
+            'referrals_required_for_max',
+            config('economy.q.referrals_required_for_max', 2)
+        );
+        $validatedReferrals = $this->referrals()->where('status', 'validated')->count();
+
+        $maxQ = $validatedReferrals >= $referralsRequired
+            ? (float) \App\Models\GameSetting::getValue('max_q_referral', config('economy.q.max_q_referral', 2.0))
+            : (float) \App\Models\GameSetting::getValue('max_q_base', config('economy.q.max_q_base', 1.2));
+
+        // Hard cap des cartes (3.0), sauf déblocage spécial (jusqu'à 4.0).
+        $qHardCap = (float) \App\Models\GameSetting::getValue('max_q_hard', config('economy.q.max_q_hard', 3.0));
+        if ($this->hasSpecialQUnlock()) {
+            $qHardCap = (float) \App\Models\GameSetting::getValue('max_q_special', config('economy.q.max_q_special', 4.0));
+        }
+
+        // --- Cooldown FIXE par palier de mise ---
+        $minCooldown = $this->getBaseCooldownMinutes();
 
         $activeCards = $this->userCards()
             ->with('card')
@@ -204,6 +260,9 @@ class User extends Authenticatable
                 }
             }
         }
+
+        // Les cartes ne peuvent jamais franchir le hard cap.
+        $maxQ = min($maxQ, $qHardCap);
 
         return [
             'max_base_bet' => $maxBaseBet,

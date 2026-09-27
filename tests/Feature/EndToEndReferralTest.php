@@ -59,9 +59,10 @@ class EndToEndReferralTest extends TestCase
              ->postJson('/api/user/set-referral', ['referral_code' => 'ALICE2026'])
              ->assertStatus(200);
 
-        // Verify signup bonuses
-        $this->assertEquals(1, $userB->fresh()->token_balance);
-        $this->assertEquals(1, $userC->fresh()->token_balance);
+        // Verify signup bonuses (crédit verrouillé, non vendable = 40)
+        $this->assertEquals(40, $userB->fresh()->locked_balance);
+        $this->assertEquals(40, $userC->fresh()->locked_balance);
+        $this->assertEquals(0, $userB->fresh()->token_balance);
 
         // --- 5. VALIDATE REFERRALS ---
         // Validation of User B
@@ -77,15 +78,14 @@ class EndToEndReferralTest extends TestCase
         // Influencer stats should be 2
         $this->assertEquals(2, $influencer->stats->referral_count);
 
-        // User A should have received milestone reward for 1 referral (1 SNT)
-        $this->assertEquals(1, $userA->token_balance);
+        // User A should have received milestone reward for 1 referral (40 locked credits)
+        $this->assertEquals(40, $userA->fresh()->locked_balance);
 
         // --- 7. INFLUENCER TRIES TO CLAIM REWARD ---
         // Pool milestone is 5, but current is 2. So they shouldn't be able to claim yet.
         $this->withHeaders(['Authorization' => 'Bearer ' . $tokenA])
-             ->postJson('/api/influencer/claim-reward') // Wait, the route is /api/claim-reward or /api/influencer/claim-reward? 
-             // Need to check route. It's /api/claim-reward inside token.auth
-             ->assertStatus(404); // Or whatever error
+             ->postJson('/api/influencer/claim-reward')
+             ->assertStatus(400); // Pool milestone non atteint => rejet business (400)
              
         // Just verify basic leaderboard
         $this->getJson('/api/referrals/leaderboard')

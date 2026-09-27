@@ -41,15 +41,16 @@ class ReferralService
             }
 
             // 3. On vérifie si le filleul n'a pas déjà reçu son bonus et s'il a bien un parrainage.
+            $refereeBonus = (float) config('economy.referral.referee_bonus', 40);
             if (!$referredUser->has_received_signup_bonus) {
-                // Il est venu avec un code, on lui donne son bonus de 1 SNT !
-                $referredUser->increment('token_balance', 1);
+                // Bonuse de jeu NON VENDABLE (locked_balance) : de quoi acheter des cartes.
+                $referredUser->increment('locked_balance', $refereeBonus);
                 $referredUser->update(['has_received_signup_bonus' => true]);
 
-                Log::info('🎉 Signup bonus granted to referred user', [
+                Log::info('🎉 Signup bonus granted to referred user (locked credit)', [
                     'user_id' => $referredUser->id,
-                    'bonus_amount' => 1,
-                    'new_token_balance' => $referredUser->fresh()->token_balance
+                    'bonus_amount' => $refereeBonus,
+                    'new_locked_balance' => $referredUser->fresh()->locked_balance
                 ]);
             }
 
@@ -77,21 +78,24 @@ class ReferralService
             }
 
             $totalValidated = Referral::where('referrer_id', $referrer->id)->where('status', 'validated')->count();
-            $milestones = [ 1 => 1, 3 => 1, 5 => 1, 11 => 1, 50 => 1, 100 => 1 ];
+            $milestones = config('economy.referral.milestones', [
+                1 => 40, 3 => 150, 5 => 400, 11 => 1000, 50 => 5000, 100 => 15000,
+            ]);
 
             $alreadyRewarded = ReferralReward::where('referrer_id', $referrer->id)
                 ->where('milestone_reached', $totalValidated)
                 ->exists();
 
             if (array_key_exists($totalValidated, $milestones) && !$alreadyRewarded) {
-                $rewardAmount = $milestones[$totalValidated];
+                $rewardAmount = (float) $milestones[$totalValidated];
                 ReferralReward::create([
                     'referrer_id' => $referrer->id,
                     'milestone_reached' => $totalValidated,
                     'reward_tokens' => $rewardAmount,
                 ]);
-                $referrer->increment('token_balance', $rewardAmount);
-                Log::info('🎁 Reward granted to referrer', ['referrer_id' => $referrer->id, 'milestone' => $totalValidated, 'new_token_balance' => $referrer->fresh()->token_balance]);
+                // Crédit de jeu NON VENDABLE (locked_balance) : utilisable au shop.
+                $referrer->increment('locked_balance', $rewardAmount);
+                Log::info('🎁 Reward granted to referrer (locked credit)', ['referrer_id' => $referrer->id, 'milestone' => $totalValidated, 'new_locked_balance' => $referrer->fresh()->locked_balance]);
             }
         });
     }

@@ -95,11 +95,10 @@ class SessionManager
 
     private function processFoughtUser(User $user, Pool $pool): void
     {
-        // Valider le parrainage si c'est le premier combat de l'utilisateur
-        $referralService = app(\App\Services\ReferralService::class);
-        $referralService->processReferralValidation($user);
+        // NOTE: la validation de parrainage se fait désormais à la PREMIÈRE SESSION
+        // (voir PoolReconstructionService::initializeUsersForPool) et non plus au premier combat.
 
-        $baseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min()));
+        $baseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.0004]))->min()));
 
         // --- CARD EFFECT: BASE BET MODIFIER ---
         $activeBaseBetCards = \App\Models\UserCard::with('card')
@@ -182,12 +181,34 @@ class SessionManager
         return $finalTotal / $initialTotal;
     }
 
+    /**
+     * Taux de frais contrat (en %) utilisé pour compenser le seuil Q.
+     * Source prioritaire : GameSetting 'smart_contract_fee_percentage',
+     * puis config('economy.fee_percent'), puis 2.5.
+     */
+    private function feePercent(): float
+    {
+        $fee = \App\Models\GameSetting::getValue(
+            'smart_contract_fee_percentage',
+            config('economy.fee_percent', 2.5)
+        );
+
+        return max(0.0, (float) $fee);
+    }
+
     private function evaluateUserSession(User $user, float $q): void
     {
         $multiplierLevel = $user->multiplier_level ?? 0;
-        $multiplier = ($user->target_q && $user->target_q > 1.0) 
-            ? $user->target_q 
-            : config("game_levels.multiplier.{$multiplierLevel}", 2.0);
+
+        if ($user->target_q && $user->target_q > 1.0) {
+            // Seuil effectif compensé des frais : le joueur doit réellement
+            // gagner target_q x sa mise (frais inclus). Les frais de réseau
+            // ne sont PAS inclus. Les multiplicateurs de niveau restent bruts.
+            $feeFactor = 1 + ($this->feePercent() / 100);
+            $multiplier = $user->target_q * $feeFactor;
+        } else {
+            $multiplier = config("game_levels.multiplier.{$multiplierLevel}", 2.0);
+        }
 
         // --- CARD EFFECT: CEILING INCREASE ---
         $activeCeilingCards = \App\Models\UserCard::with('card')
@@ -328,7 +349,7 @@ class SessionManager
                 $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
             ->whereHas('card', function ($q) {
-                $q->whereIn('effect_type', ['base_bet_modifier', 'ceiling_increase', 'cooldown_reduction']);
+                $q->whereIn('effect_type', ['base_bet_modifier', 'ceiling_increase', 'cooldown_reduction', 'q_special_unlock']);
             })
             ->get();
 
@@ -350,8 +371,8 @@ class SessionManager
      */
     private function calculateCooldownData(User $user): array
     {
-        $recoveryLevel = $user->recovery_level ?? 0;
-        $minutes = config("game_levels.recovery_time.{$recoveryLevel}", 1440);
+        // Cooldown FIXE par palier de mise, réduit par les cartes actives.
+        $minutes = $user->getBaseCooldownMinutes();
 
         $activeCooldownCards = \App\Models\UserCard::with('card')
             ->where('user_id', $user->id)
@@ -387,8 +408,8 @@ class SessionManager
 
     private function setNextSessionCooldown(User $user): void
     {
-        $recoveryLevel = $user->recovery_level ?? 0;
-        $minutes = config("game_levels.recovery_time.{$recoveryLevel}", 1440);
+        // Cooldown FIXE par palier de mise.
+        $minutes = $user->getBaseCooldownMinutes();
 
         // --- CARD EFFECT: COOLDOWN REDUCTION ---
         $activeCooldownCards = \App\Models\UserCard::with('card')

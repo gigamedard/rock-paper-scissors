@@ -81,7 +81,8 @@ class LevelingSystemTest extends TestCase
             'status' => 'in_pool',
             'wallet_address' => $botWallet,
             'autoplay_active' => true,
-            'bet_amount' => 1,
+            'bet_amount' => 0.0004,
+            'initial_base_bet' => 0.0004,
         ]);
 
         $pool = Pool::factory()->create(['base_bet' => 1, 'pool_size' => 2]);
@@ -118,10 +119,11 @@ class LevelingSystemTest extends TestCase
                 && abs($job->amount - 1100.0) < 0.01;
         });
 
-        // Expect SetCooldownJob dispatched with correct cooldown based on recovery level 1 (1440 mins = 24 hours)
+        // Expect SetCooldownJob dispatched with the FIXED per-tier cooldown.
+        // Palier 0.0004 AVAX -> 3 jours (4320 min = 259200 s)
         Queue::assertPushed(SetCooldownJob::class, function ($job) use ($botWallet) {
             $diff = $job->nextTime - time();
-            return $job->walletAddress === $botWallet && abs($diff - 86400) < 60;
+            return $job->walletAddress === $botWallet && abs($diff - (3 * 24 * 60 * 60)) < 60;
         });
 
         $user->refresh();

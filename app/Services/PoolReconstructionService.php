@@ -203,6 +203,13 @@ class PoolReconstructionService
                 $user->preMove->save();
 
                 event(new \App\Events\SessionStarted($user, $user->wallet_address, (float)$user->balance));
+
+                // Déclencheur de parrainage : validé à la PREMIÈRE SESSION du filleul.
+                try {
+                    app(\App\Services\ReferralService::class)->processReferralValidation($user);
+                } catch (\Throwable $e) {
+                    Log::warning("[REFERRAL] Validation error on first session for user {$user->id}: " . $e->getMessage());
+                }
             }
 
             // D. Move funds: balance → battle_balance = pool base_bet

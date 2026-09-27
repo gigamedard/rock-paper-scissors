@@ -43,11 +43,11 @@ class ReferralBonusTest extends TestCase
 
         // 5. Assertions
         $response->assertStatus(200);
-        $response->assertJson(['message' => 'Referral code applied successfully! You received 1 SNT (Locked).']);
+        $response->assertJson(['message' => 'Referral code applied successfully! You received 40 locked credits (usable in the shop).']);
 
         $referee->refresh();
-        $this->assertEquals(1, $referee->token_balance, 'Token balance should be 1');
-        $this->assertEquals(1, $referee->locked_balance, 'Locked balance should be 1');
+        $this->assertEquals(0, $referee->token_balance, 'Token balance should not change (credit only)');
+        $this->assertEquals(40, $referee->locked_balance, 'Locked credit should be 40');
         $this->assertTrue((bool)$referee->has_received_signup_bonus, 'Bonus flag should be true');
     }
 
@@ -126,11 +126,11 @@ class ReferralBonusTest extends TestCase
         $referee->refresh();
         $this->assertTrue((bool)$referee->is_eligible_to_refer, 'Referee should be marked eligible to refer');
         $this->assertTrue((bool)$referee->has_received_signup_bonus, 'Referee should receive signup bonus flag');
-        $this->assertEquals(1, $referee->token_balance, 'Referee should receive 1 SNT signup bonus on validation');
+        $this->assertEquals(40, $referee->locked_balance, 'Referee should receive 40 locked credits on validation');
 
-        // 6. Assert Referrer updates (1st validated referral is a milestone)
+        // 6. Assert Referrer updates (1st validated referral is a milestone => 40 locked credits)
         $referrer->refresh();
-        $this->assertEquals(11, $referrer->token_balance, 'Referrer should get 1 SNT reward (10 + 1)');
+        $this->assertEquals(40, $referrer->locked_balance, 'Referrer should get 40 locked credits for milestone 1');
         
         $rewardExists = ReferralReward::where('referrer_id', $referrer->id)
             ->where('milestone_reached', 1)
