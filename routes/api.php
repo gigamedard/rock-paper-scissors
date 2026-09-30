@@ -7,6 +7,7 @@ use App\Http\Controllers\InternalPayoutController;
 use App\Http\Controllers\InternalTradeController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\PoolAutoMatchController;
+use App\Http\Controllers\PublicStatsController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\WalletAuthController;
 use App\Http\Controllers\GameMetricsController;
@@ -84,6 +85,7 @@ Route::post('/debug-referral', [ReferralController::class, 'applyCodeFromAuthUse
 // Public routes
 Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard']);
 Route::get('/influencer/pools', [InfluencerController::class, 'getPools']);
+Route::get('/stats/public', [PublicStatsController::class, 'index'])->middleware('throttle:30,1');
 // Route::get('/escrow/trades', [EscrowController::class, 'getTrades']);
 // Route::get('/escrow/trade/{tradeId}', [EscrowController::class, 'getTrade']);
 // Route::get('/escrow/stats', [EscrowController::class, 'getStats']);

@@ -305,4 +305,45 @@ class Web3Helper
             return 0.0;
         }
     }
+
+    /**
+     * Statistiques on-chain pour la vitrine publique : TVL (solde du contrat
+     * Battlepool) et frais cumulés (house balance).
+     *
+     * Tolérant aux pannes et aux versions anciennes du bridge : aucun ->throw(),
+     * timeouts courts, retour null sur donnée absente. Le payload du bridge peut
+     * ne pas encore exposer "contractBalance" (déploiement parallèle en cours) :
+     * dans ce cas tvl = null et le controller marque la réponse "degraded".
+     *
+     * @param  string $nodeUrl URL du bridge Node.js
+     * @return array{tvl: float|null, fees: float|null}
+     */
+    public static function getChainStats($nodeUrl)
+    {
+        try {
+            $response = Http::timeout(3)->connectTimeout(2)->get("{$nodeUrl}/admin/contract-stats");
+            if ($response->status() !== 200) {
+                return ['tvl' => null, 'fees' => null];
+            }
+
+            $data = $response->json();
+            if (!is_array($data)) {
+                return ['tvl' => null, 'fees' => null];
+            }
+
+            return [
+                // TVL = solde du contrat (nouvelle clé "contractBalance"), fallback
+                // null si le bridge n'expose pas encore cette clé.
+                'tvl' => isset($data['contractBalance']) && is_numeric($data['contractBalance'])
+                    ? (float) $data['contractBalance'] : null,
+                // Frais = house balance / devBalance (clé existante du bridge).
+                'fees' => isset($data['houseBalance']) && is_numeric($data['houseBalance'])
+                    ? (float) $data['houseBalance'] : null,
+            ];
+        } catch (\Exception $e) {
+            // Bridge down / timeout : on ne casse JAMAIS la réponse publique.
+            Log::error('Web3Helper::getChainStats error: ' . $e->getMessage());
+            return ['tvl' => null, 'fees' => null];
+        }
+    }
 }

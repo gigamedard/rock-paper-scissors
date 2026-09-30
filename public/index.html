@@ -86,6 +86,23 @@
 
         <!-- ===== PAGE: ARÈNE (ancienne page principale) ===== -->
         <div id="autoplay-page" class="page active">
+            <!-- ===== BANDEAU STATS PUBLICS (LIVE) ===== -->
+            <div id="live-stats-band" style="background: rgba(15,12,27,0.65); border: 1px solid rgba(123,44,191,0.35); border-radius: 10px; padding: 0.8rem 1rem; margin: 0 auto 1.2rem; max-width: 1000px; font-family: var(--font-body);">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem 1.5rem;">
+                    <span style="font-family: var(--font-heading); font-size: 0.7rem; letter-spacing: 2px; color: var(--text-dim); display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <span class="live-indicator" style="width: 8px; height: 8px; margin: 0;"></span>
+                        <span data-i18n="stats.title">LIVE</span>
+                    </span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; font-size: 0.8rem;">
+                        <span><span style="color: var(--text-dim);" data-i18n="stats.battles">Combats</span> <b id="stats-battles-total" style="color: var(--cyan-spark);">--</b></span>
+                        <span><span style="color: var(--text-dim);" data-i18n="stats.players_online">Joueurs en ligne</span> <b id="stats-players-online" style="color: var(--success);">--</b></span>
+                        <span><span style="color: var(--text-dim);" data-i18n="stats.pools_active">Pools actives</span> <b id="stats-pools-active" style="color: var(--gold-primary);">--</b></span>
+                        <span><span style="color: var(--text-dim);" data-i18n="stats.tvl">TVL</span> <b id="stats-tvl" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">SNT</small></span>
+                        <span><span style="color: var(--text-dim);" data-i18n="stats.fees">Frais collectés</span> <b id="stats-fees" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">SNT</small></span>
+                    </div>
+                </div>
+                <div id="fight-ticker" style="display: none; overflow: hidden; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: var(--text-dim); white-space: nowrap;"></div>
+            </div>
             <div id="view-disconnected" class="card" style="text-align: center; margin-top: 5rem;">
                 <h1 style="font-size: 3rem; margin-bottom: 1rem;" data-i18n="connect.title">Ready to Fight?</h1>
                 <p style="color: var(--text-dim); margin-bottom: 2rem;" data-i18n="connect.subtitle">Connect your wallet to enter the arena and start your session.</p>
@@ -202,6 +219,15 @@
 
             <!-- Notification toast (global au marketplace) -->
             <div id="mp-notification" style="display:none; padding:0.8rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem; transition: all 0.3s; text-align: center;"></div>
+
+            <!-- ===== MARKETPLACE STATS (depuis /api/stats/public) ===== -->
+            <div id="mp-stats-band" style="background: rgba(15,12,27,0.65); border: 1px solid rgba(0,229,255,0.25); border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; font-size: 0.8rem;">
+                    <span><span style="color: var(--text-dim);" data-i18n="stats.p2p_volume">Volume P2P</span> <b id="stats-mp-p2p-volume" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">SNT</small></span>
+                    <span><span style="color: var(--text-dim);" data-i18n="stats.fulfilled_trades">Échanges P2P fulfillés</span> <b id="stats-mp-fulfilled-trades" style="color: var(--gold-primary);">--</b></span>
+                    <span><span style="color: var(--text-dim);" data-i18n="stats.avg_24h">Avg SNT/joueur 24h</span> <b id="stats-mp-avg-24h" style="color: var(--gold-primary);">--</b></span>
+                </div>
+            </div>
 
             <!-- CONTENU P2P TRADING -->
             <div id="mp-p2p-content">

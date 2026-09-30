@@ -184,6 +184,22 @@
     "loading_vip": "Cargando activos VIP...",
     "error_loading": "Error al cargar."
   },
+  "stats": {
+    "title": "EN VIVO",
+    "battles": "Combates",
+    "players_online": "Jugadores en línea",
+    "pools_active": "Pools activas",
+    "tvl": "TVL",
+    "fees": "Comisiones recolectadas",
+    "p2p_volume": "Volumen P2P",
+    "fulfilled_trades": "Intercambios P2P completados",
+    "avg_24h": "Media SNT/jugador (24h)",
+    "result_win": "victoria",
+    "result_loss": "derrota",
+    "result_draw": "empate",
+    "ticker_bet": "Apuesta",
+    "ticker_none": "Esperando combates..."
+  },
   "pwa": {
     "install_title": "Instalar BATTLEPOOL",
     "install_desc": "Añade a la pantalla de inicio para pantalla completa.",

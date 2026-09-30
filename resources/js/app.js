@@ -9,6 +9,7 @@ import { initI18n } from './modules/i18n.js';
 import { initMarketplace } from './modules/marketplace.js';
 import { initReferral } from './modules/referral.js';
 import { initInfluencer } from './modules/influencer.js';
+import { initStats } from './modules/stats.js';
 import { initPWA } from './core/pwa.js';
 import { showToast } from './core/toast.js';
 
@@ -53,6 +54,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 4. Démarrage du routeur (après les modules)
     initRouter();
+
+    // 4bis. Stats publiques (polling léger + ticker) — si le DOM les porte
+    initStats();
 
     // 5. Bouton de connexion
     const connectBtn = document.getElementById('connect-btn');

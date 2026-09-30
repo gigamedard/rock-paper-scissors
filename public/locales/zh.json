@@ -184,6 +184,22 @@
     "loading_vip": "正在加载 VIP 资产...",
     "error_loading": "加载错误。"
   },
+  "stats": {
+    "title": "直播",
+    "battles": "战斗",
+    "players_online": "在线玩家",
+    "pools_active": "活跃池",
+    "tvl": "TVL",
+    "fees": "已收手续费",
+    "p2p_volume": "P2P 交易量",
+    "fulfilled_trades": "P2P 成交",
+    "avg_24h": "人均 SNT（24小时）",
+    "result_win": "胜利",
+    "result_loss": "失败",
+    "result_draw": "平局",
+    "ticker_bet": "投注",
+    "ticker_none": "等待战斗..."
+  },
   "pwa": {
     "install_title": "安装 BATTLEPOOL",
     "install_desc": "将竞技场添加到您的主屏幕以进行全屏游戏。",

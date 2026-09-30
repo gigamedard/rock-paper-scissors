@@ -65,6 +65,28 @@ class VerifyCardPurchaseJob implements ShouldQueue
         );
 
         if (isset($verifyResponse['success']) && $verifyResponse['success']) {
+            // LEDGER token_purchases (idempotent par tx_hash) : chaque achat de
+            // cartes payé en SNT on-chain alimente les stats publiques.
+            // updateOrCreate rend l'écriture tolérante aux retries du job
+            // (queue 'default'). Protégé par try/catch : une panne du ledger ne
+            // doit ni faire échouer la vérification des cartes ni la sync.
+            try {
+                \App\Models\TokenPurchase::updateOrCreate(
+                    ['tx_hash' => $baseTxHash],
+                    [
+                        'user_id' => $user->id,
+                        'amount' => (float) ($card->price * $quantity),
+                        'quantity' => (int) $quantity,
+                        'source' => 'card_purchase',
+                    ]
+                );
+            } catch (\Throwable $e) {
+                Log::error('VerifyCardPurchaseJob: échec écriture ledger token_purchases', [
+                    'tx_hash' => $baseTxHash,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             // OPTION C: Les cartes restent 'pending' après vérification.
             // Elles ne seront activées que manuellement par le joueur (POST /shop/activate-card).
             // On ne passe plus automatiquement à 'available' ni n'applique de cooldown rétroactif ici.

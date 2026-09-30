@@ -184,6 +184,22 @@
     "loading_vip": "Loading VIP assets...",
     "error_loading": "Error loading dashboard."
   },
+  "stats": {
+    "title": "LIVE",
+    "battles": "Battles",
+    "players_online": "Players online",
+    "pools_active": "Active pools",
+    "tvl": "TVL",
+    "fees": "Fees collected",
+    "p2p_volume": "P2P volume",
+    "fulfilled_trades": "Fulfilled P2P trades",
+    "avg_24h": "Avg SNT/player (24h)",
+    "result_win": "win",
+    "result_loss": "loss",
+    "result_draw": "draw",
+    "ticker_bet": "Bet",
+    "ticker_none": "Waiting for fights..."
+  },
   "pwa": {
     "install_title": "Install BATTLEPOOL",
     "install_desc": "Add the battle arena to your home screen for full-screen gameplay.",

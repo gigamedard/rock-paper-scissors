@@ -20,16 +20,80 @@ class MarketplaceController extends Controller
         $this->referralService = $referralService;
     }
 
+    /**
+     * Achat direct de SNT contre AVAX on-chain (rechargement du token de jeu).
+     *
+     * Arbitrage validé (Q1) : exige un tx_hash unique ET vérifie le transfert
+     * on-chain via le bridge (verifySntTransfer) AVANT de créditer. Un échec de
+     * vérification ne crédite PAS et n'écrit PAS le ledger.
+     *
+     * Idempotence : le ledger est protégé par l'unique contrainte DB sur
+     * tx_hash — une course concurrente (retry client, double-clic) lève
+     * UniqueConstraintViolationException et la route répond 422 sans avoir
+     * re-crédité (tout le bloc est dans une transaction).
+     */
     public function handleTokenPurchase(Request $request)
     {
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1',
+            'tx_hash' => 'required|string|max:255|unique:token_purchases,tx_hash',
         ]);
 
         $buyer = $request->user();
-        $amountPurchased = $validated['amount'];
+        $amountPurchased = (float) $validated['amount'];
+        $txHash = $validated['tx_hash'];
 
-        $buyer->increment('token_balance', $amountPurchased);
+        // --- Vérification on-chain via le bridge (même pattern que ShopController) ---
+        $nodeUrl = config('app.NODE_WORKER_URL', 'http://127.0.0.1:3000');
+        $verifyResponse = \App\Helpers\Web3Helper::verifySntTransfer(
+            $nodeUrl,
+            $txHash,
+            $amountPurchased,
+            $buyer->wallet_address
+        );
+
+        if (!isset($verifyResponse['success']) || !$verifyResponse['success']) {
+            Log::warning('Marketplace purchase: vérification SNT on-chain échouée', [
+                'user_id' => $buyer->id,
+                'tx_hash' => $txHash,
+                'expected_amount' => $amountPurchased,
+                'response' => $verifyResponse,
+            ]);
+
+            return response()->json([
+                'message' => 'La vérification de la transaction on-chain a échoué. Aucun crédit effectué.',
+                'errors' => ['tx_hash' => ['La transaction n\'a pas pu être vérifiée.']],
+            ], 422);
+        }
+
+        // --- Crédit + écriture du ledger, atomiques et anti-course ---
+        try {
+            DB::transaction(function () use ($buyer, $amountPurchased, $txHash) {
+                // Verrou ligne utilisateur : sérialise les achats concurrents du même wallet.
+                User::where('id', $buyer->id)->lockForUpdate()->first();
+
+                $buyer->increment('token_balance', $amountPurchased);
+
+                \App\Models\TokenPurchase::create([
+                    'user_id' => $buyer->id,
+                    'amount' => $amountPurchased,
+                    'quantity' => 1,
+                    'source' => 'marketplace_purchase',
+                    'tx_hash' => $txHash,
+                ]);
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            // Un tx_hash identique a été validé en parallèle : on NE crédite PAS.
+            Log::warning('Marketplace purchase: tx_hash déjà crédité (course concurrente)', [
+                'user_id' => $buyer->id,
+                'tx_hash' => $txHash,
+            ]);
+
+            return response()->json([
+                'message' => 'Cette transaction a déjà été utilisée pour un achat.',
+                'errors' => ['tx_hash' => ['Ce tx_hash a déjà été enregistré.']],
+            ], 422);
+        }
 
         // --- OPTIMISATION ---
         // Le seuil de solde a été retiré : la validation du parrainage se fait

@@ -445,8 +445,10 @@ app.get("/get-game-config", (req, res) => {
 app.get("/admin/contract-stats", async (req, res) => {
     try {
         const devBalance = await gameContract.devBalance();
+        const contractBalance = await gameContract.getContractBalance();
         res.json({
-            houseBalance: formatEther(devBalance)
+            houseBalance: formatEther(devBalance),
+            contractBalance: formatEther(contractBalance)
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
