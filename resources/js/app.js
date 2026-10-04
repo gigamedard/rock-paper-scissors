@@ -12,6 +12,7 @@ import { initInfluencer } from './modules/influencer.js';
 import { initStats } from './modules/stats.js';
 import { initPWA } from './core/pwa.js';
 import { showToast } from './core/toast.js';
+import { addPingalaNetwork } from './web3/web3-core.js';
 
 // ===== ÉTAT GLOBAL =====
 window.userState = {
@@ -84,6 +85,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     const disconnectBtn = document.getElementById('disconnect-btn');
     if (disconnectBtn) {
         disconnectBtn.addEventListener('click', () => logout());
+    }
+
+    // Bouton « ⊕ Réseau » : ajoute/active Pingala Chain dans le wallet injecté
+    // (wallet_switchEthereumChain, puis wallet_addEthereumChain sur 4902/4900).
+    // Même pattern de binding que les boutons ci-dessus (pas d'onclick inline).
+    const addNetworkBtn = document.getElementById('add-network-btn');
+    if (addNetworkBtn) {
+        addNetworkBtn.addEventListener('click', async () => {
+            if (typeof window.ethereum === 'undefined') {
+                showToast(window.t ? window.t('network.no_wallet') : 'Aucun wallet injecté détecté.', 'warn');
+                return;
+            }
+            addNetworkBtn.disabled = true;
+            try {
+                await addPingalaNetwork(window.ethereum);
+                showToast(window.t ? window.t('network.added') : 'Réseau Pingala ajouté.', 'success');
+            } catch (e) {
+                // 4001 = refus utilisateur : message dédié, UI réessayable
+                if (e && e.code === 4001) {
+                    showToast(window.t ? window.t('network.rejected') : 'Ajout du réseau refusé.', 'info');
+                } else {
+                    console.error('[App] Ajout du réseau Pingala échoué :', e);
+                    showToast((window.t ? window.t('network.failed') : 'Impossible d\'ajouter le réseau Pingala.') + (e?.message ? ` (${e.message})` : ''), 'error');
+                }
+            } finally {
+                addNetworkBtn.disabled = false;
+            }
+        });
     }
 
     // 6. Écouteurs globaux

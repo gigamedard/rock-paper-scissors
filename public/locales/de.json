@@ -7,6 +7,13 @@
     "refresh": "Aktualisieren",
     "disconnect": "Trennen"
   },
+  "network": {
+    "add": "⊕ Netzwerk",
+    "no_wallet": "Kein Wallet erkannt.",
+    "added": "Pingala-Netzwerk hinzugefügt.",
+    "failed": "Pingala-Netzwerk konnte nicht hinzugefügt werden.",
+    "rejected": "Hinzufügen des Netzwerks abgelehnt."
+  },
   "connect": {
     "btn": "MetaMask",
     "wc_btn": "WalletConnect",

@@ -93,40 +93,31 @@ async function main() {
         console.log("⚠️  No keys set — deployer retains all roles.");
     }
     
-    const SNTToken = await ethers.getContractFactory("SNTToken");
-    const sntToken = await SNTToken.deploy({ gasLimit: 5000000 });
-    await sntToken.waitForDeployment();
-    const sntAddr = await sntToken.getAddress();
-    console.log("SNTToken deployed to:", sntAddr);
+    // --- Token PRANA (ex-SNTToken renommé "PranaToken" — décision utilisateur) ---
+    // Le contrat déployé est PranaToken ; la clé `contracts.snt` dans config.js
+    // reste un alias technique (voir ci-dessous replaceAbi(..., "snt", ...)).
+    const PranaToken = await ethers.getContractFactory("PranaToken");
+    const pranaToken = await PranaToken.deploy({ gasLimit: 5000000 });
+    await pranaToken.waitForDeployment();
+    const pranaAddr = await pranaToken.getAddress();
+    console.log("PranaToken deployed to:", pranaAddr);
     
     const MarketplaceEscrow = await ethers.getContractFactory("MarketplaceEscrow");
-    const marketplaceEscrow = await MarketplaceEscrow.deploy(sntAddr, deployer.address, { gasLimit: 5000000 });
+    const marketplaceEscrow = await MarketplaceEscrow.deploy(pranaAddr, deployer.address, { gasLimit: 5000000 });
     await marketplaceEscrow.waitForDeployment();
     const marketplaceAddr = await marketplaceEscrow.getAddress();
     console.log("MarketplaceEscrow deployed to:", marketplaceAddr);
     
     console.log("Deployment complete!");
 
-    // --- AUTOMATION: Transfer 1000 SNT to Account #0 (TB testing) ---
+    // --- AUTOMATION: Transfer 1000 PRANA to the initial owner for TB testing ---
     if (hre.network.name === "hardhat" || hre.network.name === "localhost") {
-        console.log("Transferring 1000 SNT to Account #0 for testing...");
-        const ownerAddress = "0x8C3229EC621644789d7F61FAa82c6d0E5F97d43D";
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [ownerAddress],
-        });
-        await hre.network.provider.send("hardhat_setBalance", [
-            ownerAddress,
-            "0x56BC75E2D63100000", // 100 ETH
-        ]);
-        const ownerSigner = await ethers.getSigner(ownerAddress);
-        const sntTokenAsOwner = sntToken.connect(ownerSigner);
-        await sntTokenAsOwner.transfer(deployer.address, ethers.parseEther("1000"));
-        await hre.network.provider.request({
-            method: "hardhat_stopImpersonatingAccount",
-            params: [ownerAddress],
-        });
-        console.log("✅ Transferred 1000 SNT to Account #0 for TB testing.");
+        // Correctif audit : plus de placeholder INITIAL_OWNER_ADDRESS. Depuis le
+        // chang. du constructeur (deployer = owner), le deployer possède déjà
+        // les 1M PRANA : on re-crédite simplement le compte de TB depuis lui.
+        console.log("Transferring 1000 PRANA to Account #0 for testing...");
+        await pranaToken.transfer(deployer.address, ethers.parseEther("1000"));
+        console.log("✅ Transferred 1000 PRANA to Account #0 for TB testing.");
     } else {
         console.log("Skipping local-only impersonation and balance setup on network:", hre.network.name);
     }
@@ -144,14 +135,17 @@ async function main() {
             fs.copyFileSync(configPath, configTmp);
             let configContent = fs.readFileSync(configTmp, "utf8");
         configContent = configContent.replace(/game:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `game: {\n    address: "${gameAddr}"`);
-        configContent = configContent.replace(/snt:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `snt: {\n    address: "${sntAddr}"`);
+        // ALIAS TECHNIQUE : la clé reste `snt:` dans config.js (app.js, indexer,
+        // Web3Helper PHP la référencent largement) mais pointe vers PranaToken.
+        // Le symbole ERC20 renvoyé par le contrat est "PRANA".
+        configContent = configContent.replace(/snt:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `snt: {\n    address: "${pranaAddr}"`);
         configContent = configContent.replace(/marketplace:\s*\{\s*\n\s*address:\s*['"]0x[a-fA-F0-9]+['"]/g, `marketplace: {\n    address: "${marketplaceAddr}"`);
 
         // --- ABI SYNC (durabilite) : resynchronise les ABIs game/snt/marketplace depuis les
         // artifacts Hardhat (source de verite compilee). Corrige durablement la regression
         // ou l'ABI Battlepool (108 entrees) ecrasait les ABIs MarketplaceEscrow (26) et
-        // SNTToken (25) : les evenements OfferCreated/Transfer devenaient invisibles pour
-        // l'indexeur du bridge (parseLog silencieux) -> marketplace UI vide.
+        // PranaToken ex-SNTToken (25) : les evenements OfferCreated/Transfer devenaient
+        // invisibles pour l'indexeur du bridge (parseLog silencieux) -> marketplace UI vide.
         const findArrayEnd = (str, startIdx) => {
             let depth = 0, inString = false, escape = false;
             for (let i = startIdx; i < str.length; i++) {
@@ -175,13 +169,13 @@ async function main() {
             return str.slice(0, arrStart) + JSON.stringify(abi, null, 2) + str.slice(arrEnd + 1);
         };
         const battlepoolArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, "artifacts", "contracts", "Battlepool.sol", "Battlepool.json"), "utf8"));
-        const sntArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, "artifacts", "contracts", "SNTToken.sol", "SNTToken.json"), "utf8"));
+        const pranaArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, "artifacts", "contracts", "PranaToken.sol", "PranaToken.json"), "utf8"));
         const mpArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, "artifacts", "contracts", "MarketplaceEscrow.sol", "MarketplaceEscrow.json"), "utf8"));
         // Remplacer game en premier (sa section precede snt/marketplace) : le remplacement
         // recale les indices a chaque appel, donc l'ordre n'a pas d'importance technique,
         // mais on garde game -> snt -> marketplace pour la lisibilite des logs.
         configContent = replaceAbi(configContent, "game", battlepoolArtifact.abi);
-        configContent = replaceAbi(configContent, "snt", sntArtifact.abi);
+        configContent = replaceAbi(configContent, "snt", pranaArtifact.abi);
         configContent = replaceAbi(configContent, "marketplace", mpArtifact.abi);
 
         fs.writeFileSync(configTmp, configContent);
@@ -190,7 +184,7 @@ async function main() {
         fs.unlinkSync(configTmp);
         configUsable = true;
         console.log("✅ Updated smart_contracts/config.js with new addresses.");
-        console.log(`✅ ABIs synced from artifacts: game(${battlepoolArtifact.abi.length}), snt(${sntArtifact.abi.length}), marketplace(${mpArtifact.abi.length})`);
+        console.log(`✅ ABIs synced from artifacts: game(${battlepoolArtifact.abi.length}), snt(PranaToken, ${pranaArtifact.abi.length}), marketplace(${mpArtifact.abi.length})`);
         } catch (e) {
             console.warn("⚠️  Impossible de mettre a jour config.js :", e.message);
             console.warn("    Les ABIs/adresses ne seront PAS resynchronisees ce cycle.");

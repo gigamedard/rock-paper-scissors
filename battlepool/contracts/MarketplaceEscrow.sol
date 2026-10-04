@@ -7,6 +7,12 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 // --- CHEMIN CORRIGÉ CI-DESSOUS ---
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; 
 
+// MIGRATION TOKEN : le token escrowé est désormais PranaToken ("Prana" / "PRANA")
+// ex-SNTToken. Les identifiants internes (sntToken, sntAmount) sont CONSERVÉS :
+// ils sont neutres (IERC20) et leurs noms figurent dans l'ABI consommée par le
+// bridge/indexer. Le renommage complet des identifiants est une prop à coordonner
+// (cf. rapport bp-blockchain).
+
 contract MarketplaceEscrow is Ownable, Pausable, ReentrancyGuard {
 
     // --- State Variables ---
@@ -45,13 +51,13 @@ contract MarketplaceEscrow is Ownable, Pausable, ReentrancyGuard {
     // --- Core Functions ---
 
     /**
-     * @notice Crée une offre de vente de SNT contre des AVAX.
-     * @dev L'utilisateur doit d'abord `approve` ce contrat pour dépenser ses SNT.
+     * @notice Crée une offre de vente de PRANA (ex-SNT) contre des AVAX.
+     * @dev L'utilisateur doit d'abord `approve` ce contrat pour dépenser ses PRANA.
      */
     function createOffer(uint256 _sntAmount, uint256 _avaxAmount, uint256 _durationHours) external whenNotPaused {
         require(_sntAmount > 0 && _avaxAmount > 0, "Amounts must be positive");
         
-        // 1. Transfère les SNT du vendeur vers ce contrat (escrow)
+        // 1. Transfère les PRANA du vendeur vers ce contrat (escrow)
         sntToken.transferFrom(msg.sender, address(this), _sntAmount);
 
         // 2. Crée l'offre
@@ -86,7 +92,7 @@ contract MarketplaceEscrow is Ownable, Pausable, ReentrancyGuard {
         uint256 fee = (msg.value * feePercentage) / 100;
         uint256 sellerAmount = msg.value - fee;
 
-        // 3. Transfère les SNT à l'acheteur
+        // 3. Transfère les PRANA à l'acheteur
         sntToken.transfer(msg.sender, offer.sntAmount);
 
         // 4. Transfère les AVAX au vendeur (moins les frais)
@@ -112,7 +118,7 @@ contract MarketplaceEscrow is Ownable, Pausable, ReentrancyGuard {
         // 1. Marque l'offre comme annulée
         offer.status = Status.Cancelled;
 
-        // 2. Retourne les SNT au vendeur
+        // 2. Retourne les PRANA au vendeur
         sntToken.transfer(offer.seller, offer.sntAmount);
 
         emit OfferCancelled(_offerId);

@@ -31,9 +31,11 @@ function intEnv(name, fallback) {
 
 export const indexerConfig = {
   // --- Sécurité reorg ---
-  // 0 pour un nœud Hardhat local (automine, pas de reorg). En production
-  // (Avalanche Fuji/mainnet), monter à 5-12.
-  confirmationsRequired: intEnv('CONFIRMATIONS_REQUIRED', 0),
+  // Défaut : 1 confirmation. Pingala Chain est une L1 souveraine avec finalité
+  // quasi-instantanée, mais de légers reorgs restent possibles en production ;
+  // une confirmation écarte les blocs réorganisés. Surchargable via env
+  // CONFIRMATIONS_REQUIRED (ex: 0 pour un Hardhat local en automining).
+  confirmationsRequired: intEnv('CONFIRMATIONS_REQUIRED', 1),
 
   // --- Polling ---
   pollIntervalMs: intEnv('POLL_INTERVAL_MS', 5000),

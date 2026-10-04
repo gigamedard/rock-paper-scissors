@@ -81,29 +81,15 @@ services:
         condition: service_healthy
 
   # ============================================================
-  # 4. BLOCKCHAIN (Hardhat + Deploy des Smart Contracts)
+  # 4. BLOCKCHAIN — SUPPRIMÉ (Phase F : Pingala Chain)
   # ============================================================
-  blockchain:
-    image: rock-paper-scissors-blockchain:latest
-    restart: unless-stopped
-    secrets:
-      - game_wallet_pk
-      - signer_wallet_pk
-      - payout_operator_pk
-    ports:
-      - "127.0.0.1:8546:8545"
-    volumes:
-      - ./smart_contracts:/smart_contracts
-    healthcheck:
-      test: ["CMD", "test", "-f", "/app/deployed.txt"]
-      interval: 5s
-      timeout: 3s
-      retries: 120
-      start_period: 600s
-
-  # ============================================================
-  # 5. BRIDGE NODE.JS (Listener Smart Contracts + API interne)
-  # ============================================================
+  # La chaîne cible est désormais la L1 souveraine PINGALA (chainId 99999,
+  # RPC public) — voir battlepool/hardhat.config.js (network "pingala") et
+  # battlepool/pingala_deployments.json. L'ancien nœud Hardhat local + le
+  # déploiement automatique (battlepool/entrypoint.sh) sont retirés du stack.
+  # L'image rock-paper-scissors-blockchain reste disponible pour lancer les
+  # tests/suites Hardhat à la demande (npx hardhat test), mais n'est plus
+  # exigée par le bridge.
   bridge:
     build:
       context: .
@@ -122,8 +108,6 @@ services:
       - ./smart_contracts/config.js:/app/smart_contracts/config.js:ro
       - ./smart_contracts/app.js:/app/smart_contracts/app.js:ro
     depends_on:
-      blockchain:
-        condition: service_healthy
       db:
         condition: service_healthy
       redis:
@@ -132,8 +116,8 @@ services:
       test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000', (r) => process.exit(0)).on('error', () => process.exit(1))"]
       interval: 10s
       timeout: 5s
-      retries: 12
-      start_period: 30s
+      retries: 24
+      start_period: 120s
 
   # ============================================================
   # 6. APPLICATION LARAVEL (PHP + Nginx + Frontend)

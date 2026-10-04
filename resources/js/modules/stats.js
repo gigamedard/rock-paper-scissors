@@ -55,15 +55,15 @@ function fmtInt(n) {
     return Math.round(v).toLocaleString('fr-FR', { maximumFractionDigits: 0 });
 }
 
-/** SNT avec 2 décimales (fr-FR), '' si indisponible/négatif incohérent. */
-function fmtSnt(n) {
+/** Montant du token de jeu PRANA avec 2 décimales (fr-FR), '' si indisponible. */
+function fmtPrana2(n) {
     const v = Number(n);
     if (n === null || n === undefined || n === '' || !Number.isFinite(v)) return '';
     return v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-/** Mise AVAX avec 4 décimales (fr-FR), '' si indisponible. */
-function fmtAvax4(n) {
+/** Montant TST (gas natif Pingala) avec 4 décimales (fr-FR), '' si indisponible. */
+function fmtTst4(n) {
     const v = Number(n);
     if (n === null || n === undefined || n === '' || !Number.isFinite(v)) return '';
     return v.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
@@ -195,27 +195,28 @@ export function renderStatsBar(prefix = '', data = null) {
     setText(id('battles-total'), dash(fmtInt(p.fights?.total)));
     setText(id('players-online'), dash(fmtInt(p.players?.online)));
     setText(id('pools-active'), dash(fmtInt(p.pools?.active)));
-    // TVL / fees : peuvent être null (bridge down) => '--'
-    setText(id('tvl'), dash(fmtSnt(p.on_chain?.tvl)));
-    setText(id('fees'), dash(fmtSnt(p.on_chain?.fees_collected)));
+    // TVL / frais : compteurs on-chain (unité de mise/gas natif TST).
+    // Peuvent être null (bridge down) => '--'
+    setText(id('tvl'), dash(fmtTst4(p.on_chain?.tvl)));
+    setText(id('fees'), dash(fmtTst4(p.on_chain?.fees_collected)));
 
-    // Moyennes SNT par joueur (4 fenêtres)
-    setText(id('snt-avg-all'), dash(fmtSnt(tp.all?.avg_per_player)));
-    setText(id('snt-avg-30d'), dash(fmtSnt(tp.d30?.avg_per_player)));
-    setText(id('snt-avg-7d'), dash(fmtSnt(tp.d7?.avg_per_player)));
-    setText(id('snt-avg-24h'), dash(fmtSnt(tp.d24h?.avg_per_player)));
+    // Moyennes PRANA (token de jeu) par joueur (4 fenêtres)
+    setText(id('snt-avg-all'), dash(fmtPrana2(tp.all?.avg_per_player)));
+    setText(id('snt-avg-30d'), dash(fmtPrana2(tp.d30?.avg_per_player)));
+    setText(id('snt-avg-7d'), dash(fmtPrana2(tp.d7?.avg_per_player)));
+    setText(id('snt-avg-24h'), dash(fmtPrana2(tp.d24h?.avg_per_player)));
 
     // Bloc Marketplace Stats (si le conteneur existe)
-    setText('stats-mp-p2p-volume', dash(fmtSnt(p.p2p?.snt_volume)));
+    setText('stats-mp-p2p-volume', dash(fmtPrana2(p.p2p?.snt_volume)));
     setText('stats-mp-fulfilled-trades', dash(fmtInt(p.p2p?.fulfilled_trades)));
-    setText('stats-mp-avg-24h', dash(fmtSnt(tp.d24h?.avg_per_player)));
+    setText('stats-mp-avg-24h', dash(fmtPrana2(tp.d24h?.avg_per_player)));
 }
 
 // ─── TICKER COMBATS RÉCENTS ──────────────────────────────────────────────────
 
 /**
  * Construit une ligne de ticker à partir d'un payload d'événement fight.
- * Format : `Wallet 0xA12...F3 ⚔️ — résultat — mise 0.0004 AVAX`.
+ * Format : `Wallet 0xA12...F3 ⚔️ — résultat — mise 0.0004 TST (gas natif Pingala)`.
  * NB : le payload FightResult ne transporte PAS l'adresse de l'adversaire
  * (canal privé) — la ligne dégrade proprement sans inventer de wallet.
  */
@@ -238,9 +239,9 @@ function buildTickerItemText(detail) {
         bet = parseFloat(window.userState?.bet_amount);
         bet = Number.isFinite(bet) ? bet : null;
     }
-    const betTxt = bet === null ? '--' : fmtAvax4(bet);
+    const betTxt = bet === null ? '--' : fmtTst4(bet);
 
-    return `${walletTxt} ⚔️ ${resultLabel} — ${window.t && window.t('stats.ticker_bet') || 'mise'} ${betTxt} AVAX`;
+    return `${walletTxt} ⚔️ ${resultLabel} — ${window.t && window.t('stats.ticker_bet') || 'mise'} ${betTxt} TST`;
 }
 
 /**

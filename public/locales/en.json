@@ -7,6 +7,13 @@
     "refresh": "Refresh",
     "disconnect": "Disconnect"
   },
+  "network": {
+    "add": "⊕ Network",
+    "no_wallet": "No injected wallet detected.",
+    "added": "Pingala network added.",
+    "failed": "Could not add the Pingala network.",
+    "rejected": "Network addition rejected."
+  },
   "connect": {
     "btn": "MetaMask",
     "wc_btn": "WalletConnect",

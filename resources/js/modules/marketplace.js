@@ -1,6 +1,6 @@
 // resources/js/modules/marketplace.js
 /**
- * Module Marketplace P2P (SNT <-> AVAX)
+ * Module Marketplace P2P (PRANA <-> TST natif)
  * FIXES:
  *  - Clés JSON correctes depuis /api/artefacts : 'snt' et 'marketplace'
  *  - Flux en 2 étapes séparées : Approuver d'abord, puis Créer
@@ -10,7 +10,7 @@
  *  - Protection parseEther sur format invalide
  *  - Polling protégé contre les cumuls via setAppTimer
  */
-import { getContract, getSigner, getProvider } from '../web3/web3-core.js';
+import { getContract, getSigner, getProvider, ensurePingalaNetwork, PRANA_NETWORK, TOKEN_SYMBOL } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
 import { addToFeed } from './game.js';
 import { t } from './i18n.js';
@@ -245,7 +245,7 @@ function renderShopCards(cards) {
                 <div class="holo-card-effect">${effectDisplay}</div>
                 <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem; min-height: 40px;">${card.description || ''}</p>
                 <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">${t('marketplace.duration_label', { value: card.duration_value, type: t(card.duration_type === 'sessions' ? 'marketplace.sessions' : 'marketplace.hours') })}</div>
-                <div class="holo-card-price">${card.price} SNT</div>
+                <div class="holo-card-price">${card.price} ${TOKEN_SYMBOL}</div>
                 <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
                     <input type="number" id="card-qty-${card.id}" min="1" value="1" style="width: 60px; padding: 0.3rem; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid var(--primary); border-radius: 4px; text-align: center;">
                     <button class="btn-buy-card" style="flex: 1;" onclick="window.marketplaceBuyCard(${card.id}, ${card.price}, parseInt(document.getElementById('card-qty-${card.id}').value || 1))">${t('marketplace.buy_btn')}</button>
@@ -271,13 +271,18 @@ window.marketplaceBuyCard = async function(cardId, cardPrice, quantity = 1) {
     // platformWallet (SNT_RECEIVER_WALLET n'étant pas défini, le fallback est gameWallet
     // = PAYOUT_OPERATOR). Payer un autre wallet (owner/treasury) → transaction marquée
     // 'failed' par VerifyCardPurchaseJob → activation carte impossible (HTTP 422).
-    const PAYOUT_OPERATOR_ADDRESS = '0x5aa8eb45a9F6F87D8c51c51ea2639559Df632ebd';
+    // Migration Pingala (Phase B funder) : wallet de réception des achats carte.
+    const PAYOUT_OPERATOR_ADDRESS = '0x9A60327ce58A94a411987119047A75A8F1076663';
     const totalSntPrice = cardPrice * quantity;
     
     try {
         if (!CONTRACT_ADDRESSES.sntToken) {
-            throw new Error("Adresse du token SNT non chargée.");
+            throw new Error("Adresse du token PRANA (snt) non chargée.");
         }
+
+        // Garde-réseau : switch/add Pingala une seule fois par flux d'achat
+        // (pas à chaque tx). Silencieux si déjà sur 0x1869f.
+        await ensurePingalaNetwork();
 
         const sntContract = await getContract(CONTRACT_ADDRESSES.sntToken, [
             ...SNT_ABI,
@@ -425,7 +430,7 @@ export async function loadUserInventory() {
                     <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 1rem; min-height: 40px;">${card.description || ''}</p>
                     <div style="font-size: 0.9rem; font-weight: bold; color: ${statusColor}; margin-bottom: 0.5rem;">${statusDisplay}</div>
                     <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">${validityDisplay}</div>
-                    <div style="font-size: 0.7rem; color: var(--text-dim); word-break: break-all;">Tx: <a href="#" onclick="event.preventDefault(); window.open('https://subnets-test.avax.network/fuji-wagmi/tx/${uc.tx_hash}', '_blank');" style="color: #6366f1;">${uc.tx_hash.substring(0, 14)}...</a></div>
+                    <div style="font-size: 0.7rem; color: var(--text-dim); word-break: break-all;">Tx: ${PRANA_NETWORK.blockExplorerUrls.length > 0 ? `<a href="#" onclick="event.preventDefault(); window.open('${PRANA_NETWORK.blockExplorerUrls[0]}/tx/${uc.tx_hash}', '_blank');" style="color: #6366f1;">${uc.tx_hash.substring(0, 14)}...</a>` : `<span>${uc.tx_hash.substring(0, 14)}…</span> <em style="color: var(--text-dim);">(pas d'explorateur sur ${PRANA_NETWORK.chainName})</em>`}</div>
                     ${activateBtn}
                 </div>
             `;
@@ -485,6 +490,10 @@ async function loadContractAddresses() {
 
             CONTRACT_ADDRESSES.sntToken    = typeof sntData === 'object' ? sntData?.address : (sntData || null);
             CONTRACT_ADDRESSES.marketplace = typeof mpData === 'object'  ? mpData?.address  : (mpData || null);
+            // WAVAX (token wrap, exposé par /api/artefacts si déployé) :
+            // disponibilité seulement — l'UI de wrap est À VENIR (pas de module now).
+            const wavaxData = data.wavax;
+            CONTRACT_ADDRESSES.wavax = typeof wavaxData === 'object' ? wavaxData?.address : (wavaxData || null);
             console.log('[Marketplace] Adresses chargées:', CONTRACT_ADDRESSES);
         } else {
             console.warn('[Marketplace] /api/artefacts a retourné', res.status);
@@ -529,8 +538,8 @@ async function loadStats() {
         const elSnt   = document.getElementById('mp-stat-snt-volume');
         const elAvax  = document.getElementById('mp-stat-avax-volume');
         if (elTotal) elTotal.textContent = stats.total_trades || 0;
-        if (elSnt)   elSnt.textContent   = parseFloat(stats.total_snt_volume  || 0).toFixed(2) + ' SNT';
-        if (elAvax)  elAvax.textContent  = parseFloat(stats.total_avax_volume || 0).toFixed(4) + ' AVAX';
+        if (elSnt)   elSnt.textContent   = parseFloat(stats.total_snt_volume  || 0).toFixed(2) + ' ' + TOKEN_SYMBOL;
+        if (elAvax)  elAvax.textContent  = parseFloat(stats.total_avax_volume || 0).toFixed(4) + ' ' + PRANA_NETWORK.nativeCurrency.symbol;
     } catch (e) {
         console.error('[Marketplace] Erreur chargement stats:', e);
     }
@@ -560,13 +569,13 @@ function renderOffers() {
     container.innerHTML = currentOffers.map(offer => `
         <div class="mp-offer-card ${offer.is_own_trade ? 'own-trade' : ''}" data-offer-id="${offer.blockchain_id}">
             <div class="mp-offer-amounts">
-                <span class="mp-snt">${parseFloat(offer.snt_amount).toFixed(2)} <em>SNT</em></span>
+                <span class="mp-snt">${parseFloat(offer.snt_amount).toFixed(2)} <em>${TOKEN_SYMBOL}</em></span>
                 <span class="mp-arrow">→</span>
-                <span class="mp-avax">${parseFloat(offer.avax_amount).toFixed(4)} <em>AVAX</em></span>
+                <span class="mp-avax">${parseFloat(offer.avax_amount).toFixed(4)} <em>${PRANA_NETWORK.nativeCurrency.symbol}</em></span>
             </div>
             <div class="mp-offer-meta">
                 <span class="mp-seller">👤 ${offer.seller_address}</span>
-                <span class="mp-price">Prix: ${(offer.price_per_snt || 0).toFixed(6)} AVAX/SNT</span>
+                <span class="mp-price">Prix: ${(offer.price_per_snt || 0).toFixed(6)} ${PRANA_NETWORK.nativeCurrency.symbol}/${TOKEN_SYMBOL}</span>
             </div>
             <div class="mp-offer-actions">
                 ${offer.is_own_trade
@@ -634,6 +643,8 @@ async function handleApprove() {
     btn.textContent = t('marketplace.creating_btn_label');
 
     try {
+        // Garde-réseau : Pingala avant approval + création d'offre (une fois par flux)
+        await ensurePingalaNetwork();
         const sntAmountWei = _safeParseEther(sntAmount);
         const sntContract  = await getContract(CONTRACT_ADDRESSES.sntToken, SNT_ABI);
 
@@ -687,6 +698,8 @@ async function handleCreateOffer() {
     btn.textContent = t('marketplace.create_offer_pending');
 
     try {
+        // Garde-réseau : Pingala avant création d'offre (une fois par flux)
+        await ensurePingalaNetwork();
         const sntAmountWei  = _safeParseEther(sntAmount);
         const avaxAmountWei = _safeParseEther(avaxAmount);
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
@@ -725,6 +738,8 @@ window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
         return;
     }
     try {
+        // Garde-réseau : Pingala avant achat d'offre
+        await ensurePingalaNetwork();
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
         const avaxWei = _safeParseEther(avaxAmount.toString());
         addToFeed(t('feed.buying_offer', { id: offerId }), 'var(--primary)');
@@ -747,6 +762,8 @@ window.marketplaceCancelOffer = async function(offerId) {
         return;
     }
     try {
+        // Garde-réseau : Pingala avant annulation d'offre
+        await ensurePingalaNetwork();
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
         addToFeed(t('feed.canceling_offer', { id: offerId }), 'var(--text-dim)');
         await _sendWithFreshNonce((ovr) => escrowContract.cancelOffer(offerId, ovr));

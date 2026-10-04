@@ -1,9 +1,9 @@
 {
-  "SNTTokenModule": {
-    "initialOwner": "0x8C3229EC621644789d7F61FAa82c6d0E5F97d43D"
+  "PranaTokenModule": {
+    "initialOwner": "0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee"
   },
   "MarketplaceEscrowModule": {
-    "_initialOwner": "0x8C3229EC621644789d7F61FAa82c6d0E5F97d43D",
+    "_initialOwner": "0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee",
     "_TokenAddress": ""
   }
 }

@@ -1,6 +1,6 @@
 // resources/js/modules/game.js
 import { Contract, parseUnits, parseEther } from 'ethers';
-import { getProvider } from '../web3/web3-core.js';
+import { getProvider, ensurePingalaNetwork, PRANA_NETWORK } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
 import { parseRpcError } from '../core/auth.js';
 import { t } from './i18n.js';
@@ -99,7 +99,7 @@ export function initGame() {
             } else {
                 const el = document.getElementById('balance-val');
                 if (el && !el.classList.contains('animating')) {
-                    el.innerHTML = total.toFixed(4) + ' <span class="unit">AVAX</span>';
+                    el.innerHTML = total.toFixed(4) + ' <span class="unit">' + PRANA_NETWORK.nativeCurrency.symbol + '</span>';
                 }
             }
             updateUI();
@@ -371,10 +371,10 @@ function updateFeeDisplay() {
     const elTotal = document.getElementById('display-total-deposit');
 
     if (elCoeff) elCoeff.innerText = coeff;
-    if (elStake) elStake.innerText = stake.toFixed(4) + " AVAX";
+    if (elStake) elStake.innerText = stake.toFixed(4) + " " + PRANA_NETWORK.nativeCurrency.symbol;
     if (elFeePct) elFeePct.innerText = feePct;
-    if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " AVAX";
-    if (elTotal) elTotal.innerText = total.toFixed(4) + " AVAX";
+    if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " " + PRANA_NETWORK.nativeCurrency.symbol;
+    if (elTotal) elTotal.innerText = total.toFixed(4) + " " + PRANA_NETWORK.nativeCurrency.symbol;
 }
 
 function getIcon(move) {
@@ -445,6 +445,9 @@ async function startSession() {
         addToFeed(t('feed.staking'), "var(--primary)");
 
         // 2. Blockchain Transaction
+        // Garde-réseau (une fois par session, pas à chaque tx) : switch/add Pingala.
+        // Jette si refus utilisateur (4001) → flux interrompu proprement.
+        await ensurePingalaNetwork();
         const provider = await getProvider();
         const signer = await provider.getSigner();
         
@@ -612,11 +615,11 @@ export function updateUI() {
         
         const balanceEl = document.getElementById('balance-val');
         if(balanceEl && !balanceEl.classList.contains('animating')) {
-            balanceEl.innerHTML = displayBalance.toFixed(4) + ' <span class="unit">AVAX</span>';
+            balanceEl.innerHTML = displayBalance.toFixed(4) + ' <span class="unit">' + PRANA_NETWORK.nativeCurrency.symbol + '</span>';
         }
         
         const betEl = document.getElementById('bet-val');
-        if(betEl) betEl.innerHTML = bet.toFixed(4) + ' <span class="unit">AVAX</span>';
+        if(betEl) betEl.innerHTML = bet.toFixed(4) + ' <span class="unit">' + PRANA_NETWORK.nativeCurrency.symbol + '</span>';
 
         if (activeView === views['dashboard']) {
             const joinBtn = document.getElementById('join-btn');
@@ -715,7 +718,7 @@ function animateValue(id, start, end, decimals) {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
         const val = progress * (eVal - sVal) + sVal;
-        obj.innerHTML = val.toFixed(decimals) + ' <span class="unit">AVAX</span>';
+        obj.innerHTML = val.toFixed(decimals) + ' <span class="unit">' + PRANA_NETWORK.nativeCurrency.symbol + '</span>';
         if (progress < 1) window.requestAnimationFrame(step);
         else {
             obj.classList.remove('animating');
@@ -759,7 +762,7 @@ function triggerClash(myMove, opponentMove, result, delta) {
         const color = result === 'win' ? 'var(--success)' : (result === 'draw' ? 'var(--primary)' : 'var(--accent)');
         if(combatText) {
             combatText.style.color = color;
-            combatText.innerText = result.toUpperCase() + " (" + delta + " AVAX)";
+            combatText.innerText = result.toUpperCase() + " (" + delta + " " + PRANA_NETWORK.nativeCurrency.symbol + ")";
         }
         clashDiv.classList.add('fade-out');
         setTimeout(() => overlay.removeChild(clashDiv), 500);

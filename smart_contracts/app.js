@@ -16,6 +16,7 @@ import {
     MARKETPLACE_WALLET_PK,
     SIGNER_WALLET_PK,
     SECURITY_COEFFICIENT,
+    CHAIN_ID,
     pinata,
     contracts
 } from "./config.js";
@@ -432,6 +433,10 @@ app.get("/get-game-config", (req, res) => {
             address: contracts.game.address,
             marketplace: contracts.marketplace,
             snt: contracts.snt,
+            // Pingala : wrapper AVAX (mise/asset) — exposé au frontend via /api/artefacts
+            wavax: contracts.wavax,
+            // Réseau cible (L1 souveraine) — lu dynamiquement par le service de chain
+            chain_id: CHAIN_ID,
             security_coefficient: SECURITY_COEFFICIENT,
             pinata_secret: pinata.PINATA_SECRET,
             pinata_api_url: pinata.PINATA_API_URL,
@@ -612,6 +617,19 @@ async function startBlockchainListeners() {
 // == DÉMARRAGE DU SERVEUR
 // ===================================
 (async () => {
+    // 0. Diagnostic de chaîne (lecture DYNAMIQUE du chainId du RPC — jamais hardcodé)
+    try {
+        const network = await gameProvider.getNetwork();
+        const readChainId = Number(network.chainId); // ethers renvoie un BigInt
+        const expectedChainId = Number(process.env.CHAIN_ID) || 99999;
+        if (readChainId !== expectedChainId) {
+            console.warn(`⚠️  [CHAIN] chainId lu dynamiquement (${readChainId}) ≠ CHAIN_ID attendu (${expectedChainId}) — vérifier FUJI_RPC_URL/PINGALA_RPC_URL`);
+        }
+        console.log(`🔗 [CHAIN] RPC: ${LOCAL_HARDHAT_URL} | chainId (dynamique): ${readChainId}`);
+    } catch (e) {
+        console.error(`⚠️  [CHAIN] Impossible de lire le chainId du RPC: ${e.message}`);
+    }
+
     // 1. Initialiser IPFS
     await initIPFS();
 

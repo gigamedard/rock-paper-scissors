@@ -1,0 +1,53 @@
+{
+  "network": "pingala",
+  "chainId": 99999,
+  "chainName": "Pingala Chain",
+  "rpcUrl": "https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc",
+  "deployedAt": "2026-10-04T18:28:56.586Z",
+  "deployer": {
+    "address": "0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee"
+  },
+  "roles": {
+    "owner": {
+      "address": "0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee",
+      "note": "deployer (clé PINGALA_DEPLOYER_PK, hors bridge)"
+    },
+    "signer": {
+      "address": "0xBe24F203E4e35A79E242d77c3710cE608C16a3De",
+      "envVar": "PINGALA_SIGNER_PK",
+      "keyGenerated": false
+    },
+    "payoutOperator": {
+      "address": "0x9A60327ce58A94a411987119047A75A8F1076663",
+      "envVar": "PINGALA_PAYOUT_PK",
+      "keyGenerated": false
+    },
+    "devWallet": {
+      "address": "0x153d0C405a415F3E01188F46dAA80D1fcb2C2166",
+      "envVar": "PINGALA_DEV_PK",
+      "keyGenerated": false
+    }
+  },
+  "contracts": {
+    "battlepool": {
+      "address": "0x0790C2e42DB6A97cBE5Ba0DeD6F912868b0f62EF",
+      "deployTxHash": "0x2a3349f63805f9e669154c0d7996b9d03f06778517853ab4c4eca65a2b358aa4"
+    },
+    "pranaToken": {
+      "address": "0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B",
+      "alias": "snt (config.js)",
+      "deployTxHash": "0xa9915f14e92ffd05ac80d8b0b879d215c17e782a330dcc2050477846311f8cb4",
+      "replaced": "0x4D3f9aAC71Ba10f40f5054d034004254108bD90B"
+    },
+    "marketplaceEscrow": {
+      "address": "0x6C12875a81356d6b3042737C8eb7AAE9B4a088ac",
+      "deployTxHash": "0x6fdc888ad240757b3d25716ca5f7803b387f736c6f0a47d6b89c31d78e05d834",
+      "replaced": "0x4Da46c76d47D67e3Eb6977E9022Fa857D6fD64De"
+    },
+    "wavax": {
+      "address": "0x0a324396FB40C9cf10f665bFDb21FFceBe66CfD4",
+      "deployTxHash": "0x714f02b94ad10f32be5b95e6308ee410280fe75afd115209e6e0c4376c7b9cd8"
+    }
+  },
+  "pranaInitialOwnerNote": "Correctif audit appliqué : constructeur PranaToken = Ownable(msg.sender) + mint 1M au deployer (0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee). Ex-placeholder INITIAL_OWNER_ADDRESS 0x8C3229EC…43D abrogé. Anciennes adresses mortes : prana=0x4D3f9aAC71Ba10f40f5054d034004254108bD90B marketplace=0x4Da46c76d47D67e3Eb6977E9022Fa857D6fD64De. Funding initial : 100000 PRANA -> PAYOUT_OPERATOR, 50000 -> DEV."
+}

@@ -1,5 +1,5 @@
 // resources/js/core/auth.js
-import { getProvider, getSigner, resetProvider } from '../web3/web3-core.js';
+import { getProvider, getSigner, resetProvider, ensurePingalaNetwork } from '../web3/web3-core.js';
 import { secureFetch } from './api.js';
 import { t } from '../modules/i18n.js';
 import { showToast } from './toast.js';
@@ -60,7 +60,21 @@ export async function connectWallet(providerType = 'injected') {
         const signer = await getSigner(providerType);
         const walletAddress = await signer.getAddress();
 
-        
+        // Garde-réseau (bug historique corrigé) : le chemin INJECTÉ n'ajoutait
+        // JAMAIS le réseau de jeu (seul WalletConnect le faisait, avec un
+        // chainId erroné). MetaMask/Core reçoit maintenant le switch vers
+        // Pingala (99999) + wallet_addEthereumChain sur 4902/4900.
+        // Refus (4001) ≠ bloquant : la connexion peut aboutir hors réseau,
+        // `ensurePingalaNetwork()` est rappelé avant chaque flux de tx.
+        try {
+            await ensurePingalaNetwork();
+        } catch (networkError) {
+            if (networkError?.code === 4001) {
+                showToast("Réseau Pingala non ajouté (refusé). Les transactions échoueront tant que le réseau n'est pas sélectionné.", 'warn');
+            } else {
+                console.warn('[Auth] Switch Pingala non abouti :', networkError);
+            }
+        }
         // 1. Get Challenge
         const challengeRes = await fetch('/api/wallet/generate-message', {
             method: 'POST',

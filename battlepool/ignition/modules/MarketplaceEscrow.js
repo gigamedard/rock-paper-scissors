@@ -2,7 +2,7 @@ const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
 
 // Ce module déploie le contrat MarketplaceEscrow.
 // Il requiert deux paramètres lors du déploiement :
-// 1. _tokenAddress: L'adresse du contrat SNTToken (IERC20).
+// 1. _tokenAddress: L'adresse du contrat PranaToken (IERC20) — ex-SNTToken renommé.
 // 2. _initialOwner: L'adresse du portefeuille qui sera propriétaire (owner) du contrat.
 
 module.exports = buildModule("MarketplaceEscrowModule", (m) => {

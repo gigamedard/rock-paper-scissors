@@ -7,6 +7,13 @@
     "refresh": "Atualizar",
     "disconnect": "Desconectar"
   },
+  "network": {
+    "add": "⊕ Rede",
+    "no_wallet": "Nenhuma carteira detectada.",
+    "added": "Rede Pingala adicionada.",
+    "failed": "Não foi possível adicionar a rede Pingala.",
+    "rejected": "Adição de rede recusada."
+  },
   "connect": {
     "btn": "MetaMask",
     "wc_btn": "WalletConnect",

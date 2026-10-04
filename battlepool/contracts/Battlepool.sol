@@ -301,10 +301,11 @@ contract Battlepool is ReentrancyGuard {
         string memory poolSalt, // Changed to string
         uint256[] memory balances
     ) external onlyOwner {
-        // SECURITY: Only available on local Hardhat test network (chainId 31337).
-        // Prevents an attacker with a compromised owner key from injecting fake
-        // PoolEmitted events in production.
-        require(block.chainid == 31337, "Test-only function: not available on this network");
+        // SECURITY: Only available on the Pingala chain (chainId 99999), the game's
+        // own L1 subnet (subnet-evm v1.15.1). Prevents an attacker with a compromised
+        // owner key from injecting fake PoolEmitted events on any other network.
+        // MIGRATION: remplacé 31337 (Hardhat local, désormais coupé) par 99999 (Pingala).
+        require(block.chainid == 99999, "Test-only function: not available on this network");
         // Emit the PoolEmitted event with the provided parameters
         emit PoolEmitted(poolId, baseBet, users, premoveCIDs, poolSalt, balances);
     }

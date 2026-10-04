@@ -7,6 +7,13 @@
     "refresh": "刷新",
     "disconnect": "断开连接"
   },
+  "network": {
+    "add": "⊕ 网络",
+    "no_wallet": "未检测到注入的钱包。",
+    "added": "已添加 Pingala 网络。",
+    "failed": "无法添加 Pingala 网络。",
+    "rejected": "已拒绝添加网络。"
+  },
   "connect": {
     "btn": "MetaMask",
     "wc_btn": "WalletConnect",

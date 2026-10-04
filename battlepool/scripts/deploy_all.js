@@ -21,16 +21,16 @@ async function main() {
   const battlepoolAddr = await battlepool.getAddress();
   console.log('Battlepool deployed to:', battlepoolAddr);
 
-  // --- Deploy SNTToken ---
-  const SNTToken = await ethers.getContractFactory('SNTToken');
-  const sntToken = await SNTToken.deploy();
-  await sntToken.waitForDeployment();
-  const sntTokenAddr = await sntToken.getAddress();
-  console.log('SNTToken deployed to:', sntTokenAddr);
+  // --- Deploy PranaToken (ex-SNTToken renommé) ---
+  const PranaToken = await ethers.getContractFactory('PranaToken');
+  const pranaToken = await PranaToken.deploy();
+  await pranaToken.waitForDeployment();
+  const pranaTokenAddr = await pranaToken.getAddress();
+  console.log('PranaToken deployed to:', pranaTokenAddr);
 
   // --- Deploy MarketplaceEscrow ---
   const MarketplaceEscrow = await ethers.getContractFactory('MarketplaceEscrow');
-  const marketplace = await MarketplaceEscrow.deploy(sntTokenAddr, deployer.address);
+  const marketplace = await MarketplaceEscrow.deploy(pranaTokenAddr, deployer.address);
   await marketplace.waitForDeployment();
   const marketplaceAddr = await marketplace.getAddress();
   console.log('MarketplaceEscrow deployed to:', marketplaceAddr);
@@ -83,7 +83,7 @@ async function main() {
   // --- Write addresses to a temp file for later use ---
   const addresses = {
     battlepool: battlepoolAddr,
-    sntToken: sntTokenAddr,
+    pranaToken: pranaTokenAddr,
     marketplaceEscrow: marketplaceAddr,
   };
   fs.writeFileSync('/tmp/deployed_addresses.json', JSON.stringify(addresses, null, 2));
