@@ -75,9 +75,16 @@ CHAKRA_TOKEN_ADDRESS=...
 ```
 
 ### 4.3 Genesis / Subnet-EVM
-- `Pingala Chain` : Subnet-EVM AppChain (exécution matchs/paris).
-- `Ida Chain` : Subnet-EVM AssetChain (règlement/Marketplace/Staking).
-- Bridge `Sushumna` : Teleporter / AWM reliant Pingala ↔ Ida.
+- `Pingala Chain` : Subnet-EVM AppChain (exécution matchs/paris) — **RÉALISÉE** (L1 souveraine, chainId 99999).
+- `Ida Chain` : Subnet-EVM AssetChain (règlement/Marketplace/Staking) — **PHASE 2** (après beta, à la traction).
+- Bridge `Sushumna` : Teleporter / AWM reliant Pingala ↔ Ida — **PHASE 2**.
+
+> **ARCHITECTURE RETENUE (décision utilisateur) : mono-chaîne en beta.**
+> Ton L1 souveraine **existante** (chainId 99999) EST **Pingala Chain**. Le WAVAX
+> (wrapper AVAX, pattern WETH9) sert d'asset 1:1 ; CHAKRA reste le token de la
+> **phase 2** (Ida Chain + staking + fees de bridge). Le renommage PRANA est
+> **réalisé** (contrat `PranaToken`). Procédure de redéploiement :
+> [`PINGALA_DEPLOY_RUNBOOK.md`](PINGALA_DEPLOY_RUNBOOK.md).
 
 ---
 
@@ -87,10 +94,15 @@ CHAKRA_TOKEN_ADDRESS=...
 | --- | --- |
 | Nom du jeu « Spirit Fight » | Déjà présent (`portal.html`) |
 | Nomenclature officielle documentée | ✅ ce fichier |
-| Token `PRANA` (renommage SNT) | À faire (redéploiement) |
-| Token `CHAKRA` | À créer |
-| Chains Pingala / Ida (Subnet-EVM) | À configurer (inexistant) |
-| Bridge Sushumna | À documenter/renommer |
-| Branding Kundalini / Spirit Fight | À propager (PWA, titres, domaine) |
+| **Token `PRANA`** (renommage SNT) | ✅ **RÉALISÉ** — `PranaToken.sol` déployé sur Pingala |
+| Token `CHAKRA` | ⏸️ Phase 2 (Ida Chain) |
+| **Pingala Chain** | ✅ **RÉALISÉE** — L1 souveraine (chainId 99999), 4 contrats déployés |
+| Ida Chain (Subnet-EVM) | ⏸️ Phase 2 |
+| Bridge Sushumna | ⏸️ Phase 2 (le bridge Node applicatif tourne déjà comme app↔chaîne) |
+| WAVAX (wrapper AVAX) | ✅ RÉALISÉ (contrat + tests, wrap passif 1:1) |
+| Branding Kundalini / Spirit Fight | ⏳ À propager (PWA, titres, domaine) |
 
-> ⚠️ **Décisions bloquantes avant exécution** : voir les questions adressées à l'utilisateur (mapping SNT→PRANA vs PRANA+CHAKRA, redéploiement du contrat, et politique de renommage rétrocompatible des variables d'environnement/RPC).
+> ⚠️ **Décisions tranchées** : mono-chaîne en beta (Pingala) ; Hardhat local retiré du
+> stack ; renommage PRANA effectué au redéploiement ; reset des données ; gas payé
+> par le `payoutOperator` (zero-gas UX) ; WAVAX créé. Détails et procédure répétée :
+> [`PINGALA_DEPLOY_RUNBOOK.md`](PINGALA_DEPLOY_RUNBOOK.md).
