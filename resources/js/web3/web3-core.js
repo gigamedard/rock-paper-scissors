@@ -173,7 +173,9 @@ export async function getProvider(type = 'injected') {
                     name: 'Battlepool',
                     description: 'Battlepool Game dApp',
                     url: window.location.origin,
-                    icons: [window.location.origin + '/logo.png']
+                    // NOTE: /logo.png n'existe pas (piège documenté) — utiliser
+                    // l'icône PWA réellement livrée dans public/ (manifest.json).
+                    icons: [window.location.origin + '/pwa_icon_192.png']
                 }
             });
         }

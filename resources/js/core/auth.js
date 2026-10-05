@@ -39,14 +39,22 @@ export async function connectWallet(providerType = 'injected') {
     if (providerType === 'injected' && typeof window.ethereum === 'undefined') {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         if (isMobile) {
-            // Construit l'URL sans le protocole (ex: battlepool.com/dashboard)
+            // Mobile sans EIP-1193 injecté : deep link UNIVERSEL (WalletConnect
+            // v2 deeplink) plutôt que MetaMask-only. L'utilisateur peut alors
+            // choisir MetaMask, Core Wallet, Trust, Coinbase… depuis son mobile.
+            // (Piège corrigé : l'ancien code forçait metamask.app.link, donc
+            // un utilisateur Core Wallet atterrissait dans la mauvaise app.)
             const cleanedUrl = window.location.href.replace(/^https?:\/\//, '');
-            const metamaskDeepLink = `https://metamask.app.link/dapp/${cleanedUrl}`;
-            console.log("[Auth] Appareil mobile détecté. Redirection vers MetaMask Mobile via Deep Link:", metamaskDeepLink);
-            window.open(metamaskDeepLink, '_blank');
-            return false;
+            const universalLink = `https://deeplink.walletconnect.org/?uri=${encodeURIComponent('https://' + cleanedUrl)}`;
+            console.log("[Auth] Mobile sans provider injecté — deep link universel (WalletConnect) :", universalLink);
+            // WalletConnect sera utilisé au retour : on déclenche la modal QR
+            try {
+                showToast(t('errors.wallet_app_required'), 'info');
+            } catch (e) { /* toast non bloquant */ }
+            await connectWallet('walletconnect');
+            return true;
         }
-        showToast(t('errors.metamask_required'), 'error');
+        showToast(t('errors.wallet_required'), 'error');
         return false;
     }
 

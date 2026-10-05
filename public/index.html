@@ -51,8 +51,8 @@
                 </button>
             </div>
             <div id="connection-buttons" style="display: flex; gap: 10px;">
-                <button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">MetaMask</button>
-                <button class="wallet-btn" id="connect-wc-btn" style="background: linear-gradient(90deg, var(--purple-neon) 0%, var(--cyan-spark) 100%);" data-i18n="connect.wc_btn">WalletConnect</button>
+<button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">Connect Wallet</button>
+                            <button class="wallet-btn" id="connect-wc-btn" style="background: linear-gradient(90deg, var(--purple-neon) 0%, var(--cyan-spark) 100%);" data-i18n="connect.wc_btn">WalletConnect</button>
             </div>
         </div>
     </header>
@@ -101,8 +101,8 @@
                         <span><span style="color: var(--text-dim);" data-i18n="stats.battles">Combats</span> <b id="stats-battles-total" style="color: var(--cyan-spark);">--</b></span>
                         <span><span style="color: var(--text-dim);" data-i18n="stats.players_online">Joueurs en ligne</span> <b id="stats-players-online" style="color: var(--success);">--</b></span>
                         <span><span style="color: var(--text-dim);" data-i18n="stats.pools_active">Pools actives</span> <b id="stats-pools-active" style="color: var(--gold-primary);">--</b></span>
-                        <span><span style="color: var(--text-dim);" data-i18n="stats.tvl">TVL</span> <b id="stats-tvl" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">SNT</small></span>
-                        <span><span style="color: var(--text-dim);" data-i18n="stats.fees">Frais collectés</span> <b id="stats-fees" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">SNT</small></span>
+                        <span><span style="color: var(--text-dim);" data-i18n="stats.tvl">TVL</span> <b id="stats-tvl" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">TST</small></span>
+                        <span><span style="color: var(--text-dim);" data-i18n="stats.fees">Frais collectés</span> <b id="stats-fees" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">TST</small></span>
                     </div>
                 </div>
                 <div id="fight-ticker" style="display: none; overflow: hidden; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: var(--text-dim); white-space: nowrap;"></div>
@@ -127,12 +127,12 @@
                         </div>
                     </div>
                     <div>
-                        <label class="label" data-i18n="setup.base_bet">BASE BET AMOUNT (AVAX)</label>
+                        <label class="label" data-i18n="setup.base_bet">BASE BET AMOUNT (TST)</label>
                         <div class="bet-input-container">
                             <span style="font-size: 1.5rem; color: var(--primary);">Ξ</span>
                             <select id="base-bet-input" class="bet-input" style="font-size: 1.5rem;">
-                                <option value="0.0004" selected>0.0004 AVAX</option>
-                                <option value="0.15">0.15 AVAX</option>
+                                <option value="0.0004" selected>0.0004 TST</option>
+                                <option value="0.15">0.15 TST</option>
                             </select>
                         </div>
 
@@ -158,10 +158,10 @@
                         </div>
 
                         <div id="fee-breakdown" style="margin-top:1rem; font-size:0.85rem; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.required_stake">Required Stake</span> (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 AVAX</span></div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.fee">Matchmaking Fee</span> (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 AVAX</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.required_stake">Required Stake</span> (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 TST</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.fee">Matchmaking Fee</span> (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 TST</span></div>
                             <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:0.5rem 0;">
-                            <div style="display:flex; justify-content:space-between; font-weight:800; color:var(--primary);"><span data-i18n="setup.total_deposit">TOTAL DEPOSIT:</span><span id="display-total-deposit">0.0000 AVAX</span></div>
+                            <div style="display:flex; justify-content:space-between; font-weight:800; color:var(--primary);"><span data-i18n="setup.total_deposit">TOTAL DEPOSIT:</span><span id="display-total-deposit">0.0000 TST</span></div>
                         </div>
 
                         <button class="btn-primary" id="start-session-btn" style="margin-top: 1rem; width: 100%;" data-i18n="setup.btn">INITIALIZE BATTLE SEQUENCE</button>
@@ -175,12 +175,12 @@
                     <div class="arena-grid">
                         <div class="card stat-card pulse-primary">
                             <div class="card-label" data-i18n="dashboard.balance">Main Balance</div>
-                            <div class="card-value" id="balance-val">0.0000 <span class="unit">AVAX</span></div>
+                            <div class="card-value" id="balance-val">0.0000 <span class="unit">TST</span></div>
                             <div class="card-trend up">↑ Live Sync</div>
                         </div>
                         <div class="card stat-card">
                             <div class="card-label" data-i18n="dashboard.bet">Current Bet</div>
-                            <div class="card-value" id="bet-val">0.0100 <span class="unit">AVAX</span></div>
+                            <div class="card-value" id="bet-val">0.0100 <span class="unit">TST</span></div>
                             <div id="status-text" class="battle-status-tag status-online">Available</div>
                         </div>
                     </div>
@@ -192,7 +192,7 @@
                         <!-- Claim Section (Hidden by default) -->
                         <div id="claim-section" class="claim-panel fade-in" style="display: none;">
                             <h3 data-i18n="claim.title">SESSION COMPLETE - REWARDS READY</h3>
-                            <div class="claim-amount"><span id="claim-amount-display">0.0000</span> AVAX</div>
+                            <div class="claim-amount"><span id="claim-amount-display">0.0000</span> TST</div>
                             <button class="btn-claim" id="claim-btn" data-i18n="claim.btn">CLAIM & WITHDRAW TO WALLET</button>
                         </div>
                     </div>
@@ -227,22 +227,22 @@
             <!-- ===== MARKETPLACE STATS (depuis /api/stats/public) ===== -->
             <div id="mp-stats-band" style="background: rgba(15,12,27,0.65); border: 1px solid rgba(0,229,255,0.25); border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 1rem;">
                 <div style="display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; font-size: 0.8rem;">
-                    <span><span style="color: var(--text-dim);" data-i18n="stats.p2p_volume">Volume P2P</span> <b id="stats-mp-p2p-volume" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">SNT</small></span>
+                    <span><span style="color: var(--text-dim);" data-i18n="stats.p2p_volume">Volume P2P</span> <b id="stats-mp-p2p-volume" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">PRANA</small></span>
                     <span><span style="color: var(--text-dim);" data-i18n="stats.fulfilled_trades">Échanges P2P fulfillés</span> <b id="stats-mp-fulfilled-trades" style="color: var(--gold-primary);">--</b></span>
-                    <span><span style="color: var(--text-dim);" data-i18n="stats.avg_24h">Avg SNT/joueur 24h</span> <b id="stats-mp-avg-24h" style="color: var(--gold-primary);">--</b></span>
+                    <span><span style="color: var(--text-dim);" data-i18n="stats.avg_24h">Avg PRANA/player 24h</span> <b id="stats-mp-avg-24h" style="color: var(--gold-primary);">--</b></span>
                 </div>
             </div>
 
             <!-- CONTENU P2P TRADING -->
             <div id="mp-p2p-content">
-                <p data-i18n="marketplace.subtitle" style="text-align: center; color: var(--text-dim); margin-bottom: 2rem;">Échangez vos SNT contre des AVAX.</p>
+                <p data-i18n="marketplace.subtitle" style="text-align: center; color: var(--text-dim); margin-bottom: 2rem;">Échangez vos PRANA contre des TST.</p>
                 <div class="mp-stats-grid">
                     <div class="mp-stat-card">
-                        <div class="mp-stat-label" data-i18n="marketplace.stats_volume_snt">Volume SNT</div>
+                        <div class="mp-stat-label" data-i18n="marketplace.stats_volume_snt">Volume PRANA</div>
                         <div class="mp-stat-value" id="mp-stat-snt-volume">--</div>
                     </div>
                     <div class="mp-stat-card">
-                        <div class="mp-stat-label" data-i18n="marketplace.stats_volume_avax">Volume AVAX</div>
+                        <div class="mp-stat-label" data-i18n="marketplace.stats_volume_avax">Volume TST</div>
                         <div class="mp-stat-value" id="mp-stat-avax-volume">--</div>
                     </div>
                 </div>
@@ -256,11 +256,11 @@
                 <h2 data-i18n="marketplace.create_offer">Créer une Offre</h2>
                 <div class="mp-form-grid">
                     <div class="mp-input-group">
-                        <label data-i18n="marketplace.snt_amount">SNT Amount</label>
+                        <label data-i18n="marketplace.snt_amount">PRANA Amount</label>
                         <input type="number" id="mp-snt-amount" placeholder="0.0" step="any">
                     </div>
                     <div class="mp-input-group">
-                        <label data-i18n="marketplace.avax_amount">AVAX Price</label>
+                        <label data-i18n="marketplace.avax_amount">TST Price</label>
                         <input type="number" id="mp-avax-amount" placeholder="0.0" step="any">
                     </div>
                     <div class="mp-input-group">
@@ -269,7 +269,7 @@
                     </div>
                 </div>
                 <div style="display:flex; gap:1rem; margin-top:1rem;">
-                    <button class="mp-btn-approve" id="marketplace-approve-btn" style="flex:1;" data-i18n="marketplace.approve_btn_label">1. Approve SNT</button>
+                    <button class="mp-btn-approve" id="marketplace-approve-btn" style="flex:1;" data-i18n="marketplace.approve_btn_label">1. Approve PRANA</button>
                     <button class="mp-btn-create" id="marketplace-create-btn" style="flex:1;" disabled data-i18n="marketplace.create_offer">2. Create Offer</button>
                 </div>
             </div>
@@ -330,7 +330,7 @@
                         </div>
                         <div class="ref-stat-item">
                             <span data-i18n="referral.rewards">Récompenses</span>
-                            <b id="referral-stat-rewards">0 SNT</b>
+                            <b id="referral-stat-rewards">0 PRANA</b>
                         </div>
                     </div>
                 </div>
