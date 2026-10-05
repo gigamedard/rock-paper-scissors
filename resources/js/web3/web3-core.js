@@ -45,7 +45,12 @@ export const GAS_SYMBOL = 'TST';
 // projectId depuis l'environnement Vite (aucune valeur en dur — l'ancien
 // fallback "demo ID" est volontairement supprimé : sans projectId valable,
 // WalletConnect ne peut pas fonctionner, autant échouer avec un message clair).
-const WC_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
+// ⚠️ DÉFENSE ANTI-CRLF : sur le VPS, `.env.staging` est en fins de ligne
+// Windows (CRLF) — le parser d'env du build Vite garde un `\r` collé à la
+// VALEUR (piège documenté : `projectId=…95\r` → 33 chars → toutes les API
+// Reown renvoient 403 « projectId must be 32 characters » → la modal charge
+// indéfiniment avec une liste vide). On strippe donc tout whitespace/CR.
+const WC_PROJECT_ID = (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '').trim();
 
 /**
  * Réseau Pingala au format CAIP attendu par AppKit v1.8 :
