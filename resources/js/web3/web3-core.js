@@ -394,10 +394,13 @@ export async function connectWalletMobile(walletKey = 'core') {
         setTimeout(pollUri, 300);
     });
 
-    // Démarre le pairing AVEC les namespaces déclarés — sinon le wallet
-    // reçoit une proposition sans réseau et lève « network not specified »
-    // (toast « Connection failed » dans Core, mesuré sur iPhone 2026-10-05).
-    const connectPromise = provider.connect({ optionalNamespaces: WC_NAMESPACES }).catch((e) => {
+    // Démarre le pairing AVEC les namespaces déclarés. PREUVE (2026-10-05,
+    // inspection du relais avec un wallet factice @walletconnect/sign-client) :
+    // `provider.connect({ optionalNamespaces })` produit une session_proposal
+    // avec requiredNamespaces VIDE → Core v2 la rejette (« network not
+    // specified »). En passant `namespaces`, universal-provider l'envoie en
+    // requiredNamespaces → Core affiche la permission eip155:99999.
+    const connectPromise = provider.connect({ namespaces: WC_NAMESPACES }).catch((e) => {
         console.warn('[Web3] provider.connect (mobile) erreur:', e?.message || e);
     });
 
@@ -411,18 +414,26 @@ export async function connectWalletMobile(walletKey = 'core') {
         let link = _buildDeeplink(walletKey, uri);
         console.log(`[Web3] Deep link ${target.name} (${link.slice(0, 40)}…)`);
         // Fallback : certains navigateurs bloquent schemes custom en direct —
-        // on retente via l'universal link si rien ne se passe (détecté par
-        // visibilitychange : aucune perte de focus = scheme ignoré).
+        // on retente via l'universal link si rien ne se passe. Détection de
+        // l'ouverture de l'app : DÈS QUE Safari perd le focus (visibilitychange
+        // OU pagehide — le premier des deux arrive), on annule le fallback,
+        // sinon la page 404 core.app s'ouvre au retour (mesuré iPhone).
+        // location.replace : ne pas empiler l'historique (le « back » doit
+        // rester sur la dApp).
         let opened = false;
-        const onHide = () => { opened = true; };
+        const onHide = () => { opened = true; clearTimeout(fallbackTimer); };
         document.addEventListener('visibilitychange', onHide, { once: true });
+        window.addEventListener('pagehide', onHide, { once: true });
+        // Navigation native APRÈS l'armement des listeners (sinon le
+        // visibilitychange d'ouverture de Core est raté et le fallback part).
         window.location.href = link;
-        setTimeout(() => {
+        const fallbackTimer = setTimeout(() => {
             document.removeEventListener('visibilitychange', onHide);
+            window.removeEventListener('pagehide', onHide);
             if (!opened) {
                 const uni = `${WALLET_DEEPLINKS[walletKey].universal}/wc?uri=${encodeURIComponent(uri)}`;
                 console.warn('[Web3] scheme natif ignoré — fallback universal link:', uni.slice(0, 50));
-                window.location.href = uni;
+                window.location.replace(uni);
             }
         }, 1800);
     } else {
