@@ -155,10 +155,16 @@ function _isMobileDevice() {
     return /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(ua) || touch;
 }
 
-/** URL de deep link universel pour un wallet donné (format AppKit/WC v2). */
-function _buildUniversalDeeplink(walletKey, uri) {
+/** URL de deep link pour un wallet donné.
+ * FORMAT MESURÉ (rétroaction iPhone 2026-10-05) : `https://core.app/wc?uri=…`
+ * sert une PAGE WEB (200) « page non trouvée + bouton Ouvrir » = une étape
+ * supplémentaire avant l'app — pas acceptable. Le format réel du SDK (cf.
+ * `CoreHelperUtil.formatNativeUrl`) forme `core://wc?uri=<encoded>` : Safari
+ * iOS affiche son bandeau « Ouvrir dans Core ? » DIRECTEMENT = zéro étape web.
+ * On construit donc le **scheme natif**, pas un chemin web deviné. */
+function _buildDeeplink(walletKey, uri) {
     const d = WALLET_DEEPLINKS[walletKey];
-    return `${d.universal}/wc?uri=${encodeURIComponent(uri)}`;
+    return `${d.native}wc?uri=${encodeURIComponent(uri)}`;
 }
 
 /**
@@ -399,11 +405,26 @@ export async function connectWalletMobile(walletKey = 'core') {
     const target = WALLET_DEEPLINKS[walletKey] || WALLET_DEEPLINKS.core;
 
     if (uri) {
-        // Universal link (HTTPS) : le seul format fiable sur iOS/Safari (le
-        // scheme natif core:// est parfois bloqué hors des SPA in-app).
-        const link = _buildUniversalDeeplink(walletKey, uri);
-        console.log(`[Web3] Deep link ${target.name} (${link.slice(0, 60)}…)`);
+        // Scheme NATIF (core://wc?uri=…) : Safari iOS affiche « Ouvrir dans
+        // Core ? » IMMÉDIATEMENT (zéro page intermédiaire). L'universal link
+        // https://core.app/wc?uri= sert lui une page web 404+bouton (mesuré).
+        let link = _buildDeeplink(walletKey, uri);
+        console.log(`[Web3] Deep link ${target.name} (${link.slice(0, 40)}…)`);
+        // Fallback : certains navigateurs bloquent schemes custom en direct —
+        // on retente via l'universal link si rien ne se passe (détecté par
+        // visibilitychange : aucune perte de focus = scheme ignoré).
+        let opened = false;
+        const onHide = () => { opened = true; };
+        document.addEventListener('visibilitychange', onHide, { once: true });
         window.location.href = link;
+        setTimeout(() => {
+            document.removeEventListener('visibilitychange', onHide);
+            if (!opened) {
+                const uni = `${WALLET_DEEPLINKS[walletKey].universal}/wc?uri=${encodeURIComponent(uri)}`;
+                console.warn('[Web3] scheme natif ignoré — fallback universal link:', uni.slice(0, 50));
+                window.location.href = uni;
+            }
+        }, 1800);
     } else {
         // Pas d'URI (pairing lento/échoué) : on tombe sur la modal standard.
         console.warn('[Web3] URI WC non reçue — fallback modal AppKit.');
