@@ -305,6 +305,44 @@ async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 1
 }
 
 /**
+ * Namespaces de session WalletConnect — la shape EXACTE que les wallets
+ * exigent (Core Wallet rejetait la session « network not specified » avec un
+ * connect({}) vide : sans `chains`/`methods`, la proposition ne décrit aucun
+ * réseau). Shape copiée de AppKit (WcHelpersUtil.createNamespaces +
+ * createDefaultNamespace + DEFAULT_METHODS.eip155) :
+ *   { eip155: { chains: ['eip155:99999'], methods: […], events: […],
+ *               rpcMap: { 99999: <rpc> } } }
+ */
+const WC_EIP155_METHODS = [
+    'eth_accounts',
+    'eth_requestAccounts',
+    'eth_sendRawTransaction',
+    'eth_sign',
+    'eth_signTransaction',
+    'eth_signTypedData',
+    'eth_signTypedData_v3',
+    'eth_signTypedData_v4',
+    'eth_sendTransaction',
+    'personal_sign',
+    'wallet_switchEthereumChain',
+    'wallet_addEthereumChain',
+    'wallet_getPermissions',
+    'wallet_requestPermissions',
+    'wallet_registerOnboarding',
+    'wallet_watchAsset',
+    'wallet_scanQRCode',
+];
+const WC_EIP155_EVENTS = ['accountsChanged', 'chainChanged'];
+const WC_NAMESPACES = {
+    eip155: {
+        chains: [`eip155:${PRANA_NETWORK.chainId}`],
+        methods: WC_EIP155_METHODS,
+        events: WC_EIP155_EVENTS,
+        rpcMap: { [PRANA_NETWORK.chainId]: PRANA_NETWORK.rpcUrl },
+    },
+};
+
+/**
  * FLUX MOBILE (iPhone Safari / Android Chrome) — le fix qui marche :
  * 1. init AppKit + UniversalProvider (SANS ouvrir la modal),
  * 2. `provider.connect({…})` = démarre le pairing WC ;
@@ -350,8 +388,10 @@ export async function connectWalletMobile(walletKey = 'core') {
         setTimeout(pollUri, 300);
     });
 
-    // Démarre le pairing (la modal n'est PAS ouverte — c'est voulu).
-    const connectPromise = provider.connect({}).catch((e) => {
+    // Démarre le pairing AVEC les namespaces déclarés — sinon le wallet
+    // reçoit une proposition sans réseau et lève « network not specified »
+    // (toast « Connection failed » dans Core, mesuré sur iPhone 2026-10-05).
+    const connectPromise = provider.connect({ optionalNamespaces: WC_NAMESPACES }).catch((e) => {
         console.warn('[Web3] provider.connect (mobile) erreur:', e?.message || e);
     });
 
