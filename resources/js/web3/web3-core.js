@@ -120,6 +120,46 @@ let _activeWcSource = null;        // 'appkit' | 'legacy' — pour un reset prop
 let _appKit = null;
 let _appKitInitPromise = null;
 let _universalProvider = null;     // UniversalProvider initié PAR NOUS et passé à AppKit (référence EIP-1193 directe)
+let _lastWcUri = null;             // URI de pairing WC — émise par le hook standard `display_uri`
+
+// ═══ DEEP LINKS NATIFS MOBILE (iPhone Safari / Android) ══════════════════════
+// POURQUOI (mesuré en E2E sur le domaine de production, 2026-10-05) :
+// au clic mobile, AppKit route la vue « All Wallets » (registre Explorer) et
+// les `customWallets` ne sont JAMAIS rendus dans cette vue. Le registre est
+// filtré par `supports_wc` (Core Wallet : champ vide) ET par les chaînes
+// (`chains=eip155:99999` — inconnue de tous) → Core n'apparaîtra jamais dans
+// la modal, quelle que soit notre config. La seule voie fiable = ouvrir le
+// wallet DIRECTEMENT via son universal link, avec l'URI de pairing.
+// Le hook standard : `provider.on('display_uri', uri => …)` — le SDK émet
+// l'URI exactly pour ce cas (cf. universal-provider : this.events.emit
+// ("display_uri", uri) après le pairing).
+// Core Wallet    : universal `https://core.app` (+ /wc?uri=<uri>) ; natif `core://`
+// MetaMask mobile: universal `https://metamask.app.link` ; natif `metamask://`
+const WALLET_DEEPLINKS = {
+    core: {
+        name: 'Core Wallet',
+        universal: 'https://core.app',
+        native: 'core://',
+    },
+    metamask: {
+        name: 'MetaMask',
+        universal: 'https://metamask.app.link',
+        native: 'metamask://',
+    },
+};
+
+/** Détection mobile SANS dépendance aux helpers AppKit (UA + touch). */
+function _isMobileDevice() {
+    const ua = navigator.userAgent || '';
+    const touch = (navigator.maxTouchPoints || 0) > 1;
+    return /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(ua) || touch;
+}
+
+/** URL de deep link universel pour un wallet donné (format AppKit/WC v2). */
+function _buildUniversalDeeplink(walletKey, uri) {
+    const d = WALLET_DEEPLINKS[walletKey];
+    return `${d.universal}/wc?uri=${encodeURIComponent(uri)}`;
+}
 
 /**
  * Erreur sémantique : l'utilisateur a fermé la modal sans se connecter.
@@ -211,8 +251,9 @@ function _getSessionAddress(universalProvider) {
 }
 
 /**
- * Ouvre la modal AppKit et attend que la session WalletConnect soit validée.
- * @param {object} appKit instance AppKit
+ * Attend que la session WalletConnect soit validée.
+ * @param {object|null} appKit instance AppKit (null pour le flux mobile sans
+ *        modal : on poll uniquement la session du provider)
  * @param {object} universalProvider notre référence EIP-1193
  * @param {number} timeoutMs garde-fou (défaut 10 min)
  * @returns {Promise<string>} l'adresse connectée
@@ -225,16 +266,18 @@ async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 1
         return existing;
     }
 
-    // open() est async (injection dynamique de la modal UI, plus longue sur
-    // mobile) : l'attendre AVANT le premier poll, sinon isOpen() peut encore
-    // valoir false et provoquer un faux "MODAL_CLOSED".
-    await appKit.open();
+    // Desktop modal : open() est async (injection dynamique de la modal UI,
+    // plus longue sur mobile) — l'attendre AVANT le premier poll, sinon
+    // isOpen() peut encore valoir false et provoquer un faux "MODAL_CLOSED".
+    if (appKit) {
+        await appKit.open();
+    }
     const start = Date.now();
     return new Promise((resolve, reject) => {
         const poll = () => {
             const now = Date.now();
             if (now - start > timeoutMs) {
-                try { appKit.close(); } catch (e) { /* noop */ }
+                if (appKit) { try { appKit.close(); } catch (e) { /* noop */ } }
                 reject(new Error('Délai de connexion WalletConnect dépassé.'));
                 return;
             }
@@ -246,13 +289,14 @@ async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 1
                 return;
             }
             // Modal fermée par l'utilisateur sans connexion → annulation.
-            // isOpen() est fiable pour une modal auto-injectée (w3m-modal)
-            // une fois open() résolu (Promise résolue après injectModalUi).
-            let open = false;
-            try { open = Boolean(appKit.isOpen()); } catch (e) { /* noop */ }
-            if (!open) {
-                reject(new WalletConnectionClosedError());
-                return;
+            // (flux desktop uniquement — le flux mobile n'a pas de modal)
+            if (appKit) {
+                let open = false;
+                try { open = Boolean(appKit.isOpen()); } catch (e) { /* noop */ }
+                if (!open) {
+                    reject(new WalletConnectionClosedError());
+                    return;
+                }
             }
             setTimeout(poll, 400);
         };
@@ -261,16 +305,101 @@ async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 1
 }
 
 /**
- * Flux WalletConnect via AppKit (chemin primaire depuis ce correctif).
- * Ouvre la modal AppKit (desktop : QR ; mobile : deep links natifs + nos
- * customWallets), attend la connexion, active Pingala (switch/add via le
- * provider WalletConnect, refus utilisateur 4001 non bloquant), puis rend un
- * provider ethers v6 compatible.
- * Provider rendu = NOTRE UniversalProvider (EIP-1193 : .request/.on/.disconnect,
- * cf. UniversalProvider.d.ts) wrappé par ethers `new BrowserProvider(provider)`.
+ * FLUX MOBILE (iPhone Safari / Android Chrome) — le fix qui marche :
+ * 1. init AppKit + UniversalProvider (SANS ouvrir la modal),
+ * 2. `provider.connect({…})` = démarre le pairing WC ;
+ *    le SDK émet `display_uri` avec l'URI de pairing,
+ * 3. on redirige IMMÉDIATEMENT vers Core Wallet via son universal link
+ *    (`https://core.app/wc?uri=…`) → l'app Core s'ouvre, l'utilisateur
+ *    approuve, la session WC est établie côté page,
+ * 4. le poll lit provider.session (déterministe).
+ *
+ * Pourquoi pas la modal AppKit sur mobile ? (mesuré : la modal route la vue
+ * « All Wallets » = registre Explorer filtré par supports_wc/chaînes — Core
+ * n'y apparaît JAMAIS car le registre ignore Pingala 99999 et le champ
+ * supports_wc de Core est vide. Voir le commentaire WALLET_DEEPLINKS.)
+ *
+ * @param {string} [walletKey='core'] 'core' | 'metamask' (deep link cible)
+ * @returns {Promise<BrowserProvider>}
+ */
+export async function connectWalletMobile(walletKey = 'core') {
+    const { provider } = await _getAppKitWithProvider();
+    if (!provider || typeof provider.connect !== 'function') {
+        throw new Error('Provider WalletConnect indisponible (init échouée).');
+    }
+
+    // Hook standard du SDK : l'URI de pairing arrive via display_uri.
+    const uriPromise = new Promise((resolve) => {
+        const handler = (uri) => {
+            if (uri) {
+                _lastWcUri = uri;
+                try { provider.events?.once?.('disconnect', () => {}); } catch (e) { /* noop */ }
+                resolve(uri);
+            }
+        };
+        try { provider.on('display_uri', handler); } catch (e) {
+            // certains builds : l'event est déjà consommé par AppKit → fallback poll
+        }
+        // Filet : certains builds émettent AVANT qu'on s'abonne — poll l'URI.
+        const t0 = Date.now();
+        const pollUri = () => {
+            if (_lastWcUri) { resolve(_lastWcUri); return; }
+            if (Date.now() - t0 > 15000) { resolve(null); return; }
+            setTimeout(pollUri, 250);
+        };
+        setTimeout(pollUri, 300);
+    });
+
+    // Démarre le pairing (la modal n'est PAS ouverte — c'est voulu).
+    const connectPromise = provider.connect({}).catch((e) => {
+        console.warn('[Web3] provider.connect (mobile) erreur:', e?.message || e);
+    });
+
+    const uri = await uriPromise;
+    const target = WALLET_DEEPLINKS[walletKey] || WALLET_DEEPLINKS.core;
+
+    if (uri) {
+        // Universal link (HTTPS) : le seul format fiable sur iOS/Safari (le
+        // scheme natif core:// est parfois bloqué hors des SPA in-app).
+        const link = _buildUniversalDeeplink(walletKey, uri);
+        console.log(`[Web3] Deep link ${target.name} (${link.slice(0, 60)}…)`);
+        window.location.href = link;
+    } else {
+        // Pas d'URI (pairing lento/échoué) : on tombe sur la modal standard.
+        console.warn('[Web3] URI WC non reçue — fallback modal AppKit.');
+    }
+
+    // La modal reste disponible en secours si le retour au navigateur ne
+    // déclenche pas la session : on garde le poll de session en arrière-plan.
+    await _waitForAppKitConnection(null /** pas de modal — poll session seulement*/, provider);
+
+    _activeWcSource = 'appkit';
+    _walletConnectProvider = provider;
+    try { await addPingalaNetwork(provider); } catch (e) {
+        if (e && e.code !== 4001) console.warn('[Web3] Réseau Pingala non activé :', e);
+    }
+    _provider = new BrowserProvider(provider);
+    return _provider;
+}
+
+/**
+ * Flux WalletConnect via AppKit (DESKTOP : modal + QR ; MOBILE : deeplink direct).
+ * Routage par appareil :
+ *   - mobile  → connectWalletMobile() (l'app Core/MetaMask s'ouvre, la modal
+ *               All Wallets du registre — qui n'a JAMAIS Core — est évitée),
+ *   - desktop → modal AppKit + QR (Core Wallet extension via le chemin injecté).
+ * Provider rendu = NOTRE UniversalProvider (EIP-1193) wrappé par ethers v6.
  * @returns {Promise<BrowserProvider>}
  */
 export async function connectWalletViaAppKit() {
+    if (_isMobileDevice()) {
+        return connectWalletMobile('core');
+    }
+    return _connectWalletViaAppKitDesktop();
+}
+
+/** Chemin desktop (modal + QR), inchangé du flux AppKit. */
+async function _connectWalletViaAppKitDesktop() {
     const { appKit, provider } = await _getAppKitWithProvider();
     await _waitForAppKitConnection(appKit, provider);
 
