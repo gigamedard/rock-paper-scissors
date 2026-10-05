@@ -110,7 +110,13 @@ const APPKIT_METADATA = {
     name: 'Battlepool',
     description: 'Battlepool Game dApp',
     url: window.location.origin,
-    icons: [window.location.origin + '/pwa_icon_192.png']
+    icons: [window.location.origin + '/pwa_icon_192.png'],
+    // Retour dApp après approbation (mécanisme WC v2) : Core ouvre
+    // redirect.universal quand l'utilisateur approuve → il revient sur la
+    // dApp au lieu de rester sur core.app.
+    redirect: {
+        universal: window.location.origin + '/'
+    }
 };
 
 let _provider = null;
