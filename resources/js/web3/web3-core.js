@@ -11,10 +11,10 @@
  * - La config réseau vit ICI et NULLE PART AILLEURS : les modules importent
  *   PRANA_NETWORK / ensurePingalaNetwork depuis ce module.
  *
- * NOTE WalletConnect SDK : `chains: [1]` est une contrainte du SDK
- * (@walletconnect/ethereum-provider exige une chaîne EIP-155 "connue" pour
- * l'appairage initial). La chaîne de jeu (99999) est en `optionalChains`
- * et le switch vers Pingala est fait juste après la connexion.
+ * NOTE WalletConnect : la chaîne REQUISE au pairing est la chaîne de JEU
+ * (Pingala 99999, cf. init ci-dessous). Une chaîne « connue » du SDK
+ * (ex. mainnet 1) en `chains:` filtre la liste des wallets — Core Wallet
+ * mobile sans mainnet configuré laissait la modal vide (chargement infini).
  */
 import { BrowserProvider, Contract } from 'ethers';
 import { EthereumProvider } from '@walletconnect/ethereum-provider';
@@ -159,15 +159,18 @@ export async function getProvider(type = 'injected') {
 
             _walletConnectProvider = await EthereumProvider.init({
                 projectId: projectId,
-                chains: [1], // Contrainte SDK : chaîne EIP-155 standard pour l'appairage initial (documenté)
-                optionalChains: [PRANA_NETWORK.chainId], // Pingala (99999) facultatif — switch après connexion
+                // CORRECTIF mobile : la chaîne REQUISE au pairing doit être la
+                // chaîne de jeu (Pingala 99999), PAS Ethereum mainnet.
+                // Avec `chains: [1]`, la modal filtre les wallets sur le
+                // mainnet : Core Wallet mobile (sans mainnet configuré) laisse
+                // la liste vide → chargement infini sans aucun wallet proposé.
+                chains: [PRANA_NETWORK.chainId],
+                rpcMap: {
+                    [PRANA_NETWORK.chainId]: PRANA_NETWORK.rpcUrl
+                },
                 showQrModal: true,
                 qrModalOptions: {
                     themeMode: 'dark'
-                },
-                rpcMap: {
-                    1: 'https://cloudflare-eth.com',
-                    [PRANA_NETWORK.chainId]: PRANA_NETWORK.rpcUrl
                 },
                 metadata: {
                     name: 'Battlepool',
