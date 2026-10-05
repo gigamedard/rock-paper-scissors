@@ -11,10 +11,14 @@
  * - La config réseau vit ICI et NULLE PART AILLEURS : les modules importent
  *   PRANA_NETWORK / ensurePingalaNetwork depuis ce module.
  *
- * NOTE WalletConnect : la chaîne REQUISE au pairing est la chaîne de JEU
- * (Pingala 99999, cf. init ci-dessous). Une chaîne « connue » du SDK
- * (ex. mainnet 1) en `chains:` filtre la liste des wallets — Core Wallet
- * mobile sans mainnet configuré laissait la modal vide (chargement infini).
+ * CORRECTIF MOBILE (modal WalletConnect) :
+ * - Sur mobile, la modal WalletConnect legacy (`showQrModal`) liste les wallets
+ *   du registre Reown Explorer filtrés par chaînes supportées. Pingala (99999)
+ *   n'y est déclaré par AUCUN wallet → liste vide → spinner infini.
+ * - On migre le flux WC vers AppKit (Reown) v1.8.17 (`@reown/appkit`, déjà
+ *   installé). La modal AppKit affiche les wallets via deep links natifs
+ *   iOS/Android (mobile_link du registre) + nos `customWallets` (voir plus bas),
+ *   ce qui débloque mobile sans dépendre du registre pour le chainId 99999.
  */
 import { BrowserProvider, Contract } from 'ethers';
 import { EthereumProvider } from '@walletconnect/ethereum-provider';
@@ -37,9 +41,255 @@ export const TOKEN_SYMBOL = 'PRANA';
 // Symbole du gas natif (testnet Pingala)
 export const GAS_SYMBOL = 'TST';
 
+// ═══ APPKIT (REOWN) — CONFIG ═════════════════════════════════════════════════
+// projectId depuis l'environnement Vite (aucune valeur en dur — l'ancien
+// fallback "demo ID" est volontairement supprimé : sans projectId valable,
+// WalletConnect ne peut pas fonctionner, autant échouer avec un message clair).
+const WC_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
+
+/**
+ * Réseau Pingala au format CAIP attendu par AppKit v1.8 :
+ * `networks: [AppKitNetwork]` où AppKitNetwork = (choix entre)
+ * - BaseNetwork  (viem `Chain` : id numérique + rpcUrls.default.http)
+ * - CaipNetwork  (id numérique/string + chainNamespace + caipNetworkId)
+ * CONTRAINTE VÉRIFIÉE DANS LES TYPES installés (appkit-common TypeUtil.d.ts) :
+ * une chaîne custom (id NON répertoriée dans le registre Reown) est acceptée :
+ * `CaipNetworksUtil.extendCaipNetwork` (appkit-utils) dérive
+ * `caipNetworkId = 'eip155:99999'` automatiquement pour un objet BaseNetwork
+ * simple et conserve notre rpcUrls.default.http (aucun RPC proxy Reown n'est
+ * injecté : `eip155:99999` n'est pas dans WC_HTTP_RPC_SUPPORTED_CHAINS).
+ * LIMITE CONNUE (lue dans ApiController.js) : la liste "recommandés/featured"
+ * interroge l'Explorer API avec `chains=eip155:99999` → réponse vide puisque
+ * le registre ignore cette chaîne. Les vues "recents/recommandés" peuvent donc
+ * être vides ; les `customWallets` ci-dessous + les wallets injectés restent
+ * TOUJOURS visibles et fonctionnels (chemin garanti depuis notre config).
+ */
+const APPKIT_PINGALA_NETWORK = {
+    // Shape viem `Chain` (BaseNetwork) : `id` numérique + rpcUrls.default.http.
+    // (AppKit dérive seul chainNamespace='eip155' et caipNetworkId='eip155:99999'
+    // via CaipNetworksUtil.extendCaipNetwork pour un objet non-CAIP.)
+    id: PRANA_NETWORK.chainId,
+    name: PRANA_NETWORK.chainName,
+    nativeCurrency: { ...PRANA_NETWORK.nativeCurrency },
+    rpcUrls: { default: { http: [PRANA_NETWORK.rpcUrl] } }
+    // Pas de blockExplorers (aucun explorer sur Pingala pour l'instant).
+};
+
+/**
+ * Wallets déclarés LOCALEMENT (option `customWallets` d'AppKit) : le registre
+ * Reown ne connaît pas Pingala (99999), donc la liste fetched serait vide sur
+ * mobile. Un CustomWallet est rendu dans la vue Connect (subtype 'custom') et
+ * son clic pousse la vue `ConnectingWalletConnect` → pairing WalletConnect
+ * construit depuis NOS caipNetworks (Pingala 99999 + RPC). Le champ
+ * `mobile_link` est formé par AppKit en deep link natif iOS/Android
+ * (ConnectionControllerUtil.onConnectMobile → formatNativeUrl) : c'est LE fix
+ * mobile (Core Wallet / MetaMask s'ouvrent directement depuis Safari iOS).
+ *   - Core Wallet mobile : deeplink officiel `core.app.link` (avantgarde labs).
+ *   - MetaMask mobile   : deeplink officiel `metamask.app.link` (référence
+ *     PresetsUtil.ConnectorExplorerIds du SDK).
+ * Si un user utilise un autre wallet WC, il reste la vue "All Wallets"/QR.
+ */
+const APPKIT_CUSTOM_WALLETS = [
+    // `mobile_link` = universal link HTTPS (format lu dans CoreHelperUtil.
+    // formatNativeUrl : http* → formatUniversalUrl → `https://…/wc?uri=…`,
+    // le seul chemin qui déclenche l'app via universal link iOS (Safari).
+    { id: 'bp-custom-corewallet', name: 'Core Wallet', homepage: 'https://core.app', image_url: window.location.origin + '/pwa_icon_192.png', mobile_link: 'https://core.app.link', desktop_link: undefined, webapp_link: undefined },
+    { id: 'bp-custom-metamask', name: 'MetaMask', homepage: 'https://metamask.io', image_url: window.location.origin + '/pwa_icon_192.png', mobile_link: 'https://metamask.app.link', desktop_link: undefined, webapp_link: undefined }
+];
+
+/**
+ * Métadonnées dApp affichées par le wallet lors de la demande de session.
+ * (Piège conservé : /logo.png n'existe pas — utiliser l'icône PWA livrée.)
+ */
+const APPKIT_METADATA = {
+    name: 'Battlepool',
+    description: 'Battlepool Game dApp',
+    url: window.location.origin,
+    icons: [window.location.origin + '/pwa_icon_192.png']
+};
+
 let _provider = null;
 let _signer = null;
-let _walletConnectProvider = null;
+let _walletConnectProvider = null; // provider EIP-1193 actif du chemin WC (AppKit universal-provider OU legacy)
+let _activeWcSource = null;        // 'appkit' | 'legacy' — pour un reset propre
+let _appKit = null;
+let _appKitInitPromise = null;
+let _universalProvider = null;     // UniversalProvider initié PAR NOUS et passé à AppKit (référence EIP-1193 directe)
+
+/**
+ * Erreur sémantique : l'utilisateur a fermé la modal sans se connecter.
+ * (Ne DOIT PAS déclencher le fallback legacy — l'UI est déjà affichée.)
+ */
+class WalletConnectionClosedError extends Error {
+    constructor() {
+        super('Modal fermée sans connexion (annulé par l\'utilisateur)');
+        this.name = 'WalletConnectionClosedError';
+        this.code = 'MODAL_CLOSED';
+    }
+}
+
+/**
+ * Lazy-init : crée l'UniversalProvider (@walletconnect/universal-provider)
+ * NOUS-MÊMES puis l'injecte via createAppKit({ universalProvider }).
+ * Option documentée dans les types installés (TypesUtil.d.ts) :
+ *   "universalProvider?: UniversalProvider — AppKit will generate its own
+ *    instance by default if none provided".
+ * Pourquoi ne pas laisser AppKit le créer en interne ? Parce que la session
+ * WC est posée sur provider.session AVANT le close() de la modal
+ * (appkit-base-client.js : onConnect → finalizeWcConnection), alors que
+ * syncWalletConnectAccount (qui alimente ProviderController) tourne APRES le
+ * close() — un getProvider('eip155') pris entre les deux retournerait
+ * undefined. En gardant la référence, l'état de connexion est lu sur
+ * provider.session de façon déterministe, sans course.
+ * IMPORT DYNAMIQUE des deux modules → chunks séparés à la demande.
+ * @returns {Promise<object>} instance AppKit prête à open()
+ */
+async function _getAppKitWithProvider() {
+    if (_appKit && _universalProvider) return { appKit: _appKit, provider: _universalProvider };
+    if (!_appKitInitPromise) {
+        _appKitInitPromise = (async () => {
+            if (!WC_PROJECT_ID) {
+                throw new Error('WalletConnect ProjectId manquant : définissez VITE_WALLETCONNECT_PROJECT_ID au build.');
+            }
+            const [{ createAppKit }, { UniversalProvider }] = await Promise.all([
+                import('@reown/appkit'),
+                import('@walletconnect/universal-provider')
+            ]);
+            // adapters non fourni → AppKit instancie son UniversalAdapter
+            // (noAdapters=true) ; avec la référence au provider, le pairing WC
+            // et l'état EIP-1193 restent sous notre contrôle.
+            _universalProvider = (await UniversalProvider.init({
+                projectId: WC_PROJECT_ID,
+                metadata: APPKIT_METADATA
+            }));
+            const appKit = createAppKit({
+                projectId: WC_PROJECT_ID,
+                networks: [APPKIT_PINGALA_NETWORK],
+                metadata: APPKIT_METADATA,
+                themeMode: 'dark',
+                // customWallets : seuls affichés GARANTIS sur mobile pour une
+                // chaîne absente du registre (cf. commentaire APPKIT_NETWORK).
+                customWallets: APPKIT_CUSTOM_WALLETS,
+                features: { analytics: false },
+                // Référence imposée à AppKit (voir doc du bloc ci-dessus).
+                universalProvider: _universalProvider
+            });
+            _appKit = appKit;
+            return { appKit, provider: _universalProvider };
+        })();
+    }
+    try {
+        return await _appKitInitPromise;
+    } catch (e) {
+        _appKitInitPromise = null; // permettre un retry au clic suivant
+        _appKit = null;
+        _universalProvider = null;
+        throw e;
+    }
+}
+
+/**
+ * Extrait l'adresse EVM connectée depuis la session WalletConnect
+ * (provider.session.namespaces.eip155.accounts = ['eip155:<chainId>:<addr>']).
+ * Déterministe : la session est posée AVANT le close() de la modal AppKit.
+ * @param {object|null} universalProvider
+ * @returns {string|null} adresse 0x… ou null si non connecté
+ */
+function _getSessionAddress(universalProvider) {
+    try {
+        const accounts = universalProvider?.session?.namespaces?.eip155?.accounts || [];
+        const addr = accounts.map(a => a.split(':')[2]).find(Boolean);
+        return addr || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Ouvre la modal AppKit et attend que la session WalletConnect soit validée.
+ * @param {object} appKit instance AppKit
+ * @param {object} universalProvider notre référence EIP-1193
+ * @param {number} timeoutMs garde-fou (défaut 10 min)
+ * @returns {Promise<string>} l'adresse connectée
+ */
+async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 10 * 60 * 1000) {
+    // Session déjà rétablie (reconnect AppKit au chargement, enableReconnect) :
+    // ne pas rouvrir la modal, rendre le provider.
+    const existing = _getSessionAddress(universalProvider);
+    if (existing) {
+        return existing;
+    }
+
+    // open() est async (injection dynamique de la modal UI, plus longue sur
+    // mobile) : l'attendre AVANT le premier poll, sinon isOpen() peut encore
+    // valoir false et provoquer un faux "MODAL_CLOSED".
+    await appKit.open();
+    const start = Date.now();
+    return new Promise((resolve, reject) => {
+        const poll = () => {
+            const now = Date.now();
+            if (now - start > timeoutMs) {
+                try { appKit.close(); } catch (e) { /* noop */ }
+                reject(new Error('Délai de connexion WalletConnect dépassé.'));
+                return;
+            }
+            // La session WC est posée sur provider.session dès l'approbation
+            // du wallet (avant close() de la modal) → lecture déterministe.
+            const addr = _getSessionAddress(universalProvider);
+            if (addr) {
+                resolve(addr);
+                return;
+            }
+            // Modal fermée par l'utilisateur sans connexion → annulation.
+            // isOpen() est fiable pour une modal auto-injectée (w3m-modal)
+            // une fois open() résolu (Promise résolue après injectModalUi).
+            let open = false;
+            try { open = Boolean(appKit.isOpen()); } catch (e) { /* noop */ }
+            if (!open) {
+                reject(new WalletConnectionClosedError());
+                return;
+            }
+            setTimeout(poll, 400);
+        };
+        setTimeout(poll, 400);
+    });
+}
+
+/**
+ * Flux WalletConnect via AppKit (chemin primaire depuis ce correctif).
+ * Ouvre la modal AppKit (desktop : QR ; mobile : deep links natifs + nos
+ * customWallets), attend la connexion, active Pingala (switch/add via le
+ * provider WalletConnect, refus utilisateur 4001 non bloquant), puis rend un
+ * provider ethers v6 compatible.
+ * Provider rendu = NOTRE UniversalProvider (EIP-1193 : .request/.on/.disconnect,
+ * cf. UniversalProvider.d.ts) wrappé par ethers `new BrowserProvider(provider)`.
+ * @returns {Promise<BrowserProvider>}
+ */
+export async function connectWalletViaAppKit() {
+    const { appKit, provider } = await _getAppKitWithProvider();
+    await _waitForAppKitConnection(appKit, provider);
+
+    if (!provider || typeof provider.request !== 'function') {
+        throw new Error('AppKit connecté mais provider EIP-1193 indisponible.');
+    }
+
+    _activeWcSource = 'appkit';
+    _walletConnectProvider = provider;
+
+    // Switch/ajout programmatique vers Pingala Chain (99999) côté wallet :
+    // même garde que le flux historique. Non bloquant en cas de refus (4001) :
+    // ensurePingalaNetwork() est rappelé avant chaque flux de transaction.
+    try {
+        await addPingalaNetwork(provider);
+    } catch (e) {
+        if (e && e.code !== 4001) {
+            console.warn('[Web3] Réseau Pingala non activé côté WalletConnect :', e);
+        }
+    }
+
+    _provider = new BrowserProvider(provider);
+    return _provider;
+}
 
 /**
  * Résout le provider brut EIP-1193 le plus adapté :
@@ -152,18 +402,34 @@ export async function getProvider(type = 'injected') {
     if (_provider) return _provider;
 
     if (type === 'walletconnect') {
-        if (!_walletConnectProvider) {
-            const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'c074cb1e22709ff3c6902251ad45adcc'; // Fallback demo ID if none set
+        // CHEMIN PRIMAIRE : AppKit (Reown) — modal multi-wallets avec deep
+        // links natifs iOS/Android ; corrige le spinner infini mobile (le
+        // registre Reown ignore Pingala 99999, la modal legacy restait vide).
+        try {
+            return await connectWalletViaAppKit();
+        } catch (appKitError) {
+            // MODAL_CLOSED = choix utilisateur (fermeture/annulation) → NE PAS
+            // retomber sur la legacy (elle re-ouvrirait une 2nde modal) :
+            // propager pour un toast propre dans auth.js.
+            if (appKitError && (appKitError.code === 'MODAL_CLOSED' || appKitError instanceof WalletConnectionClosedError)) {
+                throw appKitError;
+            }
+            // Autre erreur : init AppKit impossible (import bloqué, projectId
+            // absent) → FALLBACK legacy conservé pour ne pas régresser desktop.
+            console.warn('[Web3] AppKit indisponible, fallback WalletConnect legacy :', appKitError);
+        }
 
-            console.log(`[Web3] Initialisation de WalletConnect avec RPC Pingala: ${PRANA_NETWORK.rpcUrl}`);
+        // ═══ FALLBACK LEGACY (conservé) ════════════════════════════════════
+        if (!_walletConnectProvider) {
+            console.log(`[Web3] Initialisation de WalletConnect (legacy) avec RPC Pingala: ${PRANA_NETWORK.rpcUrl}`);
 
             _walletConnectProvider = await EthereumProvider.init({
-                projectId: projectId,
-                // CORRECTIF mobile : la chaîne REQUISE au pairing doit être la
-                // chaîne de jeu (Pingala 99999), PAS Ethereum mainnet.
-                // Avec `chains: [1]`, la modal filtre les wallets sur le
-                // mainnet : Core Wallet mobile (sans mainnet configuré) laisse
-                // la liste vide → chargement infini sans aucun wallet proposé.
+                projectId: WC_PROJECT_ID,
+                // La chaîne REQUISE au pairing est la chaîne de jeu (Pingala
+                // 99999). Avec une chaîne « connue » (ex. mainnet), la session
+                // ne mappe pas 99999 ; cette voie legacy reste néanmoins le
+                // dernier recours (desktop), le registre Explorer retournant
+                // une liste vide sur mobile pour 99999.
                 chains: [PRANA_NETWORK.chainId],
                 rpcMap: {
                     [PRANA_NETWORK.chainId]: PRANA_NETWORK.rpcUrl
@@ -172,15 +438,9 @@ export async function getProvider(type = 'injected') {
                 qrModalOptions: {
                     themeMode: 'dark'
                 },
-                metadata: {
-                    name: 'Battlepool',
-                    description: 'Battlepool Game dApp',
-                    url: window.location.origin,
-                    // NOTE: /logo.png n'existe pas (piège documenté) — utiliser
-                    // l'icône PWA réellement livrée dans public/ (manifest.json).
-                    icons: [window.location.origin + '/pwa_icon_192.png']
-                }
+                metadata: APPKIT_METADATA
             });
+            _activeWcSource = 'legacy';
         }
 
         // Active la session de connexion
@@ -192,7 +452,9 @@ export async function getProvider(type = 'injected') {
         } catch (e) {
             // Refus utilisateur ou échec : non bloquant, ensurePingalaNetwork
             // sera rappelé avant chaque flux de transaction.
-            console.warn('[Web3] Réseau Pingala non activé côté WalletConnect :', e);
+            if (e && e.code !== 4001) {
+                console.warn('[Web3] Réseau Pingala non activé côté WalletConnect :', e);
+            }
         }
 
         _provider = new BrowserProvider(_walletConnectProvider);
@@ -255,16 +517,40 @@ export async function getReadOnlyContract(address, abi) {
  * Vide le cache du provider (utile après déconnexion).
  */
 export async function resetProvider() {
-    if (_walletConnectProvider) {
+    if (_walletConnectProvider && _activeWcSource === 'appkit') {
+        // Le provider WC actif EST notre UniversalProvider (injecté à AppKit).
+        // provider.disconnect() ferme la session WalletConnect réelle (delete
+        // session côté relais) — la même voie que AppKit.disconnect() utilise
+        // en interne (WalletConnectConnector.disconnect → provider.disconnect()).
+        // NB : "Record was recently deleted" = session déjà fermée → non bloquant.
         try {
             await _walletConnectProvider.disconnect();
         } catch (e) {
-            console.warn("[Web3] Erreur de déconnexion WalletConnect:", e);
+            console.warn("[Web3] Erreur de déconnexion WalletConnect (AppKit):", e);
+        }
+        // Remise à zéro de l'état AppKit (accounts/provider affichés dans la
+        // modal) pour que la prochaine connexion reparte d'un état propre.
+        try {
+            if (_appKit && typeof _appKit.disconnect === 'function' &&
+                _appKit.getAccount?.('eip155')?.isConnected) {
+                await _appKit.disconnect();
+            }
+        } catch (e) {
+            console.warn("[Web3] Erreur de reset d'état AppKit:", e);
+        }
+    } else if (_walletConnectProvider) {
+        try {
+            await _walletConnectProvider.disconnect();
+        } catch (e) {
+            // session déjà fermée → non bloquant
         }
     }
     _provider = null;
     _signer = null;
     _walletConnectProvider = null;
+    _activeWcSource = null;
+    // L'UniversalProvider reste lié à _appKit (option universalProvider) :
+    // on ne le nulle pas, seule sa session est fermée (reset() interne).
 }
 
 // Exposition minimale pour les handlers inline HTML (futur bouton

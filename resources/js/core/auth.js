@@ -11,6 +11,11 @@ export function parseRpcError(error) {
     const gt = window.t || ((key) => key);
     
     if (msg.includes("user rejected transaction") || msg.includes("User rejected")) return gt('errors.user_rejected');
+    // Fermeture de la modal WalletConnect/AppKit sans connexion : c'est une
+    // annulation volontaire (pas un échec technique) → même clé i18n.
+    if (error?.code === 'MODAL_CLOSED' || msg.includes("Modal fermée sans connexion")) {
+        return gt('errors.user_rejected');
+    }
     if (msg.includes("insufficient funds")) return gt('errors.insufficient_funds');
     if (msg.includes("nonce too low")) return gt('errors.nonce_too_low');
     
@@ -39,20 +44,17 @@ export async function connectWallet(providerType = 'injected') {
     if (providerType === 'injected' && typeof window.ethereum === 'undefined') {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         if (isMobile) {
-            // Mobile sans EIP-1193 injecté : deep link UNIVERSEL (WalletConnect
-            // v2 deeplink) plutôt que MetaMask-only. L'utilisateur peut alors
-            // choisir MetaMask, Core Wallet, Trust, Coinbase… depuis son mobile.
-            // (Piège corrigé : l'ancien code forçait metamask.app.link, donc
-            // un utilisateur Core Wallet atterrissait dans la mauvaise app.)
-            const cleanedUrl = window.location.href.replace(/^https?:\/\//, '');
-            const universalLink = `https://deeplink.walletconnect.org/?uri=${encodeURIComponent('https://' + cleanedUrl)}`;
-            console.log("[Auth] Mobile sans provider injecté — deep link universel (WalletConnect) :", universalLink);
-            // WalletConnect sera utilisé au retour : on déclenche la modal QR
+            // Mobile sans EIP-1193 injecté : passer par la modal AppKit
+            // (connectWallet('walletconnect')) qui propose deep links natifs
+            // iOS/Android (Core Wallet, MetaMask…) + QR. L'ancien deep link
+            // manuel `deeplink.walletconnect.org` est retiré : il référençait
+            // une page morte et doublonnait la modal AppKit.
+            console.log("[Auth] Mobile sans provider injecté — ouverture de la modal AppKit (WalletConnect).");
             try {
                 showToast(t('errors.wallet_app_required'), 'info');
             } catch (e) { /* toast non bloquant */ }
-            await connectWallet('walletconnect');
-            return true;
+            const ok = await connectWallet('walletconnect');
+            return ok;
         }
         showToast(t('errors.wallet_required'), 'error');
         return false;
