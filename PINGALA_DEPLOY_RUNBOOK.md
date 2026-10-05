@@ -141,6 +141,21 @@ node ../secrets-manager.mjs deprovision
 | Déploiement sans préflight | `preflight` = garde anti-fausse chaîne, anti-mismatch clé/adresse, anti-budget — **non optionnel**. |
 | `.secrets` laissé en plaintext après opérations | `provision` avant → `deprovision` après — **chaque fois**, sans exception (§5 AGENTS.md). |
 
+### 3.6 Wallet mobile (session réelle du 2026-10-05 — 3 causes empilées)
+
+Régression vécue : le toast « project ID missing » est **revenu après** sa correction. Cause : rebuild lancé **à la main sur le VPS** sans exporter les `VITE_*` → ARG vide → bundle sans projectId. Trois causes distinctes, dans l'ordre d'apparition :
+
+| ❌ Erreur (avec la preuve mesurée) | ✅ Solution |
+|---|---|
+| **`.env` exclu du build** (`.dockerignore`) → `VITE_WALLETCONNECT_PROJECT_ID` = undefined → AppKit toast « project ID missing » | Passer les valeurs **NON secretes** via `ARG`/`ENV` du Dockerfile (`deploy/Dockerfile.prod`) + compose `build.args` — le `.env` **reste exclu** du contexte. |
+| **`.env.staging` en CRLF Windows** (106 CR/106 LF mesurés) → le parser d'env du build Vite colle un `\r` à la VALEUR : `projectId="e46…95\r"` = **33 chars** → **403 de toutes les API Reown** (« projectId must be 32 characters ») → **la modal charge une liste vide indéfiniment** | 1) `.env.staging` en **LF pur** ; 2) `sed -i 's/\r$//'` du `.env.staging` au deploy ; 3) `.trim()` à la lecture dans `web3-core.js`. Preuve : le bundle servi contenait `\r` littéral après le projectId, et les URLs 403 finissaient par `%0D`. |
+| **Cache Docker BuildKit** : `COPY . .` + `npm run build` restés **CACHED** entre deux builds rapprochés → l'image du bon SHA servait le **bundle d'avant** (le fix namespaces invisible) | `docker compose build **--no-cache** app` quand un bundle change de contenu — et **vérifier le contenu du bundle servi** (grep) avant de déclarer le déploiement réussi. |
+| **Rebuild manuel sans les build args** (la régression) | **JAMAIS** de `docker compose build` à la main sur le VPS : tout rebuild passe par `deploy/rebuild_app_args.sh` (lit les `VITE_*`, **abort si projectId ≠ 32 chars**, build, recreate, **vérifie le projectId dans le bundle du container**, health). |
+| Modal AppKit mobile : les `customWallets` jamais rendus (au clic mobile, AppKit route la vue **All Wallets** = registre Explorer filtré par `chains=eip155:99999` + `supports_wc`) → Core Wallet absent de la liste, déeplink impossible | **Bypasser la modal sur mobile** : `connectWalletMobile()` → `provider.connect({optionalNamespaces: WC_NAMESPACES})` → hook standard **`display_uri`** → redirection `https://core.app/wc?uri=<encoded>` (universal link iOS fiable). Desktop garde la modal + QR. |
+| Session WC rejetée par Core : toast « Connection failed » → détail **« network not specified »** | La proposition de session **sans namespaces** n'a aucun réseau déclaré. Passer `optionalNamespaces` à la shape exacte AppKit : `{eip155: {chains:['eip155:99999'], methods:[…17], events:[accountsChanged, chainChanged], rpcMap:{99999:<rpc>}}}` (copie de `WcHelpersUtil.createNamespaces`). |
+| **Le wrapper de deploy déploie `HEAD` du VPS**, pas le SHA demandé (résolu HEAD local ≠ HEAD VPS) | Toujours passer le **SHA explicite** au wrapper (`-GitSha`), jamais « HEAD » — sinon le deploy pinne le SHA d'origine du clone. |
+| Diagnostic E2E trompeur : le clic « ne fait rien » | Deux faux positifs l'un derrière l'autre : **l'overlay de sélection de langue** (z-index 999999, plein écran, injecté par `i18n.js` si `user_locale` absent — il absorbait tous les clics dans le navigateur headless) puis **la modal n'appelle aucune requête** tant qu'il est là. En E2E : **simuler le choix de langue** (clic du 1ᵉʳ drapeau) AVANT le clic wallet, et supprimer `window.ethereum` pour le chemin mobile. |
+
 ---
 
 ## 4. CE QU'IL NE FAUT JAMAIS FAIRE (synthèse anti-régression)
@@ -155,6 +170,11 @@ node ../secrets-manager.mjs deprovision
 8. **Jamais** oublier `Cache::forget('game_config')` après un changement d'adresse.
 9. **Jamais** déployer un contrat nouveau **avant** les contrats consommés (l'ordre nonce décale les adresses).
 10. **Jamais** afficher un lien d'explorateur (Pingala n'en a pas) — conditionner sur `blockExplorerUrls`.
+11. **Jamais** de rebuild Docker **à la main sur le VPS** : tout rebuild passe par `deploy/rebuild_app_args.sh` (build args VITE_* + garde projectId 32 chars + vérification du bundle).
+12. **Jamais** déclarer un déploiement frontend « réussi » sans **grep le bundle servi** (pas seulement le build local) — le cache BuildKit peut servir une couche périmée.
+13. **Jamais** de fichier `.env*` en fins de ligne CRLF (le `\r` colle à la valeur — cf. §3.6) : tout `.env` écrit est converti en LF.
+14. **Jamais** `provider.connect({})` sans `optionalNamespaces` (le wallet répond « network not specified »).
+15. **Jamais** considérer qu'un wallet (Core, Trust…) apparaîtra dans la modal AppKit mobile via le registre : il faut le **deeplink direct** (`display_uri`), la modal ne rend pas les `customWallets` sur mobile.
 
 ---
 
@@ -168,8 +188,25 @@ node ../secrets-manager.mjs deprovision
 6. **Re-run des tests** (`npx hardhat test` — réseau in-process, la L1 n'est pas touchée).
 7. **Scan anti-PK** avant chaque commit : `git diff --cached` + grep `0x[0-9a-fA-F]{60,}` → seuls les tx hashes (66) sont légitimes ; une adresse fait 42 car.
 8. **Provision/deprovision** des secrets à chaque opération container.
-9. **Re-vérification du bundle servi** (pas seulement du build local) : c'est le bundle exécuté par le navigateur qui fait foi.
+9. **Re-vérification du bundle servi** (pas seulement du build local) : c'est le bundle exécuté par le navigateur qui fait foi. **Vérifier à chaque fois les contenus critiques** : projectId (1 hit, pas de `\r`), `eip155:99999`, `optionalNamespaces` (≥2 hits), et le SHA d'image réellement en service (`docker ps` → Image = le SHA demandé).
 10. **Metamask : Reset Account** après tout déploiement (nonce).
+11. **Le SHA explicite** au wrapper de deploy (`-GitSha`), jamais `HEAD`.
+12. **En E2E mobile** : simuler le choix de langue avant le clic wallet (l'overlay i18n bloque tous les clics) + `delete window.ethereum` pour le chemin mobile.
+
+---
+
+## 5bis. REBUILD D'IMAGE DEPUIS LE VPS (procédure contrôlée)
+
+Un rebuild de l'image `app` **sans passer par le wrapper** (ex. après un hotfix local vérifié sur le VPS) utilisera UNIQUEMENT `deploy/rebuild_app_args.sh` :
+
+```bash
+ssh -i deploy/id_ed25519_deploy root@31.187.72.98
+cd /opt/battlepool
+# il lit VITE_* de .env.staging, ABORT si projectId != 32 chars,
+# build --no-cache app, recreate, VÉRIFIE le projectId dans le bundle, health
+sh /tmp/rebuild_app_args.sh   # (poussé via base64 depuis deploy/)
+```
+Garde-fous intégrés :projectId absent/≠32 chars → **exit 1 AVANT le build** ; bundle sans projectId après le build → **exit 1**.
 
 ---
 
