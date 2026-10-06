@@ -160,6 +160,9 @@
     "btn": "RECLAMAR Y RETIRAR A LA BILLETERA",
     "leave_pool": "Salir de la pool"
   },
+  "faucet": {
+    "claim_btn": "🎁 RECLAMAR 50 TST DE BIENVENIDA"
+  },
   "influencer": {
     "title": "Panel VIP",
     "subtitle": "Conviértete en un Guerrero VIP",

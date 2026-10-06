@@ -160,6 +160,9 @@
     "btn": "RESGATAR PARA CARTEIRA",
     "leave_pool": "Sair da pool"
   },
+  "faucet": {
+    "claim_btn": "🎁 RESGATAR 50 TST DE BOAS-VINDAS"
+  },
   "influencer": {
     "title": "Painel VIP",
     "subtitle": "Torne-se um Guerreiro VIP",

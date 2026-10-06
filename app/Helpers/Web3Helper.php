@@ -184,6 +184,20 @@ class Web3Helper
 
     }
 
+    /**
+     * Airdrop/faucet : envoi de TST natifs Pingala depuis le portefeuille
+     * faucet du bridge vers le wallet du joueur (raw native transfer).
+     */
+    public static function sendFaucet($nodeUrl, $walletAddress, $amount)
+    {
+        $response = Http::post("{$nodeUrl}/faucet", [
+            'wallet' => $walletAddress,
+            'amount' => self::etherToWei($amount),
+        ])->throw();
+
+        return $response->json();
+    }
+
     public static function sendBatchPayment($nodeUrl, array $walletAddresses, array $amounts)
     {
         // Validate that both arrays have the same length

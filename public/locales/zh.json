@@ -178,6 +178,9 @@
     "btn": "领取并提取到钱包",
     "leave_pool": "退出匹配池"
   },
+  "faucet": {
+    "claim_btn": "🎁 领取 50 个欢迎 TST"
+  },
   "influencer": {
     "title": "VIP 仪表板",
     "subtitle": "成为 VIP 战士",

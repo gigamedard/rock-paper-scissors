@@ -178,6 +178,9 @@
     "btn": "BEANSPRUCHEN & AUSZAHLEN",
     "leave_pool": "Pool verlassen"
   },
+  "faucet": {
+    "claim_btn": "🎁 50 WILLKOMMENS-TST BEANSPRUCHEN"
+  },
   "influencer": {
     "title": "VIP-Dashboard",
     "subtitle": "Werde ein VIP-Krieger",

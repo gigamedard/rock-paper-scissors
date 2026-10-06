@@ -127,4 +127,19 @@ return [
         // Cas spécial (débloque 4.0)
         'Super Saiyan 4' => 5000,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Airdrop de bienvenue (faucet)
+    |--------------------------------------------------------------------------
+    |
+    | Un nouvel utilisateur peut réclamer UNE seule fois une dotation en TST
+    | natifs Pingala (envoyée on-chain depuis le portefeuille faucet via le
+    | bridge). Le montant est en TST (18 décimales), verrouillé par le flag
+    | has_received_airdrop côté DB (idempotence + anti-abuse).
+    */
+    'airdrop' => [
+        'enabled' => env('AIRDROP_ENABLED', true),
+        'amount_tst' => (float) env('AIRDROP_AMOUNT_TST', 50),
+    ],
 ];

@@ -15,6 +15,7 @@ import {
     PAYOUT_OPERATOR_PK,
     MARKETPLACE_WALLET_PK,
     SIGNER_WALLET_PK,
+    FAUCET_WALLET_PK,
     SECURITY_COEFFICIENT,
     CHAIN_ID,
     pinata,
@@ -71,6 +72,15 @@ const gameWallet = new Wallet(PAYOUT_OPERATOR_PK, gameProvider);
 const gameContract = new Contract(contracts.game.address, contracts.game.abi, gameWallet);
 // SECURITY: separate signer wallet for claim signatures (rotatable via setSigner).
 const signerWallet = new Wallet(SIGNER_WALLET_PK, gameProvider);
+
+// Faucet wallet (airdrop de bienvenue) — raw native TST transfers to new users.
+let faucetWallet = null;
+if (FAUCET_WALLET_PK) {
+    faucetWallet = new Wallet(FAUCET_WALLET_PK, gameProvider);
+    console.log(`✅ Faucet wallet prêt : ${faucetWallet.address}`);
+} else {
+    console.warn('⚠️  FAUCET_WALLET_PK non défini — l\'airdrop de bienvenue est désactivé.');
+}
 
 // Queue de transactions globale pour éviter les conflits de nonce
 let txQueue = Promise.resolve();
@@ -203,6 +213,35 @@ app.post("/sendPayment", async (req, res) => {
     }
 });
 
+app.post("/faucet", async (req, res) => {
+    try {
+        const { wallet, amount } = req.body;
+
+        if (!wallet || !amount) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+
+        if (!faucetWallet) {
+            return res.status(503).json({ error: "Faucet wallet not configured (FAUCET_WALLET_PK missing)." });
+        }
+
+        console.log(`🚰 [faucet] Envoi de ${formatEther(amount)} TST natifs à ${wallet}`);
+
+        // Raw native transfer depuis le portefeuille faucet (pas de contrat).
+        const tx = await faucetWallet.sendTransaction({
+            to: wallet,
+            value: amount
+        });
+        const receipt = await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash, blockNumber: receipt.blockNumber });
+        console.log(`✅ [faucet] ${formatEther(amount)} TST envoyés à ${wallet} (tx ${tx.hash})`);
+    } catch (error) {
+        console.error("❌ [faucet] Error sending airdrop:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post("/sendBatchPayment", async (req, res) => {
     try {
         const { wallets, amounts } = req.body;
@@ -210,7 +249,6 @@ app.post("/sendBatchPayment", async (req, res) => {
         if (!Array.isArray(wallets) || !Array.isArray(amounts) || wallets.length !== amounts.length) {
             return res.status(400).json({ error: "Invalid input. Ensure wallets and amounts are arrays of equal length." });
         }
-
         console.log(`📡 Sending batch payment - total recipients: ${wallets.length}`);
 
         // SECURITY: Sync on-chain balances with database balances before batchPayOut.
@@ -233,7 +271,6 @@ app.post("/sendBatchPayment", async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
 app.post("/setUserLimits", async (req, res) => {
     try {
         const { wallet, maxBaseBet, maxQ, minCooldown, expiry } = req.body;

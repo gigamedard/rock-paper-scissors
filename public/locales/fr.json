@@ -178,6 +178,9 @@
     "btn": "RÉCLAMER & RETIRER VERS WALLET",
     "leave_pool": "🚪 Quitter la pool"
   },
+  "faucet": {
+    "claim_btn": "🎁 RÉCLAMER 50 TST DE BIENVENUE"
+  },
   "influencer": {
     "title": "Dashboard Influenceur",
     "subtitle": "Devenez un Guerrier VIP",

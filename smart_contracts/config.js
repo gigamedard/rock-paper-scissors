@@ -182,6 +182,10 @@ export const SIGNER_WALLET_PK = readSecret('SIGNER_WALLET_PK') || GAME_WALLET_PK
 // so a bridge compromise cannot access admin functions. Falls back to
 // SIGNER_WALLET_PK for backward compatibility during transition.
 export const PAYOUT_OPERATOR_PK = readSecret('PAYOUT_OPERATOR_PK') || SIGNER_WALLET_PK;
+// SECURITY: FAUCET_WALLET_PK is a dedicated funded wallet that sources the
+// welcome airdrop (raw native TST transfers to new users). Separate from the
+// payout operator so a bridge compromise can only drain the faucet, not payOut.
+export const FAUCET_WALLET_PK = readSecret('FAUCET_WALLET_PK');
 
 // VALIDATION
 // SECURITY: GAME_WALLET_PK (owner/cold key) is NOT required in the bridge container

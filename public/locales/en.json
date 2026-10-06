@@ -178,6 +178,9 @@
     "btn": "RÉCLAMER & RETIRER VERS WALLET",
     "leave_pool": "🚪 Leave pool"
   },
+  "faucet": {
+    "claim_btn": "🎁 CLAIM 50 WELCOME TST"
+  },
   "influencer": {
     "title": "Influencer Dashboard",
     "subtitle": "Become a VIP Warrior",

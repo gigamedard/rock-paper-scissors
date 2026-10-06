@@ -39,6 +39,8 @@ class User extends Authenticatable
         'session_started',
         'language',
         'has_received_signup_bonus',
+        'has_received_airdrop',
+        'airdrop_tx_hash',
         'is_eligible_to_refer',
         'target_q',
         'cooldown_time',

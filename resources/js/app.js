@@ -97,6 +97,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         disconnectBtn.addEventListener('click', () => logout());
     }
 
+    // Bouton « 🎁 Réclamer l'airdrop » (50 TST de bienvenue, une seule fois)
+    const faucetBtn = document.getElementById('faucet-claim-btn');
+    if (faucetBtn) {
+        faucetBtn.addEventListener('click', async () => {
+            faucetBtn.disabled = true;
+            const orig = faucetBtn.textContent;
+            try {
+                const { secureFetch } = await import('./core/api.js');
+                const res = await secureFetch('/user/faucet-claim', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) {
+                    if (res.status === 409) {
+                        showToast(data.error || 'Airdrop déjà réclamé', 'info');
+                        updateFaucetButton(true);
+                        return;
+                    }
+                    showToast(data.error || 'Échec de la réclamation', 'error');
+                    return;
+                }
+                showToast(data.message || 'Airdrop demandé — 50 TST arrivent !', 'success', 5000);
+                updateFaucetButton(true);
+                window.dispatchEvent(new CustomEvent('app:refresh'));
+            } catch (e) {
+                showToast('Erreur : ' + (e.message || e), 'error');
+            } finally {
+                faucetBtn.disabled = false;
+                faucetBtn.textContent = orig;
+            }
+        });
+    }
+
+    function updateFaucetButton(claimed) {
+        if (!faucetBtn) return;
+        if (claimed) {
+            faucetBtn.style.display = 'none';
+        } else {
+            faucetBtn.style.display = 'block';
+        }
+    }
+
+    window.addEventListener('auth:success', () => {
+        const user = window.userState?.userObject;
+        updateFaucetButton(!!(user && user.has_received_airdrop));
+    });
+
     // Bouton « 🚪 Leave pool » (sortie volontaire, stake remboursé via bridge)
     const leavePoolBtn = document.getElementById('leave-pool-btn');
     if (leavePoolBtn) {
@@ -263,6 +308,9 @@ function checkAuthSession() {
             window.userState.status = 'dashboard';
             console.log("✅ Session restaurée:", window.userState.walletAddress);
             initEcho();
+            // Afficher le bouton airdrop si non encore réclamé
+            const fb = document.getElementById('faucet-claim-btn');
+            if (fb && !user.has_received_airdrop) fb.style.display = 'block';
         } catch(e) {
             console.error("Erreur parsing session:", e);
             localStorage.removeItem('user');

@@ -102,6 +102,7 @@ services:
       - payout_operator_pk
       - marketplace_wallet_pk
       - signer_wallet_pk
+      - faucet_wallet_pk
       - internal_api_secret
       - db_app_password
     volumes:
@@ -235,6 +236,8 @@ secrets:
     file: ./.secrets/game_wallet_pk
   signer_wallet_pk:
     file: ./.secrets/signer_wallet_pk
+  faucet_wallet_pk:
+    file: ./.secrets/faucet_wallet_pk
   payout_operator_pk:
     file: ./.secrets/payout_operator_pk
   marketplace_wallet_pk:
