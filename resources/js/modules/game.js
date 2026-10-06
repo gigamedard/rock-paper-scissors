@@ -1,6 +1,6 @@
 // resources/js/modules/game.js
 import { Contract, parseUnits, parseEther } from 'ethers';
-import { getProvider, ensurePingalaNetwork, PRANA_NETWORK } from '../web3/web3-core.js';
+import { getProvider, ensurePingalaNetwork, ensureWalletVisibleForTx, PRANA_NETWORK } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
 import { parseRpcError } from '../core/auth.js';
 import { t } from './i18n.js';
@@ -475,6 +475,11 @@ async function startSession() {
             total: amountToSendWei.toString()
         });
 
+        // RÉVEIL WALLET (journal 14:07 : la tx partait dans le vide — Core en
+        // arrière-plan, socket WC gelé, promise never resolved) : Core est
+        // ré-ouvert AVANT l'émission de la tx, il la verra à l'ouverture.
+        ensureWalletVisibleForTx('core');
+
         const tx = await contract.submitPremoveCID(baseBetWei, cid, {
             value: amountToSendWei,
             gasLimit: 500000
@@ -545,6 +550,7 @@ async function claim() {
 
         const amountWei = parseEther(gameState.pendingClaim.amount.toString());
 
+        ensureWalletVisibleForTx('core');
         const tx = await contract.claimAndExit(amountWei, gameState.pendingClaim.deadline, gameState.pendingClaim.signature);
         console.info('[Business] claim tx envoyée', tx.hash);
         addToFeed(t('feed.tx_sent', { hash: tx.hash.substring(0,10) }), "var(--primary)");

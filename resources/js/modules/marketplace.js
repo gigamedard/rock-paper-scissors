@@ -10,7 +10,7 @@
  *  - Protection parseEther sur format invalide
  *  - Polling protégé contre les cumuls via setAppTimer
  */
-import { getContract, getSigner, getProvider, ensurePingalaNetwork, PRANA_NETWORK, TOKEN_SYMBOL } from '../web3/web3-core.js';
+import { getContract, getSigner, getProvider, ensurePingalaNetwork, ensureWalletVisibleForTx, PRANA_NETWORK, TOKEN_SYMBOL } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
 import { addToFeed } from './game.js';
 import { t } from './i18n.js';
@@ -673,6 +673,7 @@ async function handleApprove() {
 
         btn.textContent = t('marketplace.approve_confirm_wallet');
         console.info('[Business-MP] approve : tx env (allowance actuelle=', allowance.toString(), ')');
+        ensureWalletVisibleForTx('core');
         await _sendWithFreshNonce((ovr) => sntContract.approve(CONTRACT_ADDRESSES.marketplace, sntAmountWei, ovr));
         console.info('[Business-MP] approve : tx minée OK');
 
@@ -718,6 +719,7 @@ async function handleCreateOffer() {
         const avaxAmountWei = _safeParseEther(avaxAmount);
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
 
+        ensureWalletVisibleForTx('core');
         const createTx = await _sendWithFreshNonce((ovr) =>
             escrowContract.createOffer(sntAmountWei, avaxAmountWei, parseInt(durationHours), ovr)
         );
@@ -758,6 +760,7 @@ window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
         const avaxWei = _safeParseEther(avaxAmount.toString());
         addToFeed(t('feed.buying_offer', { id: offerId }), 'var(--primary)');
+        ensureWalletVisibleForTx('core');
         const tx = await _sendWithFreshNonce((ovr) =>
             escrowContract.fulfillOffer(offerId, { value: avaxWei, ...ovr })
         );
@@ -783,6 +786,7 @@ window.marketplaceCancelOffer = async function(offerId) {
         await ensurePingalaNetwork();
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
         addToFeed(t('feed.canceling_offer', { id: offerId }), 'var(--text-dim)');
+        ensureWalletVisibleForTx('core');
         const tx = await _sendWithFreshNonce((ovr) => escrowContract.cancelOffer(offerId, ovr));
         console.info('[Business-MP] cancelOffer tx:', tx?.hash);
         _showMpNotification(t('marketplace.cancel_offer_success', { id: offerId }), 'success');

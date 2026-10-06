@@ -680,6 +680,29 @@ export function getWcSessionAddress() {
 }
 
 /**
+ * RÉVEIL DU WALLET AVANT TX MÉTIER (journal 14:07 — preuve : le journal
+ * s'arrête à « 2/4 valeurs tx » sans jamais logger « tx envoyée » ni
+ * d'erreur : la demande sendTransaction s'est évaporée — Core était en
+ * arrière-plan, socket WC gelé par iOS, la requête n'a jamais atteint Core,
+ * la promise ethers ne résout jamais).
+ *
+ * Stratégie (pattern WC mobile officiel « redirect on request ») :
+ *  1. ré-ouvrir le wallet AVANT d'émettre la requête (il devient consumer
+ *     actif du message) ;
+ *  2. laisser un battement pour l'affichage de la demande dans Core.
+ *
+ * Uniquement sur le chemin WC mobile : sur le chemin injecté, la popup
+ * apparaît naturellement dans la page.
+ * @param {string} [walletKey='core']
+ */
+export function ensureWalletVisibleForTx(walletKey = 'core') {
+    if (typeof window.ethereum !== 'undefined') return; // injecté : popup native
+    if (!_walletConnectProvider && !_activeWcSource) return;
+    console.info('[Web3Tx] ré-ouverture du wallet pour la tx métier…');
+    reopenWalletForSigning(walletKey);
+}
+
+/**
  * BOUTON « AJOUTER TOUS MES RÉSEAUX » (demande initiale du projet).
  * Basculer le wallet vers Pingala Chain ; si la chaîne est inconnue du wallet
  * (erreurs 4902 / 4900), la proposer via wallet_addEthereumChain.
