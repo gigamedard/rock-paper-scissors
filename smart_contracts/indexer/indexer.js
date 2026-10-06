@@ -64,22 +64,24 @@ export async function startIndexer({ provider, gameContract, marketplaceContract
   }
 
   async function pollWatcher(w) {
+    console.log(`[Indexer] cycle ${w.key} @ ${new Date().toISOString().slice(11, 19)}`);
     const lastProcessed = state.get(w.key);
-    const latestBlock = await provider.getBlockNumber();
+    const latestBlock = await withTimeout(provider.getBlockNumber(), 'provider.getBlockNumber', 10000);
     const targetBlock = latestBlock - indexerConfig.confirmationsRequired;
 
     if (lastProcessed >= targetBlock) {
       return { synced: false, processed: 0, skipped: 0 };
     }
+    console.log(`[Indexer] ${w.key} fetch logs ${lastProcessed + 1} -> ${Math.min(lastProcessed + indexerConfig.maxBlockRange, targetBlock)}`);
 
     const fromBlock = lastProcessed + 1;
     const toBlock = Math.min(fromBlock + indexerConfig.maxBlockRange - 1, targetBlock);
 
-    const logs = await provider.getLogs({
+    const logs = await withTimeout(provider.getLogs({
       address: w.contractAddress,
       fromBlock,
       toBlock,
-    });
+    }), 'provider.getLogs', 15000);
 
     const events = [];
     for (const log of logs) {
