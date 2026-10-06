@@ -527,6 +527,11 @@ app.post("/pool/invalidate", async (req, res) => {
 async function postToLaravel(endpoint, body) {
     const url = `${LARAVEL_API_URL}${endpoint}`; // ex: /internal/update-balance
     console.log(`📡 [BRIDGE] Calling Laravel: ${url}`);
+    // ANTI-HANG : AbortController 15 s — un webhook bloqué (Laravel/Octane
+    // occupé) ne doit jamais figer la boucle de l'indexeur (le processEvents
+    // est séquentiel). Un échec timeout est logé, l'indexeur continue.
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 15000);
     try {
         const response = await fetch(url, {
             method: 'POST',
@@ -535,7 +540,8 @@ async function postToLaravel(endpoint, body) {
                 'Accept': 'application/json',
                 'X-Internal-Secret': INTERNAL_API_SECRET // <-- Notre header de sécurité
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: ac.signal
         });
 
         if (response.ok) {
@@ -546,6 +552,8 @@ async function postToLaravel(endpoint, body) {
         }
     } catch (error) {
         console.error(`🚨 Erreur réseau en appelant ${endpoint}:`, error.message);
+    } finally {
+        clearTimeout(timer);
     }
 }
 

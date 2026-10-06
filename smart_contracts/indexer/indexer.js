@@ -50,6 +50,19 @@ export async function startIndexer({ provider, gameContract, marketplaceContract
   let backoffMs = indexerConfig.backoffBaseMs;
   let running = true;
 
+  // ANTI-HANG (2026-10-06, prod) : le RPC public Pingala peut hang à l'infini
+  // sur getLogs (journal bridge : aucune activité indexer pendant 25 min,
+  // process express vivant) — pollWatcher plafonné : au délai, abandon du
+  // cycle + backoff ; le cycle suivant retente (catch-up automatique).
+  function withTimeout(promise, label, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`[Indexer] timeout ${ms}ms dépassé: ${label}`)), ms)
+      ),
+    ]);
+  }
+
   async function pollWatcher(w) {
     const lastProcessed = state.get(w.key);
     const latestBlock = await provider.getBlockNumber();
@@ -111,7 +124,12 @@ export async function startIndexer({ provider, gameContract, marketplaceContract
       try {
         let anySynced = false;
         for (const w of watchers) {
-          const { synced } = await pollWatcher(w);
+          // Plafond par cycle watcher (le getLogs RPC public peut hang) :
+          const { synced } = await withTimeout(
+            pollWatcher(w),
+            `getLogs/watcher ${w.key}`,
+            20000
+          );
           if (synced) anySynced = true;
         }
         backoffMs = indexerConfig.backoffBaseMs;
