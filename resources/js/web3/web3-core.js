@@ -597,6 +597,35 @@ function _getRawProvider() {
 }
 
 /**
+ * RÉTABLISSEMENT DE SESSION WC (fix « Please call connect() before request() »,
+ * journal 2026-10-06 13:04) : après le reopen de Core, iOS a gelé le socket du
+ * relais WC ; les listeners AppKit ont traité la coupure TRANSITOIRE comme un
+ * disconnect définitif → `provider.cleanup()` a mis `session = undefined`
+ * (alors que la session est VIVANTE côté Core). Le SDK la re-persiste dans
+ * son storage — on la restaure depuis SignClient.session.getAll().
+ * Ne fait rien si une session est déjà posée, ou hors contexte WC.
+ * @returns {Promise<boolean>} true si une session a été restaurée
+ */
+async function _restoreWcSessionIfNeeded() {
+    const provider = _walletConnectProvider;
+    if (!provider?.client || provider.session) return false;
+    try {
+        const sessions = provider.client.session.getAll({ expired: false });
+        const s = sessions && sessions[sessions.length - 1];
+        if (!s) return false;
+        provider.session = s;
+        // recréer les providers eip155 (rpcProviders) — cleanup les avait épurés
+        try { await provider.checkStorage(); } catch (e) { /* noop */ }
+        try { provider.createProviders(); } catch (e) { /* noop */ }
+        console.info('[Web3WC] session WC restaurée depuis le storage', { topic: s.topic?.slice(0, 12), addr: _getSessionAddress(provider) });
+        return true;
+    } catch (e) {
+        console.warn('[Web3WC] restauration de session WC impossible:', e?.message);
+        return false;
+    }
+}
+
+/**
  * Vrai si la connexion active passe par WalletConnect (pas par un wallet
  * injecté). Utilisé par auth.js pour décider s'il faut ré-ouvrir le wallet
  * avant la signature du challenge (sur mobile, le personal_sign arrive dans
@@ -685,6 +714,10 @@ export async function addPingalaNetwork(provider) {
  * @returns {Promise<boolean>} true si le wallet est sur Pingala Chain.
  */
 export async function ensurePingalaNetwork() {
+    // RESTAURATION DE SESSION : point de passage de TOUS les flux métier —
+    // si la session WC a été nettoyée à tort (socket gelé pendant l'absence
+    // dans Core), on la restaure depuis le storage AVANT toute requête.
+    await _restoreWcSessionIfNeeded();
     const provider = _getRawProvider();
     if (!provider || typeof provider.request !== 'function') {
         throw new Error('Aucun provider Web3 détecté pour vérifier le réseau.');
@@ -718,6 +751,10 @@ export async function ensurePingalaNetwork() {
  * @param {string} type - 'injected' (MetaMask/default) ou 'walletconnect'
  */
 export async function getProvider(type = 'injected') {
+    if (_provider) return _provider;
+
+    // Session WC nettoyée à tort (socket gelé) → restauration depuis storage.
+    await _restoreWcSessionIfNeeded();
     if (_provider) return _provider;
 
     if (type === 'walletconnect') {
