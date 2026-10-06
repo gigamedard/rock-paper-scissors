@@ -227,7 +227,8 @@
     "generic_error": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut oder laden Sie die Seite neu.",
     "auth_missing": "Nicht angemeldet. Bitte verbinden Sie zuerst Ihre Wallet.",
     "wallet_required": "Keine Wallet erkannt! Installiere MetaMask oder Core Wallet oder nutze WalletConnect.",
-    "wallet_app_required": "Wähle deine Wallet (Core, MetaMask, Trust…) oder scanne den WalletConnect-QR.",
+    "wallet_app_required": "Core Wallet wird geöffnet…",
+    "sign_in_wallet": "Signatur angefordert: Core wird geöffnet, damit Du signierst.",
     "approve_confirm_wallet": "Bestätige in deiner Wallet…",
     "btn": "Wallet verbinden"
   }

@@ -141,6 +141,10 @@ async function _authenticateWithAddress(walletAddress, providerType) {
         // avant la signature (pattern WC officiel « redirect on request ») —
         // uniquement pour le chemin WC (le chemin injecté affiche nativement).
         if (providerType === 'walletconnect' || isWalletConnectActive()) {
+            // Toast explicite : le bandeau iOS dira « Ouvrir dans Core ? » sans
+            // préciser pourquoi — on annonce la signature (retour utilisateur :
+            // « le message devait plutôt dire signer le message dans Core »).
+            showToast(t('sign_in_wallet'), 'info', 3500);
             console.info('[Auth] WC actif → ré-ouverture de Core pour la signature…');
             reopenWalletForSigning('core');
         }

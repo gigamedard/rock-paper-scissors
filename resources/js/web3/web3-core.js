@@ -174,6 +174,22 @@ function _buildDeeplink(walletKey, uri) {
 }
 
 /**
+ * Ferme la modal AppKit si elle est ouverte (garde anti-modal mobile).
+ * Retour utilisateur du journal 11:03 : la fenêtre All Wallets (Trust,
+ * Binance…) restait ouverte à son retour de Core, confusion avec le bandeau
+ * iOS. AppKit peut l'ouvrir via ses listeners internes — on la referme
+ * systématiquement pendant le flux mobile.
+ */
+function _closeAppKitModalIfOpen() {
+    try {
+        if (_appKit?.isOpen?.()) {
+            console.info('[Web3ModalGuard] modal AppKit ouverte → close()');
+            _appKit.close();
+        }
+    } catch (e) { /* noop */ }
+}
+
+/**
  * Ré-ouvrir le wallet (deeplink natif) pour que l'utilisateur voie une demande
  * entrante (personal_sign…). PREUVE (journal 2026-10-06) : après approbation
  * de session, l'utilisateur revient sur Safari — le personal_sign arrive dans
@@ -471,16 +487,39 @@ export async function connectWalletMobile(walletKey = 'core') {
 
     // La modal reste disponible en secours si le retour au navigateur ne
     // déclenche pas la session : on garde le poll de session en arrière-plan.
+    // ═══ GARDE ANTI-MODAL (journal 2026-10-06 11:03, retour utilisateur) ═══
+    // Si AppKit a ouvert sa modal (vue All Wallets Trust/Binance — ex. via
+    // finalizeWcConnection ou un appel open() résiduel), on la ferme AVANT le
+    // poll : au retour de Core, l'utilisateur doit voir la dApp, pas une
+    // fenêtre de wallets qui reste bloquée sur la page.
+    _closeAppKitModalIfOpen();
     console.info('[Web3Mobile] poll session (attente approbation)…');
     await _waitForAppKitConnection(null /** pas de modal — poll session seulement*/, provider);
 
     _activeWcSource = 'appkit';
     _walletConnectProvider = provider;
     console.info('[Web3Mobile] session OK', { addr: _getSessionAddress(provider), src: _activeWcSource });
+    // 2ᵉ garde anti-modal : AppKit peut (re)ouvrir sa modal AllWallets via
+    // ses listeners internes (finalizeWcConnection/syncWalletConnectAccount)
+    // au moment où la session arrive — l'utilisateur revient de Core et
+    // trouve la fenêtre wallets au lieu de la dApp (journal 11:03).
+    _closeAppKitModalIfOpen();
+    // Auto-close à chaque retour de visibilité pendant toute l'attente d'auth :
+    // couvre toutes les courses (modal ouverte pendant qu'on était dans Core).
+    const onVisible = () => { if (!document.hidden) _closeAppKitModalIfOpen(); };
+    document.addEventListener('visibilitychange', onVisible);
+    // Le listener est retiré par _cleanupMobileModalGuard au retour du flux.
+    window._bpMobileModalGuard = onVisible;
     try { await addPingalaNetwork(provider); } catch (e) {
         if (e && e.code !== 4001) console.warn('[Web3] Réseau Pingala non activé :', e);
     }
     _provider = new BrowserProvider(provider);
+    // Retrait du garde anti-modal (le flux est terminé, la session est posée)
+    if (window._bpMobileModalGuard) {
+        document.removeEventListener('visibilitychange', window._bpMobileModalGuard);
+        window._bpMobileModalGuard = null;
+    }
+    _closeAppKitModalIfOpen(); // dernière passe de garde
     console.info('[Web3Mobile] connecté, provider ethers prêt');
     return _provider;
 }

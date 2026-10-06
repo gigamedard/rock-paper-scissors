@@ -227,7 +227,8 @@
     "generic_error": "Ocurrió un error inesperado. Por favor intenta de nuevo o recarga la página.",
     "auth_missing": "No has iniciado sesión. Por favor conecta tu billetera primero.",
     "wallet_required": "¡Ninguna wallet detectada! Instala MetaMask o Core Wallet, o usa WalletConnect.",
-    "wallet_app_required": "Elige tu wallet (Core, MetaMask, Trust…) o escanea el QR de WalletConnect.",
+    "wallet_app_required": "Abriendo Core Wallet…",
+    "sign_in_wallet": "Firma solicitada: Core se abrirá para que firmes.",
     "approve_confirm_wallet": "Confirma en tu wallet…",
     "btn": "Conectar Wallet"
   }

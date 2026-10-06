@@ -227,7 +227,8 @@
     "generic_error": "An unexpected error occurred. Please try again or refresh the page.",
     "auth_missing": "Not logged in. Please connect your wallet first.",
     "wallet_required": "No wallet detected! Install MetaMask or Core Wallet, or use WalletConnect.",
-    "wallet_app_required": "Choose your wallet (Core, MetaMask, Trust…) or scan the WalletConnect QR.",
+    "wallet_app_required": "Opening Core Wallet…",
+    "sign_in_wallet": "Signature requested: Core will open for you to sign.",
     "approve_confirm_wallet": "Confirm in your wallet…",
     "btn": "Connect Wallet"
   }
