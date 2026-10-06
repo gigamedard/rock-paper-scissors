@@ -286,10 +286,13 @@ async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 1
     }
     const start = Date.now();
     return new Promise((resolve, reject) => {
+        let _pollCount = 0;
         const poll = () => {
+            _pollCount++;
             const now = Date.now();
             if (now - start > timeoutMs) {
                 if (appKit) { try { appKit.close(); } catch (e) { /* noop */ } }
+                console.warn('[Web3WC] wait timeout', { ms: Date.now() - start });
                 reject(new Error('Délai de connexion WalletConnect dépassé.'));
                 return;
             }
@@ -297,6 +300,7 @@ async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 1
             // du wallet (avant close() de la modal) → lecture déterministe.
             const addr = _getSessionAddress(universalProvider);
             if (addr) {
+                if (_pollCount > 2) console.info('[Web3WC] session capturée après', _pollCount, 'polls', { ms: Date.now() - start });
                 resolve(addr);
                 return;
             }
@@ -306,6 +310,7 @@ async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 1
                 let open = false;
                 try { open = Boolean(appKit.isOpen()); } catch (e) { /* noop */ }
                 if (!open) {
+                    console.info('[Web3WC] modal fermée sans session → WalletConnectionClosedError');
                     reject(new WalletConnectionClosedError());
                     return;
                 }
@@ -373,6 +378,7 @@ const WC_NAMESPACES = {
  * @returns {Promise<BrowserProvider>}
  */
 export async function connectWalletMobile(walletKey = 'core') {
+    console.info('[Web3Mobile] start', { walletKey, ua: navigator.userAgent.slice(0, 80) });
     const { provider } = await _getAppKitWithProvider();
     if (!provider || typeof provider.connect !== 'function') {
         throw new Error('Provider WalletConnect indisponible (init échouée).');
@@ -411,6 +417,7 @@ export async function connectWalletMobile(walletKey = 'core') {
     });
 
     const uri = await uriPromise;
+    console.info('[Web3Mobile] URI reçue:', uri ? uri.slice(0, 44) + '…' : 'NULL (poll épuisé)');
     const target = WALLET_DEEPLINKS[walletKey] || WALLET_DEEPLINKS.core;
 
     if (uri) {
@@ -430,6 +437,7 @@ export async function connectWalletMobile(walletKey = 'core') {
         // reste sur la dApp (le poll de session continue) et peut relancer.
         const link = _buildDeeplink(walletKey, uri);
         console.log(`[Web3] Deep link ${target.name} (${link.slice(0, 40)}…)`);
+        console.info('[Web3Mobile] navigation native →', link.slice(0, 52) + '…');
         window.location.href = link;
     } else {
         // Pas d'URI (pairing lento/échoué) : on tombe sur la modal standard.
@@ -438,14 +446,17 @@ export async function connectWalletMobile(walletKey = 'core') {
 
     // La modal reste disponible en secours si le retour au navigateur ne
     // déclenche pas la session : on garde le poll de session en arrière-plan.
+    console.info('[Web3Mobile] poll session (attente approbation)…');
     await _waitForAppKitConnection(null /** pas de modal — poll session seulement*/, provider);
 
     _activeWcSource = 'appkit';
     _walletConnectProvider = provider;
+    console.info('[Web3Mobile] session OK', { addr: _getSessionAddress(provider), src: _activeWcSource });
     try { await addPingalaNetwork(provider); } catch (e) {
         if (e && e.code !== 4001) console.warn('[Web3] Réseau Pingala non activé :', e);
     }
     _provider = new BrowserProvider(provider);
+    console.info('[Web3Mobile] connecté, provider ethers prêt');
     return _provider;
 }
 
@@ -760,4 +771,13 @@ if (typeof window !== 'undefined') {
     window.ensurePingalaNetwork = ensurePingalaNetwork;
     window.addPingalaNetwork = addPingalaNetwork;
     window.PRANA_NETWORK = PRANA_NETWORK;
+    // Hook debug pour le journal visuel mobile (debug-log.js) : état WC
+    // consolidé — session, URI de pairing, provider, source du flux.
+    window._bpWcDebug = () => ({
+        hasSession: Boolean(_walletConnectProvider?.session || _provider),
+        hasUri: Boolean(_lastWcUri),
+        provider: _provider ? 'BrowserProvider(ethers)' : (_walletConnectProvider ? 'universal-provider' : null),
+        source: _activeWcSource,
+        chainId: PRANA_NETWORK.chainId
+    });
 }

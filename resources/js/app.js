@@ -13,6 +13,7 @@ import { initStats } from './modules/stats.js';
 import { initPWA } from './core/pwa.js';
 import { showToast } from './core/toast.js';
 import { addPingalaNetwork } from './web3/web3-core.js';
+import { initDebugLog, debugLog } from './modules/debug-log.js';
 
 // ===== ÉTAT GLOBAL =====
 window.userState = {
@@ -40,6 +41,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 0. Initialisation de la PWA
     initPWA();
+
+    // 0 bis. Journal visuel mobile (bouton 🐞 → pop-up + copie presse-papiers) :
+    // l'utilisateur transmet les logs depuis l'iPhone pour le debug à distance.
+    initDebugLog();
+    debugLog('APP', 'DOMContentLoaded Battlepool SPA');
 
     // 1. Internationalisation (doit être en premier pour traduire le DOM)
     await initI18n();
