@@ -415,33 +415,22 @@ export async function connectWalletMobile(walletKey = 'core') {
 
     if (uri) {
         // Scheme NATIF (core://wc?uri=…) : Safari iOS affiche « Ouvrir dans
-        // Core ? » IMMÉDIATEMENT (zéro page intermédiaire). L'universal link
+        // Core ? » IMMÉDIAMENT (zéro page intermédiaire). L'universal link
         // https://core.app/wc?uri= sert lui une page web 404+bouton (mesuré).
-        let link = _buildDeeplink(walletKey, uri);
+        //
+        // ⚠️ PAS de fallback automatique vers l'universal link — PREUVES
+        // (2026-10-05, déploiements 6e7c225→3a9aa65, retours utilisateur) :
+        // 1) iOS Safari ne garantit NI visibilitychange NI pagehide pendant
+        //    l'ouverture par le bandeau (timers gelés en arrière-plan, ils
+        //    repartent au retour) → le timer de fallback navigue vers la page
+        //    404 core.app/wc?uri= APRÈS l'approbation dans Core ;
+        // 2) ce fallback n'a aucune valeur de toute façon : la page visée est
+        //    le 404+bouton « Ouvrir » — pire que le scheme natif qui marche.
+        // Si un navigateur exotique ignore le scheme natif, l'utilisateur
+        // reste sur la dApp (le poll de session continue) et peut relancer.
+        const link = _buildDeeplink(walletKey, uri);
         console.log(`[Web3] Deep link ${target.name} (${link.slice(0, 40)}…)`);
-        // Fallback : certains navigateurs bloquent schemes custom en direct —
-        // on retente via l'universal link si rien ne se passe. Détection de
-        // l'ouverture de l'app : DÈS QUE Safari perd le focus (visibilitychange
-        // OU pagehide — le premier des deux arrive), on annule le fallback,
-        // sinon la page 404 core.app s'ouvre au retour (mesuré iPhone).
-        // location.replace : ne pas empiler l'historique (le « back » doit
-        // rester sur la dApp).
-        let opened = false;
-        const onHide = () => { opened = true; clearTimeout(fallbackTimer); };
-        document.addEventListener('visibilitychange', onHide, { once: true });
-        window.addEventListener('pagehide', onHide, { once: true });
-        // Navigation native APRÈS l'armement des listeners (sinon le
-        // visibilitychange d'ouverture de Core est raté et le fallback part).
         window.location.href = link;
-        const fallbackTimer = setTimeout(() => {
-            document.removeEventListener('visibilitychange', onHide);
-            window.removeEventListener('pagehide', onHide);
-            if (!opened) {
-                const uni = `${WALLET_DEEPLINKS[walletKey].universal}/wc?uri=${encodeURIComponent(uri)}`;
-                console.warn('[Web3] scheme natif ignoré — fallback universal link:', uni.slice(0, 50));
-                window.location.replace(uni);
-            }
-        }, 1800);
     } else {
         // Pas d'URI (pairing lento/échoué) : on tombe sur la modal standard.
         console.warn('[Web3] URI WC non reçue — fallback modal AppKit.');
