@@ -129,6 +129,15 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        // Canal PHP 8.2+ deprecations (HandleExceptions cherche 'deprecations'
+        // ; absent, il tombait sur l'EMERGENCY logger et polluait laravel.log).
+        'deprecations' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/deprecations.log'),
+            'level' => 'info',
+            'days' => 3,
+        ],
+
         // Dedicated channel for auth middleware debug logs (avoids polluting laravel.log)
         // Uses 'daily' driver with 1 day retention to keep the file small.
         'auth_debug' => [
@@ -136,6 +145,16 @@ return [
             'path' => storage_path('logs/auth_debug.log'),
             'level' => 'debug',
             'days' => 1,
+        ],
+
+        // JOURNAL MÉTIER (2026-10-06) — requêtes/réponses des endpoints métier
+        // (pool/marketplace/shop/claim/auth) avec statut, durée, user, body.
+        // Corrélé avec le journal visuel frontend 🐞 pour le debugging bêta.
+        'business' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/business.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
         ],
 
         // Dedicated channel for background batch polling logs

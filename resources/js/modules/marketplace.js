@@ -532,7 +532,11 @@ async function loadMarketplaceData() {
 async function loadStats() {
     try {
         const res = await secureFetch('/marketplace/stats');
-        if (!res.ok) return;
+        if (!res.ok) {
+            const errBody = await res.clone().text().catch(() => '(body illisible)');
+            console.error('[Business-MP] loadStats ÉCHEC HTTP', res.status, errBody.slice(0, 200));
+            return;
+        }
         const stats = await res.json();
         const elTotal = document.getElementById('mp-stat-total-trades');
         const elSnt   = document.getElementById('mp-stat-snt-volume');
@@ -550,12 +554,17 @@ let currentOffers = [];
 async function loadOffers() {
     try {
         const res = await secureFetch('/marketplace/trades');
-        if (!res.ok) return;
+        if (!res.ok) {
+            const errBody = await res.clone().text().catch(() => '(body illisible)');
+            console.error('[Business-MP] loadOffers ÉCHEC HTTP', res.status, errBody.slice(0, 200));
+            return;
+        }
         const data = await res.json();
         currentOffers = data.trades || [];
+        console.info('[Business-MP] loadOffers OK:', currentOffers.length, 'offres');
         renderOffers();
     } catch (e) {
-        console.error('[Marketplace] Erreur chargement offres:', e);
+        console.error('[Business-MP] loadOffers ÉCHEC:', e);
     }
 }
 
@@ -645,6 +654,7 @@ async function handleApprove() {
     try {
         // Garde-réseau : Pingala avant approval + création d'offre (une fois par flux)
         await ensurePingalaNetwork();
+        console.info('[Business-MP] approve : snt=', sntAmount, 'addr=', CONTRACT_ADDRESSES.sntToken, 'mp=', CONTRACT_ADDRESSES.marketplace);
         const sntAmountWei = _safeParseEther(sntAmount);
         const sntContract  = await getContract(CONTRACT_ADDRESSES.sntToken, SNT_ABI);
 
@@ -653,6 +663,7 @@ async function handleApprove() {
         const allowance  = await sntContract.allowance(signerAddr, CONTRACT_ADDRESSES.marketplace);
 
         if (allowance >= sntAmountWei) {
+            console.info('[Business-MP] approve : allowance déjà suffisante', allowance.toString());
             _showMpNotification(t('marketplace.approve_success_sufficient'), 'success');
             _approvalDone = true;
             createBtn.disabled = false;
@@ -661,7 +672,9 @@ async function handleApprove() {
         }
 
         btn.textContent = t('marketplace.approve_confirm_wallet');
+        console.info('[Business-MP] approve : tx env (allowance actuelle=', allowance.toString(), ')');
         await _sendWithFreshNonce((ovr) => sntContract.approve(CONTRACT_ADDRESSES.marketplace, sntAmountWei, ovr));
+        console.info('[Business-MP] approve : tx minée OK');
 
         _approvalDone = true;
         createBtn.disabled = false;
@@ -700,6 +713,7 @@ async function handleCreateOffer() {
     try {
         // Garde-réseau : Pingala avant création d'offre (une fois par flux)
         await ensurePingalaNetwork();
+        console.info('[Business-MP] createOffer', { sntAmount, avaxAmount, durationHours });
         const sntAmountWei  = _safeParseEther(sntAmount);
         const avaxAmountWei = _safeParseEther(avaxAmount);
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
@@ -708,7 +722,7 @@ async function handleCreateOffer() {
             escrowContract.createOffer(sntAmountWei, avaxAmountWei, parseInt(durationHours), ovr)
         );
         btn.textContent = t('marketplace.create_offer_tx_pending');
-        console.log('[Marketplace] Offre créée, tx:', createTx.hash);
+        console.log('[Business-MP] createOffer tx:', createTx.hash);
 
         _approvalDone = false;
         _showMpNotification(t('marketplace.create_offer_success', { snt: sntAmount, avax: avaxAmount }), 'success');
@@ -737,19 +751,21 @@ window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
         _showMpNotification(t('marketplace.contract_unavailable'), 'error');
         return;
     }
+    console.info('[Business-MP] buyOffer', { offerId, avaxAmount });
     try {
         // Garde-réseau : Pingala avant achat d'offre
         await ensurePingalaNetwork();
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
         const avaxWei = _safeParseEther(avaxAmount.toString());
         addToFeed(t('feed.buying_offer', { id: offerId }), 'var(--primary)');
-        await _sendWithFreshNonce((ovr) =>
+        const tx = await _sendWithFreshNonce((ovr) =>
             escrowContract.fulfillOffer(offerId, { value: avaxWei, ...ovr })
         );
+        console.info('[Business-MP] buyOffer tx:', tx?.hash);
         _showMpNotification(t('marketplace.buy_offer_success'), 'success');
         setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {
-        console.error('[Marketplace] Erreur achat:', e);
+        console.error('[Business-MP] buyOffer ÉCHEC:', e);
         _showMpNotification(t('marketplace.buy_offer_failed', { error: parseRpcError(e) }), 'error');
     }
 };
@@ -761,16 +777,18 @@ window.marketplaceCancelOffer = async function(offerId) {
         _showMpNotification(t('marketplace.contract_unavailable'), 'error');
         return;
     }
+    console.info('[Business-MP] cancelOffer', { offerId });
     try {
         // Garde-réseau : Pingala avant annulation d'offre
         await ensurePingalaNetwork();
         const escrowContract = await getContract(CONTRACT_ADDRESSES.marketplace, ESCROW_ABI);
         addToFeed(t('feed.canceling_offer', { id: offerId }), 'var(--text-dim)');
-        await _sendWithFreshNonce((ovr) => escrowContract.cancelOffer(offerId, ovr));
+        const tx = await _sendWithFreshNonce((ovr) => escrowContract.cancelOffer(offerId, ovr));
+        console.info('[Business-MP] cancelOffer tx:', tx?.hash);
         _showMpNotification(t('marketplace.cancel_offer_success', { id: offerId }), 'success');
         setTimeout(() => loadMarketplaceData(), 4000);
     } catch (e) {
-        console.error('[Marketplace] Erreur annulation:', e);
+        console.error('[Business-MP] cancelOffer ÉCHEC:', e);
         _showMpNotification(t('marketplace.cancel_offer_failed', { error: parseRpcError(e) }), 'error');
     }
 };

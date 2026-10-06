@@ -429,6 +429,7 @@ async function startSession() {
     const bet = document.getElementById('base-bet-input').value;
     const targetQ = document.getElementById('target-q-input') ? parseFloat(document.getElementById('target-q-input').value) : 2.0;
     const cooldownTime = document.getElementById('cooldown-input') ? parseInt(document.getElementById('cooldown-input').value, 10) : 1440;
+    console.info('[Business] startSession', { bet, targetQ, cooldownTime, status: window.userState.status, balance: window.userState.balance });
     const btn = document.getElementById('start-session-btn');
     btn.innerText = "UPLOADING TO IPFS...";
     btn.disabled = true;
@@ -436,18 +437,21 @@ async function startSession() {
 
     try {
         // 1. IPFS Upload
+        console.info('[Business] 1/4 IPFS upload…');
         const ipfsRes = await secureFetch('/ipfs/upload', {
             method: 'POST',
             body: JSON.stringify({ data: { moves: gameState.preMoves } })
         });
         const ipfsData = await ipfsRes.json();
         const cid = ipfsData.IpfsHash;
+        console.info('[Business] 1/4 CID=', cid || '(VIDE — réponse inattendue)', ipfsData);
         addToFeed(t('feed.staking'), "var(--primary)");
 
         // 2. Blockchain Transaction
         // Garde-réseau (une fois par session, pas à chaque tx) : switch/add Pingala.
         // Jette si refus utilisateur (4001) → flux interrompu proprement.
         await ensurePingalaNetwork();
+        console.info('[Business] 2/4 tx : coeff=', gameState.config?.security_coefficient, 'fee=', gameState.config?.smart_contract_fee_percentage, 'addr=', gameState.contractAddress);
         const provider = await getProvider();
         const signer = await provider.getSigner();
         
@@ -461,17 +465,29 @@ async function startSession() {
         
         const abi = ["function submitPremoveCID(uint256 baseBet, string cid) external payable"];
         const contract = new Contract(gameState.contractAddress, abi, signer);
-        
+        console.info('[Business] 2/4 valeurs tx', {
+            baseBet: bet,
+            baseBetWei: baseBetWei.toString(),
+            coeff: securityCoefficient,
+            stakeWei: stakeWei.toString(),
+            feePct: feePercentage,
+            feeWei: feeWei.toString(),
+            total: amountToSendWei.toString()
+        });
+
         const tx = await contract.submitPremoveCID(baseBetWei, cid, {
             value: amountToSendWei,
             gasLimit: 500000
         });
-        
+        console.info('[Business] 2/4 tx envoyée', tx.hash);
+
         addToFeed(t('feed.pending_tx', { hash: tx.hash.substring(0,10) }), "var(--primary)");
         await tx.wait();
+        console.info('[Business] 2/4 tx minée');
         addToFeed(t('feed.stake_confirmed'), "var(--success)");
 
         // 3. Store Pre-moves
+        console.info('[Business] 3/4 back-end /user/pre-moves…');
         const joinRes = await secureFetch('/user/pre-moves', {
             method: 'POST',
             body: JSON.stringify({
@@ -485,6 +501,7 @@ async function startSession() {
         });
 
         if (joinRes.ok) {
+            console.info('[Business] 3/4 pool rejointe OK');
             window.userState.status = 'in_pool';
             window.userState.bet_amount = parseFloat(bet) || 0;
             window.userState.session_start_balance = parseFloat(window.userState.balance) || 0;
@@ -493,10 +510,12 @@ async function startSession() {
             addToFeed(t('feed.session_initialized'), "var(--primary)");
             updateUI();
         } else {
-            throw new Error("Failed to join pool");
+            const errBody = await joinRes.clone().text().catch(() => '(body illisible)');
+            console.error('[Business] 3/4 ÉCHEC /user/pre-moves', joinRes.status, errBody.slice(0, 300));
+            throw new Error("Failed to join pool: HTTP " + joinRes.status + " " + errBody.slice(0, 120));
         }
     } catch (error) {
-        console.error(error);
+        console.error('[Business] startSession ÉCHEC:', error);
         showToast(t('errors.error_prefix') + parseRpcError(error), 'error');
         addToFeed(t('feed.error', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
@@ -511,29 +530,32 @@ async function startSession() {
 
 async function claim() {
     if (!gameState.pendingClaim) return;
-    
+
     const btn = document.getElementById('claim-btn');
     btn.innerText = "PROCESSING CLAIM...";
     btn.disabled = true;
+    console.info('[Business] claim : pendingClaim=', gameState.pendingClaim);
 
     try {
         const provider = await getProvider();
         const signer = await provider.getSigner();
-        
+
         const abi = ["function claimAndExit(uint256 amount, uint256 deadline, bytes signature) external"];
         const contract = new Contract(gameState.contractAddress, abi, signer);
-        
+
         const amountWei = parseEther(gameState.pendingClaim.amount.toString());
-        
+
         const tx = await contract.claimAndExit(amountWei, gameState.pendingClaim.deadline, gameState.pendingClaim.signature);
+        console.info('[Business] claim tx envoyée', tx.hash);
         addToFeed(t('feed.tx_sent', { hash: tx.hash.substring(0,10) }), "var(--primary)");
-        
+
         await tx.wait();
+        console.info('[Business] claim tx minée');
         addToFeed(t('feed.claim_success'), "var(--success)");
         gameState.hasClaimed = true;
         document.getElementById('claim-section').style.display = 'none';
         gameState.pendingClaim = null;
-        
+
         // Cacher l'overlay et remettre le statut à stopped
         hideCombatOverlay();
         window.userState.status = 'stopped';
@@ -551,7 +573,7 @@ async function claim() {
         }, 2000);
 
     } catch (error) {
-        console.error(error);
+        console.error('[Business] claim ÉCHEC:', error);
         showToast(t('errors.claim_failed') + parseRpcError(error), 'error');
         addToFeed(t('feed.claim_failed', { error: parseRpcError(error) }), "var(--accent)");
     } finally {

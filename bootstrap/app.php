@@ -28,6 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'is_admin' => \App\Http\Middleware\IsAdmin::class,
         ]);
 
+        // JOURNAL MÉTIER : trace les requêtes/réponses des endpoints métier
+        // (pool/marketplace/shop/claim) — corrélé avec le journal visuel
+        // frontend 🐞 (debug-log.js) pour le debugging bêta à distance.
+        $middleware->append(\App\Http\Middleware\BusinessLog::class);
+
         $middleware->validateCsrfTokens(except: [
             '*', 
         ]);

@@ -49,6 +49,16 @@ export async function secureFetch(endpoint, options = {}, retries = 2) {
                 continue;
             }
 
+            // JOURNAL MÉTIER : log structuré des échecs API (4xx/5xx) avec le
+            // body — sans ça, les {} illisibles du journal masquent la cause
+            // réelle (validation, solde, cooldown, état pool…).
+            if (!response.ok) {
+                try {
+                    const bodyTxt = await response.clone().text();
+                    console.error('[API-FAIL]', response.status, endpoint, bodyTxt.slice(0, 400));
+                } catch (e) { /* noop */ }
+            }
+
             return response;
         } catch (error) {
             lastError = error;

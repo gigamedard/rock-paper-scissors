@@ -49,12 +49,30 @@ window.addEventListener('unhandledrejection', (ev) => {
     debugLog('PROMISE', why);
 }, true);
 
-// (3) Console (log/warn/error/info) — capture [Web3…] [Web3Mobile] [Web3WC] [Auth]…
+// (3) Console (log/warn/error/info) — capture [Web3…] [Web3Mobile] [Auth]…
+// ⚠️ JSON.stringify(new Error(...)) === '{}' (propriétés non énumérables) —
+// d'où les « Erreur chargement stats: {} » illisibles du premier journal.
+// Réponse : sérialiseur custom qui extrait message/code/reason/shortMessage.
+function _str(a) {
+    if (typeof a === 'string') return a;
+    if (a instanceof Error || (a && typeof a === 'object' && 'message' in a)) {
+        const parts = [a.name !== 'Error' ? a.name + ': ' : '', a.message || a.shortMessage || ''];
+        if (a.code !== undefined) parts.push('code=' + a.code);
+        if (a.reason !== undefined) parts.push('reason=' + a.reason);
+        if (a.shortMessage && a.shortMessage !== a.message) parts.push('(short: ' + a.shortMessage + ')');
+        if (a.data !== undefined) { try { parts.push('data=' + JSON.stringify(a.data)); } catch (e) { /* noop */ } }
+        // info transaction ethers
+        if (a.transaction) { try { parts.push('tx=' + JSON.stringify(a.transaction).slice(0, 200)); } catch (e) { /* noop */ } }
+        if (a.info) { try { parts.push('info=' + JSON.stringify(a.info).slice(0, 300)); } catch (e) { /* noop */ } }
+        return parts.filter(Boolean).join(' ');
+    }
+    try { return JSON.stringify(a); } catch (e) { return String(a); }
+}
 for (const lvl of ['log', 'warn', 'error', 'info']) {
     const orig = console[lvl].bind(console);
     console[lvl] = (...args) => {
         try {
-            const txt = args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+            const txt = args.map(_str).join(' ');
             debugLog('CONSOLE', txt.slice(0, 300));
         } catch (e) { /* noop */ }
         orig(...args);

@@ -16,14 +16,20 @@ export function initEcho() {
         window.echoInstance.disconnect();
     }
 
-    window.echoInstance = new Echo({
-        broadcaster: 'reverb',
-        key: '***REMOVED***',
-        wsHost: '127.0.0.1',
-        wsPort: 8008,
-        forceTLS: false,
-        enabledTransports: ['ws', 'wss'],
-        authEndpoint: '/api/broadcasting/auth',
+// Reverb : en https (mobile Tailscale), le WS passe par le proxy même origine
+// (wss://<host>:<port>/app/<key>) — bp-proxy(-tls) route /app/ vers Reverb.
+// En http desktop local : direct 127.0.0.1:8008 (comportement historique).
+const IS_HTTPS = window.location.protocol === 'https:';
+
+window.echoInstance = new Echo({
+    broadcaster: 'reverb',
+    key: '***REMOVED***',
+    wsHost: IS_HTTPS ? window.location.hostname : '127.0.0.1',
+    wsPort: IS_HTTPS ? window.location.port || 443 : 8008,
+    wssPort: IS_HTTPS ? window.location.port || 443 : 8008,
+    forceTLS: IS_HTTPS,
+    enabledTransports: ['ws', 'wss'],
+    authEndpoint: '/api/broadcasting/auth',
         auth: {
             headers: {
                 Authorization: `Bearer ${token}`
