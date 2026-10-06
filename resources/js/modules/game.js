@@ -480,15 +480,30 @@ async function startSession() {
         // ré-ouvert AVANT l'émission de la tx, il la verra à l'ouverture.
         ensureWalletVisibleForTx('core');
 
-        const tx = await contract.submitPremoveCID(baseBetWei, cid, {
+        // Garde anti-freeze : promesse plafonnée (le bouton reste réactif même
+        // si le socket WC meurt — au délai, erreur claire + bouton réactivé).
+        const sendPromise = contract.submitPremoveCID(baseBetWei, cid, {
             value: amountToSendWei,
             gasLimit: 500000
         });
+        const tx = await Promise.race([
+            sendPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(
+                'Délai dépassé : le wallet n\'a pas reçu la demande (Core fermé ?). Reconnectez-vous et réessayez.'
+            )), 120000))
+        ]);
         console.info('[Business] 2/4 tx envoyée', tx.hash);
 
         addToFeed(t('feed.pending_tx', { hash: tx.hash.substring(0,10) }), "var(--primary)");
-        await tx.wait();
-        console.info('[Business] 2/4 tx minée');
+        const mined = await Promise.race([
+            tx.wait(),
+            new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 180000))
+        ]);
+        if (mined === 'TIMEOUT') {
+            console.warn('[Business] tx non minée en 180 s — on continue quand même (indexeur bridge la prendra)');
+        } else {
+            console.info('[Business] 2/4 tx minée');
+        }
         addToFeed(t('feed.stake_confirmed'), "var(--success)");
 
         // 3. Store Pre-moves
@@ -551,12 +566,22 @@ async function claim() {
         const amountWei = parseEther(gameState.pendingClaim.amount.toString());
 
         ensureWalletVisibleForTx('core');
-        const tx = await contract.claimAndExit(amountWei, gameState.pendingClaim.deadline, gameState.pendingClaim.signature);
+        const sendPromise = contract.claimAndExit(amountWei, gameState.pendingClaim.deadline, gameState.pendingClaim.signature);
+        const tx = await Promise.race([
+            sendPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(
+                'Délai dépassé : le wallet n\'a pas reçu la demande de claim. Core fermé ? Réessayez.'
+            )), 120000))
+        ]);
         console.info('[Business] claim tx envoyée', tx.hash);
         addToFeed(t('feed.tx_sent', { hash: tx.hash.substring(0,10) }), "var(--primary)");
 
-        await tx.wait();
-        console.info('[Business] claim tx minée');
+        const mined = await Promise.race([
+            tx.wait(),
+            new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 180000))
+        ]);
+        if (mined === 'TIMEOUT') console.warn('[Business] claim tx non minée en 180 s — suite quand même');
+        else console.info('[Business] claim tx minée');
         addToFeed(t('feed.claim_success'), "var(--success)");
         gameState.hasClaimed = true;
         document.getElementById('claim-section').style.display = 'none';

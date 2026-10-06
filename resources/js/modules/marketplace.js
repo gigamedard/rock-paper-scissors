@@ -61,13 +61,28 @@ async function _getFreshNonce() {
  *   Fonction appelée avec l'overrides { nonce } (puis { nonce, value } si besoin).
  * @returns {Promise<any>} le receipt de transaction.
  */
+// Garde anti-freeze (journal 2026-10-06 14:07 : la promise sendTransaction ne
+// résout JAMAIS quand Core est en arrière-plan et le socket WC gelé — le
+// bouton restait grisé « Création… » des minutes). Tout le cycle
+// send+wait est plafonné : au délai, on jette une erreur claire et
+// réessayable plutôt que de figer l'UI à l'infini.
+const _TX_TIMEOUT_MS = 120000;
+function _withTimeout(promise, label) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(
+            () => reject(new Error(`Délai dépassé (${label}) — le wallet n'a pas confirmé en ${_TX_TIMEOUT_MS / 1000} s. Réessayez, le wallet doit être à l'écran.`)), _TX_TIMEOUT_MS
+        ))
+    ]);
+}
+
 async function _sendWithFreshNonce(sendFn) {
     let lastError;
     for (let attempt = 1; attempt <= _MAX_NONCE_RETRIES; attempt++) {
         const nonce = await _getFreshNonce();
         try {
-            const tx = await sendFn({ nonce });
-            return await tx.wait();
+            const tx = await _withTimeout(sendFn({ nonce }), 'envoi de la transaction');
+            return await _withTimeout(tx.wait(), 'minage de la transaction');
         } catch (e) {
             lastError = e;
             const msg = (e && (e.shortMessage || e.message || e.reason)) || '';
@@ -75,6 +90,9 @@ async function _sendWithFreshNonce(sendFn) {
                 e?.code === 'NONCE_EXPIRED' ||
                 e?.info?.error?.code === -32000 ||
                 /nonce/i.test(msg);
+            // Dépassement de délai = Core n'a jamais vu la demande : réessayer
+            // ne sert à rien sans geste utilisateur — on jette immédiatement.
+            if (/Délai dépassé/.test(msg)) throw e;
             if (isNonceCollision && attempt < _MAX_NONCE_RETRIES) {
                 console.warn(`[Marketplace] Collision de nonce (${msg}), nouvelle tentative ${attempt}/${_MAX_NONCE_RETRIES}...`);
                 continue;
