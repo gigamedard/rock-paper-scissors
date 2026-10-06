@@ -146,6 +146,18 @@ async function _authenticateWithAddress(walletAddress, providerType) {
             // « le message devait plutôt dire signer le message dans Core »).
             showToast(t('sign_in_wallet'), 'info', 3500);
             console.info('[Auth] WC actif → ré-ouverture de Core pour la signature…');
+            // PRÉ-SWITCH (capture 11:24 du journal) : le `wallet_switchEthereumChain`
+            // envoyé dans `connectWalletMobile` part pendant que Core est en
+            // arrière-plan (Safari) → Core ne le traite pas et applique sa
+            // propre politique « Switch Network » sur le personal_sign qui
+            // suit. On le RENVOIE ici (Core est au 1er plan via le
+            // reopenWalletForSigning) AVANT la signature : Core le traitera
+            // en amont du personal_sign et ne demandera plus de switch.
+            try {
+                await ensurePingalaNetwork();
+            } catch (e) {
+                console.warn('[Auth] Pré-switch Pingala échoué (Core refus ?):', e?.message || e);
+            }
             reopenWalletForSigning('core');
         }
         const signer = await getSigner(providerType === 'walletconnect' ? 'walletconnect' : 'injected');

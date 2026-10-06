@@ -510,7 +510,10 @@ export async function connectWalletMobile(walletKey = 'core') {
     document.addEventListener('visibilitychange', onVisible);
     // Le listener est retiré par _cleanupMobileModalGuard au retour du flux.
     window._bpMobileModalGuard = onVisible;
-    try { await addPingalaNetwork(provider); } catch (e) {
+    try {
+        await addPingalaNetwork(provider);
+        console.info('[Web3Mobile] switch Pingala OK (Core traitera peut-être en différé)');
+    } catch (e) {
         if (e && e.code !== 4001) console.warn('[Web3] Réseau Pingala non activé :', e);
     }
     _provider = new BrowserProvider(provider);
