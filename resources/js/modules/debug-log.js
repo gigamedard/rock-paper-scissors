@@ -61,6 +61,7 @@ for (const lvl of ['log', 'warn', 'error', 'info']) {
     };
 }
 debugLog('BOOT', `debug-log actif, UA=${navigator.userAgent.slice(0, 120)}`);
+debugLog('BOOT', `BP-MOBILE-DEPLOY=2 Pré-switch Pingala activé, le popup « Switch Network » de Core est normal`);
 
 // — UI : bouton flottant + pop-up ——————————————————————————————————
 
