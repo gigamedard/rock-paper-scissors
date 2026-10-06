@@ -513,6 +513,37 @@ export async function connectWalletMobile(walletKey = 'core') {
     _activeWcSource = 'appkit';
     _walletConnectProvider = provider;
     console.info('[Web3Mobile] session OK', { addr: _getSessionAddress(provider), src: _activeWcSource });
+    // ─── DIAGNOSTIC MORT DE SESSION (journal 13:04/13:23) ──────────────────
+    // La session est effacée ~20 s après l'auth. On trace QUI fait quoi :
+    //  - 'session_delete' émis par le WALLET (Core) → event SignClient ;
+    //  - disconnect dApp → notre wrap de provider.disconnect() ;
+    //  - cleanup interne → wrap de client.session 'delete' handler.
+    try {
+        if (!provider._bpDiagnosticsBound) {
+            provider._bpDiagnosticsBound = true;
+            // (a) événement émis par le WALLET (session supprimée côté Core)
+            provider.client.events?.on?.('session_delete', (e) => {
+                console.error('[Web3WC-DIAG] session_delete REÇU DU WALLET', { topic: e?.params?.topic?.slice(0, 12) });
+            });
+            // (b) appel de disconnect() DEPUIS LA DAPP (AppKit ou notre code)
+            const origDisconnect = provider.disconnect?.bind(provider);
+            if (origDisconnect) {
+                provider.disconnect = async (...args) => {
+                    console.error('[Web3WC-DIAG] dApp disconnect() APPELÉ', new Error('stack:').stack?.slice(0, 400));
+                    return origDisconnect(...args);
+                };
+            }
+            // (c) suppression interne de la session dans le store SignClient
+            const origSessionDelete = provider.client.session.delete?.bind(provider.client.session);
+            if (origSessionDelete) {
+                provider.client.session.delete = (t, ...rest) => {
+                    console.error('[Web3WC-DIAG] client.session.delete APPELÉ', { topic: String(t).slice(0, 12), stack: new Error().stack?.split('\n').slice(1, 5).join(' | ')?.slice(0, 400) });
+                    return origSessionDelete(t, ...rest);
+                };
+            }
+            console.info('[Web3Mobile] diagnostics de mort de session armés');
+        }
+    } catch (e) { /* noop */ }
     // 2ᵉ garde anti-modal : AppKit peut (re)ouvrir sa modal AllWallets via
     // ses listeners internes (finalizeWcConnection/syncWalletConnectAccount)
     // au moment où la session arrive — l'utilisateur revient de Core et
@@ -612,7 +643,10 @@ async function _restoreWcSessionIfNeeded() {
     try {
         const sessions = provider.client.session.getAll({ expired: false });
         const s = sessions && sessions[sessions.length - 1];
-        if (!s) return false;
+        if (!s) {
+            console.warn('[Web3WC] session absente ET storage vide — cleanup a TOUT effacé (disconnect dApp ou session_delete wallet)');
+            return false;
+        }
         provider.session = s;
         // recréer les providers eip155 (rpcProviders) — cleanup les avait épurés
         try { await provider.checkStorage(); } catch (e) { /* noop */ }
