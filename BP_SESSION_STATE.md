@@ -5,7 +5,6 @@
 > `.agents/` (local, gitignored) — ce fichier tient lieu de contrat partagé.
 >
 > Dernière mise à jour : 2026-10-06 (Orchestrateur, session wallet-mobile+bots).
-
 ---
 
 ## 1. QU'EST-CE QUE BATTLEPOOL (30 secondes)
@@ -83,6 +82,7 @@ Rôles Battlepool : **owner/deployer** `0xD62909EAD1cbE35d5A7BD145f00530Fd574763
 | `1e51cfa`+`b2ed64d` | Indexer heartbeat + timeouts (getBlockNumber 10 s / getLogs 15 s / cycle 20 s / webhooks AbortController 15 s) | hang 25 min résolu |
 | `cc68a42` | **`CONFIRMATIONS_REQUIRED=0`** — Pingala ne mine QUE si transactions : bloc de tête orphelin avec confirmations≥1 (OfferCreated 1 h non traitée, bloc 50) | marketplace chaînée ✓ |
 | `91dadbd` | **Bots prod** (4 comptes fondés+enrôlés) + **service batch-processor compose** + **migration bet_amount decimal(18,8)** (8,2 tronquait 0.0004→0) + **LeavePoolController** + bouton UI + i18n ×6 | FIGHTS=7 en bêta |
+| `d7fa280` | **Airdrop de bienvenue (faucet 50 TST one-shot)** : `FaucetController` + `POST /api/user/faucet-claim`, `ProcessFaucetJob` (flag posé seulement après transfert on-chain réussi), endpoint bridge `/faucet` (raw native transfer via `FAUCET_WALLET_PK`), config `economy.airdrop`, bouton UI + i18n ×6, migration `has_received_airdrop`/`airdrop_tx_hash` | ⚠️ NON DÉPLOYÉ (faucet non financé) |
 
 ## 6. BUGS CONNUS NON CORRIGÉS
 
@@ -92,6 +92,7 @@ Rôles Battlepool : **owner/deployer** `0xD62909EAD1cbE35d5A7BD145f00530Fd574763
 - Wrapper `BP-FATAL` exit du deploy est un **faux positif** (healthcheck compose v5.6) — le déploiement Réussit. Vérifier en lisant « DEPLOY COMPLETE » et `docker exec` du bundle SERVI.
 - Tests phpunit : 117 passent ; échecs restants pré-existants hors périmètre (Auth/Profile/Ipfs/SessionPayout + 5 métier).
 - **Bouton Leave pool** : NON testé utilisateur (endpoint déployé, UI déployée). À valider par testeur avant de le considérer stable.
+- **Airdrop faucet** : implémenté + commité (`d7fa280`) mais **le portefeuille faucet `0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee` (owner/deployer, 5.01 TST) n'est pas financé à 50 TST**. Sans financement, le transfert natif échoue (`insufficient funds`). À financer AVANT tout test. Le deployer étant déjà l'owner du contrat, réutiliser sa clé comme faucet est un choix à valider (découplage hot/cold recommandé : créer une clé faucet DÉDIÉE).
 
 ## 7. PIÈGES OPÉRATOIRE (les morts de la session)
 
@@ -121,6 +122,7 @@ Le bandeau « Switch Network » de Core apparaît jusqu'à ce qu'il ait **mémor
 
 ## 9. CHANTIERS PROCHAINS (ordre recommandé)
 
+0. **Financer le faucet airdrop** (prérequis test `d7fa280`) : injecter ≥50 TST dans `0xD62909…63Ee` (ou créer une clé faucet dédiée via `FAUCET_WALLET_PK`). Puis déployer `d7fa280` et tester le claim one-shot.
 1. **Tester Leave pool** (bug connu n°4) + **feedback marketplace instantané** (bug n°2).
 2. **Pool size 5 en prod** (config/pool.php `size [2]` est local-only) + vérifier que les bots/humains partagent bien les pools on-chain (`addSingleUserToPool` maxSize 5 vs pool DB size 2 — cohérence à arbitrer).
 3. **Rattrapage UX** : bouton 🐞 à retirer de la prod finale, instrumentation `[Business]` à garder (dérivée en `debugLog` silencieux).
