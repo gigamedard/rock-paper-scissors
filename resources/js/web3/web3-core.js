@@ -323,6 +323,7 @@ async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 1
     const start = Date.now();
     return new Promise((resolve, reject) => {
         let _pollCount = 0;
+        let _helpShown = false;
         const poll = () => {
             _pollCount++;
             const now = Date.now();
@@ -339,6 +340,19 @@ async function _waitForAppKitConnection(appKit, universalProvider, timeoutMs = 1
                 if (_pollCount > 2) console.info('[Web3WC] session capturée après', _pollCount, 'polls', { ms: Date.now() - start });
                 resolve(addr);
                 return;
+            }
+            // Aide contextuelle mobile : après 30 s sans session, suggère
+            // l'enrôlement Pingala dans Core (cause fréquente du rejet).
+            if (!appKit && !_helpShown && now - start > 30000) {
+                _helpShown = true;
+                try {
+                    const t = window.t || ((k) => k);
+                    const origShow = window.showToast;
+                    if (origShow) {
+                        origShow(t('onb.banner_msg') + ' → ' + t('onb.banner_action'), 'warn', 8000);
+                    }
+                    console.info('[Web3WC] 30 s sans session : ouverture du helper onboarding suggérée');
+                } catch (e) { /* noop */ }
             }
             // Modal fermée par l'utilisateur sans connexion → annulation.
             // (flux desktop uniquement — le flux mobile n'a pas de modal)

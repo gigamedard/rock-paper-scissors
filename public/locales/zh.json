@@ -4,8 +4,26 @@
     "marketplace": "市场",
     "referral": "推荐",
     "influencer": "VIP",
+    "onboarding": "添加 Core",
     "refresh": "刷新",
     "disconnect": "断开连接"
+  },
+  "onb": {
+    "title": "将 Pingala 添加到 Core",
+    "subtitle": "Core 在批准 WalletConnect 会话前需要先知道网络。请按照以下步骤操作。",
+    "qr_title": "在 Core 中扫码",
+    "qr_hint": "Core → 网络 → 添加网络 → 扫描此二维码。",
+    "copy_title": "或复制每个值",
+    "steps_title": "手动步骤",
+    "step1": "在手机上打开 Core Wallet。",
+    "step2": "进入 <b>设置 (⚙️)</b> → <b>网络</b> → <b>添加网络</b>。",
+    "step3": "扫描二维码 <i>或</i> 逐个填入下方值。",
+    "step4": "保存。Pingala Chain 出现在网络列表中。",
+    "step5": "回到此处点击 <b>继续</b> — WalletConnect 启动。",
+    "btn_auto": "自动添加到 Core",
+    "btn_done": "已添加 Pingala → 继续",
+    "banner_msg": "尚未连接？",
+    "banner_action": "将 Pingala 添加到 Core →"
   },
   "network": {
     "add": "⊕ 网络",

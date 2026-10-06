@@ -11,6 +11,7 @@ const routes = {
     '#/marketplace':  'marketplace-page',
     '#/referral':     'referral-dashboard-page',
     '#/influencer':   'influencer-dashboard-page',
+    '#/onboarding':   'onboarding-core-page',
 };
 
 // Map page-id -> display CSS approprié
@@ -19,6 +20,7 @@ const pageDisplay = {
     'marketplace-page':         'block',
     'referral-dashboard-page':  'block',
     'influencer-dashboard-page':'block',
+    'onboarding-core-page':     'block',
 };
 
 export function initRouter() {

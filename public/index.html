@@ -90,6 +90,11 @@
 
         <!-- ===== PAGE: ARÈNE (ancienne page principale) ===== -->
         <div id="autoplay-page" class="page active">
+            <!-- ===== Bandeau d'enrôlement Core (invisible si déjà onboardé) ===== -->
+            <a href="#/onboarding" class="onb-banner" id="onb-banner-autoplay">
+                <span>📘</span><b data-i18n="onb.banner_msg">Not connected yet?</b>
+                <span data-i18n="onb.banner_action">Add Pingala to Core →</span>
+            </a>
             <!-- ===== BANDEAU STATS PUBLICS (LIVE) ===== -->
             <div id="live-stats-band" style="background: rgba(15,12,27,0.65); border: 1px solid rgba(123,44,191,0.35); border-radius: 10px; padding: 0.8rem 1rem; margin: 0 auto 1.2rem; max-width: 1000px; font-family: var(--font-body);">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem 1.5rem;">
@@ -357,6 +362,62 @@
             <div style="text-align: center; padding: 4rem;">
                 <h1 data-i18n="influencer.title">Influencer Dashboard</h1>
                 <p data-i18n="influencer.loading_vip">Loading VIP assets...</p>
+            </div>
+        </div>
+
+        <!-- ===== PAGE: ONBOARDING CORE WALLET (Ajout manuel Pingala) ===== -->
+        <div id="onboarding-core-page" class="page" style="display:none;">
+            <div class="onb-wrap">
+                <div class="onb-hero">
+                    <h1 data-i18n="onb.title">Add Pingala Chain to Core</h1>
+                    <p class="onb-sub" data-i18n="onb.subtitle">Core needs the network in its settings before approving WalletConnect sessions. Follow the steps below.</p>
+                </div>
+                <div class="onb-grid">
+                    <div class="onb-card">
+                        <h3 data-i18n="onb.qr_title">Scan from Core</h3>
+                        <p class="onb-hint" data-i18n="onb.qr_hint">Open Core → Networks → Add Network → scan this QR.</p>
+                        <img data-onboarding-qr alt="Pingala Chain QR" class="onb-qr" loading="lazy" />
+                    </div>
+                    <div class="onb-card">
+                        <h3 data-i18n="onb.copy_title">Or copy each value</h3>
+                        <ul class="onb-fields">
+                            <li class="onb-field">
+                                <span class="onb-label">Network name</span>
+                                <code>Pingala Chain</code>
+                                <button type="button" class="onb-copy" data-copy="chainName">Copy</button>
+                            </li>
+                            <li class="onb-field">
+                                <span class="onb-label">RPC URL</span>
+                                <code class="onb-code-long">https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc</code>
+                                <button type="button" class="onb-copy" data-copy="rpcUrl">Copy</button>
+                            </li>
+                            <li class="onb-field">
+                                <span class="onb-label">Chain ID</span>
+                                <code>99999</code>
+                                <button type="button" class="onb-copy" data-copy="chainIdDec">Copy</button>
+                            </li>
+                            <li class="onb-field">
+                                <span class="onb-label">Currency symbol</span>
+                                <code>TST</code>
+                                <button type="button" class="onb-copy" data-copy="symbol">Copy</button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="onb-steps">
+                    <h3 data-i18n="onb.steps_title">Manual steps</h3>
+                    <ol>
+                        <li data-i18n="onb.step1">Open Core Wallet on your phone.</li>
+                        <li data-i18n="onb.step2">Go to <b>Settings (⚙️)</b> → <b>Networks</b> → <b>Add Network</b> (manual).</li>
+                        <li data-i18n="onb.step3">Scan the QR code on the left <i>or</i> enter each value (Copy buttons above).</li>
+                        <li data-i18n="onb.step4">Save. The Pingala Chain entry now appears in your network list.</li>
+                        <li data-i18n="onb.step5">Come back here and tap <b>Continue</b> below — BattlePool will connect with WalletConnect.</li>
+                    </ol>
+                </div>
+                <div class="onb-cta">
+                    <button type="button" class="onb-auto" data-onboarding-auto data-i18n="onb.btn_auto">Add to Core automatically</button>
+                    <button type="button" class="onb-done" data-onboarding-done data-i18n="onb.btn_done">I have added Pingala → Continue</button>
+                </div>
             </div>
         </div>
 

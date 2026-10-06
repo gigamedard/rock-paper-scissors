@@ -4,8 +4,26 @@
     "marketplace": "Marché",
     "referral": "Parrainage",
     "influencer": "VIP",
+    "onboarding": "Add Core",
     "refresh": "Rafraîchir",
     "disconnect": "Déconnexion"
+  },
+  "onb": {
+    "title": "Ajouter Pingala à Core",
+    "subtitle": "Core doit connaître le réseau avant d'approuver les sessions WalletConnect. Suivez ces étapes.",
+    "qr_title": "Scannez depuis Core",
+    "qr_hint": "Core → Réseaux → Ajouter un réseau → Scannez ce QR.",
+    "copy_title": "Ou copiez chaque valeur",
+    "steps_title": "Étapes manuelles",
+    "step1": "Ouvrez Core Wallet sur votre téléphone.",
+    "step2": "Allez dans <b>Réglages (⚙️)</b> → <b>Networks</b> → <b>Add Network</b>.",
+    "step3": "Scannez le QR ci-dessus <i>ou</i> saisissez chaque valeur.",
+    "step4": "Sauvegardez. Pingala Chain apparaît dans la liste.",
+    "step5": "Revenez ici et cliquez <b>Continuer</b> — la connexion WalletConnect démarre.",
+    "btn_auto": "Ajouter à Core automatiquement",
+    "btn_done": "J'ai ajouté Pingala → Continuer",
+    "banner_msg": "Pas encore connecté ?",
+    "banner_action": "Ajouter Pingala à Core →"
   },
   "network": {
     "add": "⊕ Réseau",

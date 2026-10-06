@@ -14,6 +14,7 @@ import { initPWA } from './core/pwa.js';
 import { showToast } from './core/toast.js';
 import { addPingalaNetwork } from './web3/web3-core.js';
 import { initDebugLog, debugLog } from './modules/debug-log.js';
+import { initOnboardingCore } from './modules/onboarding-core.js';
 
 // ===== ÉTAT GLOBAL =====
 window.userState = {
@@ -46,6 +47,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // l'utilisateur transmet les logs depuis l'iPhone pour le debug à distance.
     initDebugLog();
     debugLog('APP', 'DOMContentLoaded Battlepool SPA');
+    // 0 ter. Onboarding Core Wallet (ajout manuel de Pingala) : handlers
+    // copier + QR + auto-add. Initialisé tôt pour les nouveaux utilisateurs.
+    initOnboardingCore();
 
     // 1. Internationalisation (doit être en premier pour traduire le DOM)
     await initI18n();
