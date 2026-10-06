@@ -228,7 +228,7 @@
     "auth_missing": "Non connecté. Veuillez lier votre portefeuille d'abord.",
     "wallet_required": "Aucun wallet détecté ! Installe MetaMask ou Core Wallet, ou utilise WalletConnect.",
     "wallet_app_required": "Ouverture de Core Wallet…",
-    "sign_in_wallet": "Signature demandée : Core va s'ouvrir pour signer.",
+    "sign_in_wallet": "Core s'ouvre : si un popup « Switch Network » apparaît, choisissez Pingala Chain, puis Signez.",
     "approve_confirm_wallet": "Confirmation dans ton wallet…",
     "btn": "Connecter Wallet"
   }

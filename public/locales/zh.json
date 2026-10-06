@@ -228,7 +228,7 @@
     "auth_missing": "未登录。请先连接您的钱包。",
     "wallet_required": "未检测到钱包！请安装 MetaMask 或 Core Wallet，或使用 WalletConnect。",
     "wallet_app_required": "正在打开 Core Wallet…",
-    "sign_in_wallet": "已请求签名：Core 将打开供您签名。",
+    "sign_in_wallet": "Core 即将打开：若弹出「Switch Network」窗口，请选择 Pingala Chain，然后签名。",
     "approve_confirm_wallet": "在你的钱包中确认…",
     "btn": "连接钱包"
   }
