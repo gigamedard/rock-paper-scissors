@@ -174,6 +174,26 @@ function _buildDeeplink(walletKey, uri) {
 }
 
 /**
+ * Ré-ouvrir le wallet (deeplink natif) pour que l'utilisateur voie une demande
+ * entrante (personal_sign…). PREUVE (journal 2026-10-06) : après approbation
+ * de session, l'utilisateur revient sur Safari — le personal_sign arrive dans
+ * Core pendant ce temps et n'est JAMAIS vu → « je ne suis pas connecté ».
+ * Pattern WC mobile officiel (« redirect to wallet on request »).
+ * ⚠️ Ne déclencher qu'à partir de l'interaction utilisateur (clic) — un
+ * deeplink programmé sans geste est bloqué par Safari.
+ * @param {string} [walletKey='core'] cible du deeplink
+ */
+export function reopenWalletForSigning(walletKey = 'core') {
+    const d = WALLET_DEEPLINKS[walletKey] || WALLET_DEEPLINKS.core;
+    let opened = false;
+    const onHide = () => { opened = true; };
+    document.addEventListener('visibilitychange', onHide, { once: true });
+    window.addEventListener('pagehide', onHide, { once: true });
+    window.location.href = d.native;
+    setTimeout(() => { /* noop — scheme ignoré éventuellement */ }, 1000);
+}
+
+/**
  * Erreur sémantique : l'utilisateur a fermé la modal sans se connecter.
  * (Ne DOIT PAS déclencher le fallback legacy — l'UI est déjà affichée.)
  */
@@ -385,22 +405,27 @@ export async function connectWalletMobile(walletKey = 'core') {
     }
 
     // Hook standard du SDK : l'URI de pairing arrive via display_uri.
+    // ANTI-ZOMBIE : _lastWcUri peut contenir l'URI d'un pairing PRÉCÉDENT
+    // (preuve journal 2026-10-06 : le deeplink de 10:43 a réutilisé l'URI de
+    // 10:42 → Core reçoit un pairing déjà consommé → session jamais posée).
+    // On n'accepte que les URI émises APRÈS le début de CE flux.
+    const startedAt = Date.now();
+    _lastWcUri = null;
     const uriPromise = new Promise((resolve) => {
         const handler = (uri) => {
             if (uri) {
                 _lastWcUri = uri;
-                try { provider.events?.once?.('disconnect', () => {}); } catch (e) { /* noop */ }
                 resolve(uri);
             }
         };
         try { provider.on('display_uri', handler); } catch (e) {
             // certains builds : l'event est déjà consommé par AppKit → fallback poll
         }
-        // Filet : certains builds émettent AVANT qu'on s'abonne — poll l'URI.
-        const t0 = Date.now();
+        // Filet : l'event peut arriver avant l'abonnement — poll SANS jamais
+        // résoudre avec une URI d'un flux précédent.
         const pollUri = () => {
             if (_lastWcUri) { resolve(_lastWcUri); return; }
-            if (Date.now() - t0 > 15000) { resolve(null); return; }
+            if (Date.now() - startedAt > 15000) { resolve(null); return; }
             setTimeout(pollUri, 250);
         };
         setTimeout(pollUri, 300);
@@ -516,6 +541,26 @@ function _getRawProvider() {
 }
 
 /**
+ * Vrai si la connexion active passe par WalletConnect (pas par un wallet
+ * injecté). Utilisé par auth.js pour décider s'il faut ré-ouvrir le wallet
+ * avant la signature du challenge (sur mobile, le personal_sign arrive dans
+ * l'app wallet pendant que l'utilisateur regarde Safari — preuve 2026-10-06).
+ * @returns {boolean}
+ */
+export function isWalletConnectActive() {
+    if (typeof window.ethereum !== 'undefined') return false; // wallet injecté prioritaire
+    return Boolean(_walletConnectProvider || _activeWcSource);
+}
+
+/**
+ * Adresse de la session WC active (null si session absente).
+ * @returns {string|null}
+ */
+export function getWcSessionAddress() {
+    return _getSessionAddress(_walletConnectProvider);
+}
+
+/**
  * BOUTON « AJOUTER TOUS MES RÉSEAUX » (demande initiale du projet).
  * Basculer le wallet vers Pingala Chain ; si la chaîne est inconnue du wallet
  * (erreurs 4902 / 4900), la proposer via wallet_addEthereumChain.
@@ -590,9 +635,15 @@ export async function ensurePingalaNetwork() {
     }
 
     // Déjà sur la bonne chaîne ? (aucune popup dans ce cas)
+    // NORMALISATION : eth_chainId peut retourner '0x1869f' (hex) OU 99999
+    // (décimal) selon le Provider (journal 2026-10-06 : WC retourne décimal →
+    // comparaison hex/décimal cassée → double switch → « Transaction Failed »
+    // côté Core sur demande redondante).
     try {
         const currentChainId = await provider.request({ method: 'eth_chainId' });
-        if (currentChainId === PRANA_NETWORK.chainIdHex) {
+        const current = typeof currentChainId === 'string' ? parseInt(currentChainId, 16) : Number(currentChainId);
+        const target = Number(PRANA_NETWORK.chainId);
+        if (current === target) {
             return true;
         }
         console.warn(`[Web3] Chaîne actuelle (${currentChainId}) ≠ Pingala (${PRANA_NETWORK.chainIdHex}) → switch requis.`);

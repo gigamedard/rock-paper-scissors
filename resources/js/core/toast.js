@@ -40,6 +40,7 @@ let _toastSeq = 0;
 
 function showToast(message, type = 'info', ms = 4000) {
     if (message === null || message === undefined || message === '') return;
+    try { window._bpDebugLogHook?.('TOAST', `${type}: ${message}`); } catch (e) { /* noop */ }
     const container = ensureToastContainer();
     const style = TOAST_STYLES[type] || TOAST_STYLES.info;
     const id = 'bp-toast-' + (++_toastSeq);

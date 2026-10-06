@@ -28,12 +28,14 @@ export function debugLog(tag, message) {
 
 // — Capture des sources ————————————————————————————————————————————
 
-// (1) Toasts (le flux WC les émet : « Connect to Battle Pool », Transaction Failed…)
+// (1) Toasts : hook exposé aux modules (toast.js appelle _bpDebugLogHook).
+// Le wrapper window.showToast reste pour les appels inline HTML.
 const _origToast = window.showToast;
 window.showToast = function (message, type, ms) {
     try { debugLog('TOAST', `${type || 'info'}: ${message}`); } catch (e) { /* noop */ }
     return _origToast ? _origToast(message, type, ms) : undefined;
 };
+window._bpDebugLogHook = debugLog;
 
 // (2) Erreurs JS globales
 window.addEventListener('error', (ev) => {
@@ -47,8 +49,8 @@ window.addEventListener('unhandledrejection', (ev) => {
     debugLog('PROMISE', why);
 }, true);
 
-// (3) Console (log/warn/error) — log les appels existants ([Web3] …)
-for (const lvl of ['log', 'warn', 'error']) {
+// (3) Console (log/warn/error/info) — capture [Web3…] [Web3Mobile] [Web3WC] [Auth]…
+for (const lvl of ['log', 'warn', 'error', 'info']) {
     const orig = console[lvl].bind(console);
     console[lvl] = (...args) => {
         try {

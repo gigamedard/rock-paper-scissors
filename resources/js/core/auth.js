@@ -1,5 +1,5 @@
 // resources/js/core/auth.js
-import { getProvider, getSigner, resetProvider, ensurePingalaNetwork } from '../web3/web3-core.js';
+import { getProvider, getSigner, resetProvider, ensurePingalaNetwork, isWalletConnectActive, getWcSessionAddress, reopenWalletForSigning } from '../web3/web3-core.js';
 import { secureFetch } from './api.js';
 import { t } from '../modules/i18n.js';
 import { showToast } from './toast.js';
@@ -41,6 +41,22 @@ export function parseRpcError(error) {
 }
 
 export async function connectWallet(providerType = 'injected') {
+    // SESSION WC DÉJÀ ACTIVE (preuve journal 2026-10-06) : après approbation
+    // dans Core, l'utilisateur re-clique Connect Wallet (croyant ne pas être
+    // connecté) → resetProvider() tuait la session fraîchement approuvée →
+    // boucle infinie. Si une session WC porte une adresse, on la réutilise
+    // directement pour finir l'auth (challenge/signature/verify).
+    if (providerType === 'injected' && typeof window.ethereum === 'undefined' && isWalletConnectActive()) {
+        try {
+            const wcAddr = getWcSessionAddress();
+            if (wcAddr) {
+                console.info('[Auth] session WC déjà active → réutilisation directe pour', wcAddr);
+                return _authenticateWithAddress(wcAddr, 'walletconnect');
+            }
+        } catch (e) {
+            console.warn('[Auth] réutilisation session WC échouée → flux complet :', e?.message);
+        }
+    }
     if (providerType === 'injected' && typeof window.ethereum === 'undefined') {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         if (isMobile) {
@@ -85,21 +101,50 @@ export async function connectWallet(providerType = 'injected') {
                 console.warn('[Auth] Switch Pingala non abouti :', networkError);
             }
         }
+        return await _authenticateWithAddress(walletAddress, providerType);
+    } catch (error) {
+        console.error("[Auth] Échec :", error);
+        showToast(t('errors.auth_failed') + ' ' + parseRpcError(error), 'error');
+        return false;
+    }
+}
+
+/**
+ * Corps d'authentification partagé : challenge → signature → verify → session.
+ * Appelé depuis connectWallet (flux complet) et depuis la réutilisation de
+ * session WC existante (sans reconnecter le wallet).
+ * @param {string} walletAddress
+ * @param {string} providerType 'injected' | 'walletconnect'
+ * @returns {Promise<boolean>} true si la session backend est posée
+ */
+async function _authenticateWithAddress(walletAddress, providerType) {
+    try {
         // 1. Get Challenge
         const challengeRes = await fetch('/api/wallet/generate-message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify({ wallet_address: walletAddress })
         });
-        
+
         const challengeData = await challengeRes.json();
         if (!challengeRes.ok) {
             throw new Error("Erreur de connexion au serveur. Veuillez réessayer.");
         }
-        
+
         const message = challengeData.message;
 
         // 2. Sign Challenge
+        // MOBILE WC (preuve journal 2026-10-06) : après approbation de session,
+        // l'utilisateur revient dans Safari — le personal_sign arrive dans Core
+        // et n'est jamais vu → il croit n'est pas connecté et re-clique (chaque
+        // re-clic tuant la session → boucle). On ré-ouvre le wallet juste
+        // avant la signature (pattern WC officiel « redirect on request ») —
+        // uniquement pour le chemin WC (le chemin injecté affiche nativement).
+        if (providerType === 'walletconnect' || isWalletConnectActive()) {
+            console.info('[Auth] WC actif → ré-ouverture de Core pour la signature…');
+            reopenWalletForSigning('core');
+        }
+        const signer = await getSigner(providerType === 'walletconnect' ? 'walletconnect' : 'injected');
         const signature = await signer.signMessage(message);
 
         // 3. Verify Signature
@@ -112,15 +157,15 @@ export async function connectWallet(providerType = 'injected') {
                 locale: localStorage.getItem('user_locale') || 'en'
             })
         });
-        
+
         const data = await verifyRes.json();
-        
+
         if (!verifyRes.ok) throw new Error(data.message || "Erreur serveur.");
 
         // Persist session
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('auth_token', data.token);
-        
+
         window.userState = {
             id: data.user.id,
             walletAddress: data.user.wallet_address || walletAddress,
@@ -129,13 +174,13 @@ export async function connectWallet(providerType = 'injected') {
         };
 
         console.log("✅ Authentifié avec succès :", window.userState.walletAddress);
-        
+
         // Dispatch custom event for successful login (Echo initialization etc.)
         window.dispatchEvent(new CustomEvent('auth:success', { detail: data.user }));
-        
+
         return true;
     } catch (error) {
-        console.error("[Auth] Échec :", error);
+        console.error("[Auth] Échec (auth par adresse) :", error);
         showToast(t('errors.auth_failed') + ' ' + parseRpcError(error), 'error');
         return false;
     }
