@@ -1,4 +1,4 @@
-{
+﻿{
   "nav": {
     "arena": "竞技场",
     "marketplace": "市场",
@@ -175,7 +175,8 @@
   },
   "claim": {
     "title": "会话完成 - 奖励已准备好",
-    "btn": "领取并提取到钱包"
+    "btn": "领取并提取到钱包",
+    "leave_pool": "退出匹配池"
   },
   "influencer": {
     "title": "VIP 仪表板",

@@ -742,6 +742,16 @@ export function updateUI() {
                 }
                 showCombatOverlay("COMBAT IN PROGRESS");
             }
+
+            // ── Bouton LEAVE POOL (sortie volontaire) : visible quand le
+            // joueur est bloqué dans une pool (in_pool/waiting, pas en combat)
+            // ou a des fonds stables à récupérer hors combat.
+            const leaveBtn = document.getElementById('leave-pool-btn');
+            if (leaveBtn) {
+                const canLeave = ['in_pool', 'waiting'].includes(window.userState.status)
+                    || (window.userState.status === 'in_fight' ? false : (parseFloat(window.userState.balance) > 0 && !gameState.pendingClaim));
+                leaveBtn.style.display = canLeave ? 'block' : 'none';
+            }
         }
     }
 }

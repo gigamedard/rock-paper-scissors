@@ -4,26 +4,8 @@
     "marketplace": "Mercado",
     "referral": "Referidos",
     "influencer": "VIP",
-    "onboarding": "Add Core",
     "refresh": "Actualizar",
     "disconnect": "Desconectar"
-  },
-  "onb": {
-    "title": "Añadir Pingala a Core",
-    "subtitle": "Core debe conocer la red antes de aprobar sesiones WalletConnect. Sigue estos pasos.",
-    "qr_title": "Escanea desde Core",
-    "qr_hint": "Core → Redes → Añadir red → escanea este QR.",
-    "copy_title": "O copia cada valor",
-    "steps_title": "Pasos manuales",
-    "step1": "Abre Core Wallet en tu teléfono.",
-    "step2": "Ve a <b>Ajustes (⚙️)</b> → <b>Redes</b> → <b>Añadir red</b>.",
-    "step3": "Escanea el QR <i>o</i> introduce cada valor.",
-    "step4": "Guarda. Pingala Chain aparece en la lista.",
-    "step5": "Vuelve y pulsa <b>Continuar</b> — WalletConnect empieza.",
-    "btn_auto": "Añadir a Core automáticamente",
-    "btn_done": "He añadido Pingala → Continuar",
-    "banner_msg": "¿Aún no conectado?",
-    "banner_action": "Añadir Pingala a Core →"
   },
   "network": {
     "add": "⊕ Red",
@@ -174,8 +156,9 @@
     "copied": "¡Copiado!"
   },
   "claim": {
-    "title": "SESIÓN COMPLETA - RECOMPENSAS LISTAS",
-    "btn": "RECLAMAR Y RETIRAR A LA BILLETERA"
+    "title": "SESION COMPLETA - RECOMPENSAS LISTAS",
+    "btn": "RECLAMAR Y RETIRAR A LA BILLETERA",
+    "leave_pool": "Salir de la pool"
   },
   "influencer": {
     "title": "Panel VIP",

@@ -66,6 +66,7 @@ Route::middleware('token.auth')->group(function () {
     Route::post('/pre-moves', [PoolAutoMatchController::class, 'storePremoves']);       // Alias for debug-test.html
     Route::get('/user/status', [PoolAutoMatchController::class, 'getPollingStatus']);  // Alias for debug-test.html
     Route::post('/ipfs/upload', [\App\Http\Controllers\IpfsController::class, 'upload']);
+    Route::post('/user/leave-pool', [\App\Http\Controllers\LeavePoolController::class, 'leave']);
     
     // Broadcasting Auth using our custom token authentication (Allow GET and POST to avoid 405)
     Route::match(['get', 'post'], '/broadcasting/auth', function (Request $request) {

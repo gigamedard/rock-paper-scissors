@@ -174,8 +174,9 @@
     "copied": "Copied!"
   },
   "claim": {
-    "title": "SESSION COMPLETE - REWARDS READY",
-    "btn": "CLAIM & WITHDRAW TO WALLET"
+    "title": "SESSION COMPLETE - GAINS DISPONIBLES",
+    "btn": "RÉCLAMER & RETIRER VERS WALLET",
+    "leave_pool": "🚪 Leave pool"
   },
   "influencer": {
     "title": "Influencer Dashboard",

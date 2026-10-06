@@ -1,4 +1,4 @@
-{
+﻿{
   "nav": {
     "arena": "Arena",
     "marketplace": "Marktplatz",
@@ -175,7 +175,8 @@
   },
   "claim": {
     "title": "SITZUNG ABGESCHLOSSEN - BELOHNUNGEN BEREIT",
-    "btn": "BEANSPRUCHEN & AUSZAHLEN"
+    "btn": "BEANSPRUCHEN & AUSZAHLEN",
+    "leave_pool": "Pool verlassen"
   },
   "influencer": {
     "title": "VIP-Dashboard",

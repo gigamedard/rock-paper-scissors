@@ -97,6 +97,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         disconnectBtn.addEventListener('click', () => logout());
     }
 
+    // Bouton « 🚪 Leave pool » (sortie volontaire, stake remboursé via bridge)
+    const leavePoolBtn = document.getElementById('leave-pool-btn');
+    if (leavePoolBtn) {
+        leavePoolBtn.addEventListener('click', async () => {
+            leavePoolBtn.disabled = true;
+            const orig = leavePoolBtn.textContent;
+            try {
+                const { secureFetch } = await import('./core/api.js');
+                const res = await secureFetch('/user/leave-pool', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) {
+                    showToast(data.error || 'Échec de la sortie', 'error');
+                    return;
+                }
+                showToast(data.message || 'Pool quittée', 'success', 5000);
+                window.dispatchEvent(new CustomEvent('app:refresh'));
+            } catch (e) {
+                showToast('Erreur : ' + (e.message || e), 'error');
+            } finally {
+                leavePoolBtn.disabled = false;
+                leavePoolBtn.textContent = orig;
+            }
+        });
+    }
+
     // Bouton « ⊕ Réseau » : ajoute/active Pingala Chain dans le wallet injecté
     // (wallet_switchEthereumChain, puis wallet_addEthereumChain sur 4902/4900).
     // Même pattern de binding que les boutons ci-dessus (pas d'onclick inline).

@@ -174,8 +174,9 @@
     "copied": "Copié !"
   },
   "claim": {
-    "title": "SESSION COMPLÈTE - GAINS DISPONIBLES",
-    "btn": "RÉCLAMER & RETIRER VERS WALLET"
+    "title": "SESSION COMPLETE - GAINS DISPONIBLES",
+    "btn": "RÉCLAMER & RETIRER VERS WALLET",
+    "leave_pool": "🚪 Quitter la pool"
   },
   "influencer": {
     "title": "Dashboard Influenceur",
