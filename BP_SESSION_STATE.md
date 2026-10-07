@@ -83,6 +83,7 @@ Rôles Battlepool : **owner/deployer** `0xD62909EAD1cbE35d5A7BD145f00530Fd574763
 | `cc68a42` | **`CONFIRMATIONS_REQUIRED=0`** — Pingala ne mine QUE si transactions : bloc de tête orphelin avec confirmations≥1 (OfferCreated 1 h non traitée, bloc 50) | marketplace chaînée ✓ |
 | `91dadbd` | **Bots prod** (4 comptes fondés+enrôlés) + **service batch-processor compose** + **migration bet_amount decimal(18,8)** (8,2 tronquait 0.0004→0) + **LeavePoolController** + bouton UI + i18n ×6 | FIGHTS=7 en bêta |
 | `d7fa280` | **Airdrop de bienvenue (faucet 50 TST one-shot)** : `FaucetController` + `POST /api/user/faucet-claim`, `ProcessFaucetJob` (flag posé seulement après transfert on-chain réussi), endpoint bridge `/faucet` (raw native transfer via `FAUCET_WALLET_PK`), config `economy.airdrop`, bouton UI + i18n ×6, migration `has_received_airdrop`/`airdrop_tx_hash` | ⚠️ NON DÉPLOYÉ (faucet non financé) |
+| `b3a494b` | **UX mobile responsive** (Android/iPhone) : header débordant à 473px sur 360px (boutons WalletConnect rognés par `overflow-x:hidden`), modale langue `100vw/100vh` mal centrée, absence `100dvh`/`env(safe-area-inset-*)`. Fixes : header wrap+safe-area, `#wallet-section`/`#connection-buttons` `min-width:0`, `#add-network-btn` masqué mobile, overlays `100dvh`, grille langue auto-fit, clamps inline, `min-width:0`/`overflow-wrap:anywhere` modules CSS | headless Chromium : overflowX=0 @320/360/414px, desktop intact |
 
 ## 6. BUGS CONNUS NON CORRIGÉS
 
@@ -92,6 +93,7 @@ Rôles Battlepool : **owner/deployer** `0xD62909EAD1cbE35d5A7BD145f00530Fd574763
 - Wrapper `BP-FATAL` exit du deploy est un **faux positif** (healthcheck compose v5.6) — le déploiement Réussit. Vérifier en lisant « DEPLOY COMPLETE » et `docker exec` du bundle SERVI.
 - Tests phpunit : 117 passent ; échecs restants pré-existants hors périmètre (Auth/Profile/Ipfs/SessionPayout + 5 métier).
 - **Bouton Leave pool** : NON testé utilisateur (endpoint déployé, UI déployée). À valider par testeur avant de le considérer stable.
+- **UX mobile** : corrigée statiquement + validée headless (`b3a494b`), mais **NON validée sur appareil réel** (Android physique + iPhone 11). Le correctif n'a pas été déployé. Points restant à confirmer sur vrai terminal : encoche/barre système Android, clavier virtuel (champs de saisie), rotations, et les vue marketplace/referral/influencer en conditions réelles.
 - **Airdrop faucet** : implémenté + commité (`d7fa280`) mais **le portefeuille faucet `0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee` (owner/deployer, 5.01 TST) n'est pas financé à 50 TST**. Sans financement, le transfert natif échoue (`insufficient funds`). À financer AVANT tout test. Le deployer étant déjà l'owner du contrat, réutiliser sa clé comme faucet est un choix à valider (découplage hot/cold recommandé : créer une clé faucet DÉDIÉE).
 
 ## 7. PIÈGES OPÉRATOIRE (les morts de la session)
@@ -123,6 +125,7 @@ Le bandeau « Switch Network » de Core apparaît jusqu'à ce qu'il ait **mémor
 ## 9. CHANTIERS PROCHAINS (ordre recommandé)
 
 0. **Financer le faucet airdrop** (prérequis test `d7fa280`) : injecter ≥50 TST dans `0xD62909…63Ee` (ou créer une clé faucet dédiée via `FAUCET_WALLET_PK`). Puis déployer `d7fa280` et tester le claim one-shot.
+0bis. **Déployer + valider l'UX mobile** (`b3a494b`) : rebuild (app+reverb) + `npm run build` + grep bundle servi, puis test visuel sur Android réel et iPhone 11 (le headless ne remplace pas un écran physique).
 1. **Tester Leave pool** (bug connu n°4) + **feedback marketplace instantané** (bug n°2).
 2. **Pool size 5 en prod** (config/pool.php `size [2]` est local-only) + vérifier que les bots/humains partagent bien les pools on-chain (`addSingleUserToPool` maxSize 5 vs pool DB size 2 — cohérence à arbitrer).
 3. **Rattrapage UX** : bouton 🐞 à retirer de la prod finale, instrumentation `[Business]` à garder (dérivée en `debugLog` silencieux).
