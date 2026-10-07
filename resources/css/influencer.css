@@ -307,6 +307,22 @@
    RESPONSIVE MOBILE — INFLUENCER / VIP ARCADE
    ========================================================================== */
 @media (max-width: 768px) {
+    #influencer-dashboard-page,
+    #influencer-dashboard-page *,
+    .inf-pool-card,
+    .inf-pool-card *,
+    .inf-stat-mini,
+    .inf-stat-mini * {
+        min-width: 0;
+    }
+
+    .inf-pool-title h2,
+    .inf-lb-name,
+    .error-msg {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
     #influencer-dashboard-page {
         padding: 0.5rem 0.2rem;
     }

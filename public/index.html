@@ -77,8 +77,8 @@
         <div class="scanner-line"></div>
         <div class="hud-container fade-in" style="text-align: center;">
             <div class="battle-status-tag status-busy" style="margin-bottom: 2rem;" data-i18n="combat.in_progress">COMBAT IN PROGRESS</div>
-            <h2 id="combat-text" style="color: var(--primary); font-size: 3.5rem; text-shadow: 0 0 30px var(--primary); font-weight: 800;" data-i18n="combat.scanning">SCANNING...</h2>
-            <div class="combat-icons" style="font-size: 4rem; margin-top: 2rem;">
+            <h2 id="combat-text" style="color: var(--primary); font-size: clamp(1.8rem, 9vw, 3.5rem); text-shadow: 0 0 30px var(--primary); font-weight: 800;" data-i18n="combat.scanning">SCANNING...</h2>
+            <div class="combat-icons" style="font-size: clamp(2rem, 12vw, 4rem); margin-top: 2rem;">
                 <span class="clash-icon">🥊</span>
                 <span class="clash-icon">⚡</span>
                 <span class="clash-icon">🔥</span>
@@ -96,7 +96,7 @@
                 <span data-i18n="onb.banner_action">Add Pingala to Core →</span>
             </a>
             <!-- ===== BANDEAU STATS PUBLICS (LIVE) ===== -->
-            <div id="live-stats-band" style="background: rgba(15,12,27,0.65); border: 1px solid rgba(123,44,191,0.35); border-radius: 10px; padding: 0.8rem 1rem; margin: 0 auto 1.2rem; max-width: 1000px; font-family: var(--font-body);">
+            <div id="live-stats-band" style="background: rgba(15,12,27,0.65); border: 1px solid rgba(123,44,191,0.35); border-radius: 10px; padding: 0.8rem 1rem; margin: 0 auto 1.2rem; width: 100%; max-width: 1000px; font-family: var(--font-body);">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem 1.5rem;">
                     <span style="font-family: var(--font-heading); font-size: 0.7rem; letter-spacing: 2px; color: var(--text-dim); display: inline-flex; align-items: center; gap: 0.4rem;">
                         <span class="live-indicator" style="width: 8px; height: 8px; margin: 0;"></span>
@@ -112,13 +112,13 @@
                 </div>
                 <div id="fight-ticker" style="display: none; overflow: hidden; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: var(--text-dim); white-space: nowrap;"></div>
             </div>
-            <div id="view-disconnected" class="card" style="text-align: center; margin-top: 5rem;">
-                <h1 style="font-size: 3rem; margin-bottom: 1rem;" data-i18n="connect.title">Ready to Fight?</h1>
+            <div id="view-disconnected" class="card" style="text-align: center; margin-top: clamp(2rem, 8vh, 5rem);">
+                <h1 style="font-size: clamp(1.8rem, 10vw, 3rem); margin-bottom: 1rem;" data-i18n="connect.title">Ready to Fight?</h1>
                 <p style="color: var(--text-dim); margin-bottom: 2rem;" data-i18n="connect.subtitle">Connect your wallet to enter the arena and start your session.</p>
-                <button class="btn-primary" id="enter-arena-btn" style="padding: 1.5rem 3rem; font-size: 1.2rem;" data-i18n="connect.enter">ENTER THE ARENA</button>
+                <button class="btn-primary" id="enter-arena-btn" style="padding: 1rem; font-size: clamp(1rem, 4.5vw, 1.2rem);" data-i18n="connect.enter">ENTER THE ARENA</button>
             </div>
 
-            <div id="view-setup" class="card fade-in" style="display: none; max-width: 1000px; margin: 2rem auto;">
+            <div id="view-setup" class="card fade-in" style="display: none; width: 100%; max-width: 1000px; margin: 2rem auto;">
                 <h2 style="margin-bottom: 1rem; color: var(--primary);" data-i18n="setup.title">SYSTEM INITIALIZATION</h2>
                 <div class="setup-container">
                     <div>
@@ -195,7 +195,7 @@
                         <!-- Airdrop de bienvenue (une seule fois, 50 TST) -->
                         <button id="faucet-claim-btn" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem; display: none; background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.4); color: #7ce7ff; margin-bottom: 0.6rem;" data-i18n="faucet.claim_btn">🎁 RÉCLAMER 50 TST DE BIENVENUE</button>
 
-                        <button class="btn-primary" id="join-btn" style="width: 100%; padding: 1.5rem; font-size: 1.2rem; display: none;" data-i18n="dashboard.strategy">STRATEGY SETUP</button>
+                        <button class="btn-primary" id="join-btn" style="width: 100%; padding: 1rem; font-size: clamp(1rem, 4.5vw, 1.2rem); display: none;" data-i18n="dashboard.strategy">STRATEGY SETUP</button>
 
                         <!-- Quitter la pool (sortie volontaire, stake remboursé) -->
                         <button id="leave-pool-btn" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem; display: none; background: rgba(255,0,85,0.12); border: 1px solid rgba(255,0,85,0.4); color: #ff8fa8; margin-top: 0.6rem;" data-i18n="claim.leave_pool">🚪 Leave pool</button>

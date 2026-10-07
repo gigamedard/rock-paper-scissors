@@ -220,6 +220,23 @@
    RESPONSIVE MOBILE — REFERRAL ARCADE
    ========================================================================== */
 @media (max-width: 768px) {
+    #referral-dashboard-page,
+    #referral-dashboard-page *,
+    .ref-card-main,
+    .ref-card-main *,
+    .ref-card-side,
+    .ref-card-side * {
+        min-width: 0;
+    }
+
+    .ref-wallet,
+    .ref-empty,
+    .ref-card-main,
+    .ref-card-side {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
     #referral-dashboard-page {
         padding: 0.5rem 0.2rem;
     }
@@ -280,6 +297,9 @@
 
     .ref-wallet {
         font-size: 0.78rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .ref-rank {

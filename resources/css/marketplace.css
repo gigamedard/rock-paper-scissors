@@ -468,6 +468,28 @@
    RESPONSIVE MOBILE — MARKETPLACE ARCADE
    ========================================================================== */
 @media (max-width: 768px) {
+    #marketplace-page,
+    #marketplace-page *,
+    .mp-offer-card,
+    .mp-offer-card *,
+    .mp-create-panel,
+    .mp-create-panel * {
+        min-width: 0;
+    }
+
+    .mp-offer-card,
+    .mp-offer-meta,
+    .mp-seller,
+    .holo-card-title,
+    .mp-notification {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .mp-seller {
+        max-width: min(55%, 92vw);
+    }
+
     #marketplace-page {
         padding: 0.5rem 0.2rem;
     }
@@ -528,5 +550,15 @@
 
     .mp-offer-card {
         padding: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .mp-offer-amounts {
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    .mp-offer-actions {
+        width: 100%;
     }
 }

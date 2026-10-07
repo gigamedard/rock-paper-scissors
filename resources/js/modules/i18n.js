@@ -50,8 +50,12 @@ function promptLanguageSelection() {
         overlay.style.position = 'fixed';
         overlay.style.top = '0';
         overlay.style.left = '0';
-        overlay.style.width = '100vw';
+        overlay.style.width = '100%';
         overlay.style.height = '100vh';
+        overlay.style.height = '100dvh';
+        overlay.style.boxSizing = 'border-box';
+        overlay.style.overflowY = 'auto';
+        overlay.style.padding = 'calc(1rem + env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left))';
         overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
         overlay.style.backdropFilter = 'blur(10px)';
         overlay.style.zIndex = '999999';
@@ -63,23 +67,25 @@ function promptLanguageSelection() {
 
         const title = document.createElement('h1');
         title.textContent = 'Select your Language';
-        title.style.marginBottom = '30px';
+        title.style.maxWidth = '100%';
+        title.style.textAlign = 'center';
+        title.style.marginBottom = '20px';
         title.style.fontFamily = 'Inter, sans-serif';
-        title.style.fontSize = '2rem';
+        title.style.fontSize = 'clamp(1.3rem, 6vw, 2rem)';
         overlay.appendChild(title);
 
         const grid = document.createElement('div');
         grid.style.display = 'grid';
-        grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+        grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(130px, 1fr))';
         grid.style.gap = '15px';
-        grid.style.maxWidth = '500px';
-        grid.style.width = '90%';
+        grid.style.width = 'min(500px, 92vw)';
+        grid.style.maxWidth = '100%';
 
         SUPPORTED_LOCALES.forEach(lang => {
             const btn = document.createElement('button');
             btn.textContent = FLAGS[lang];
-            btn.style.padding = '15px 20px';
-            btn.style.fontSize = '1.2rem';
+            btn.style.padding = '14px 16px';
+            btn.style.fontSize = 'clamp(1rem, 4.5vw, 1.2rem)';
             btn.style.borderRadius = '12px';
             btn.style.border = '1px solid rgba(255,255,255,0.2)';
             btn.style.background = 'rgba(255,255,255,0.05)';
