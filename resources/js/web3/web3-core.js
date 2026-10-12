@@ -434,6 +434,21 @@ export async function connectWalletMobile(walletKey = 'core') {
         throw new Error('Provider WalletConnect indisponible (init échouée).');
     }
 
+    // ─── RECONNEXION SILENCIEUSE (journal 2026-10-12, retour utilisateur) ──
+    // Le provider ré-adopte LA SESSION PERSISTÉE du storage à l'init :
+    // dans ce cas `provider.connect()` n'émet PLUS de display_uri → le poll
+    // URI attendait 15 s dans le VIDE (Core ne s'ouvrait plus, « deeplink
+    // mort »). Si une session vit déjà : connecté DIRECT sans Core ni
+    // deeplink — c'est l'UX standard WC « déjà couplé ».
+    const existingAddr = _getSessionAddress(provider);
+    if (existingAddr) {
+        console.info('[Web3Mobile] session persistée ré-adoptée → connexion silencieuse', { addr: existingAddr });
+        _activeWcSource = 'appkit';
+        _walletConnectProvider = provider;
+        _provider = new BrowserProvider(provider);
+        return _provider;
+    }
+
     // Hook standard du SDK : l'URI de pairing arrive via display_uri.
     // ANTI-ZOMBIE : _lastWcUri peut contenir l'URI d'un pairing PRÉCÉDENT
     // (preuve journal 2026-10-06 : le deeplink de 10:43 a réutilisé l'URI de
