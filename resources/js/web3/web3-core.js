@@ -773,9 +773,38 @@ export async function addPingalaNetwork(provider) {
 export async function ensurePingalaNetwork() {
     // RESTAURATION DE SESSION : point de passage de TOUS les flux métier —
     // si la session WC a été nettoyée à tort (socket gelé pendant l'absence
-    // dans Core), on la restaure depuis le storage AVANT toute requête.
+    // dans Core), on la restauration depuis le storage AVANT toute requête.
     await _restoreWcSessionIfNeeded();
-    const provider = _getRawProvider();
+
+    let provider = _getRawProvider();
+
+    // RE-CRÉATION SILENCIEUSE DU PROVIDER WC (journal 2026-10-12 13:11 —
+    // session BACKEND restaurée au reload (« ✅ Session restaurée ») mais
+    // le provider WC côté navigateur n'existe qu'après un clic Connect →
+    // le premier flux métier (buyOffer) crashait « Aucun provider Web3 »).
+    // UniversalProvider ré-adopte LA SESSION PERSISTÉE du storage à l'init
+    // (createClient → session.getAll()[0]) sans re-deeplink : si le user
+    // s'est déjà connecté (session WC dans le navigateur), le provider
+    // revient à la vie silencieusement.
+    let hasWcStorage = false;
+    try { hasWcStorage = Object.keys(localStorage || {}).some((k) => String(k).startsWith('wc@2')); } catch (e) { /* noop */ }
+    if ((!provider || typeof provider.request !== 'function') && (isWalletConnectActive() || hasWcStorage)) {
+        try {
+            const { provider: wc } = await _getAppKitWithProvider();
+            if (wc?.session && _getSessionAddress(wc)) {
+                _walletConnectProvider = wc;
+                _activeWcSource = 'appkit';
+                _provider = new BrowserProvider(wc);
+                provider = wc;
+                console.info('[Web3] provider WC recréé silencieusement (session persistée)');
+            } else {
+                console.info('[Web3] pas de session WC persistée — reconnexion nécessaire');
+            }
+        } catch (e) {
+            console.warn('[Web3] re-création provider WC échouée:', e?.message);
+        }
+    }
+
     if (!provider || typeof provider.request !== 'function') {
         throw new Error('Aucun provider Web3 détecté pour vérifier le réseau.');
     }
