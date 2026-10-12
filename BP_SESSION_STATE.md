@@ -4,7 +4,11 @@
 > à la fin de votre session. Les conventions de gouvernance vivent dans
 > `.agents/` (local, gitignored) — ce fichier tient lieu de contrat partagé.
 >
-> Dernière mise à jour : 2026-10-06 (Orchestrateur, session wallet-mobile+bots).
+> Dernière mise à jour : 2026-10-08 (agent cloud : airdrop faucet) — puis 2026-10-12 (Orchestrateur : incident validateur ETNA gelé/résolu).
+>
+> ⚡ **ÉTAT AU 12 OCT** : chaîne L1 **OPÉRATIONNELLE** (validateur rechargé — §8 bis),
+> flux mobile Core Wallet OK, marketplace chaînée, 4 bots en boucle — le jeu tourne.
+> Airdrop faucet livré par l'agent cloud (d7fa280) — à déployer + financer (§6/§9).
 ---
 
 ## 1. QU'EST-CE QUE BATTLEPOOL (30 secondes)
@@ -82,19 +86,22 @@ Rôles Battlepool : **owner/deployer** `0xD62909EAD1cbE35d5A7BD145f00530Fd574763
 | `1e51cfa`+`b2ed64d` | Indexer heartbeat + timeouts (getBlockNumber 10 s / getLogs 15 s / cycle 20 s / webhooks AbortController 15 s) | hang 25 min résolu |
 | `cc68a42` | **`CONFIRMATIONS_REQUIRED=0`** — Pingala ne mine QUE si transactions : bloc de tête orphelin avec confirmations≥1 (OfferCreated 1 h non traitée, bloc 50) | marketplace chaînée ✓ |
 | `91dadbd` | **Bots prod** (4 comptes fondés+enrôlés) + **service batch-processor compose** + **migration bet_amount decimal(18,8)** (8,2 tronquait 0.0004→0) + **LeavePoolController** + bouton UI + i18n ×6 | FIGHTS=7 en bêta |
-| `d7fa280` | **Airdrop de bienvenue (faucet 50 TST one-shot)** : `FaucetController` + `POST /api/user/faucet-claim`, `ProcessFaucetJob` (flag posé seulement après transfert on-chain réussi), endpoint bridge `/faucet` (raw native transfer via `FAUCET_WALLET_PK`), config `economy.airdrop`, bouton UI + i18n ×6, migration `has_received_airdrop`/`airdrop_tx_hash` | ⚠️ NON DÉPLOYÉ (faucet non financé) |
-| `b3a494b` | **UX mobile responsive** (Android/iPhone) : header débordant à 473px sur 360px (boutons WalletConnect rognés par `overflow-x:hidden`), modale langue `100vw/100vh` mal centrée, absence `100dvh`/`env(safe-area-inset-*)`. Fixes : header wrap+safe-area, `#wallet-section`/`#connection-buttons` `min-width:0`, `#add-network-btn` masqué mobile, overlays `100dvh`, grille langue auto-fit, clamps inline, `min-width:0`/`overflow-wrap:anywhere` modules CSS | headless Chromium : overflowX=0 @320/360/414px, desktop intact |
+| `d7fa280` (agent cloud) | **Airdrop de bienvenue (faucet 50 TST one-shot)** : `FaucetController` + `POST /api/user/faucet-claim`, `ProcessFaucetJob` (flag posé seulement après transfert on-chain réussi), endpoint bridge `/faucet` (raw native transfer via `FAUCET_WALLET_PK`), config `economy.airdrop`, bouton UI + i18n ×6, migration `has_received_airdrop`/`airdrop_tx_hash` | ⚠️ NON DÉPLOYÉ (faucet non financé — cf. §6) |
+| `b3a494b` (agent cloud) | **UX mobile responsive** (Android/iPhone) : header débordant à 473px sur 360px, modale langue mal centrée, absence `100dvh`/`env(safe-area-inset-*)`. Fixes : header wrap+safe-area, `min-width:0`, overlays `100dvh`, grille langue auto-fit | headless : overflowX=0 @320/360/414, desktop intact |
+| (op, 12 oct) | **Resuscitation du validateur ETNA** : balance fuji 0 → **0.9 AVAX** via `avalanche validator increaseBalance` (CLI 1.9.6 installée VPS, tx `2W5L16urj4Y5…`) + **restart avalanchego** → chaîne `Validating`, health connected 100 %, bloc 90 servi. Voir §8 bis. | health : connected 1, 0 disconnected |
 
 ## 6. BUGS CONNUS NON CORRIGÉS
 
+- **⚠️ TX PERDUES PENDANT LA STASE (12 oct)** : le mempool du validateur a été vidé pendant le gel — toutes les tx « pending » de cette période ne partiront JAMAIS (votre transfert 0.05 TST acct1→acct2 inclus ; balances inchangées, **rien perdu**). Refaire les tx, purger les « pending » fantômes de Core (Reset Account si nécessaire).
 - **Session WC mourait encore parfois au 2ᵉ flux métier** (traceurs armés, pas de verdict encore) — le RESTAURE + le pré-switch couvrent le cas, mais si un journal montre `session_delete` REÇU DU WALLET, la cause est côté Core (chaîne pas dans leur registre).
 - **Marketplace front n'affiche pas toujours la tx** quand elle réussit (retour utilisateur 14:41) : le chaînage indexer→DB→UI marchera via `loadOffers` polling mais le **feedback instantané post-tx** reste à ajouter (attendre tx.miné + refetch au lieu de notification optimiste).
 - `[Referral]`/`[Marketplace] Erreur chargement stats` au chargement AVANT auth (401 attendus) — cosmétique, à silencier ou conditionner.
 - Wrapper `BP-FATAL` exit du deploy est un **faux positif** (healthcheck compose v5.6) — le déploiement Réussit. Vérifier en lisant « DEPLOY COMPLETE » et `docker exec` du bundle SERVI.
 - Tests phpunit : 117 passent ; échecs restants pré-existants hors périmètre (Auth/Profile/Ipfs/SessionPayout + 5 métier).
 - **Bouton Leave pool** : NON testé utilisateur (endpoint déployé, UI déployée). À valider par testeur avant de le considérer stable.
-- **UX mobile** : corrigée statiquement + validée headless (`b3a494b`), mais **NON validée sur appareil réel** (Android physique + iPhone 11). Le correctif n'a pas été déployé. Points restant à confirmer sur vrai terminal : encoche/barre système Android, clavier virtuel (champs de saisie), rotations, et les vue marketplace/referral/influencer en conditions réelles.
-- **Airdrop faucet** : implémenté + commité (`d7fa280`) mais **le portefeuille faucet `0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee` (owner/deployer, 5.01 TST) n'est pas financé à 50 TST**. Sans financement, le transfert natif échoue (`insufficient funds`). À financer AVANT tout test. Le deployer étant déjà l'owner du contrat, réutiliser sa clé comme faucet est un choix à valider (découplage hot/cold recommandé : créer une clé faucet DÉDIÉE).
+- **⚠️ Surveiller le validator balance** : il a vidé 1 AVAX fuji en ~4 jours (04-08 oct). La recharge de 0.9 AVAX (12 oct) offre ~6+ mois de marge à ce rythme. Une recharge de secours exige du **AVAX fuji réel** sur l'adresse 0xD629… (1.007 fuji AVAX disponibles, lecture via `https://api.avax-test.network/ext/bc/C/rpc`). Cron de surveillance à mettre en place (§9.2).
+- **Airdrop faucet** (agent cloud, `d7fa280`) : implémenté + commité mais **NON DÉPLOYÉ et le portefeuille faucet (owner 0xD629…, ~5 TST) n'est pas financé à 50 TST**. Sans financement, le transfert échoue (`insufficient funds`). Découplage hot/cold recommandé : clé faucet DÉDIÉE + secret `faucet_wallet_pk` à ajouter au compose prod (mon périmètre deploy). **⚠️ Dépendance validateur** : la recharge du validateur (0.9 AVAX fuji) a consommé une partie du solde fuji — financer le faucet APRÈS le re-test de la chaîne.
+- **UX mobile responsive** (agent cloud, `b3a494b`) : corrigée statiquement + validée headless, mais **NON validée sur appareil réel** (Android physique + iPhone 11). Le correctif n'a pas été déployé. Points à confirmer sur vrai terminal : encoche/barre système Android, clavier virtuel, rotations, vue marketplace/referral/influencer.
 
 ## 7. PIÈGES OPÉRATOIRE (les morts de la session)
 
@@ -120,18 +127,57 @@ Rôles Battlepool : **owner/deployer** `0xD62909EAD1cbE35d5A7BD145f00530Fd574763
 7. reverify `/api/wallet/verify-signature` → token API → auth:success → Echo connecté
 8. (tx métier) : **Core se ré-ouvre AVANT chaque tx** (`ensureWalletVisibleForTx`) — l'utilisateur voit la demande immédiatement, sans freeze
 
-Le bandeau « Switch Network » de Core apparaît jusqu'à ce qu'il ait **mémorisé** Pingala comme chaînan approuvé (une fois). Pas de contournement possible — UX de Core.
+Le bandeau « Switch Network » de Core apparaît jusqu'à ce qu'il ait **mémorisé** Pingala comme chaîne approuvée (une fois). Pas de contournement possible — UX de Core.
+
+## 8 bis. ⚠️ CRITIQUE — VALIDATEUR ETNA : LE BALANCE FUJI (incident + procédure, 2026-10-12)
+
+**L'incident vécu (résolu le jour même)** : le validateur L1 s'est **gelé complètement** (chaîne bloquée au bloc 90 pendant 4 jours). Symptômes : tx Core « pending » infinie, RPC public `503` / « not done bootstrapping », `platform.getBlockchainStatus` = `Syncing` figé, health subnet `percentConnected: 0` / `not connected to enough stake (0 % < 80 %)`.
+
+**La cause** : le mécanisme **ETNA** (L1 sur Fuji, avalanchego 1.15.1) — le validateur doit maintenir un **validator balance en AVAX fuji RÉEL** qui paie des frais continus. Le dépôt initial (`--balance 1` AVAX fuji, lors de la conversion du subnet du 04 oct) a duré **~4 jours** puis **balance = 0** → le validateur sort du quorum → **la chaîne gèle** et ne re-bootstrape PLUS (boucle mortelle : la recharge passe par le contrat ValidatorManager qui vit sur LA CHAÎNE GELÉE — `managerChainID = 2bU2988`).
+
+**La recharge est structurellement IMPOSSIBLE depuis la chaîne** (boucle), MAIS la CLI avalanche-cli la contient : `avalanche validator increaseBalance` **émet la charge depuis la P-Chain fuji** — la voie qui a fonctionné. **NE PAS chercher `platform.addValidatorBalance` en RPC** : la méthode n'existe PAS (vérifié fuji public + local) — c'est la CLI qui la fait.
+
+**LA PROCÉDURE DE RESUSCITATION (validée, reproductible, ~5 min)** :
+```bash
+# 1. Installer la CLI (une fois) sur le VPS :
+curl -sSf https://raw.githubusercontent.com/ava-labs/avalanche-cli/main/scripts/install.sh | bash
+export PATH=$PATH:/root/bin
+
+# 2. Recharger la balance du validateur (clé myl1key = le deployer EVM = owner, 0xD629…) :
+avalanche validator increaseBalance \
+  --balance 0.9 \
+  --key myl1key \
+  --node-id NodeID-JnfFiYk38LLW4oPa6FFLqRmjdWf24vMqd \
+  --l1 myl1 \
+  --fuji
+# → « Validator balance has been increased with tx ID: 2W5L16… » (0.00 AVAX → 0.9)
+
+# 3. PUIS un restart avalanchego OBLIGATOIRE : le bootstrapper du subnet chain
+#    ne se réarme PAS tout seul avec la balance fraîche (testé : 12 min d'attente sans redémarrage).
+systemctl restart avalanchego
+# → le health subnet repasse : percentConnected 1, disconnected [] ; le RPC ressert eth_blockNumber (90)
+```
+
+**Les faits à ne pas ré-découvrir** :
+- `platform.getL1Validator(validationID)` **existe** (lire l'état du validateur L1) ; `platform.getCurrentValidators({subnetID})` montre le balance.
+- Le balance en nAVAX : 900000000 nAVAX = 0.9 AVAX — **0.9 AVAX fuji ≈ 6+ mois** (l'initial 1 AVAX n'a pas duré parce qu'il a été réduit par une passe plus intense... vérifier le rythme réel au fil des jours).
+- **La surveillance** : `avalanche validator getBalance` (le VPS) — à mettre sur cron (alerte < 0.2 AVAX). La recharge de secours : le solde fuji C-Chain de 0xD629… (1.007 AVAX fuji au 12 oct, lecture : `https://api.avax-test.network/ext/bc/C/rpc` eth_getBalance) → l'export/import fuji n'est PAS nécessaire : la CLI gère directement.
+- Nos clés P-fuji dérivées : `myl1key.pk` (VPS, `/root/.avalanche-cli/key/`) → **P-fuji1zj049rsv2y0sjlmv3eesqfa7krp8fyzeawyymh** = le `remainingBalanceOwner` du validateur ✓ (le SDK avalanche 3.x l'a correctement dérivé en bech32 standard ; **la dérivation manuelle en bech32m est FAUSSE** — piège gardé ici).
+- L'uptime warp/BLS : la subnet chain bootstrapper ne réarme pas via la recharge seule — **le restart est requis**.
+
+**La surveillance recommandée (à implémenter prochainement)** : cron `avalanche validator getBalance` (le VPS) → alerte sous 0.2 AVAX + recharge automatique.
 
 ## 9. CHANTIERS PROCHAINS (ordre recommandé)
 
-0. **Financer le faucet airdrop** (prérequis test `d7fa280`) : injecter ≥50 TST dans `0xD62909…63Ee` (ou créer une clé faucet dédiée via `FAUCET_WALLET_PK`). Puis déployer `d7fa280` et tester le claim one-shot.
-0bis. **Déployer + valider l'UX mobile** (`b3a494b`) : rebuild (app+reverb) + `npm run build` + grep bundle servi, puis test visuel sur Android réel et iPhone 11 (le headless ne remplace pas un écran physique).
-1. **Tester Leave pool** (bug connu n°4) + **feedback marketplace instantané** (bug n°2).
-2. **Pool size 5 en prod** (config/pool.php `size [2]` est local-only) + vérifier que les bots/humains partagent bien les pools on-chain (`addSingleUserToPool` maxSize 5 vs pool DB size 2 — cohérence à arbitrer).
-3. **Rattrapage UX** : bouton 🐞 à retirer de la prod finale, instrumentation `[Business]` à garder (dérivée en `debugLog` silencieux).
-4. **Audit QA indépendant** de la passe complète (obligatoire protocole orchestrateur ≥ 3 itérations) — pôle qa_e2e_regression_agent.
-5. **CI/CD** optionnel (l'utilisateur a dit « script local seulement » — ne pas forcer).
-6. **Rotation de la clé deployer** recommandée (elle a circulé en clair en conversation).
+1. **Re-test utilisateur du transfert TST** (le mempool a été PURGÉ pendant la stase — les tx « pending » de Core ne partiront jamais : refaire le transfert 0.05 TST maintenant que la chaîne est UP) + re-test des flux bots/marketplace post-restauration.
+2. **Cron surveillance validateur** (recharge auto/alerte sous 0.2 AVAX — cf. §8 bis).
+0-OP. **Financer le faucet airdrop** (prérequis test `d7fa280` — agent cloud) : injecter ≥50 TST dans le wallet faucet (découplage hot/cold recommandé : clé `FAUCET_WALLET_PK` DÉDIÉE + secret + compose prod à compléter — mon périmètre deploy). Puis déployer `d7fa280` + `b3a494b` (UX mobile) dans le même cycle et tester.
+1-OP. **Tester Leave pool** + **feedback marketplace instantané** (bug n°2).
+4-OP. **Pool size 5 en prod** (config/pool.php `size [2]` est local-only) + cohérence bots/humains pools.
+5-OP. **Rattrapage UX** : bouton 🐞 à retirer de la prod finale, instrumentation `[Business]` à garder (dérivée en `debugLog` silencieux).
+6-OP. **Audit QA indépendant** de la passe complète (obligatoire protocole orchestrateur ≥ 3 itérations) — pôle qa_e2e_regression_agent.
+7-OP. **CI/CD** optionnel (l'utilisateur a dit « script local seulement » — ne pas forcer).
+8-OP. **Rotation de la clé deployer** recommandée (elle a circulé en clair en conversation).
 
 ## 10. COMMANDES UTILES (copier-coller directement)
 
@@ -165,6 +211,9 @@ node scratch\check_bet2.php   # + d'autres helpers scratch/
 - TOUJOURS `node secrets-manager.mjs deprovision` après les opérations.
 - TOUJOURS dérouler un runbook de rollback si un deploy échoue (dérive vers runbook §5).
 - **Ce fichier est la seule passerelle de connaissance** entre agent cloud et local — mettre à jour §5/§6/§7/§9 à CHAQUE modification non triviale.
+- **VALIDATEUR L1 — surveillance du balance fuji OBLIGATOIRE** : `avalanche validator getBalance` / `platform.getCurrentValidators(subnet)` — sous 0.2 AVAX: RECHARGE (CLI `avalanche validator increaseBalance`) + **restart avalanchego** (le bootstrapper ne se réarme pas seul — cf. §8 bis). Un validateur à balance 0 = chaîne gelée JOURS, mempools purgés (tx perdues), et la recharge via contrat impossible (boucle circulaire sur la chaîne gelée).
+- **La CLI avalanche (1.9.6) est installée sur le VPS** (`/root/bin/avalanche`, HOME=/root) — `avalanche validator increaseBalance --key myl1key --l1 myl1 --fuji` — la clé `myl1key.pk` (VPS) correspond à **P-fuji1zj049rsv2y0sjlmv3eesqfa7krp8fyzeawyymh** (owner du validator balance).
+- **PIÈGE : la dérivation d'adresse P en `bech32m` est FAUSSE** — Avalanche utilise **bech32 standard** (le SDK `avalanche@3.16` `importKey`/`getAddressString` dérive correctement : ma dérivation manuelle bech32m donnait un préfixe décalé). La P-addr de 0xD629… = **P-fuji1zj049rsv2y0sjlmv3eesqfa7krp8fyzeawyymh** — PAS P-fuji1r6yc9… (mon calcul manuel erroné). Vérifier via le SDK ou l'API, jamais à la main.
 
 —
 *Généré par l'Orchestrateur BattlePool, 2026-10-06.*
