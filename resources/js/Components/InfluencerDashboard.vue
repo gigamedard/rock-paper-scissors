@@ -15,7 +15,7 @@
         <div class="flex items-center space-x-2">
           <i class="fas fa-dollar-sign text-green-600"></i>
           <span class="text-sm text-gray-600">
-            Pool de récompenses: {{ stats.rewardPoolSize }} AVAX
+            Pool de récompenses: {{ stats.rewardPoolSize }} TST
           </span>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default {
       
       try {
         const response = await axios.post('/api/influencer/claim-reward')
-        statusMessage.value = `Récompense réclamée avec succès ! Montant: ${response.data.amount} AVAX`
+        statusMessage.value = `Récompense réclamée avec succès ! Montant: ${response.data.amount} TST`
         statusType.value = 'success'
         
         // Refresh stats

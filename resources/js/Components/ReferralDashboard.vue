@@ -59,7 +59,7 @@
       <div class="bg-purple-50 p-4 rounded-lg">
         <div class="flex items-center space-x-2">
           <i class="fas fa-gift text-purple-600"></i>
-          <span class="text-sm font-medium text-gray-700">Récompenses SNT</span>
+          <span class="text-sm font-medium text-gray-700">Récompenses PRANA</span>
         </div>
         <p class="text-2xl font-bold text-purple-600">{{ referralData.totalRewards }}</p>
       </div>
@@ -71,7 +71,7 @@
       <ol class="list-decimal list-inside text-sm text-gray-600 space-y-1">
         <li>Partagez votre code de parrainage avec vos amis</li>
         <li>Ils s'inscrivent en utilisant votre code</li>
-        <li>Quand ils font leur première transaction AVAX, vous recevez 100 SNT !</li>
+        <li>Quand ils font leur première transaction TST, vous recevez 100 PRANA !</li>
       </ol>
     </div>
   </div>

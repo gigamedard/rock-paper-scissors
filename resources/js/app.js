@@ -85,6 +85,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         connectWcBtn.addEventListener('click', () => connectWallet('walletconnect'));
     }
 
+    // ===== P0 — Option B : CTA de connexion dupliqués dans la landing =====
+    // Ids DISTINCTS (#connect-btn-landing / #connect-wc-btn-landing) avec les
+    // MÊMES handlers que #connect-btn / #connect-wc-btn : getElementById ne
+    // branche qu'un seul match, d'où des ids séparés et un wiring explicite.
+    // La visibilité suit l'état global : #view-disconnected (qui les porte)
+    // est masqué/affiché par game.js updateUI() via auth:success/auth:expired.
+    const connectBtnLanding = document.getElementById('connect-btn-landing');
+    if (connectBtnLanding) {
+        connectBtnLanding.addEventListener('click', () => connectWallet('injected'));
+    }
+
+    const connectWcBtnLanding = document.getElementById('connect-wc-btn-landing');
+    if (connectWcBtnLanding) {
+        connectWcBtnLanding.addEventListener('click', () => connectWallet('walletconnect'));
+    }
+
+    // ===== P2 — Modale « Créer une offre » (#mp-offer-modal) =====
+    // Ouverture/fermeture purement par classList : aucun listener marketplace
+    // n'est créé ni purgé ici. Les boutons de transaction
+    // (#marketplace-approve-btn / #marketplace-create-btn / saisies) restent
+    // branchés par marketplace.js (getElementById), séquence approve → create
+    // en 2 étapes inchangée (disabled pendant signature + toasts).
+    const mpOfferModal = document.getElementById('mp-offer-modal');
+    const mpCreateToggleBtn = document.getElementById('mp-create-toggle-btn');
+    const mpModalCloseBtn = document.getElementById('mp-modal-close');
+
+    function openMpOfferModal() {
+        if (!mpOfferModal) return;
+        mpOfferModal.classList.add('mp-modal-open');
+        document.body.style.overflow = 'hidden'; // bloquer le scroll de fond tant que la modale est ouverte
+    }
+
+    function closeMpOfferModal() {
+        if (!mpOfferModal) return;
+        mpOfferModal.classList.remove('mp-modal-open');
+        document.body.style.overflow = '';
+    }
+
+    if (mpCreateToggleBtn && mpOfferModal) {
+        mpCreateToggleBtn.addEventListener('click', openMpOfferModal);
+    }
+    if (mpModalCloseBtn && mpOfferModal) {
+        mpModalCloseBtn.addEventListener('click', closeMpOfferModal);
+    }
+    if (mpOfferModal) {
+        // Clic sur le fond (overlay) = fermer ; clic dans la feuille = rien.
+        mpOfferModal.addEventListener('click', (e) => {
+            if (e.target === mpOfferModal) closeMpOfferModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mpOfferModal.classList.contains('mp-modal-open')) closeMpOfferModal();
+        });
+    }
+
     const refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {

@@ -3,7 +3,7 @@
         <!-- En-tête -->
         <div class="header">
             <h1>📊 Dashboard de Parrainage</h1>
-            <p>Gagnez 100 SNT pour chaque parrainage validé</p>
+            <p>Gagnez 100 PRANA pour chaque parrainage validé</p>
         </div>
 
         <!-- Statistiques personnelles -->
@@ -18,7 +18,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-number">{{ personalStats.rewards.toLocaleString() }}</div>
-                <div class="stat-label">SNT Gagnés</div>
+                <div class="stat-label">PRANA Gagnés</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number">#{{ personalStats.rank }}</div>
@@ -29,7 +29,7 @@
         <!-- Code de parrainage -->
         <div class="referral-section">
             <h2>🔗 Votre Code de Parrainage</h2>
-            <p>Partagez ce code pour gagner 100 SNT par utilisateur qui s'inscrit et effectue sa première transaction.</p>
+            <p>Partagez ce code pour gagner 100 PRANA par utilisateur qui s'inscrit et effectue sa première transaction.</p>
             <div class="referral-code-container">
                 <span class="referral-code">{{ referralCode }}</span>
                 <button @click="copyReferralCode" class="copy-button">
@@ -76,7 +76,7 @@
                     </div>
                     <div class="user-stats">
                         <div class="referral-count">{{ user.referral_count }} parrainages</div>
-                        <div class="reward-amount">{{ user.total_rewards.toLocaleString() }} SNT</div>
+                        <div class="reward-amount">{{ user.total_rewards.toLocaleString() }} PRANA</div>
                     </div>
                 </div>
             </div>

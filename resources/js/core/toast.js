@@ -14,7 +14,10 @@ function ensureToastContainer() {
     container.id = 'bp-toast-container';
     container.style.cssText = [
         'position:fixed',
-        'top:16px',
+        // P4.2 : respecte l'encoche (safe-area) ; la pile est plafonnée en
+        // hauteur — un toast ne descend jamais jusqu'à un bouton en cours de
+        // signature (les barres d'action de la modale marketplace sont en bas).
+        'top:max(16px, env(safe-area-inset-top))',
         'left:50%',
         'transform:translateX(-50%)',
         'z-index:99999',
@@ -23,7 +26,9 @@ function ensureToastContainer() {
         'align-items:center',
         'gap:8px',
         'pointer-events:none',
-        'max-width:92vw'
+        'max-width:92vw',
+        'max-height:60dvh',
+        'overflow-y:auto'
     ].join(';');
     document.body.appendChild(container);
     return container;

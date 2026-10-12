@@ -39,7 +39,7 @@
                 </div>
                 <div class="text-right">
                   <p class="font-semibold text-blue-600">{{ user.referral_count }} parrainages</p>
-                  <p class="text-sm text-green-600">{{ user.rewards_earned }} SNT</p>
+                  <p class="text-sm text-green-600">{{ user.rewards_earned }} PRANA</p>
                 </div>
               </div>
             </div>

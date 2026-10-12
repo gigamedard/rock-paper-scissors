@@ -385,3 +385,20 @@
         gap: 6px;
     }
 }
+
+/* ==========================================================================
+   P3 — Finitions VIP (≤480 / ≤430)
+   ========================================================================== */
+@media (max-width: 480px) {
+    /* Claim VIP pleine largeur, zone tactile ≥46px */
+    .btn-inf-claim { width: 100%; min-height: 46px; }
+}
+
+@media (max-width: 430px) {
+    /* Mini-stats VIP empilées (libellé au-dessus de la valeur) */
+    .inf-stat-mini {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}

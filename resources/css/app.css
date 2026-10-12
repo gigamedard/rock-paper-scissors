@@ -56,3 +56,33 @@ html[lang="en"] #lang-en {
 .onb-banner b { color: var(--accent, #aef2ff); }
 .onb-banner span { color: var(--text-dim, #7fd6ef); }
 .onb-banner a { color: var(--accent, #aef2ff); text-decoration: underline; margin-left: auto; }
+
+/* ===== P3 — Onboarding ≤480 : cartes copie empilées, QR ≤240px, CTA pleine largeur ===== */
+@media (max-width: 480px) {
+    .onb-qr {
+        width: min(240px, 62vw);
+        height: auto;
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
+    }
+
+    .onb-field {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .onb-label { min-width: 0; }
+
+    .onb-field code { flex: none; }
+
+    .onb-copy {
+        min-height: 40px;
+        padding: 0.5rem 0.8rem;
+    }
+
+    .onb-auto,
+    .onb-done {
+        width: 100%;
+        min-height: 46px;
+    }
+}

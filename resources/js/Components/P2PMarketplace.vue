@@ -26,7 +26,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            Montant SNT à vendre
+            Montant PRANA à vendre
           </label>
           <input
             type="number"
@@ -37,7 +37,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            Prix en AVAX souhaité
+            Prix en TST souhaité
           </label>
           <input
             type="number"
@@ -71,12 +71,12 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
             <div class="text-center">
-              <p class="text-lg font-semibold text-blue-600">{{ trade.sntAmount }} SNT</p>
+              <p class="text-lg font-semibold text-blue-600">{{ trade.sntAmount }} PRANA</p>
               <p class="text-sm text-gray-500">À vendre</p>
             </div>
             <i class="fas fa-exchange-alt text-gray-400"></i>
             <div class="text-center">
-              <p class="text-lg font-semibold text-green-600">{{ trade.avaxAmount }} AVAX</p>
+              <p class="text-lg font-semibold text-green-600">{{ trade.avaxAmount }} TST</p>
               <p class="text-sm text-gray-500">Prix demandé</p>
             </div>
           </div>

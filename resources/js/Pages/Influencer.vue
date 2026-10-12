@@ -44,7 +44,7 @@
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">Récompense:</span>
-                    <span class="font-semibold text-green-600">{{ pool.reward_amount }} AVAX</span>
+                    <span class="font-semibold text-green-600">{{ pool.reward_amount }} TST</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">Progrès:</span>

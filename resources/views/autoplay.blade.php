@@ -612,13 +612,13 @@
                 <h3>Bet Amount</h3>
               </div>
               <div class="bet-buttons">
-                <button class="bet-btn active" data-bet="0.0004">0.0004 AVAX</button>
-                <button class="bet-btn" data-bet="0.15">0.15 AVAX</button>
+                <button class="bet-btn active" data-bet="0.0004">0.0004 TST</button>
+                <button class="bet-btn" data-bet="0.15">0.15 TST</button>
               </div>
               <div class="bet-info" style="margin-top: 0.8rem; padding: 0.5rem; background: rgba(99, 102, 241, 0.1); border-radius: 0.5rem; border-left: 3px solid var(--color-primary);">
                 <small style="display: flex; justify-content: space-between;">
                   <span>Entry Fee: <span id="entry-fee-display">2.5</span>%</span>
-                  <span style="font-weight: bold; color: var(--color-primary);"><span id="fee-amount-display">0.00025</span> AVAX</span>
+                  <span style="font-weight: bold; color: var(--color-primary);"><span id="fee-amount-display">0.00025</span> TST</span>
                 </small>
               </div>
             </div>
@@ -630,11 +630,11 @@
                 <h3>Budget Settings</h3>
               </div>
               <div class="budget-input-group">
-                <label for="budget-amount-input">Budget Amount (AVAX)</label>
+                <label for="budget-amount-input">Budget Amount (TST)</label>
                 <input type="number" id="budget-amount-input" min="0.01" step="0.01" value="1.0" class="budget-input">
                 <div class="budget-info">
-                  <small>Required: <span id="required-budget">10.00</span> AVAX</small>
-                  <small>Recommended: <span id="recommended-budget">15.00</span> AVAX</small>
+                  <small>Required: <span id="required-budget">10.00</span> TST</small>
+                  <small>Recommended: <span id="recommended-budget">15.00</span> TST</small>
                 </div>
               </div>
               <div class="target-q-group">
@@ -716,7 +716,7 @@
               <i data-lucide="award" style="width: 32px; height: 32px;"></i>
               <div style="flex: 1;">
                 <p class="balance-label" style="font-weight: bold; color: #fff; margin-bottom: 0.25rem;">🏆 SESSION COMPLETE - CLAIM NOW</p>
-                <p class="balance-amount"><span id="claim-amount-display">0.0000</span> AVAX</p>
+                <p class="balance-amount"><span id="claim-amount-display">0.0000</span> TST</p>
               </div>
               <button id="claim-btn" class="submit-btn" style="width: auto; padding: 0.75rem 1.5rem; background: #fff; color: var(--color-accent); font-weight: bold; border-radius: 0.5rem;" onclick="app.claim()">
                 CLAIM & EXIT
@@ -744,7 +744,7 @@
         <h2>Confirm Budget</h2>
       </div>
       <p class="modal-message">
-        Are you sure you want to proceed with a budget of <span id="budget-amount"></span> AVAX?
+        Are you sure you want to proceed with a budget of <span id="budget-amount"></span> TST?
       </p>
       <div class="modal-actions">
         <button id="cancel-btn" class="cancel-btn">Cancel</button>
@@ -763,7 +763,7 @@
       </div>
       <div class="top-up-form">
         <div class="form-group">
-          <label for="top-up-amount">Additional Budget (AVAX)</label>
+          <label for="top-up-amount">Additional Budget (TST)</label>
           <input type="number" id="top-up-amount" min="0.01" step="0.01" value="1.0" class="form-input">
         </div>
         <div class="budget-warning" id="budget-warning" style="display: none;">
@@ -930,10 +930,10 @@
       }
 
       function updateBudgetStatsDisplay(stats) {
-        document.getElementById('current-budget').textContent = stats.current_budget + ' AVAX';
+        document.getElementById('current-budget').textContent = stats.current_budget + ' TST';
         document.getElementById('current-q-value').textContent = stats.q_value;
         document.getElementById('target-q-display').textContent = stats.target_q_value;
-        document.getElementById('next-bet-amount').textContent = stats.next_bet_amount + ' AVAX';
+        document.getElementById('next-bet-amount').textContent = stats.next_bet_amount + ' TST';
         document.getElementById('current-k-value').textContent = stats.current_k_value;
         document.getElementById('win-rate').textContent = stats.win_rate.toFixed(1) + '%';
         document.getElementById('total-fights').textContent = stats.total_fights;
@@ -1022,7 +1022,7 @@
         document.getElementById('final-q-value').textContent = sessionData.q_value;
         document.getElementById('final-total-fights').textContent = sessionData.total_fights;
         document.getElementById('final-win-rate').textContent = sessionData.win_rate.toFixed(1) + '%';
-        document.getElementById('final-profit').textContent = sessionData.total_profit + ' AVAX';
+        document.getElementById('final-profit').textContent = sessionData.total_profit + ' TST';
         document.getElementById('session-complete-modal').classList.remove('hidden');
       }
 
@@ -1189,7 +1189,7 @@
 
       function renderBalance() {
         const balanceAmount = document.querySelector('.balance-amount');
-        balanceAmount.textContent = `${gameState.balance} AVAX`;
+        balanceAmount.textContent = `${gameState.balance} TST`;
       }
       function updateBalance(pBalance){
         console.log("updating balance");

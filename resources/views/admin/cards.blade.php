@@ -33,7 +33,7 @@
                     <input type="number" step="0.01" id="effect_value" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Price (SNT)</label>
+                    <label class="block text-sm font-medium text-gray-700">Price (PRANA)</label>
                     <input type="number" step="0.01" id="price" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border" required>
                 </div>
                 <div>
@@ -66,7 +66,7 @@
                         <tr>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Effect</th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price (SNT)</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price (PRANA)</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 bg-gray-50"></th>
                         </tr>
@@ -137,7 +137,7 @@
                 tr.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${card.name}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${card.effect_type} (${card.effect_value})</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">${card.price} SNT</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">${card.price} PRANA</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${card.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                             ${card.is_active ? 'Active' : 'Inactive'}

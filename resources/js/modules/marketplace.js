@@ -11,7 +11,7 @@
  *  - Polling protégé contre les cumuls via setAppTimer
  */
 import { getContract, getSigner, getProvider, ensurePingalaNetwork, ensureWalletVisibleForTx, PRANA_NETWORK, TOKEN_SYMBOL } from '../web3/web3-core.js';
-import { secureFetch } from '../core/api.js';
+import { secureFetch, getAuthToken } from '../core/api.js';
 import { addToFeed } from './game.js';
 import { t } from './i18n.js';
 import { setAppTimer } from '../core/timers.js';
@@ -548,11 +548,18 @@ async function loadMarketplaceData() {
 }
 
 async function loadStats() {
+    // P4.3 : avant auth, la requête échouerait de toute façon (secureFetch
+    // lève sans token) — on ne logge plus l'erreur 401 cosmétique console.
+    if (!getAuthToken()) return;
     try {
         const res = await secureFetch('/marketplace/stats');
         if (!res.ok) {
-            const errBody = await res.clone().text().catch(() => '(body illisible)');
-            console.error('[Business-MP] loadStats ÉCHEC HTTP', res.status, errBody.slice(0, 200));
+            // Les vraies erreurs restent tracées, sauf les 401 de session
+            // expirée (déjà traitées par secureFetch → auth:expired).
+            if (res.status !== 401) {
+                const errBody = await res.clone().text().catch(() => '(body illisible)');
+                console.error('[Business-MP] loadStats ÉCHEC HTTP', res.status, errBody.slice(0, 200));
+            }
             return;
         }
         const stats = await res.json();
@@ -563,18 +570,22 @@ async function loadStats() {
         if (elSnt)   elSnt.textContent   = parseFloat(stats.total_snt_volume  || 0).toFixed(2) + ' ' + TOKEN_SYMBOL;
         if (elAvax)  elAvax.textContent  = parseFloat(stats.total_avax_volume || 0).toFixed(4) + ' ' + PRANA_NETWORK.nativeCurrency.symbol;
     } catch (e) {
-        console.error('[Marketplace] Erreur chargement stats:', e);
+        if (getAuthToken()) console.error('[Marketplace] Erreur chargement stats:', e);
     }
 }
 
 let currentOffers = [];
 
 async function loadOffers() {
+    // P4.3 : silencieux 401 cosmétique avant auth (voir loadStats).
+    if (!getAuthToken()) return;
     try {
         const res = await secureFetch('/marketplace/trades');
         if (!res.ok) {
-            const errBody = await res.clone().text().catch(() => '(body illisible)');
-            console.error('[Business-MP] loadOffers ÉCHEC HTTP', res.status, errBody.slice(0, 200));
+            if (res.status !== 401) {
+                const errBody = await res.clone().text().catch(() => '(body illisible)');
+                console.error('[Business-MP] loadOffers ÉCHEC HTTP', res.status, errBody.slice(0, 200));
+            }
             return;
         }
         const data = await res.json();
@@ -582,7 +593,7 @@ async function loadOffers() {
         console.info('[Business-MP] loadOffers OK:', currentOffers.length, 'offres');
         renderOffers();
     } catch (e) {
-        console.error('[Business-MP] loadOffers ÉCHEC:', e);
+        if (getAuthToken()) console.error('[Business-MP] loadOffers ÉCHEC:', e);
     }
 }
 

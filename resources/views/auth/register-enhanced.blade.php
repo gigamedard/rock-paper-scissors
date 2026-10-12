@@ -59,7 +59,7 @@
                         </div>
                     </div>
                     <p class="text-xs text-gray-400 mt-1">
-                        Gagnez 100 SNT bonus avec un code de parrainage valide !
+                        Gagnez 100 PRANA bonus avec un code de parrainage valide !
                     </p>
                 </div>
 
@@ -138,10 +138,10 @@
                 <div class="mb-6 p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-500/30">
                     <h3 class="text-white font-semibold mb-2">🎉 Avantages de l'inscription :</h3>
                     <ul class="text-sm text-gray-300 space-y-1">
-                        <li>• 🎁 Bonus de bienvenue : 500 SNT</li>
-                        <li>• 💰 Avec code parrainage : +100 SNT</li>
+                        <li>• 🎁 Bonus de bienvenue : 500 PRANA</li>
+                        <li>• 💰 Avec code parrainage : +100 PRANA</li>
                         <li>• 🏆 Accès aux pools d'influenceurs</li>
-                        <li>• 💱 Trading P2P SNT ↔ AVAX</li>
+                        <li>• 💱 Trading P2P PRANA ↔ TST</li>
                     </ul>
                 </div>
 

@@ -43,7 +43,7 @@
                   <i class="fas fa-coins text-purple-600 text-2xl"></i>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm font-medium text-gray-500">Volume SNT</p>
+                  <p class="text-sm font-medium text-gray-500">Volume PRANA</p>
                   <p class="text-lg font-semibold text-gray-900">{{ formatNumber(stats.total_volume_snt) }}</p>
                 </div>
               </div>
@@ -55,7 +55,7 @@
                   <i class="fas fa-gem text-green-600 text-2xl"></i>
                 </div>
                 <div class="ml-3">
-                  <p class="text-sm font-medium text-gray-500">Volume AVAX</p>
+                  <p class="text-sm font-medium text-gray-500">Volume TST</p>
                   <p class="text-lg font-semibold text-gray-900">{{ formatNumber(stats.total_volume_avax) }}</p>
                 </div>
               </div>
@@ -71,24 +71,24 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 class="font-semibold text-gray-800 mb-2">Pour Vendre des SNT:</h4>
+                <h4 class="font-semibold text-gray-800 mb-2">Pour Vendre des PRANA:</h4>
                 <ol class="list-decimal list-inside text-sm text-gray-600 space-y-1">
                   <li>Cliquez sur "Créer une Offre"</li>
-                  <li>Spécifiez le montant de SNT à vendre</li>
-                  <li>Définissez le prix en AVAX souhaité</li>
-                  <li>Confirmez la transaction pour déposer vos SNT en escrow</li>
+                  <li>Spécifiez le montant de PRANA à vendre</li>
+                  <li>Définissez le prix en TST souhaité</li>
+                  <li>Confirmez la transaction pour déposer vos PRANA en escrow</li>
                   <li>Attendez qu'un acheteur accepte votre offre</li>
                 </ol>
               </div>
               
               <div>
-                <h4 class="font-semibold text-gray-800 mb-2">Pour Acheter des SNT:</h4>
+                <h4 class="font-semibold text-gray-800 mb-2">Pour Acheter des PRANA:</h4>
                 <ol class="list-decimal list-inside text-sm text-gray-600 space-y-1">
                   <li>Parcourez les offres disponibles</li>
                   <li>Cliquez sur "Acheter" pour l'offre qui vous intéresse</li>
-                  <li>Confirmez la transaction avec le montant AVAX requis</li>
-                  <li>Les SNT seront automatiquement transférés vers votre portefeuille</li>
-                  <li>L'AVAX sera envoyé au vendeur (moins les frais)</li>
+                  <li>Confirmez la transaction avec le montant TST requis</li>
+                  <li>Les PRANA seront automatiquement transférés vers votre portefeuille</li>
+                  <li>Le TST sera envoyé au vendeur (moins les frais)</li>
                 </ol>
               </div>
             </div>
@@ -98,7 +98,7 @@
               <ul class="text-sm text-yellow-700 space-y-1">
                 <li>• Des frais de 2,5% sont appliqués sur chaque transaction</li>
                 <li>• Les offres expirent automatiquement après 24 heures</li>
-                <li>• Assurez-vous d'avoir suffisamment de tokens/AVAX avant de créer ou accepter une offre</li>
+                <li>• Assurez-vous d'avoir suffisamment de tokens/TST avant de créer ou accepter une offre</li>
                 <li>• Les transactions sont irréversibles une fois confirmées</li>
               </ul>
             </div>

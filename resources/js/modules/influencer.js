@@ -281,7 +281,7 @@ function renderDashboardView(container, data) {
                     </div>
                     <div class="inf-stat-mini">
                         <span>${t('influencer.avax_generated')}</span>
-                        <b>${myStats.avaxSpent} Ξ</b>
+                        <b>${myStats.avaxSpent} TST</b>
                     </div>
                 </div>
                 
