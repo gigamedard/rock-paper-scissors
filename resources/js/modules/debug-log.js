@@ -79,7 +79,7 @@ for (const lvl of ['log', 'warn', 'error', 'info']) {
     };
 }
 debugLog('BOOT', `debug-log actif, UA=${navigator.userAgent.slice(0, 120)}`);
-debugLog('BOOT', `BP-MOBILE-DEPLOY=2 Pré-switch Pingala activé, le popup « Switch Network » de Core est normal`);
+debugLog('BOOT', `BP-MOBILE-DEPLOY=3 Pré-switch Pingala activé, le popup « Switch Network » de Core est normal`);
 
 // — UI : bouton flottant + pop-up ——————————————————————————————————
 
@@ -93,7 +93,9 @@ function ensurePanel() {
     btn.setAttribute('aria-label', 'Journal de debug');
     btn.style.cssText = [
         'position:fixed',
-        'bottom:14px',
+        // P4.4 : repositionné AU-DESSUS de la bottom-nav (60px + safe-area)
+        // pour cohabiter avec elle — le bouton reste supprimable in fine.
+        'bottom:calc(75px + env(safe-area-inset-bottom))',
         'right:14px',
         'z-index:999999999',
         'width:44px',
