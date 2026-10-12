@@ -24,37 +24,39 @@
     <!-- ===== NAV ===== -->
     <header>
         <div class="logo">BATTLEPOOL</div>
-        <nav class="spa-nav">
-            <a href="#/" class="nav-link" data-i18n="nav.arena">Arena</a>
-            <a href="#/marketplace" class="nav-link" data-i18n="nav.marketplace">Marché</a>
-            <a href="#/referral" class="nav-link" data-i18n="nav.referral">Parrainage</a>
-            <a href="#/influencer" class="nav-link" data-i18n="nav.influencer" style="color: var(--gold-primary);">VIP</a>
-            
+    <nav class="spa-nav">
+        <a href="#/" class="nav-link" data-i18n="nav.arena">Arena</a>
+        <a href="#/marketplace" class="nav-link" data-i18n="nav.marketplace">Marché</a>
+        <a href="#/referral" class="nav-link" data-i18n="nav.referral">Parrainage</a>
+        <a href="#/influencer" class="nav-link nav-link--vip" data-i18n="nav.influencer">VIP</a>
 
-        </nav>
-        <div id="wallet-section">
-            <div id="connected-user" style="display: none; align-items: center; gap: 10px;">
-                <span id="user-wallet" class="wallet-badge">0x...</span>
-                <span class="network-status-text wallet-badge" style="font-size: 0.75rem; border-color: rgba(0, 230, 118, 0.2);">Live Sync</span>
-                <div class="live-indicator"></div>
-                <button id="add-network-btn" class="wallet-btn" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 0.8rem; background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.3); color: #00E5FF; cursor: pointer; border-radius: 6px; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 229, 255, 0.15)'" onmouseout="this.style.background='rgba(0, 229, 255, 0.05)'">
-                    <span>⊕</span>
-                    <span data-i18n="network.add">⊕ Réseau</span>
-                </button>
-                <button id="refresh-btn" class="wallet-btn" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 0.8rem; background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.3); color: #00E5FF; cursor: pointer; border-radius: 6px; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 229, 255, 0.15)'" onmouseout="this.style.background='rgba(0, 229, 255, 0.05)'">
-                    <span class="refresh-icon" style="transition: transform 0.5s ease; display: inline-block;">🔄</span>
-                    <span data-i18n="nav.refresh">Rafraîchir</span>
-                </button>
-                <button id="disconnect-btn" class="wallet-btn" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 0.8rem; background: rgba(255, 0, 85, 0.05); border: 1px solid rgba(255, 0, 85, 0.3); color: #FF0055; cursor: pointer; border-radius: 6px; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 0, 85, 0.15)'" onmouseout="this.style.background='rgba(255, 0, 85, 0.05)'">
-                    <span>🔌</span>
-                    <span data-i18n="nav.disconnect">Déconnexion</span>
-                </button>
-            </div>
-            <div id="connection-buttons" style="display: flex; gap: 10px;">
-<button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">Connect Wallet</button>
-                            <button class="wallet-btn" id="connect-wc-btn" style="background: linear-gradient(90deg, var(--purple-neon) 0%, var(--cyan-spark) 100%);" data-i18n="connect.wc_btn">WalletConnect</button>
-            </div>
+
+    </nav>
+    <div id="wallet-section">
+        <!-- P4.6 : styles inline migrés en classes wallet-btn-chip (toggles
+             display fonctionnels restent écrits par game.js/auth flows). -->
+        <div id="connected-user">
+            <span id="user-wallet" class="wallet-badge">0x...</span>
+            <span class="network-status-text wallet-badge">Live Sync</span>
+            <div class="live-indicator"></div>
+            <button id="add-network-btn" class="wallet-btn wallet-btn-chip">
+                <span>⊕</span>
+                <span data-i18n="network.add">⊕ Réseau</span>
+            </button>
+            <button id="refresh-btn" class="wallet-btn wallet-btn-chip">
+                <span class="refresh-icon">🔄</span>
+                <span data-i18n="nav.refresh">Rafraîchir</span>
+            </button>
+            <button id="disconnect-btn" class="wallet-btn wallet-btn-chip wallet-btn-chip--danger">
+                <span>🔌</span>
+                <span data-i18n="nav.disconnect">Déconnexion</span>
+            </button>
         </div>
+        <div id="connection-buttons">
+            <button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">Connect Wallet</button>
+            <button class="wallet-btn wallet-btn-wc" id="connect-wc-btn" data-i18n="connect.wc_btn">WalletConnect</button>
+        </div>
+    </div>
     </header>
 
     <!-- ===== PWA INSTALLATION BANNER ===== -->
@@ -75,10 +77,10 @@
     <div class="impact-flash" id="impact-flash"></div>
     <div id="combat-overlay" style="display: none;">
         <div class="scanner-line"></div>
-        <div class="hud-container fade-in" style="text-align: center;">
-            <div class="battle-status-tag status-busy" style="margin-bottom: 2rem;" data-i18n="combat.in_progress">COMBAT IN PROGRESS</div>
-            <h2 id="combat-text" style="color: var(--primary); font-size: clamp(1.8rem, 9vw, 3.5rem); text-shadow: 0 0 30px var(--primary); font-weight: 800;" data-i18n="combat.scanning">SCANNING...</h2>
-            <div class="combat-icons" style="font-size: clamp(2rem, 12vw, 4rem); margin-top: 2rem;">
+        <div class="hud-container fade-in">
+            <div class="battle-status-tag status-busy" data-i18n="combat.in_progress">COMBAT IN PROGRESS</div>
+            <h2 id="combat-text" data-i18n="combat.scanning">SCANNING...</h2>
+            <div class="combat-icons">
                 <span class="clash-icon">🥊</span>
                 <span class="clash-icon">⚡</span>
                 <span class="clash-icon">🔥</span>
@@ -95,31 +97,39 @@
                 <span>📘</span><b data-i18n="onb.banner_msg">Not connected yet?</b>
                 <span data-i18n="onb.banner_action">Add Pingala to Core →</span>
             </a>
-            <!-- ===== BANDEAU STATS PUBLICS (LIVE) ===== -->
-            <div id="live-stats-band" style="background: rgba(15,12,27,0.65); border: 1px solid rgba(123,44,191,0.35); border-radius: 10px; padding: 0.8rem 1rem; margin: 0 auto 1.2rem; width: 100%; max-width: 1000px; font-family: var(--font-body);">
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem 1.5rem;">
-                    <span style="font-family: var(--font-heading); font-size: 0.7rem; letter-spacing: 2px; color: var(--text-dim); display: inline-flex; align-items: center; gap: 0.4rem;">
-                        <span class="live-indicator" style="width: 8px; height: 8px; margin: 0;"></span>
+            <!-- ===== BANDEAU STATS PUBLICS (LIVE) — scroll interne only (P1) ===== -->
+            <div id="live-stats-band" class="stats-band">
+                <div class="stats-band-inner">
+                    <span class="stats-band-live">
+                        <span class="live-indicator"></span>
                         <span data-i18n="stats.title">LIVE</span>
                     </span>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; font-size: 0.8rem;">
-                        <span><span style="color: var(--text-dim);" data-i18n="stats.battles">Combats</span> <b id="stats-battles-total" style="color: var(--cyan-spark);">--</b></span>
-                        <span><span style="color: var(--text-dim);" data-i18n="stats.players_online">Joueurs en ligne</span> <b id="stats-players-online" style="color: var(--success);">--</b></span>
-                        <span><span style="color: var(--text-dim);" data-i18n="stats.pools_active">Pools actives</span> <b id="stats-pools-active" style="color: var(--gold-primary);">--</b></span>
-                        <span><span style="color: var(--text-dim);" data-i18n="stats.tvl">TVL</span> <b id="stats-tvl" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">TST</small></span>
-                        <span><span style="color: var(--text-dim);" data-i18n="stats.fees">Frais collectés</span> <b id="stats-fees" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">TST</small></span>
+                    <div class="stats-band-cells">
+                        <span class="stat-cell"><span class="stat-cell-name" data-i18n="stats.battles">Combats</span> <b id="stats-battles-total" class="stat-cell-val stat-cyan">--</b></span>
+                        <span class="stat-cell"><span class="stat-cell-name" data-i18n="stats.players_online">Joueurs en ligne</span> <b id="stats-players-online" class="stat-cell-val stat-green">--</b></span>
+                        <span class="stat-cell"><span class="stat-cell-name" data-i18n="stats.pools_active">Pools actives</span> <b id="stats-pools-active" class="stat-cell-val stat-gold">--</b></span>
+                        <span class="stat-cell"><span class="stat-cell-name" data-i18n="stats.tvl">TVL</span> <b id="stats-tvl" class="stat-cell-val stat-cyan">--</b> <small class="stat-cell-unit">TST</small></span>
+                        <span class="stat-cell"><span class="stat-cell-name" data-i18n="stats.fees">Frais collectés</span> <b id="stats-fees" class="stat-cell-val stat-cyan">--</b> <small class="stat-cell-unit">TST</small></span>
                     </div>
                 </div>
-                <div id="fight-ticker" style="display: none; overflow: hidden; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: var(--text-dim); white-space: nowrap;"></div>
+                <!-- P4.6 : display:none conservé inline (stats.js bascule
+                     el.style.display = '' pour l'afficher), habillage en CSS. -->
+                <div id="fight-ticker" style="display: none;"></div>
             </div>
-            <div id="view-disconnected" class="card" style="text-align: center; margin-top: clamp(2rem, 8vh, 5rem);">
-                <h1 style="font-size: clamp(1.8rem, 10vw, 3rem); margin-bottom: 1rem;" data-i18n="connect.title">Ready to Fight?</h1>
-                <p style="color: var(--text-dim); margin-bottom: 2rem;" data-i18n="connect.subtitle">Connect your wallet to enter the arena and start your session.</p>
-                <button class="btn-primary" id="enter-arena-btn" style="padding: 1rem; font-size: clamp(1rem, 4.5vw, 1.2rem);" data-i18n="connect.enter">ENTER THE ARENA</button>
+            <div id="view-disconnected" class="card landing-card">
+                <h1 class="landing-title" data-i18n="connect.title">Ready to Fight?</h1>
+                <p class="landing-subtitle" data-i18n="connect.subtitle">Connect your wallet to enter the arena and start your session.</p>
+                <button class="btn-primary btn-block" id="enter-arena-btn" data-i18n="connect.enter">ENTER THE ARENA</button>
+                <!-- P0 Option B : CTA de connexion dupliqués dans la landing (ids DISTINCTS, wiring app.js).
+                     #connect-btn / #connect-wc-btn (header) restent idempotents et masqués ≤480px. -->
+                <div class="landing-ctas">
+                    <button class="wallet-btn" id="connect-btn-landing" data-i18n="connect.btn">Connect Wallet</button>
+                    <button class="wallet-btn wallet-btn-wc" id="connect-wc-btn-landing" data-i18n="connect.wc_btn">WalletConnect</button>
+                </div>
             </div>
 
-            <div id="view-setup" class="card fade-in" style="display: none; width: 100%; max-width: 1000px; margin: 2rem auto;">
-                <h2 style="margin-bottom: 1rem; color: var(--primary);" data-i18n="setup.title">SYSTEM INITIALIZATION</h2>
+            <div id="view-setup" class="card fade-in setup-card" style="display: none;">
+                <h2 class="setup-title" data-i18n="setup.title">SYSTEM INITIALIZATION</h2>
                 <div class="setup-container">
                     <div>
                         <label class="label" data-i18n="setup.premove_sequence">PRE-MOVE SEQUENCE (10 ROUNDS)</label>
@@ -128,23 +138,23 @@
                             <button class="move-btn" id="move-rock">✊</button>
                             <button class="move-btn" id="move-paper">🖐️</button>
                             <button class="move-btn" id="move-scissors">✌️</button>
-                            <button class="move-btn" id="move-reset" style="font-size: 1.2rem; color: var(--accent);" data-i18n="setup.reset">RESET</button>
+                            <button class="move-btn move-btn-reset" id="move-reset" data-i18n="setup.reset">RESET</button>
                         </div>
                     </div>
                     <div>
                         <label class="label" data-i18n="setup.base_bet">BASE BET AMOUNT (TST)</label>
                         <div class="bet-input-container">
-                            <span style="font-size: 1.5rem; color: var(--primary);">Ξ</span>
-                            <select id="base-bet-input" class="bet-input" style="font-size: 1.5rem;">
+                            <span class="bet-coin">Ξ</span>
+                            <select id="base-bet-input" class="bet-input">
                                 <option value="0.0004" selected>0.0004 TST</option>
                                 <option value="0.15">0.15 TST</option>
                             </select>
                         </div>
 
-                        <label class="label" style="margin-top: 1rem; display: block;" data-i18n="setup.target_q">TARGET MULTIPLIER (Q)</label>
+                        <label class="label label-top-gap" data-i18n="setup.target_q">TARGET MULTIPLIER (Q)</label>
                         <div class="bet-input-container">
-                            <span style="font-size: 1.5rem; color: var(--primary);">q</span>
-                            <select id="target-q-input" class="bet-input" style="font-size: 1.5rem;">
+                            <span class="bet-coin">q</span>
+                            <select id="target-q-input" class="bet-input">
                                 <option value="1.001">1.001x</option>
                                 <option value="1.2" selected>1.2x</option>
                                 <option value="1.3">1.3x</option>
@@ -155,21 +165,33 @@
                             </select>
                         </div>
 
-                        <label class="label" style="margin-top: 1rem; display: block;" data-i18n="setup.min_cooldown">MIN COOLDOWN TIME</label>
+                        <label class="label label-top-gap" data-i18n="setup.min_cooldown">MIN COOLDOWN TIME</label>
                         <div class="bet-input-container">
-                            <span style="font-size: 1.5rem; color: var(--primary);">⏱</span>
-                            <span id="cooldown-display" style="font-size: 1.5rem; font-weight: bold; color: #fff; margin-left: 10px;">--</span>
+                            <span class="bet-coin">⏱</span>
+                            <span id="cooldown-display" class="cooldown-value">--</span>
                             <input type="hidden" id="cooldown-input" value="1440">
                         </div>
 
-                        <div id="fee-breakdown" style="margin-top:1rem; font-size:0.85rem; color:var(--text-dim); background:rgba(255,255,255,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.required_stake">Required Stake</span> (x<span id="display-coeff">---</span>):</span><span id="display-stake" style="color:#fff; font-weight:600;">0.0000 TST</span></div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span><span data-i18n="setup.fee">Matchmaking Fee</span> (<span id="display-fee-percent">---</span>%):</span><span id="display-fee-amount" style="color:var(--accent); font-weight:600;">0.0000 TST</span></div>
-                            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:0.5rem 0;">
-                            <div style="display:flex; justify-content:space-between; font-weight:800; color:var(--primary);"><span data-i18n="setup.total_deposit">TOTAL DEPOSIT:</span><span id="display-total-deposit">0.0000 TST</span></div>
+                        <!-- P1 : décomposition condensée (2 lignes). AUCUNE formule modifiée —
+                             habillage uniquement ; game.js alimente les ids display-* inchangés. -->
+                        <div id="fee-breakdown" class="fee-breakdown">
+                            <div class="fee-row">
+                                <span class="fee-label">
+                                    <span data-i18n="setup.required_stake">Required Stake</span> (x<span id="display-coeff">---</span>)
+                                    · <span data-i18n="setup.fee">Matchmaking Fee</span> (<span id="display-fee-percent">---</span>%)
+                                </span>
+                                <span class="fee-val">
+                                    <span id="display-stake">0.0000 TST</span>
+                                    + <span id="display-fee-amount" class="fee-accent">0.0000 TST</span>
+                                </span>
+                            </div>
+                            <div class="fee-row fee-total">
+                                <span data-i18n="setup.total_deposit">TOTAL DEPOSIT:</span>
+                                <span id="display-total-deposit">0.0000 TST</span>
+                            </div>
                         </div>
 
-                        <button class="btn-primary" id="start-session-btn" style="margin-top: 1rem; width: 100%;" data-i18n="setup.btn">INITIALIZE BATTLE SEQUENCE</button>
+                        <button class="btn-primary btn-block mt-1" id="start-session-btn" data-i18n="setup.btn">INITIALIZE BATTLE SEQUENCE</button>
                     </div>
                 </div>
             </div>
@@ -193,12 +215,12 @@
                     <!-- Battle Controls -->
                     <div class="battle-actions">
                         <!-- Airdrop de bienvenue (une seule fois, 50 TST) -->
-                        <button id="faucet-claim-btn" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem; display: none; background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.4); color: #7ce7ff; margin-bottom: 0.6rem;" data-i18n="faucet.claim_btn">🎁 RÉCLAMER 50 TST DE BIENVENUE</button>
+                        <button id="faucet-claim-btn" class="btn-primary btn-block faucet-btn" style="display: none; margin-bottom: 0.6rem;" data-i18n="faucet.claim_btn">🎁 RÉCLAMER 50 TST DE BIENVENUE</button>
 
-                        <button class="btn-primary" id="join-btn" style="width: 100%; padding: 1rem; font-size: clamp(1rem, 4.5vw, 1.2rem); display: none;" data-i18n="dashboard.strategy">STRATEGY SETUP</button>
+                        <button class="btn-primary btn-block" id="join-btn" style="display: none;" data-i18n="dashboard.strategy">STRATEGY SETUP</button>
 
                         <!-- Quitter la pool (sortie volontaire, stake remboursé) -->
-                        <button id="leave-pool-btn" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem; display: none; background: rgba(255,0,85,0.12); border: 1px solid rgba(255,0,85,0.4); color: #ff8fa8; margin-top: 0.6rem;" data-i18n="claim.leave_pool">🚪 Leave pool</button>
+                        <button id="leave-pool-btn" class="btn-primary btn-block leave-pool-btn" style="display: none;" data-i18n="claim.leave_pool">🚪 Leave pool</button>
 
                         <!-- Claim Section (Hidden by default) -->
                         <div id="claim-section" class="claim-panel fade-in" style="display: none;">
@@ -211,7 +233,7 @@
 
                 <!-- Activity Feed & Logs -->
                 <aside class="activity-log">
-                    <h3 style="font-size: 0.8rem; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 1rem;" data-i18n="feed.title">BATTLE FEED</h3>
+                    <h3 class="feed-title" data-i18n="feed.title">BATTLE FEED</h3>
                     <div id="feed" class="feed-container">
                         <div class="feed-entry"><span class="feed-time" data-i18n="feed.waiting_signals">Waiting for signals...</span></div>
                     </div>
@@ -225,28 +247,33 @@
         <div id="marketplace-page" class="page" style="display:none;">
             <div class="mp-header">
                 <h1 data-i18n="marketplace.title">Marketplace</h1>
-                <div class="mp-tabs" style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: center;">
-                    <button id="tab-p2p" class="mp-tab active" style="padding: 0.5rem 2rem; background: var(--primary); border: none; border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;" data-i18n="marketplace.tab_p2p">P2P Trading</button>
-                    <button id="tab-cards" class="mp-tab" style="padding: 0.5rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;" data-i18n="marketplace.tab_cards">Boutique Cartes</button>
-                    <button id="tab-inventory" class="mp-tab" style="padding: 0.5rem 2rem; background: rgba(255,255,255,0.1); border: 1px solid var(--primary); border-radius: 20px; color: #fff; cursor: pointer; font-weight: bold;" data-i18n="marketplace.tab_inventory">Mes Cartes</button>
+                <!-- P4.6 : styles inline → classes (.mp-tabs / .mp-tab) ; les
+                     couleurs inline écrites par switchMarketplaceTab restent
+                     fonctionnelles et identiques au rendu historique. -->
+                <div class="mp-tabs">
+                    <button id="tab-p2p" class="mp-tab active" data-i18n="marketplace.tab_p2p">P2P Trading</button>
+                    <button id="tab-cards" class="mp-tab" data-i18n="marketplace.tab_cards">Boutique Cartes</button>
+                    <button id="tab-inventory" class="mp-tab" data-i18n="marketplace.tab_inventory">Mes Cartes</button>
                 </div>
             </div>
 
             <!-- Notification toast (global au marketplace) -->
-            <div id="mp-notification" style="display:none; padding:0.8rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem; transition: all 0.3s; text-align: center;"></div>
+            <div id="mp-notification" style="display:none;"></div>
 
-            <!-- ===== MARKETPLACE STATS (depuis /api/stats/public) ===== -->
-            <div id="mp-stats-band" style="background: rgba(15,12,27,0.65); border: 1px solid rgba(0,229,255,0.25); border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 1rem;">
-                <div style="display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; font-size: 0.8rem;">
-                    <span><span style="color: var(--text-dim);" data-i18n="stats.p2p_volume">Volume P2P</span> <b id="stats-mp-p2p-volume" style="color: var(--cyan-spark);">--</b> <small style="color: var(--text-dim);">PRANA</small></span>
-                    <span><span style="color: var(--text-dim);" data-i18n="stats.fulfilled_trades">Échanges P2P fulfillés</span> <b id="stats-mp-fulfilled-trades" style="color: var(--gold-primary);">--</b></span>
-                    <span><span style="color: var(--text-dim);" data-i18n="stats.avg_24h">Avg PRANA/player 24h</span> <b id="stats-mp-avg-24h" style="color: var(--gold-primary);">--</b></span>
+            <!-- ===== MARKETPLACE STATS (depuis /api/stats/public) — chips compacts (P2) ===== -->
+            <div id="mp-stats-band" class="mp-stats-band">
+                <div class="mp-stats-chips">
+                    <span class="mp-chip"><span class="chip-name" data-i18n="stats.p2p_volume">Volume P2P</span> <b id="stats-mp-p2p-volume" class="chip-val chip-cyan">--</b> <small class="chip-unit">PRANA</small></span>
+                    <span class="mp-chip"><span class="chip-name" data-i18n="stats.fulfilled_trades">Échanges P2P fulfillés</span> <b id="stats-mp-fulfilled-trades" class="chip-val chip-gold">--</b></span>
+                    <span class="mp-chip"><span class="chip-name" data-i18n="stats.avg_24h">Avg PRANA/player 24h</span> <b id="stats-mp-avg-24h" class="chip-val chip-gold">--</b></span>
                 </div>
             </div>
 
             <!-- CONTENU P2P TRADING -->
+            <!-- P2 : le formulaire de création (.mp-create-panel, ids inchangés) est DÉPLACÉ dans
+                 la modale #mp-offer-modal ci-dessous ; onglet P2P = stats + CTA + offres en flux. -->
             <div id="mp-p2p-content">
-                <p data-i18n="marketplace.subtitle" style="text-align: center; color: var(--text-dim); margin-bottom: 2rem;">Échangez vos PRANA contre des TST.</p>
+                <p class="mp-subtitle" data-i18n="marketplace.subtitle" >Échangez vos PRANA contre des TST.</p>
                 <div class="mp-stats-grid">
                     <div class="mp-stat-card">
                         <div class="mp-stat-label" data-i18n="marketplace.stats_volume_snt">Volume PRANA</div>
@@ -258,31 +285,15 @@
                     </div>
                 </div>
 
-            <!-- Bannière indisponibilité contrat (cachée par défaut) -->
-            <div id="mp-contract-error" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.5); color:#fca5a5; padding:1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem;" data-i18n="marketplace.contract_error">
+            <!-- Bannière indisponibilité contrat (cachée par défaut —
+                 display toggled par marketplace.js, habillage → .mp-banner-error) -->
+            <div id="mp-contract-error" class="mp-banner-error" style="display:none;" data-i18n="marketplace.contract_error">
                 ⚠️ Service blockchain indisponible. Assurez-vous que le Node.js Bridge est démarré. La création d'offres est désactivée.
             </div>
 
-            <div class="mp-create-panel">
-                <h2 data-i18n="marketplace.create_offer">Créer une Offre</h2>
-                <div class="mp-form-grid">
-                    <div class="mp-input-group">
-                        <label data-i18n="marketplace.snt_amount">PRANA Amount</label>
-                        <input type="number" id="mp-snt-amount" placeholder="0.0" step="any">
-                    </div>
-                    <div class="mp-input-group">
-                        <label data-i18n="marketplace.avax_amount">TST Price</label>
-                        <input type="number" id="mp-avax-amount" placeholder="0.0" step="any">
-                    </div>
-                    <div class="mp-input-group">
-                        <label data-i18n="marketplace.duration">Duration (h)</label>
-                        <input type="number" id="mp-duration" value="24">
-                    </div>
-                </div>
-                <div style="display:flex; gap:1rem; margin-top:1rem;">
-                    <button class="mp-btn-approve" id="marketplace-approve-btn" style="flex:1;" data-i18n="marketplace.approve_btn_label">1. Approve PRANA</button>
-                    <button class="mp-btn-create" id="marketplace-create-btn" style="flex:1;" disabled data-i18n="marketplace.create_offer">2. Create Offer</button>
-                </div>
+            <!-- P2 : CTA « Créer une offre » → ouvre #mp-offer-modal (wiring app.js) -->
+            <div class="mp-create-cta-row">
+                <button class="btn-primary mp-create-cta" id="mp-create-toggle-btn" data-i18n="marketplace.create_offer">Créer une Offre</button>
             </div>
 
             <div class="mp-offers-section">
@@ -291,21 +302,61 @@
                     <!-- Dynamic content -->
                 </div>
             </div>
-            
             </div> <!-- Fin de mp-p2p-content -->
 
+            <!-- ===== P2 : MODALE CRÉATION D'OFFRE =====
+                 Contient le panneau de création (form) déplacé hors flux. Ids contractuels INTACTS
+                 (#mp-snt-amount, #mp-avax-amount, #mp-duration, #marketplace-approve-btn,
+                 #marketplace-create-btn) → listeners marketplace.js (getElementById) survivent au
+                 déplacement. Séquence approve → create en 2 étapes rigoureusement identique.
+                 Fermeture = masquage (classList), ne purge aucun listener. -->
+            <div id="mp-offer-modal" class="mp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="mp-modal-head-title">
+                <div class="mp-modal-sheet">
+                    <div class="mp-modal-head">
+                        <h2 id="mp-modal-head-title" class="mp-modal-title" data-i18n="marketplace.create_offer">Créer une Offre</h2>
+                        <button type="button" id="mp-modal-close" class="mp-modal-close" data-i18n="marketplace.close">✕</button>
+                    </div>
+                    <div class="mp-modal-body">
+                        <div class="mp-create-panel">
+                            <div class="mp-form-grid">
+                                <div class="mp-input-group">
+                                    <label data-i18n="marketplace.snt_amount">PRANA Amount</label>
+                                    <input type="number" id="mp-snt-amount" placeholder="0.0" step="any">
+                                </div>
+                                <div class="mp-input-group">
+                                    <label data-i18n="marketplace.avax_amount">TST Price</label>
+                                    <input type="number" id="mp-avax-amount" placeholder="0.0" step="any">
+                                </div>
+                                <div class="mp-input-group">
+                                    <label data-i18n="marketplace.duration">Duration (h)</label>
+                                    <input type="number" id="mp-duration" value="24">
+                                </div>
+                            </div>
+                            <!-- Barre d'actions sticky-bottom : jamais sous un toast (P4.2).
+                                 P4.6 : flex/gap inline → .mp-modal-actions-row. -->
+                            <div class="mp-modal-actions">
+                            <div class="mp-modal-actions-row">
+                                <button class="mp-btn-approve" id="marketplace-approve-btn" data-i18n="marketplace.approve_btn_label">1. Approve PRANA</button>
+                                <button class="mp-btn-create" id="marketplace-create-btn" disabled data-i18n="marketplace.create_offer">2. Create Offer</button>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- CONTENU BOUTIQUE CARTES -->
-            <div id="mp-cards-content" style="display:none; padding: 2rem 0;">
-                <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);" data-i18n="marketplace.tab_cards">Official Shop</h2>
-                <div id="marketplace-cards-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+            <div id="mp-cards-content" class="mp-tab-content" style="display:none;">
+                <h2 class="mp-tab-title" data-i18n="marketplace.tab_cards">Official Shop</h2>
+                <div id="marketplace-cards-list" class="mp-cards-grid">
                     <!-- Les cartes générées par JS iront ici -->
                 </div>
             </div>
 
             <!-- CONTENU INVENTAIRE CARTES USER -->
-            <div id="mp-inventory-content" style="display:none; padding: 2rem 0;">
-                <h2 style="text-align: center; margin-bottom: 2rem; color: var(--primary);" data-i18n="marketplace.tab_inventory">My Card Inventory</h2>
-                <div id="marketplace-inventory-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+            <div id="mp-inventory-content" class="mp-tab-content" style="display:none;">
+                <h2 class="mp-tab-title" data-i18n="marketplace.tab_inventory">My Card Inventory</h2>
+                <div id="marketplace-inventory-list" class="mp-cards-grid">
                     <!-- Les cartes possédées iront ici -->
                 </div>
             </div>
@@ -348,9 +399,9 @@
 
                 <div class="ref-card-side">
                     <h3 data-i18n="referral.apply_code">Appliquer un Code</h3>
-                    <div style="display: flex; gap: 10px; margin-top: 1rem;">
-                        <input type="text" id="referral-apply-input" placeholder="CODE..." style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--primary); padding: 10px; color: #fff; border-radius: 5px;">
-                        <button id="referral-apply-btn" class="btn-primary" style="padding: 10px 20px;" data-i18n="referral.apply_btn">Appliquer</button>
+                    <div class="ref-apply-row">
+                        <input type="text" id="referral-apply-input" placeholder="CODE...">
+                        <button id="referral-apply-btn" class="btn-primary" data-i18n="referral.apply_btn">Appliquer</button>
                     </div>
                 </div>
             </div>
@@ -419,6 +470,9 @@
                         <li data-i18n="onb.step4">Save. The Pingala Chain entry now appears in your network list.</li>
                         <li data-i18n="onb.step5">Come back here and tap <b>Continue</b> below — BattlePool will connect with WalletConnect.</li>
                     </ol>
+                    <div style="display:flex; justify-content:center; margin-top:0.8rem;">
+                        <button type="button" class="onb-copy" data-onboarding-copyall style="padding:0.6rem 1rem; font-size:0.85rem;">📋 Copy all values</button>
+                    </div>
                 </div>
                 <div class="onb-cta">
                     <button type="button" class="onb-auto" data-onboarding-auto data-i18n="onb.btn_auto">Add to Core automatically</button>
@@ -444,8 +498,8 @@
             <span class="nav-label" data-i18n="nav.referral">Parrainage</span>
         </a>
         <a href="#/influencer" class="bottom-nav-link" id="btn-nav-vip">
-            <span class="nav-icon" style="color: var(--gold-primary);">👑</span>
-            <span class="nav-label" data-i18n="nav.influencer" style="color: var(--gold-primary);">VIP</span>
+            <span class="nav-icon">👑</span>
+            <span class="nav-label" data-i18n="nav.influencer">VIP</span>
         </a>
     </nav>
 

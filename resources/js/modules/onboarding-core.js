@@ -106,6 +106,26 @@ export function initOnboardingCore() {
         });
     });
 
+    // Bouton « copier toutes les valeurs » (un seul geste — le champ RPC est
+    // le seul long ; tout le reste est court).
+    const copyAllBtn = page.querySelector('[data-onboarding-copyall]');
+    if (copyAllBtn) {
+        copyAllBtn.addEventListener('click', async () => {
+            const payload = [
+                'BattlePool — Ajout du réseau Pingala Chain dans Core Wallet :',
+                `Network name   : ${QR_DATA.chainName}`,
+                `RPC URL        : ${QR_DATA.rpcUrl}`,
+                `Chain ID       : ${QR_DATA.chainIdDec}`,
+                `Currency symbol: ${QR_DATA.symbol}`,
+            ].join('\n');
+            const ok = await copyText(payload);
+            const orig = copyAllBtn.dataset.origLabel || copyAllBtn.textContent;
+            if (!copyAllBtn.dataset.origLabel) copyAllBtn.dataset.origLabel = orig;
+            copyAllBtn.textContent = ok ? '✅ Copié' : '❌ Copie impossible';
+            setTimeout(() => { copyAllBtn.textContent = copyAllBtn.dataset.origLabel; }, 1600);
+        });
+    }
+
     // Bouton "ajouter via Core" (auto via extension/in-app)
     const autoBtn = page.querySelector('[data-onboarding-auto]');
     if (autoBtn) {
