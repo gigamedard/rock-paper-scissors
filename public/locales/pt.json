@@ -7,6 +7,23 @@
     "refresh": "Atualizar",
     "disconnect": "Desconectar"
   },
+  "onb": {
+    "title": "Adicionar Pingala ao Core",
+    "subtitle": "O Core precisa conhecer a rede antes de aprovar sessões WalletConnect. Siga os passos abaixo.",
+    "qr_title": "Digitalize a partir do Core",
+    "qr_hint": "Core → Redes → Adicionar rede → digitalize este QR.",
+    "copy_title": "Ou copie cada valor",
+    "steps_title": "Passos manuais",
+    "step1": "Abra o Core Wallet no seu celular.",
+    "step2": "Vá em <b>Ajustes (⚙️)</b> → <b>Networks</b> → <b>Add Network</b>.",
+    "step3": "Digitalize o QR acima <i>ou</i> digite cada valor.",
+    "step4": "Salve. O Pingala Chain aparecerá na lista.",
+    "step5": "Volte aqui e toque em <b>Continuar</b> — a conexão WalletConnect começará.",
+    "btn_auto": "Adicionar ao Core automaticamente",
+    "btn_done": "Já adicionei o Pingala → Continuar",
+    "banner_msg": "Ainda não conectou?",
+    "banner_action": "Adicionar Pingala ao Core →"
+  },
   "network": {
     "add": "⊕ Rede",
     "no_wallet": "Nenhuma carteira detectada.",
@@ -137,6 +154,7 @@
     "approve_btn_label": "1. Aprovar PRANA",
     "approved_btn_label": "✅ Aprovado",
     "creating_btn_label": "⏳ Aprovação em andamento...",
+    "close": "Fechar",
     "error_loading": "Erro ao carregar o mercado."
   },
   "referral": {

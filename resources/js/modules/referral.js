@@ -5,7 +5,7 @@
  * - Affiche les statistiques de parrainage de l'utilisateur
  * - Affiche le leaderboard des meilleurs parrains
  */
-import { secureFetch } from '../core/api.js';
+import { secureFetch, getAuthToken } from '../core/api.js';
 import { t } from './i18n.js';
 import { getCurrentLocale } from './i18n.js';
 import { showToast } from '../core/toast.js';
@@ -90,6 +90,9 @@ async function loadReferralData() {
 }
 
 async function loadMyStats() {
+    // P4.3 : silencieux 401 cosmétique avant auth — sans token, secureFetch
+    // lève systématiquement ; on évite le console.error au chargement déconnecté.
+    if (!getAuthToken()) return;
     try {
         const res = await secureFetch('/referral/status'); // route: api/referral/status
         if (!res.ok) return;
@@ -98,6 +101,12 @@ async function loadMyStats() {
         // Afficher le code
         const codeEl = document.getElementById('referral-my-code');
         if (codeEl) codeEl.textContent = data.code || '---';
+
+        // Lien complet VISIBLE (le user vérifie que le code du parrain y est)
+        const linkEl = document.getElementById('referral-my-link');
+        if (linkEl && data.code) {
+            linkEl.textContent = `${window.location.origin}/?ref=${data.code}`;
+        }
 
         // Afficher les stats
         const elTotal = document.getElementById('referral-stat-total');
@@ -115,6 +124,8 @@ async function loadMyStats() {
 }
 
 async function loadLeaderboard() {
+    // P4.3 : idem — pas de log 401 avant connexion.
+    if (!getAuthToken()) return;
     try {
         const res = await secureFetch('/referral/leaderboard');
         if (!res.ok) return;
@@ -155,6 +166,14 @@ function copyReferralLink() {
     const locale = getCurrentLocale();
     const link = `${window.location.origin}/?ref=${code}&lang=${locale}`;
 
+    // Partage natif mobile (share sheet iOS/Android — WhatsApp, etc.) :
+    // fallback clipboard si navigator.share absent (desktop).
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile && navigator.share) {
+        navigator.share({ title: 'BattlePool', text: 'Entrez dans l\'arène !', url: link })
+            .catch(() => { /* annulation utilisateur — non bloquant */ });
+        return;
+    }
     navigator.clipboard.writeText(link).then(() => {
         const btn = document.getElementById('referral-copy-btn');
         if (btn) {
