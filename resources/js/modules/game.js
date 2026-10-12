@@ -644,6 +644,18 @@ export function updateUI() {
         }
     }
 
+    // P2 — Accueil compact mobile : le banner d'enrôlement disparaît une fois
+    // connecté, et la bande stats (lourde en vertical) est masquée sur mobile
+    // tant que l'utilisateur n'est pas connecté (l'accueil va droit au CTA).
+    const isDisconnected = (window.userState.status === 'disconnected' || !window.userState.id);
+    const onbBannerAutoplay = document.getElementById('onb-banner-autoplay');
+    if (onbBannerAutoplay) onbBannerAutoplay.style.display = isDisconnected ? '' : 'none';
+    const liveStatsBand = document.getElementById('live-stats-band');
+    if (liveStatsBand) {
+        const isMobileViewport = window.matchMedia('(max-width: 480px)').matches;
+        liveStatsBand.style.display = (isDisconnected && isMobileViewport) ? 'none' : '';
+    }
+
     const startSessionBtn = document.getElementById('start-session-btn');
     if (startSessionBtn && !gameState.isStartingSession) {
         startSessionBtn.innerText = "INITIALIZE BATTLE SEQUENCE";
