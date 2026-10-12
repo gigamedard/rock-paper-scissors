@@ -467,10 +467,13 @@ export async function connectWalletMobile(walletKey = 'core') {
             // certains builds : l'event est déjà consommé par AppKit → fallback poll
         }
         // Filet : l'event peut arriver avant l'abonnement — poll SANS jamais
-        // résoudre avec une URI d'un flux précédent.
+        // résoudre avec une URI d'un flux précédent. DÉLAI COURT (8 s) :
+        // au-delà, l'attente d'approbation n'a AUCUN SENS (aucune URI =
+        // aucune invitation envoyée) — journal 2026-10-12 : « délai d'attente
+        // trop long » (15 s de poll + 10 min de poll session dans le vide).
         const pollUri = () => {
             if (_lastWcUri) { resolve(_lastWcUri); return; }
-            if (Date.now() - startedAt > 15000) { resolve(null); return; }
+            if (Date.now() - startedAt > 8000) { resolve(null); return; }
             setTimeout(pollUri, 250);
         };
         setTimeout(pollUri, 300);
@@ -510,8 +513,17 @@ export async function connectWalletMobile(walletKey = 'core') {
         console.info('[Web3Mobile] navigation native →', link.slice(0, 52) + '…');
         window.location.href = link;
     } else {
-        // Pas d'URI (pairing lento/échoué) : on tombe sur la modal standard.
-        console.warn('[Web3] URI WC non reçue — fallback modal AppKit.');
+        // Pas d'URI : AUCUNE invitation n'a été envoyée — attendre l'approbation
+        // en boucle n'a aucun sens (le « délai d'attente trop long », journal
+        // 2026-10-12). On échoue IMMÉDIATEMENT, message clair + réessayable.
+        console.warn('[Web3Mobile] URI WC non reçue en 8 s — abandon du flux (réessayable).');
+        try {
+            window.showToast?.(
+                window.t ? window.t('errors.network_issue') : 'Connexion lente — réessayez dans quelques secondes.',
+                'warn', 4000
+            );
+        } catch (e) { /* noop */ }
+        throw new Error('Connexion lente (pas d\'invitation envoyée). Réessayez — le bouton reste actif.');
     }
 
     // La modal reste disponible en secours si le retour au navigateur ne
@@ -523,7 +535,9 @@ export async function connectWalletMobile(walletKey = 'core') {
     // fenêtre de wallets qui reste bloquée sur la page.
     _closeAppKitModalIfOpen();
     console.info('[Web3Mobile] poll session (attente approbation)…');
-    await _waitForAppKitConnection(null /** pas de modal — poll session seulement*/, provider);
+    // TIMEOUT MOBILE COURT (2 min) : le user doit pouvoir relancer au lieu
+    // d'attendre 10 min dans le vide.
+    await _waitForAppKitConnection(null /** pas de modal — poll session seulement*/, provider, 120000);
 
     _activeWcSource = 'appkit';
     _walletConnectProvider = provider;
