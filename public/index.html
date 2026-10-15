@@ -579,6 +579,30 @@
     <script>
         (function () {
             var APP2_ORIGIN = 'https://app2.31.187.72.98.sslip.io'; // doit matcher e.origin
+            // RPC Pingala (CORS « * » vérifié : appel direct autorisé depuis toute origine).
+            var PINGALA_RPC = 'https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc';
+            // Méthodes de LECTURE (et diffusion) : routées DIRECTEMENT sur le RPC
+            // Pingala, JAMAIS via le wallet. Constat 2026-10-15 : en mobile/WC, les
+            // lectures relayées au wallet revenaient vides (feeBps()/userBalances()
+            // → value="0x") ; le RPC direct est déterministe. eth_accounts /
+            // eth_requestAccounts restent HORS de cette liste (comptes du wallet).
+            var READ_METHODS = ['eth_call', 'eth_getBalance', 'eth_getCode', 'eth_getStorageAt',
+                'eth_getTransactionCount', 'eth_getBlockByNumber', 'eth_getBlockByHash', 'eth_blockNumber',
+                'eth_chainId', 'net_version', 'eth_gasPrice', 'eth_feeHistory', 'eth_maxPriorityFeePerGas',
+                'eth_estimateGas', 'eth_getLogs', 'eth_getTransactionByHash', 'eth_getTransactionReceipt',
+                'eth_getBlockTransactionCountByNumber', 'eth_getBlockTransactionCountByHash', 'eth_syncing',
+                'web3_clientVersion', 'eth_getProof', 'eth_sendRawTransaction'];
+            var _rpcId = 0;
+            function directRpc(req) {
+                return fetch(PINGALA_RPC, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jsonrpc: '2.0', id: ++_rpcId, method: req.method, params: req.params || [] })
+                }).then(function (r) { return r.json(); }).then(function (j) {
+                    if (j && j.error) throw { code: j.error.code, message: j.error.message };
+                    return j ? j.result : undefined;
+                });
+            }
             function getProvider() {
                 if (typeof window.ethereum !== 'undefined') return window.ethereum;
                 if (window.web3 && window.web3.currentProvider) return window.web3.currentProvider;
@@ -590,7 +614,6 @@
                 if (e.origin !== APP2_ORIGIN) return; // sécurité : origine App2 uniquement
                 var d = e.data;
                 if (!d || d.app2Bridge !== true || d.type !== 'WALLET_RPC' || !d.request) return;
-                var provider = getProvider();
                 function reply(payload) {
                     try {
                         e.source.postMessage(
@@ -599,6 +622,24 @@
                         );
                     } catch (err) { /* noop */ }
                 }
+                function replyError(err) {
+                    reply({
+                        error: (err && err.code != null)
+                            ? { code: err.code, message: err.message }
+                            : { code: -32603, message: String((err && err.message) || err) }
+                    });
+                }
+                var method = d.request.method;
+
+                // 1) Lectures → RPC Pingala direct (déterministe, ne passe pas par le wallet).
+                if (READ_METHODS.indexOf(method) !== -1) {
+                    try { reply({ result: await directRpc(d.request) }); }
+                    catch (err) { replyError(err); }
+                    return;
+                }
+
+                // 2) Comptes + signature → provider EIP-1193 actif d'App1 (wallet).
+                var provider = getProvider();
                 try {
                     if (!provider || typeof provider.request !== 'function') {
                         throw { code: 4900, message: 'Aucun provider dans App1' };
@@ -609,17 +650,12 @@
                     var SIGNING = ['eth_sendTransaction', 'eth_signTransaction', 'personal_sign',
                         'eth_sign', 'eth_signTypedData', 'eth_signTypedData_v3', 'eth_signTypedData_v4',
                         'wallet_sendCalls', 'wallet_sign'];
-                    if (SIGNING.indexOf(d.request.method) !== -1 && typeof window.__bpWakeWallet === 'function') {
+                    if (SIGNING.indexOf(method) !== -1 && typeof window.__bpWakeWallet === 'function') {
                         try { window.__bpWakeWallet(); } catch (err) { /* noop */ }
                     }
-                    var result = await provider.request(d.request);
-                    reply({ result: result });
+                    reply({ result: await provider.request(d.request) });
                 } catch (err) {
-                    reply({
-                        error: (err && err.code != null)
-                            ? { code: err.code, message: err.message }
-                            : { code: -32603, message: String((err && err.message) || err) }
-                    });
+                    replyError(err);
                 }
             });
         })();
