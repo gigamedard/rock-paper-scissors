@@ -517,8 +517,12 @@
          à App 2 (il écoute BATTLEPOOL_SESSION_SAVE) + on passe ?wallet=.
          ===================================================================== -->
     <div id="app2-overlay" style="display:none;position:fixed;inset:0;z-index:2147483000;background:#05060a;flex-direction:column;">
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0a0f1a;border-bottom:1px solid rgba(255,255,255,0.14);color:#e8f4ff;font-weight:700;font-family:inherit;">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0a0f1a;border-bottom:1px solid rgba(255,255,255,0.14);color:#e8f4ff;font-weight:700;font-family:inherit;flex-wrap:wrap;">
             <span>WEB3 COMBAT GAME</span>
+            <div id="app2-mode-switch" style="display:flex;gap:8px;margin-left:14px;">
+                <button type="button" id="app2-mode-duel" onclick="openApp2('DUEL')" style="background:#12263a;color:#e8f4ff;border:1px solid rgba(255,255,255,0.22);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700;">⚔️ Duel 1v1</button>
+                <button type="button" id="app2-mode-battle" onclick="openApp2('BATTLE')" style="background:#12263a;color:#e8f4ff;border:1px solid rgba(255,255,255,0.22);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700;">🏆 Battle Royale</button>
+            </div>
             <button type="button" onclick="closeApp2()" style="margin-left:auto;background:#12263a;color:#e8f4ff;border:1px solid rgba(255,255,255,0.22);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700;">✕ Fermer</button>
         </div>
         <iframe id="app2-frame" title="Web3 Combat Game" allow="ethereum; clipboard-write; fullscreen" allowfullscreen style="flex:1 1 auto;width:100%;border:0;background:#000;"></iframe>
@@ -526,10 +530,22 @@
     <script>
         (function () {
             var APP2_BASE = 'https://app2.31.187.72.98.sslip.io/';
-            window.openApp2 = function () {
+            window.openApp2 = function (mode) {
                 var ov = document.getElementById('app2-overlay');
                 var f = document.getElementById('app2-frame');
                 ov.style.display = 'flex';
+
+                mode = (mode === 'BATTLE' || mode === 'DUEL') ? mode : 'DUEL';
+                // Surligne le mode actif dans la barre de sélection.
+                try {
+                    var base0 = 'border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700;';
+                    var on = 'background:#7b2cbf;color:#fff;border:1px solid #a066ff;';
+                    var off = 'background:#12263a;color:#e8f4ff;border:1px solid rgba(255,255,255,0.22);';
+                    var bD = document.getElementById('app2-mode-duel');
+                    var bB = document.getElementById('app2-mode-battle');
+                    if (bD) bD.style.cssText = base0 + (mode === 'DUEL' ? on : off);
+                    if (bB) bB.style.cssText = base0 + (mode === 'BATTLE' ? on : off);
+                } catch (e) { /* noop */ }
 
                 function sendSession() {
                     try {
@@ -544,10 +560,13 @@
                     } catch (e) { /* noop */ }
                 }
 
-                var base = APP2_BASE;
+                // ?mode= fait entrer App2 DIRECTEMENT dans le mode choisi (DUEL /
+                // BATTLE ROYALE) — sans lui, le menu de mode d'App2 n'était pas
+                // atteignable depuis l'iframe. ?wallet= = liaison cross-origin.
+                var base = APP2_BASE + '?mode=' + mode;
                 try {
                     var u = JSON.parse(localStorage.getItem('user') || 'null');
-                    if (u && u.wallet_address) base += '?wallet=' + encodeURIComponent(u.wallet_address);
+                    if (u && u.wallet_address) base += '&wallet=' + encodeURIComponent(u.wallet_address);
                 } catch (e) { /* noop */ }
 
                 if (f.getAttribute('src') !== base) {
