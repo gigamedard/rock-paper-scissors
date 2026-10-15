@@ -667,6 +667,16 @@
 
                 // 2) Comptes + signature → provider EIP-1193 actif d'App1 (wallet).
                 var provider = getProvider();
+                // Provider pas encore instancié ? (2e ouverture PWA : la session
+                // BACKEND est restaurée → App1 se croit connecté, MAIS le provider
+                // WalletConnect n'est pas encore recréé côté page, donc
+                // _getRawProvider() = null). On le recrée silencieusement depuis le
+                // storage via ensurePingalaNetwork() puis on retente — sinon le pont
+                // renvoie à tort « Aucun provider dans App1 ».
+                if (!provider && typeof window.ensurePingalaNetwork === 'function') {
+                    try { await window.ensurePingalaNetwork(); } catch (err) { /* noop */ }
+                    provider = getProvider();
+                }
                 try {
                     if (!provider || typeof provider.request !== 'function') {
                         throw { code: 4900, message: 'Aucun provider dans App1' };
