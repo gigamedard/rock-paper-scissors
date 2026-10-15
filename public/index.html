@@ -570,12 +570,15 @@
                     return;
                 }
 
-                // ?mode= fait entrer App2 DIRECTEMENT dans le mode choisi (DUEL /
-                // BATTLE ROYALE) ; ?wallet= = liaison cross-origin.
-                var base = APP2_BASE + '?mode=' + mode;
+                // 1er chargement SANS ?mode= : App2 suit son flux classique (branche
+                // pont « iframe » de connectWallet → provider pont + SOLDE on-chain OK).
+                // Le mode est ensuite imposé via BATTLEPOOL_SET_MODE (boutons), sans
+                // rechargement. (Avec ?mode=, App2 prenait le chemin d'auto-entrée
+                // portail qui ne montait pas le provider → solde absent.)
+                var base = APP2_BASE;
                 try {
                     var u = JSON.parse(localStorage.getItem('user') || 'null');
-                    if (u && u.wallet_address) base += '&wallet=' + encodeURIComponent(u.wallet_address);
+                    if (u && u.wallet_address) base += '?wallet=' + encodeURIComponent(u.wallet_address);
                 } catch (e) { /* noop */ }
 
                 f.onload = function () { app2SendSession(f); };
