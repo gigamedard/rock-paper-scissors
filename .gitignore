@@ -40,3 +40,8 @@ smart_contracts/ipfs-storage/
 __pycache__/
 *.pyc
 /graphify-out/cache/ast/
+# SECURITY: TLS certs for mobile portal (Let's Encrypt via Tailscale) - NEVER commit
+proxy/certs/
+
+# Deploiement VPS : cles SSH + etat de deploy (JAMAIS versionne)
+deploy/

@@ -516,7 +516,7 @@
          Partage de connexion : on poste la session App1 (user + auth_token)
          à App 2 (il écoute BATTLEPOOL_SESSION_SAVE) + on passe ?wallet=.
          ===================================================================== -->
-    <div id="app2-overlay" style="display:none;position:fixed;inset:0;z-index:2147483000;background:#05060a;flex-direction:column;">
+    <div id="app2-overlay" style="display:none;position:fixed;inset:0;z-index:2147483000;background:#05060a;flex-direction:column;padding-top:env(safe-area-inset-top,0px);box-sizing:border-box;">
         <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0a0f1a;border-bottom:1px solid rgba(255,255,255,0.14);color:#e8f4ff;font-weight:700;font-family:inherit;flex-wrap:wrap;">
             <span>WEB3 COMBAT GAME</span>
             <div id="app2-mode-switch" style="display:flex;gap:8px;margin-left:14px;">

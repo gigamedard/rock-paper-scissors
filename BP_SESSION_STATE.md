@@ -4,7 +4,7 @@
 > à la fin de votre session. Les conventions de gouvernance vivent dans
 > `.agents/` (local, gitignored) — ce fichier tient lieu de contrat partagé.
 >
-> Dernière mise à jour : 2026-10-08 (agent cloud : airdrop faucet) — puis 2026-10-12 (Orchestrateur : incident validateur ETNA gelé/résolu).
+> Dernière mise à jour : 2026-10-08 (agent cloud : airdrop faucet) — puis 2026-10-12 (Orchestrateur : incident validateur ETNA gelé/résolu) → 2026-10-12 (Orchestrateur : dossier transfert UI/UX externe prêt + APPROUVÉ QA — ci-dessous).
 >
 > ⚡ **ÉTAT AU 12 OCT** : chaîne L1 **OPÉRATIONNELLE** (validateur rechargé — §8 bis),
 > flux mobile Core Wallet OK, marketplace chaînée, 4 bots en boucle — le jeu tourne.
@@ -170,6 +170,7 @@ systemctl restart avalanchego
 ## 9. CHANTIERS PROCHAINS (ordre recommandé)
 
 1. **Re-test utilisateur du transfert TST** (le mempool a été PURGÉ pendant la stase — les tx « pending » de Core ne partiront jamais : refaire le transfert 0.05 TST maintenant que la chaîne est UP) + re-test des flux bots/marketplace post-restauration.
+0-UI. **Refonte UX mobile via agent UI/UX EXTERNE** (décision utilisateur 12 oct, priorité top) : dossier de transfert prêt dans `collab/ui_transfer/` (gitignored) — `UIUX_BRIEF_EXTERNAL.md` (PARTIE 1 prompt copiable + PARTIE 2 brief autoportant + PARTIE 3 notes d'intégration NE PAS joindre), `battlepool_ui_bundle.zip` (31 fichiers UI, arborescence préservée, ~120 Ko), `battlepool_ui_bundle.md` (same concat). QA : REJETÉ it.1 (brief disait « unique breakpoint 768 » — VRAIE découverte : style.css a **5 blocs @media** : 992px L413/512/1124, 768px L429, bloc principal 768px L1218-1409) → corrections appliquées → **APPROUVÉ it.2** (IDs contractuels 81/81 vérifiés, 0 secret, zip ≡ disque SHA256). À la réception des livrables externes : intégrer → `npm run build` → incrémenter BP-MOBILE-DEPLOY → check headless → audit qa → deploy runbook.
 2. **Cron surveillance validateur** (recharge auto/alerte sous 0.2 AVAX — cf. §8 bis).
 0-OP. **Financer le faucet airdrop** (prérequis test `d7fa280` — agent cloud) : injecter ≥50 TST dans le wallet faucet (découplage hot/cold recommandé : clé `FAUCET_WALLET_PK` DÉDIÉE + secret + compose prod à compléter — mon périmètre deploy). Puis déployer `d7fa280` + `b3a494b` (UX mobile) dans le même cycle et tester.
 1-OP. **Tester Leave pool** + **feedback marketplace instantané** (bug n°2).
