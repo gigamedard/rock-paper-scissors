@@ -12,7 +12,7 @@ import { initInfluencer } from './modules/influencer.js';
 import { initStats } from './modules/stats.js';
 import { initPWA } from './core/pwa.js';
 import { showToast } from './core/toast.js';
-import { addPingalaNetwork } from './web3/web3-core.js';
+import { addPingalaNetwork, getActiveEip1193Provider, closeWalletModal } from './web3/web3-core.js';
 import { initDebugLog, debugLog } from './modules/debug-log.js';
 import { initOnboardingCore } from './modules/onboarding-core.js';
 
@@ -194,6 +194,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('auth:success', () => {
         const user = window.userState?.userObject;
         updateFaucetButton(!!(user && user.has_received_airdrop));
+    });
+
+    // ===== PONT EIP-1193 App1 → iframe App 2 (index.html, cross-origin) =====
+    // Le pont postMessage (script inline de index.html) relaie les RPC de
+    // l'iframe sur CE getter, qui renvoie le provider ACTIF (injecté OU
+    // WalletConnect mobile). Exposé sur window car le pont est un script inline
+    // non-bundlé (ne peut pas importer le module).
+    window.__bpGetEip1193 = getActiveEip1193Provider;
+
+    // Parité App 2 : à la connexion réussie, fermer tout overlay wallet
+    // (modal AppKit) + le loader, pour passer au jeu sans étape manuelle.
+    window.addEventListener('auth:success', () => {
+        try { closeWalletModal(); } catch (e) { /* noop */ }
+        try { window.hideLoader && window.hideLoader(); } catch (e) { /* noop */ }
     });
 
     // Bouton « 🚪 Leave pool » (sortie volontaire, stake remboursé via bridge)

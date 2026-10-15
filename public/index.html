@@ -29,6 +29,7 @@
         <a href="#/marketplace" class="nav-link" data-i18n="nav.marketplace">Marché</a>
         <a href="#/referral" class="nav-link" data-i18n="nav.referral">Parrainage</a>
         <a href="#/influencer" class="nav-link nav-link--vip" data-i18n="nav.influencer">VIP</a>
+        <a href="#" class="nav-link" onclick="openApp2();return false;">⚔ Combat</a>
 
 
     </nav>
@@ -503,7 +504,117 @@
             <span class="nav-icon">👑</span>
             <span class="nav-label" data-i18n="nav.influencer">VIP</span>
         </a>
+        <a href="#" class="bottom-nav-link" id="btn-nav-combat" onclick="openApp2();return false;">
+            <span class="nav-icon">⚔️</span>
+            <span class="nav-label">Combat</span>
+        </a>
     </nav>
+
+    <!-- =====================================================================
+         OVERLAY APP 2 (Web3 Combat Game) — iframe plein écran
+         Ouvert par le bouton « Combat » (nav desktop + bottom-nav mobile).
+         Partage de connexion : on poste la session App1 (user + auth_token)
+         à App 2 (il écoute BATTLEPOOL_SESSION_SAVE) + on passe ?wallet=.
+         ===================================================================== -->
+    <div id="app2-overlay" style="display:none;position:fixed;inset:0;z-index:2147483000;background:#05060a;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0a0f1a;border-bottom:1px solid rgba(255,255,255,0.14);color:#e8f4ff;font-weight:700;font-family:inherit;">
+            <span>WEB3 COMBAT GAME</span>
+            <button type="button" onclick="closeApp2()" style="margin-left:auto;background:#12263a;color:#e8f4ff;border:1px solid rgba(255,255,255,0.22);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700;">✕ Fermer</button>
+        </div>
+        <iframe id="app2-frame" title="Web3 Combat Game" allow="ethereum; clipboard-write; fullscreen" allowfullscreen style="flex:1 1 auto;width:100%;border:0;background:#000;"></iframe>
+    </div>
+    <script>
+        (function () {
+            var APP2_BASE = 'https://app2.31.187.72.98.sslip.io/';
+            window.openApp2 = function () {
+                var ov = document.getElementById('app2-overlay');
+                var f = document.getElementById('app2-frame');
+                ov.style.display = 'flex';
+
+                function sendSession() {
+                    try {
+                        var u = localStorage.getItem('user');
+                        var t = localStorage.getItem('auth_token');
+                        if (u && t && f.contentWindow) {
+                            f.contentWindow.postMessage(
+                                { type: 'BATTLEPOOL_SESSION_SAVE', user: JSON.parse(u), auth_token: t },
+                                '*'
+                            );
+                        }
+                    } catch (e) { /* noop */ }
+                }
+
+                var base = APP2_BASE;
+                try {
+                    var u = JSON.parse(localStorage.getItem('user') || 'null');
+                    if (u && u.wallet_address) base += '?wallet=' + encodeURIComponent(u.wallet_address);
+                } catch (e) { /* noop */ }
+
+                if (f.getAttribute('src') !== base) {
+                    f.onload = sendSession;
+                    f.setAttribute('src', base);
+                } else {
+                    sendSession();
+                }
+            };
+            window.closeApp2 = function () {
+                var ov = document.getElementById('app2-overlay');
+                var f = document.getElementById('app2-frame');
+                if (ov) ov.style.display = 'none';
+                if (f) { f.removeAttribute('src'); }
+            };
+        })();
+    </script>
+
+    <!-- =====================================================================
+         PONT EIP-1193 App1 → App2 (iframe cross-origin #app2-frame)
+         App2 n'a ni window.ethereum (cross-origin) ni WalletConnect utilisable
+         en iframe. Il demande les RPC au parent via postMessage ; on relaie sur
+         le provider EIP-1193 ACTIF d'App1 (injecté OU session WalletConnect
+         mobile, exposé par web3-core.js via window.__bpGetEip1193). Le wallet
+         reste dans App1 (top-level) → le deeplink Core mobile fonctionne.
+         Contrat : {app2Bridge:true, type:'WALLET_RPC', id, request:{method,params}}
+         Réponse : {app2Bridge:true, type:'WALLET_RPC_RESULT', id, result|error}
+         ===================================================================== -->
+    <script>
+        (function () {
+            var APP2_ORIGIN = 'https://app2.31.187.72.98.sslip.io'; // doit matcher e.origin
+            function getProvider() {
+                if (typeof window.ethereum !== 'undefined') return window.ethereum;
+                if (window.web3 && window.web3.currentProvider) return window.web3.currentProvider;
+                // Chemin mobile : App1 connecté via WalletConnect (pas d'injecté).
+                if (typeof window.__bpGetEip1193 === 'function') return window.__bpGetEip1193();
+                return null;
+            }
+            window.addEventListener('message', async function (e) {
+                if (e.origin !== APP2_ORIGIN) return; // sécurité : origine App2 uniquement
+                var d = e.data;
+                if (!d || d.app2Bridge !== true || d.type !== 'WALLET_RPC' || !d.request) return;
+                var provider = getProvider();
+                function reply(payload) {
+                    try {
+                        e.source.postMessage(
+                            Object.assign({ app2Bridge: true, type: 'WALLET_RPC_RESULT', id: d.id }, payload),
+                            APP2_ORIGIN
+                        );
+                    } catch (err) { /* noop */ }
+                }
+                try {
+                    if (!provider || typeof provider.request !== 'function') {
+                        throw { code: 4900, message: 'Aucun provider dans App1' };
+                    }
+                    var result = await provider.request(d.request);
+                    reply({ result: result });
+                } catch (err) {
+                    reply({
+                        error: (err && err.code != null)
+                            ? { code: err.code, message: err.message }
+                            : { code: -32603, message: String((err && err.message) || err) }
+                    });
+                }
+            });
+        })();
+    </script>
 
     <!-- Vite Compiled Assets -->
     <link rel="stylesheet" href="/build/assets/app.css">
@@ -511,5 +622,29 @@
     <link rel="stylesheet" href="/build/assets/referral.css">
     <link rel="stylesheet" href="/build/assets/influencer.css">
     <script type="module" src="/build/assets/app.js"></script>
+
+    <!-- Spinner/loader unifié (repris d'App2) : public/js/ui-loader.js -->
+    <script src="js/ui-loader.js?v=1"></script>
+    <script>
+        (function () {
+            // Affiche le loader pendant une tentative de connexion wallet.
+            document.addEventListener('click', function (e) {
+                var t = e.target.closest && e.target.closest('#connect-btn,#connect-wc-btn,#connect-wc-btn-landing,#enter-arena-btn');
+                if (t && window.showLoader) window.showLoader('Connexion au wallet…');
+            }, true);
+            // Le masque dès que le wallet est connecté (badge visible).
+            function hideIfConnected() {
+                var cu = document.getElementById('connected-user');
+                if (cu && cu.offsetParent !== null) { if (window.hideLoader) window.hideLoader(); }
+            }
+            document.addEventListener('DOMContentLoaded', function () {
+                var ws = document.getElementById('wallet-section');
+                if (ws && 'MutationObserver' in window) {
+                    new MutationObserver(hideIfConnected).observe(ws, { attributes: true, childList: true, subtree: true });
+                }
+                setInterval(hideIfConnected, 1500);
+            });
+        })();
+    </script>
 </body>
 </html>

@@ -709,6 +709,29 @@ export function getWcSessionAddress() {
 }
 
 /**
+ * PONT EIP-1193 INTER-APP (App 1 → iframe App 2 cross-origin, index.html).
+ * Renvoie le provider EIP-1193 ACTIF : wallet injecté si présent, sinon la
+ * session WalletConnect en cours (mobile). C'est ESSENTIEL : en mobile App 1
+ * est connecté via WalletConnect → `window.ethereum` est undefined, et le
+ * snippet « window.ethereum only » du pont échouerait (code 4900). Le pont
+ * postMessage relaie donc les RPC de l'iframe sur CE provider ; le wallet
+ * reste dans App 1 (top-level), donc le deeplink Core mobile fonctionne.
+ * @returns {object|null} provider EIP-1193 (objet avec `.request({method,params})`)
+ */
+export function getActiveEip1193Provider() {
+    return _getRawProvider() || null;
+}
+
+/**
+ * Ferme la modal wallet (AppKit) si elle est encore ouverte. Appelé après une
+ * connexion réussie pour ne laisser AUCUN overlay au-dessus du jeu (parité avec
+ * le flux App 2 : connexion → jeu direct, sans étape manuelle).
+ */
+export function closeWalletModal() {
+    _closeAppKitModalIfOpen();
+}
+
+/**
  * RÉVEIL DU WALLET AVANT TX MÉTIER (journal 14:07 — preuve : le journal
  * s'arrête à « 2/4 valeurs tx » sans jamais logger « tx envoyée » ni
  * d'erreur : la demande sendTransaction s'est évaporée — Core était en
