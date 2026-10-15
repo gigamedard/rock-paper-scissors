@@ -530,6 +530,19 @@
     <script>
         (function () {
             var APP2_BASE = 'https://app2.31.187.72.98.sslip.io/';
+            var APP2_ORIGIN = 'https://app2.31.187.72.98.sslip.io';
+            function app2SendSession(f) {
+                try {
+                    var u = localStorage.getItem('user');
+                    var t = localStorage.getItem('auth_token');
+                    if (u && t && f.contentWindow) {
+                        f.contentWindow.postMessage(
+                            { type: 'BATTLEPOOL_SESSION_SAVE', user: JSON.parse(u), auth_token: t },
+                            APP2_ORIGIN
+                        );
+                    }
+                } catch (e) { /* noop */ }
+            }
             window.openApp2 = function (mode) {
                 var ov = document.getElementById('app2-overlay');
                 var f = document.getElementById('app2-frame');
@@ -547,34 +560,26 @@
                     if (bB) bB.style.cssText = base0 + (mode === 'BATTLE' ? on : off);
                 } catch (e) { /* noop */ }
 
-                function sendSession() {
-                    try {
-                        var u = localStorage.getItem('user');
-                        var t = localStorage.getItem('auth_token');
-                        if (u && t && f.contentWindow) {
-                            f.contentWindow.postMessage(
-                                { type: 'BATTLEPOOL_SESSION_SAVE', user: JSON.parse(u), auth_token: t },
-                                '*'
-                            );
-                        }
-                    } catch (e) { /* noop */ }
+                // Déjà chargé : bascule de mode SANS recharger l'iframe (message
+                // BATTLEPOOL_SET_MODE) → conserve l'état (provider pont, solde,
+                // session). Sinon : 1er chargement avec ?mode= (auto-entrée portail).
+                var loadedSrc = f.getAttribute('src');
+                if (loadedSrc && loadedSrc !== 'about:blank' && f.contentWindow) {
+                    try { f.contentWindow.postMessage({ type: 'BATTLEPOOL_SET_MODE', mode: mode }, APP2_ORIGIN); } catch (e) { /* noop */ }
+                    app2SendSession(f);
+                    return;
                 }
 
                 // ?mode= fait entrer App2 DIRECTEMENT dans le mode choisi (DUEL /
-                // BATTLE ROYALE) — sans lui, le menu de mode d'App2 n'était pas
-                // atteignable depuis l'iframe. ?wallet= = liaison cross-origin.
+                // BATTLE ROYALE) ; ?wallet= = liaison cross-origin.
                 var base = APP2_BASE + '?mode=' + mode;
                 try {
                     var u = JSON.parse(localStorage.getItem('user') || 'null');
                     if (u && u.wallet_address) base += '&wallet=' + encodeURIComponent(u.wallet_address);
                 } catch (e) { /* noop */ }
 
-                if (f.getAttribute('src') !== base) {
-                    f.onload = sendSession;
-                    f.setAttribute('src', base);
-                } else {
-                    sendSession();
-                }
+                f.onload = function () { app2SendSession(f); };
+                f.setAttribute('src', base);
             };
             window.closeApp2 = function () {
                 var ov = document.getElementById('app2-overlay');
