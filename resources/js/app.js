@@ -12,7 +12,7 @@ import { initInfluencer } from './modules/influencer.js';
 import { initStats } from './modules/stats.js';
 import { initPWA } from './core/pwa.js';
 import { showToast } from './core/toast.js';
-import { addPingalaNetwork, getActiveEip1193Provider, closeWalletModal } from './web3/web3-core.js';
+import { addPingalaNetwork, getActiveEip1193Provider, closeWalletModal, ensureWalletVisibleForTx } from './web3/web3-core.js';
 import { initDebugLog, debugLog } from './modules/debug-log.js';
 import { initOnboardingCore } from './modules/onboarding-core.js';
 
@@ -202,6 +202,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // WalletConnect mobile). Exposé sur window car le pont est un script inline
     // non-bundlé (ne peut pas importer le module).
     window.__bpGetEip1193 = getActiveEip1193Provider;
+
+    // Réveil du wallet AVANT une signature demandée par l'iframe App 2 : sur le
+    // chemin WalletConnect mobile, Core est en arrière-plan et son socket WC gelé
+    // → une demande personal_sign/eth_sendTransaction venue du pont n'est jamais
+    // vue et expire (« Délai dépassé (wallet) », journal 2026-10-15). On ré-émet
+    // le deeplink Core (pattern « redirect to wallet on request ») comme pour les
+    // tx natives d'App 1. No-op sur le chemin injecté.
+    window.__bpWakeWallet = ensureWalletVisibleForTx;
 
     // Parité App 2 : à la connexion réussie, fermer tout overlay wallet
     // (modal AppKit) + le loader, pour passer au jeu sans étape manuelle.
