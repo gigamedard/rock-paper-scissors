@@ -644,14 +644,23 @@
                     if (!provider || typeof provider.request !== 'function') {
                         throw { code: 4900, message: 'Aucun provider dans App1' };
                     }
-                    // Réveil du wallet pour les méthodes de SIGNATURE : en mobile
-                    // (WC), Core en arrière-plan ne voit pas la demande → timeout.
-                    // On ré-émet le deeplink Core avant de relayer (no-op injecté).
                     var SIGNING = ['eth_sendTransaction', 'eth_signTransaction', 'personal_sign',
                         'eth_sign', 'eth_signTypedData', 'eth_signTypedData_v3', 'eth_signTypedData_v4',
                         'wallet_sendCalls', 'wallet_sign'];
-                    if (SIGNING.indexOf(method) !== -1 && typeof window.__bpWakeWallet === 'function') {
-                        try { window.__bpWakeWallet(); } catch (err) { /* noop */ }
+                    if (SIGNING.indexOf(method) !== -1 || method === 'eth_requestAccounts') {
+                        // a) Réveil du wallet : en mobile (WC) Core en arrière-plan
+                        //    ne voit pas la demande → timeout (« Délai dépassé »).
+                        if (typeof window.__bpWakeWallet === 'function') {
+                            try { window.__bpWakeWallet(); } catch (err) { /* noop */ }
+                        }
+                        // b) BASCULE RÉSEAU : sinon le wallet signe sur AVALANCHE
+                        //    (43114, réseau par défaut de Core) au lieu de PINGALA
+                        //    (99999) — constat mobile 2026-10-15. ensurePingalaNetwork()
+                        //    bascule via wallet_switchEthereumChain, et wallet_addEthereumChain
+                        //    si la chaîne est inconnue du wallet.
+                        if (typeof window.ensurePingalaNetwork === 'function') {
+                            try { await window.ensurePingalaNetwork(); } catch (err) { /* non bloquant */ }
+                        }
                     }
                     reply({ result: await provider.request(d.request) });
                 } catch (err) {
