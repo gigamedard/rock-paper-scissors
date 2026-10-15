@@ -732,6 +732,23 @@ export function closeWalletModal() {
 }
 
 /**
+ * WARM-UP : précharge en arrière-plan les chunks AppKit/WalletConnect (imports
+ * dynamiques), pour que le clic « Connect » soit quasi instantané. App 2 n'a
+ * pas ce coût car sa lib wallet est BUNDLÉE en statique (`web3.iife.js`, cf.
+ * wallet-bundle-src/build.mjs) ; App 1 (Vite) charge `@reown/appkit` à la
+ * demande → téléchargement de chunk AU CLIC = lenteur perçue. À appeler au boot
+ * (idle). Idempotent : les `import()` sont mis en cache par le navigateur.
+ * @returns {Promise<void>}
+ */
+export function warmupWalletLibs() {
+    return Promise.all([
+        import('@reown/appkit'),
+        import('@walletconnect/universal-provider'),
+    ]).then(() => { console.info('[Web3] wallet libs préchargées (warm-up)'); })
+      .catch((e) => { console.warn('[Web3] warm-up wallet échoué:', e?.message); });
+}
+
+/**
  * RÉVEIL DU WALLET AVANT TX MÉTIER (journal 14:07 — preuve : le journal
  * s'arrête à « 2/4 valeurs tx » sans jamais logger « tx envoyée » ni
  * d'erreur : la demande sendTransaction s'est évaporée — Core était en
