@@ -1,6 +1,13 @@
 // js/config.js
+// Mobile (Tailscale HTTPS) : le proxy bp-proxy route / vers l'app (8001) et /app/ vers Reverb (8008)
+// sur la MEME origine -> API_URL relatif. Desktop local : comportement historique.
+const IS_HTTPS = window.location.protocol === 'https:';
+const API_BASE = IS_HTTPS
+    ? `${window.location.origin}/api`
+    : `http://${window.location.hostname}:8001/api`;
+
 export const CONFIG = {
-    API_URL: `http://${window.location.hostname}:8001/api`,
+    API_URL: API_BASE,
     REVERB_HOST: window.location.hostname,
     REVERB_PORT: 8008,
     REVERB_KEY: '***REMOVED***', 

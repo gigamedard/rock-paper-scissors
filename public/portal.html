@@ -352,9 +352,15 @@
 <div id="toast"></div>
 
 <script>
+// Mobile (Tailscale https) : /app2/ est proxifiée par bp-proxy(-tls) → SAME-ORIGIN
+// → localStorage partagé, pas de mixed content. En http desktop local, /app2/
+// marche aussi (proxy 8090). Fallback localhost:8080 si le proxy est absent.
+const APP2_URL = window.PORTAL_APP2_URL
+    || (window.location.protocol === 'https:' ? '/app2/' : '/app2/');
+
 const PORTAL_CONFIG = {
     APP1_URL: window.PORTAL_APP1_URL || '/',
-    APP2_URL: window.PORTAL_APP2_URL || 'http://localhost:8080/',
+    APP2_URL,
 };
 
 const SUPPORTED_LOCALES = ['fr', 'en', 'es', 'de', 'pt', 'zh'];

@@ -79,7 +79,7 @@ Route::middleware('token.auth')->group(function () {
 // Public referral leaderboard
 Route::get('/referral/leaderboard', [ReferralController::class, 'getLeaderboard']);
 
-Route::post('/debug-referral', [ReferralController::class, 'applyCodeFromAuthUser']);
+// SECURITY: /api/debug-referral REMOVED (prod hardening) — debug alias inutile.
 
 // SECURITY: /api/debug/trigger-event REMOVED — it was a public backdoor that
 // allowed unauthenticated balance modification and arbitrary event emission.
