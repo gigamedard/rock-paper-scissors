@@ -69,6 +69,7 @@
 | S7 — Revue de la modif « deep-link » (retrait iframe/pont) | IN PROGRESS | CLOUD | `feat/app1-deeplink-app2` | — | audit lecture seule de `44644ed` |
 | S8 — Domaine réel + TLS | BLOCKED | LOCAL | — | — | bêta privée d'abord (sslip.io conservé) |
 | S9 — Performance App 2 (`.pck` 67 Mo) | HORS APP1 | (App 2) | — | — | traité dans le repo App2 ; **interdit §5 côté App 1** |
+| S10 — Activer le faucet airdrop 50 TST (ops VPS) | DONE | CLOUD | `docs/cloud-faucet-2026-10-18` | (doc) | secret `faucet_wallet_pk` monté (compose VPS), bridge recréé, faucet financé 1000 TST, E2E validé +50 TST. Voir `docs/handoffs/2026-10-18-cloud.md` |
 
 ---
 
@@ -96,6 +97,12 @@
 | Dernier déployé | `4caab5f` par LOCAL (2026-10-18) |
 | Déployeurs | **LOCAL uniquement** (le CLOUD n'a pas l'outillage de déploiement) |
 | Verrou deploy | (aucun) |
+
+> **Note faucet (2026-10-18, CLOUD, S10)** : `faucet_wallet_pk` a été ajouté au
+> `docker-compose.prod.yml` **du VPS** (service `bridge` + section `secrets`) puis le
+> conteneur `bridge` recréé, **sans changement de SHA** (`4caab5f`, pas de rebuild d'image).
+> Ce compose est **gitignored et hors zone CLOUD** → **LOCAL doit conserver ce bloc à chaque
+> déploiement**, sinon le secret n'est plus monté et `/faucet` renvoie `503`.
 
 ---
 
