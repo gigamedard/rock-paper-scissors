@@ -183,8 +183,12 @@ async function _authenticateWithAddress(walletAddress, providerType) {
         // shown for this request is not part of the active wallet » causée par
         // l'adresse périmée/non-checksummée passée via le signer ethers.
         const signInjected = async (msg) => {
-            const eth = injectedProvider || window.ethereum;
-            if (!eth || typeof eth.request !== 'function') throw new Error('Aucun provider wallet.');
+            // Provider EIP-1193 BRUT (window.ethereum) : c'est lui qui expose
+            // .request ; le BrowserProvider ethers n'a pas .request.
+            const eth = (typeof window !== 'undefined' && window.ethereum && typeof window.ethereum.request === 'function')
+                ? window.ethereum
+                : null;
+            if (!eth) throw new Error('Aucun provider wallet.');
             let accts = [];
             try { accts = await eth.request({ method: 'eth_requestAccounts' }); } catch (e) { accts = []; }
             if (!accts || !accts.length) throw new Error('Aucun compte wallet.');
