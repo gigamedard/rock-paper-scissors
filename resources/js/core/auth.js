@@ -119,11 +119,53 @@ export async function connectWallet(providerType = 'injected') {
  */
 async function _authenticateWithAddress(walletAddress, providerType) {
     try {
-        // 1. Get Challenge
+        const isInjected = !(providerType === 'walletconnect' || isWalletConnectActive());
+
+        // SYNCHRONISATION DU COMPTE ACTIF (fix « The account shown for this
+        // request is not part of the active wallet ») : sur le chemin injecté,
+        // on relit les comptes AVANT de demander le challenge. Si l'utilisateur
+        // a plusieurs wallets (MetaMask + Core) ou a changé de compte entre
+        // l'appel et la signature, l'adresse passée est obsolète → le wallet
+        // refuse personal_sign. On repart de l'adresse réellement active.
+        let effectiveAddress = walletAddress;
+        let injectedProvider = null;
+        if (isInjected) {
+            try {
+                injectedProvider = await getProvider('injected');
+                console.info('[Auth] provider injecté', {
+                    isMetaMask: !!window.ethereum?.isMetaMask,
+                    isCore: !!window.ethereum?.isCore,
+                    isBrave: !!window.ethereum?.isBraveWallet,
+                    requested: walletAddress
+                });
+                let accounts = [];
+                try {
+                    accounts = await injectedProvider.send('eth_requestAccounts', []);
+                } catch (reqErr) {
+                    console.warn('[Auth] eth_requestAccounts échoué → fallback eth_accounts :', reqErr?.message || reqErr);
+                    accounts = await injectedProvider.send('eth_accounts', []);
+                }
+                const active = Array.isArray(accounts) && accounts[0] ? accounts[0] : null;
+                if (active) {
+                    effectiveAddress = active;
+                    if (String(active).toLowerCase() !== String(walletAddress).toLowerCase()) {
+                        console.warn('[Auth] compte actif ≠ adresse demandée → recalcul', {
+                            requested: walletAddress, active
+                        });
+                    }
+                } else {
+                    console.warn('[Auth] aucun compte actif retourné par le wallet');
+                }
+            } catch (e) {
+                console.warn('[Auth] synchronisation du compte actif échouée :', e?.message || e);
+            }
+        }
+
+        // 1. Get Challenge (pour l'adresse RÉELLEMENT active)
         const challengeRes = await fetch('/api/wallet/generate-message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ wallet_address: walletAddress })
+            body: JSON.stringify({ wallet_address: effectiveAddress })
         });
 
         const challengeData = await challengeRes.json();
@@ -160,15 +202,27 @@ async function _authenticateWithAddress(walletAddress, providerType) {
             }
             reopenWalletForSigning('core');
         }
-        const signer = await getSigner(providerType === 'walletconnect' ? 'walletconnect' : 'injected');
-        const signature = await signer.signMessage(message);
+        // Signature : sur le chemin injecté, on LIE le signer à l'adresse active
+        // (provider.getSigner(effectiveAddress)) au lieu du signer anonyme mis
+        // en cache, qui peut pointer sur un ancien compte.
+        let signature;
+        if (isInjected && injectedProvider) {
+            const signer = await injectedProvider.getSigner(effectiveAddress);
+            signature = await signer.signMessage(message);
+        } else if (isInjected) {
+            const signer = await getSigner('injected');
+            signature = await signer.signMessage(message);
+        } else {
+            const signer = await getSigner('walletconnect');
+            signature = await signer.signMessage(message);
+        }
 
         // 3. Verify Signature
         const verifyRes = await fetch('/api/wallet/verify-signature', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify({
-                wallet_address: walletAddress,
+                wallet_address: effectiveAddress,
                 signature: signature,
                 locale: localStorage.getItem('user_locale') || 'en'
             })
@@ -184,7 +238,7 @@ async function _authenticateWithAddress(walletAddress, providerType) {
 
         window.userState = {
             id: data.user.id,
-            walletAddress: data.user.wallet_address || walletAddress,
+            walletAddress: data.user.wallet_address || effectiveAddress,
             userObject: data.user,
             status: 'dashboard'
         };
