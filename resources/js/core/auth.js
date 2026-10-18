@@ -1,5 +1,6 @@
 // resources/js/core/auth.js
 import { getProvider, getSigner, resetProvider, ensurePingalaNetwork, isWalletConnectActive, getWcSessionAddress, reopenWalletForSigning } from '../web3/web3-core.js';
+import { getAddress, hexlify, toUtf8Bytes } from 'ethers';
 import { secureFetch } from './api.js';
 import { t } from '../modules/i18n.js';
 import { showToast } from './toast.js';
@@ -176,13 +177,34 @@ async function _authenticateWithAddress(walletAddress, providerType) {
             return challengeData.message;
         };
 
+        // Signature injectée — MÉTHODE APPRISE D'APP2 (preuve terrain) :
+        // `personal_sign` DIRECT sur window.ethereum avec le compte ACTIF
+        // re-interrogé et checksummé. Évite l'erreur MetaMask « The account
+        // shown for this request is not part of the active wallet » causée par
+        // l'adresse périmée/non-checksummée passée via le signer ethers.
+        const signInjected = async (msg) => {
+            const eth = injectedProvider || window.ethereum;
+            if (!eth || typeof eth.request !== 'function') throw new Error('Aucun provider wallet.');
+            let accts = [];
+            try { accts = await eth.request({ method: 'eth_requestAccounts' }); } catch (e) { accts = []; }
+            if (!accts || !accts.length) throw new Error('Aucun compte wallet.');
+            let active = accts[0];
+            try { active = getAddress(active); } catch (e) { /* garde tel quel */ }
+            if (String(active).toLowerCase() !== String(effectiveAddress).toLowerCase()) {
+                // Compte changé depuis le challenge → nouveau challenge lié à l'adresse active.
+                effectiveAddress = active;
+                msg = await fetchChallenge(effectiveAddress);
+            } else {
+                effectiveAddress = active;
+            }
+            const msgHex = hexlify(toUtf8Bytes(msg));
+            return await eth.request({ method: 'personal_sign', params: [msgHex, active] });
+        };
+
         // Helper : signe le challenge avec l'adresse active.
         const signChallenge = async (addr, msg) => {
-            if (isInjected && injectedProvider) {
-                const signer = await injectedProvider.getSigner(addr);
-                return signer.signMessage(msg);
-            }
-            const signer = await getSigner(isInjected ? 'injected' : 'walletconnect');
+            if (isInjected) return signInjected(msg);
+            const signer = await getSigner('walletconnect');
             return signer.signMessage(msg);
         };
 
