@@ -23,7 +23,10 @@
 | Référence adresses | `battlepool/pingala_deployments.json` |
 
 > **Agents** : LOCAL = poste Windows (déploie via SSH) · CLOUD = **root sur le VPS**
-> (`srv2032251`, `31.187.72.98`). Les deux peuvent déployer → verrou §4.
+> (`srv2032251`, `31.187.72.98`, session locale, docker OK).
+> **Déploiement = LOCAL uniquement** : le CLOUD n'a pas `deploy/run_deploy.ps1`,
+> `secrets-manager.mjs` ni la clé `deploy/id_ed25519_deploy` (gitignored, absents de son
+> workspace) → il **ne déploie pas** ; il prépare/pousse une branche, LOCAL exécute le pipeline.
 >
 > **Note VPS** : `/opt/battlepool` est un clone git ; `run_deploy.ps1` y fait
 > `fetch` puis checkout du SHA (la branche `master` du VPS est **épinglée** au SHA déployé,
@@ -59,13 +62,13 @@
 | C0 — Mettre en place le protocole LOCAL ↔ CLOUD | DONE | LOCAL | `docs/app1-collab-protocol` | (ce commit) | `docs/COLLAB_STATE.md` + `AGENT_ONBOARDING_APP1.md` + handoff |
 | S1 — Quick wins sécurité prod | DONE | LOCAL | `feat/app1-deeplink-app2` | `4caab5f` | endpoints dev/test supprimés, `/api/debug-referral` retiré, debug 🐞 dev-only, `LOG_LEVEL=warning`, en-têtes Caddy |
 | S2 — Rotation clé deployer (owner contrats) | TODO | LOCAL | — | — | owner `0xD629…` ; `queueTransferOwnership` + timelock — mission blockchain |
-| S3 — En-têtes sécurité Caddy `app2.*` | TODO | CLOUD | — | — | `frame-ancestors` autorisant `battlepool.*`, `Referrer-Policy`… |
+| S3 — En-têtes sécurité Caddy `app2.*` | HORS APP1 | (App 2) | — | — | traité dans le repo App2 ; **interdit §5 côté App 1** |
 | S4 — Durcir le catch-all (404 au lieu de SPA pour chemins inconnus) | TODO | LOCAL | — | — | après suppression endpoints dev |
 | S5 — Monitoring & backups (cron validateur < 0.2 AVAX, backup DB testé) | TODO | LOCAL | — | — | VPS |
 | S6 — CI/CD (gates tests + scan secrets, images versionnées, deploy, rollback) | TODO | LOCAL | — | — | `.github/workflows/` |
-| S7 — Revue de la modif « deep-link » (retrait iframe/pont) | TODO | CLOUD | — | — | audit de `44644ed` |
+| S7 — Revue de la modif « deep-link » (retrait iframe/pont) | IN PROGRESS | CLOUD | `feat/app1-deeplink-app2` | — | audit lecture seule de `44644ed` |
 | S8 — Domaine réel + TLS | BLOCKED | LOCAL | — | — | bêta privée d'abord (sslip.io conservé) |
-| S9 — Performance App 2 (`.pck` 67 Mo) | TODO | CLOUD | — | — | hors App 1 |
+| S9 — Performance App 2 (`.pck` 67 Mo) | HORS APP1 | (App 2) | — | — | traité dans le repo App2 ; **interdit §5 côté App 1** |
 
 ---
 
@@ -77,6 +80,8 @@
   puis le retirer en fin de tâche.
 
 ### 4.2 Déploiement (pipeline COMPLET — rebuild images)
+- **Déployeur = LOCAL uniquement** (le CLOUD n'a pas l'outillage : `run_deploy.ps1`,
+  `secrets-manager`, clé `deploy/`). Le CLOUD prépare/pousse la branche ; LOCAL déploie.
 - **Un seul déployeur à la fois** : écrire `Verrou deploy : <owner> (depuis <date>)` avant
   toute opération VPS, puis retirer après.
 - Déploiement = `node secrets-manager.mjs provision` → `powershell deploy\run_deploy.ps1 -GitSha <sha>`
@@ -89,7 +94,7 @@
 | Déploiement | Valeur |
 |---|---|
 | Dernier déployé | `4caab5f` par LOCAL (2026-10-18) |
-| Déployeurs | LOCAL, CLOUD (root VPS) |
+| Déployeurs | **LOCAL uniquement** (le CLOUD n'a pas l'outillage de déploiement) |
 | Verrou deploy | (aucun) |
 
 ---
