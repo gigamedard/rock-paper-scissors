@@ -145,6 +145,7 @@ async function _authenticateWithAddress(walletAddress, providerType) {
                     console.warn('[Auth] eth_requestAccounts échoué → fallback eth_accounts :', reqErr?.message || reqErr);
                     accounts = await injectedProvider.send('eth_accounts', []);
                 }
+                console.info('[Auth] comptes du wallet :', accounts);
                 const active = Array.isArray(accounts) && accounts[0] ? accounts[0] : null;
                 if (active) {
                     effectiveAddress = active;
@@ -161,19 +162,32 @@ async function _authenticateWithAddress(walletAddress, providerType) {
             }
         }
 
+        // Helper : demande un challenge pour une adresse donnée.
+        const fetchChallenge = async (addr) => {
+            const challengeRes = await fetch('/api/wallet/generate-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ wallet_address: addr })
+            });
+            const challengeData = await challengeRes.json();
+            if (!challengeRes.ok) {
+                throw new Error("Erreur de connexion au serveur. Veuillez réessayer.");
+            }
+            return challengeData.message;
+        };
+
+        // Helper : signe le challenge avec l'adresse active.
+        const signChallenge = async (addr, msg) => {
+            if (isInjected && injectedProvider) {
+                const signer = await injectedProvider.getSigner(addr);
+                return signer.signMessage(msg);
+            }
+            const signer = await getSigner(isInjected ? 'injected' : 'walletconnect');
+            return signer.signMessage(msg);
+        };
+
         // 1. Get Challenge (pour l'adresse RÉELLEMENT active)
-        const challengeRes = await fetch('/api/wallet/generate-message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ wallet_address: effectiveAddress })
-        });
-
-        const challengeData = await challengeRes.json();
-        if (!challengeRes.ok) {
-            throw new Error("Erreur de connexion au serveur. Veuillez réessayer.");
-        }
-
-        const message = challengeData.message;
+        let message = await fetchChallenge(effectiveAddress);
 
         // 2. Sign Challenge
         // MOBILE WC (preuve journal 2026-10-06) : après approbation de session,
@@ -182,7 +196,7 @@ async function _authenticateWithAddress(walletAddress, providerType) {
         // re-clic tuant la session → boucle). On ré-ouvre le wallet juste
         // avant la signature (pattern WC officiel « redirect on request ») —
         // uniquement pour le chemin WC (le chemin injecté affiche nativement).
-        if (providerType === 'walletconnect' || isWalletConnectActive()) {
+        if (!isInjected) {
             // Toast explicite : le bandeau iOS dira « Ouvrir dans Core ? » sans
             // préciser pourquoi — on annonce la signature (retour utilisateur :
             // « le message devait plutôt dire signer le message dans Core »).
@@ -202,19 +216,36 @@ async function _authenticateWithAddress(walletAddress, providerType) {
             }
             reopenWalletForSigning('core');
         }
-        // Signature : sur le chemin injecté, on LIE le signer à l'adresse active
-        // (provider.getSigner(effectiveAddress)) au lieu du signer anonyme mis
-        // en cache, qui peut pointer sur un ancien compte.
+
+        // Signature. Si le wallet répond « not part of the active wallet »
+        // (MetaMask avec plusieurs comptes / compte sélectionné différent de
+        // celui demandé), on RÉ-INITIE la permission (wallet_requestPermissions
+        // → sélecteur de compte), on reprend le compte actif et on re-signe
+        // avec un NOUVEAU challenge (l'ancien nonce est lié à l'adresse).
         let signature;
-        if (isInjected && injectedProvider) {
-            const signer = await injectedProvider.getSigner(effectiveAddress);
-            signature = await signer.signMessage(message);
-        } else if (isInjected) {
-            const signer = await getSigner('injected');
-            signature = await signer.signMessage(message);
-        } else {
-            const signer = await getSigner('walletconnect');
-            signature = await signer.signMessage(message);
+        try {
+            signature = await signChallenge(effectiveAddress, message);
+        } catch (signErr) {
+            const sm = String(signErr?.message || '');
+            if (!(isInjected && injectedProvider && /not part of the active wallet|re-initiate/i.test(sm))) {
+                throw signErr;
+            }
+            console.warn('[Auth] compte non actif côté wallet → wallet_requestPermissions + retry');
+            try {
+                await injectedProvider.send('wallet_requestPermissions', [{ eth_accounts: {} }]);
+            } catch (permErr) {
+                console.warn('[Auth] wallet_requestPermissions échoué :', permErr?.message || permErr);
+            }
+            let accounts2 = [];
+            try {
+                accounts2 = await injectedProvider.send('eth_accounts', []);
+            } catch (e2) { /* noop */ }
+            console.info('[Auth] comptes après re-permission :', accounts2);
+            const active2 = Array.isArray(accounts2) && accounts2[0] ? accounts2[0] : null;
+            if (!active2) throw signErr;
+            effectiveAddress = active2;
+            message = await fetchChallenge(effectiveAddress);
+            signature = await signChallenge(effectiveAddress, message);
         }
 
         // 3. Verify Signature
