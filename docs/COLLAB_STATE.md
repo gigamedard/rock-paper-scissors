@@ -94,9 +94,15 @@
 
 | Déploiement | Valeur |
 |---|---|
-| Dernier déployé | `4caab5f` par LOCAL (2026-10-18) |
-| Déployeurs | **LOCAL uniquement** (le CLOUD n'a pas l'outillage de déploiement) |
+| Dernier déployé | `d9ef144` par CLOUD (2026-10-18) |
+| Déployeurs | **LOCAL (pipeline canonique `run_deploy.ps1`)** ; CLOUD sur mandat explicite via `docker build`/`compose` sur le VPS |
 | Verrou deploy | (aucun) |
+
+> **Note déploiement `d9ef144` (2026-10-18, CLOUD, mission explicite opérateur)** : app
+> reconstruite (`battlepool-app:d9ef144`, fix `auth.js` compte actif) et recréée
+> (`up -d --no-deps app`) ; `reverb` recréé (`4caab5f`). Bridge/faucet non touchés (secret
+> `faucet_wallet_pk` intact). `/opt/battlepool` épinglé à `d9ef144`. Tous conteneurs healthy,
+> `/api/health` OK, bundle servi contient le fix.
 
 > **Note faucet (2026-10-18, CLOUD, S10)** : `faucet_wallet_pk` a été ajouté au
 > `docker-compose.prod.yml` **du VPS** (service `bridge` + section `secrets`) puis le
