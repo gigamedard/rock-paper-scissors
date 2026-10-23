@@ -269,30 +269,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         try { window.hideLoader && window.hideLoader(); } catch (e) { /* noop */ }
     });
 
-    // Bouton « 🚪 Leave pool » (sortie volontaire, stake remboursé via bridge)
-    const leavePoolBtn = document.getElementById('leave-pool-btn');
-    if (leavePoolBtn) {
-        leavePoolBtn.addEventListener('click', async () => {
-            leavePoolBtn.disabled = true;
-            const orig = leavePoolBtn.textContent;
-            try {
-                const { secureFetch } = await import('./core/api.js');
-                const res = await secureFetch('/user/leave-pool', { method: 'POST' });
-                const data = await res.json();
-                if (!res.ok) {
-                    showToast(data.error || 'Échec de la sortie', 'error');
-                    return;
-                }
-                showToast(data.message || 'Pool quittée', 'success', 5000);
-                window.dispatchEvent(new CustomEvent('app:refresh'));
-            } catch (e) {
-                showToast('Erreur : ' + (e.message || e), 'error');
-            } finally {
-                leavePoolBtn.disabled = false;
-                leavePoolBtn.textContent = orig;
+    // Bouton « 🚪 Leave pool » (sortie volontaire, stake remboursé via bridge).
+    // Le même handler sert aussi le bouton DANS l'overlay de combat, pour ne
+    // jamais rester bloqué quand l'overlay couvre l'écran.
+    async function doLeavePool(btn) {
+        const orig = btn.textContent;
+        btn.disabled = true;
+        try {
+            const { secureFetch } = await import('./core/api.js');
+            const res = await secureFetch('/user/leave-pool', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) {
+                showToast(data.error || 'Échec de la sortie', 'error');
+                return;
             }
-        });
+            showToast(data.message || 'Pool quittée', 'success', 5000);
+            const ov = document.getElementById('combat-overlay');
+            if (ov) ov.style.display = 'none';
+            window.dispatchEvent(new CustomEvent('app:refresh'));
+        } catch (e) {
+            showToast('Erreur : ' + (e.message || e), 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = orig;
+        }
     }
+    ['leave-pool-btn', 'combat-leave-btn'].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', () => doLeavePool(btn));
+    });
 
     // Bouton « ⊕ Réseau » : ajoute/active Pingala Chain dans le wallet injecté
     // (wallet_switchEthereumChain, puis wallet_addEthereumChain sur 4902/4900).
