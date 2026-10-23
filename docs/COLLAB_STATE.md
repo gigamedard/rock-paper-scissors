@@ -94,7 +94,7 @@
 
 | Déploiement | Valeur |
 |---|---|
-| Dernier déployé | `33d5868` par CLOUD (2026-10-18) |
+| Dernier déployé | `7885ccc` par CLOUD (2026-10-18) |
 | Déployeurs | **LOCAL (pipeline canonique `run_deploy.ps1`)** ; CLOUD sur mandat explicite via `docker build`/`compose` sur le VPS |
 | Verrou deploy | (aucun) |
 
