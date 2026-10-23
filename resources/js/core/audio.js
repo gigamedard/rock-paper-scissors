@@ -6,14 +6,17 @@ let ctx = null;
 let muted = localStorage.getItem('bp_sound_muted') === '1';
 
 function ensureCtx() {
-    if (!ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return null;
-        try { ctx = new AC(); } catch (e) { return null; }
+    if (ctx) {
+        if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) { /* noop */ } }
+        return ctx;
     }
-    if (ctx.state === 'suspended') {
-        try { ctx.resume(); } catch (e) { /* noop */ }
-    }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { ctx = new AC(); } catch (e) { return null; }
+    // iOS/Safari : session audio "playback" → le son n'est pas coupé par le
+    // silent switch. (API disponible Safari/iOS 16.4+ ; ignorée ailleurs.)
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* noop */ }
+    if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) { /* noop */ } }
     return ctx;
 }
 
@@ -76,4 +79,16 @@ export function toggleSound() {
 }
 
 // À appeler sur le premier geste utilisateur (politique autoplay navigateur).
-export function unlockAudio() { ensureCtx(); }
+// Joue un buffer silencieux : sur iOS, c'est ce qui débloque réellement l'audio.
+export function unlockAudio() {
+    const c = ensureCtx();
+    if (!c) return;
+    try {
+        const buf = c.createBuffer(1, 1, 22050);
+        const src = c.createBufferSource();
+        src.buffer = buf;
+        src.connect(c.destination);
+        src.start(0);
+    } catch (e) { /* noop */ }
+    try { c.resume(); } catch (e) { /* noop */ }
+}

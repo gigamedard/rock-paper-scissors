@@ -1,5 +1,5 @@
-const CACHE_NAME = 'battlepool-shell-v3';
-const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v3';
+const CACHE_NAME = 'battlepool-shell-v4';
+const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v4';
 
 // Static assets to pre-cache immediately on installation
 const STATIC_ASSETS = [
@@ -95,6 +95,25 @@ self.addEventListener('fetch', (event) => {
             return caches.match('/');
           });
         })
+    );
+    return;
+  }
+
+  // 4bis. App code (bundle Vite + CSS applicatif) : NETWORK-FIRST.
+  // Le nom app.js n'est pas hashé → cache-first servirait un ancien bundle
+  // après chaque déploiement (sons/graphique absents sur PWA mobile).
+  const isAppCode = url.pathname.includes('/build/assets/') || url.pathname === '/css/style.css';
+  if (isAppCode) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(DYNAMIC_CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }

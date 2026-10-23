@@ -29,7 +29,28 @@ export function initPWA() {
     if ('serviceWorker' in navigator) {
         const registerSW = () => {
             navigator.serviceWorker.register('/sw.js')
-                .then((reg) => console.log('💚 [PWA] SW enregistré:', reg.scope))
+                .then((reg) => {
+                    console.log('💚 [PWA] SW enregistré:', reg.scope);
+                    try { reg.update(); } catch (e) { /* noop */ }
+                    // Nouvelle version du SW (bundle à jour) → rechargement unique
+                    // si l'utilisateur n'est pas en pleine session (évite d'interrompre).
+                    reg.addEventListener('updatefound', () => {
+                        const nw = reg.installing;
+                        if (!nw) return;
+                        nw.addEventListener('statechange', () => {
+                            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                                const busy = ['in_pool', 'in_fight', 'waiting'].includes(window.userState?.status)
+                                    || window.userState?.session_started;
+                                if (busy) return; // l'utilisateur rechargera plus tard
+                                if (!sessionStorage.getItem('bp_sw_reloaded')) {
+                                    sessionStorage.setItem('bp_sw_reloaded', '1');
+                                    console.log('[PWA] Nouvelle version prête — rechargement');
+                                    window.location.reload();
+                                }
+                            }
+                        });
+                    });
+                })
                 .catch((err) => console.error('❤️ [PWA] Échec SW:', err));
         };
         if (document.readyState === 'complete') registerSW();

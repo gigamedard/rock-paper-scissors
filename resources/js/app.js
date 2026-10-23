@@ -166,8 +166,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         applySoundIcon();
         soundBtn.addEventListener('click', () => { toggleSound(); applySoundIcon(); });
     }
-    const unlockOnce = () => { unlockAudio(); window.removeEventListener('pointerdown', unlockOnce); };
-    window.addEventListener('pointerdown', unlockOnce, { once: true });
+    // Déverrouillage audio au 1er geste (iOS exige un geste réel : on écoute
+    // pointerdown + touchend + click, le premier qui arrive débloque).
+    let _audioUnlocked = false;
+    const unlockOnce = () => {
+        if (_audioUnlocked) return;
+        _audioUnlocked = true;
+        unlockAudio();
+    };
+    ['pointerdown', 'touchend', 'click'].forEach((ev) => {
+        window.addEventListener(ev, unlockOnce, { once: true, passive: true });
+    });
 
     // Bouton « 🎁 Réclamer l'airdrop » (50 TST de bienvenue, une seule fois)
     const faucetBtn = document.getElementById('faucet-claim-btn');
