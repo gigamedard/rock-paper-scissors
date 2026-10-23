@@ -37,12 +37,6 @@ export function initGame() {
     if (claimBtn) {
         claimBtn.onclick = claim;
     }
-    // Bouton de claim dédié (toujours visible si un gain est en attente).
-    // Même handler que claim() : vraie signature, PAS de switch réseau forcé.
-    const claimPendingBtn = document.getElementById('claim-pending-btn');
-    if (claimPendingBtn) {
-        claimPendingBtn.onclick = claim;
-    }
 
     const joinBtn = document.getElementById('join-btn');
     if (joinBtn) {
@@ -353,23 +347,13 @@ async function fetchUserStatus() {
             }
             
             const claimSection = document.getElementById('claim-section');
-            const claimPendingBtn = document.getElementById('claim-pending-btn');
-            if (gameState.pendingClaim) {
-                const amtTxt = (b + bb).toFixed(4);
-                if (claimSection && window.userState.status === 'stopped') {
+            if (claimSection) {
+                if (gameState.pendingClaim && window.userState.status === 'stopped') {
                     claimSection.style.display = 'block';
-                    const amtEl = document.getElementById('claim-amount-display');
-                    if (amtEl) amtEl.innerText = amtTxt;
-                } else if (claimSection) {
+                    document.getElementById('claim-amount-display').innerText = (b + bb).toFixed(4);
+                } else {
                     claimSection.style.display = 'none';
                 }
-                if (claimPendingBtn) {
-                    claimPendingBtn.style.display = 'block';
-                    claimPendingBtn.innerText = 'CLAIM ' + amtTxt + ' TST';
-                }
-            } else {
-                if (claimSection) claimSection.style.display = 'none';
-                if (claimPendingBtn) claimPendingBtn.style.display = 'none';
             }
             updateUI();
         }
@@ -636,8 +620,6 @@ async function claim() {
         addToFeed(t('feed.claim_success'), "var(--success)");
         gameState.hasClaimed = true;
         document.getElementById('claim-section').style.display = 'none';
-        const _cpb = document.getElementById('claim-pending-btn');
-        if (_cpb) _cpb.style.display = 'none';
         gameState.pendingClaim = null;
 
         // Cacher l'overlay et remettre le statut à stopped

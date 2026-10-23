@@ -236,12 +236,6 @@
                         <!-- Quitter la pool (sortie volontaire, stake remboursé) -->
                         <button id="leave-pool-btn" class="btn-primary btn-block leave-pool-btn" style="display: none;" data-i18n="claim.leave_pool">🚪 Leave pool</button>
 
-                        <!-- Bouton de claim dédié : visible dès qu'un gain est en attente.
-                             Utilise la vraie signature (claim réel) et NE force PAS le
-                             réseau : si le wallet est sur Avalanche, la tx part sur
-                             Avalanche (reproduit le glitch). -->
-                        <button id="claim-pending-btn" class="btn-claim" style="display:none; width:100%; margin-top:0.6rem;">CLAIM</button>
-
                         <!-- Claim Section (Hidden by default) -->
                         <div id="claim-section" class="claim-panel fade-in" style="display: none;">
                             <h3 data-i18n="claim.title">SESSION COMPLETE - REWARDS READY</h3>
