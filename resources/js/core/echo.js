@@ -5,7 +5,7 @@ import { getAuthToken } from './api.js';
 
 window.Pusher = Pusher;
 
-export function initEcho() {
+export async function initEcho() {
     const token = getAuthToken();
     if (!token) {
         console.warn("[Echo] Impossible d'initialiser Echo sans token.");
@@ -16,6 +16,23 @@ export function initEcho() {
         window.echoInstance.disconnect();
     }
 
+    // Clé Reverb côté client. Elle était scrubée dans le repo (`***REMOVED***`)
+    // → le WS ne s'authentifiait jamais → aucun événement (overlay « waiting »
+    // figé). On la récupère depuis l'API (clé publique, le secret reste serveur).
+    let appKey = '***REMOVED***';
+    try {
+        const kr = await fetch('/api/broadcasting-key', { headers: { 'Accept': 'application/json' } });
+        if (kr.ok) {
+            const kd = await kr.json();
+            if (kd && kd.key) appKey = kd.key;
+        } else {
+            console.warn('[Echo] /api/broadcasting-key HTTP', kr.status);
+        }
+    } catch (e) {
+        console.warn('[Echo] clé Reverb indisponible, fallback:', e?.message || e);
+    }
+    console.info('[Echo] clé Reverb (longueur):', String(appKey).length);
+
 // Reverb : en https (mobile Tailscale), le WS passe par le proxy même origine
 // (wss://<host>:<port>/app/<key>) — bp-proxy(-tls) route /app/ vers Reverb.
 // En http desktop local : direct 127.0.0.1:8008 (comportement historique).
@@ -23,7 +40,7 @@ const IS_HTTPS = window.location.protocol === 'https:';
 
 window.echoInstance = new Echo({
     broadcaster: 'reverb',
-    key: '***REMOVED***',
+    key: appKey,
     wsHost: IS_HTTPS ? window.location.hostname : '127.0.0.1',
     wsPort: IS_HTTPS ? window.location.port || 443 : 8008,
     wssPort: IS_HTTPS ? window.location.port || 443 : 8008,

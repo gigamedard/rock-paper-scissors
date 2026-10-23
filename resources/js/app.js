@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 6. Écouteurs globaux
     window.addEventListener('auth:success', () => {
-        initEcho();
+        initEcho().catch(e => console.warn("[Echo] init:", e?.message || e));
         
         // Appliquer automatiquement le parrainage si un code a été capturé
         const pendingRef = localStorage.getItem('pending_referral');
@@ -434,7 +434,7 @@ function checkAuthSession() {
             window.userState.userObject = user;
             window.userState.status = 'dashboard';
             console.log("✅ Session restaurée:", window.userState.walletAddress);
-            initEcho();
+            initEcho().catch(e => console.warn("[Echo] init:", e?.message || e));
             // Afficher le bouton airdrop si non encore réclamé
             const fb = document.getElementById('faucet-claim-btn');
             if (fb && !user.has_received_airdrop) fb.style.display = 'block';

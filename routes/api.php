@@ -27,6 +27,14 @@ Route::get('/wallet/dev-login', [WalletAuthController::class, 'devLogin']);
 Route::post('/login', [WalletAuthController::class, 'login']);                    // Direct login for UI/Bots
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);           // Publié pour permettre l'init Web3
 
+// Clé PUBLIQUE Reverb pour le client (WebSocket). Le secret reste serveur.
+// Nécessaire car la clé était scrubée du repo → Echo ne s'authentifiait pas.
+Route::get('/broadcasting-key', function () {
+    return response()->json([
+        'key' => config('broadcasting.connections.reverb.key'),
+    ]);
+});
+
 Route::get('/health', function () {
     try {
         \Illuminate\Support\Facades\DB::connection()->getPdo();
