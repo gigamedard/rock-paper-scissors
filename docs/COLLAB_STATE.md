@@ -94,7 +94,7 @@
 
 | Déploiement | Valeur |
 |---|---|
-| Dernier déployé | `aadf825` par CLOUD (2026-10-23) |
+| Dernier déployé | `e90529d` par CLOUD (2026-10-23) |
 | Déployeurs | **LOCAL (pipeline canonique `run_deploy.ps1`)** ; CLOUD sur mandat explicite via `docker build`/`compose` sur le VPS |
 | Verrou deploy | (aucun) |
 
