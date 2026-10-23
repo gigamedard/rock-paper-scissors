@@ -12,7 +12,8 @@ import { initInfluencer } from './modules/influencer.js';
 import { initStats } from './modules/stats.js';
 import { initPWA } from './core/pwa.js';
 import { showToast } from './core/toast.js';
-import { addPingalaNetwork, getActiveEip1193Provider, closeWalletModal, ensureWalletVisibleForTx, warmupWalletLibs } from './web3/web3-core.js';
+import { addPingalaNetwork, getActiveEip1193Provider, closeWalletModal, ensureWalletVisibleForTx, warmupWalletLibs, PRANA_NETWORK } from './web3/web3-core.js';
+import { JsonRpcProvider, Contract, formatEther, formatUnits } from 'ethers';
 import { initDebugLog, debugLog } from './modules/debug-log.js';
 import { initOnboardingCore } from './modules/onboarding-core.js';
 
@@ -202,6 +203,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const user = window.userState?.userObject;
         updateFaucetButton(!!(user && user.has_received_airdrop));
     });
+
+    // Soldes TST (natif) + PRANA (ERC-20) affichés dans le header.
+    // Lecture via un provider RPC en lecture seule (fiable même après un reload
+    // mobile où le provider wallet n'est pas encore recréé).
+    window.addEventListener('auth:success', () => refreshHeaderBalances());
+    window.addEventListener('app:refresh', () => refreshHeaderBalances());
+    setInterval(() => { if (window.userState?.walletAddress) refreshHeaderBalances(); }, 30000);
 
     // Bouton « ➕ Ajouter PRANA au wallet » (EIP-747 wallet_watchAsset).
     // Sur mobile (Core/MetaMask), ajoute le token ERC-20 PRANA à la liste des
@@ -427,6 +435,42 @@ async function validateSessionAgainstMetamask() {
     } catch (e) {}
 }
 
+let _hdrRpc = null;
+/**
+ * Met à jour les badges du header : solde natif TST + solde PRANA (ERC-20).
+ * Provider RPC en lecture seule (aucune dépendance au provider wallet).
+ */
+async function refreshHeaderBalances() {
+    const tstEl = document.getElementById('hdr-tst');
+    const pranaEl = document.getElementById('hdr-prana');
+    if (!tstEl || !pranaEl) return;
+    const addr = window.userState?.walletAddress;
+    if (!addr) {
+        tstEl.style.display = 'none';
+        pranaEl.style.display = 'none';
+        return;
+    }
+    try {
+        if (!_hdrRpc) _hdrRpc = new JsonRpcProvider(PRANA_NETWORK.rpcUrl);
+        const PRANA = '0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B';
+        const token = new Contract(PRANA, [
+            'function balanceOf(address) view returns (uint256)',
+            'function decimals() view returns (uint8)'
+        ], _hdrRpc);
+        const [balWei, pranaWei, dec] = await Promise.all([
+            _hdrRpc.getBalance(addr),
+            token.balanceOf(addr),
+            token.decimals()
+        ]);
+        tstEl.textContent = 'TST ' + Number(formatEther(balWei)).toFixed(4);
+        pranaEl.textContent = 'PRANA ' + Number(formatUnits(pranaWei, dec)).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+        tstEl.style.display = 'inline-block';
+        pranaEl.style.display = 'inline-block';
+    } catch (e) {
+        console.warn('[Header] soldes:', e?.message || e);
+    }
+}
+
 function checkAuthSession() {
     const token = getAuthToken();
     const storedUser = localStorage.getItem('user');
@@ -440,6 +484,7 @@ function checkAuthSession() {
             window.userState.status = 'dashboard';
             console.log("✅ Session restaurée:", window.userState.walletAddress);
             initEcho().catch(e => console.warn("[Echo] init:", e?.message || e));
+            refreshHeaderBalances();
             // Afficher le bouton airdrop si non encore réclamé
             const fb = document.getElementById('faucet-claim-btn');
             if (fb && !user.has_received_airdrop) fb.style.display = 'block';
