@@ -1,7 +1,7 @@
 <?php
 return [
     'base_bet' => [0.0004, 0.15], // Palier 1 ≈ 2000 XOF | Palier 2 ≈ 760 000 XOF (1 AVAX = 4900 XOF)
-    'size' => [2], // Match contract defaultPoolMaxSize (set to 2 for simulation)
+    'size' => [5], // Pools à 5 joueurs (Battle Royale) — maxSize du contrat = 5
     //[100, 500, 1000, 5000], // Example size 
     'bach_size'=>3,
     'number_of_base_bet'=>2,
