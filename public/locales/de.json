@@ -68,7 +68,8 @@
     "status_available": "Verfügbar",
     "status_waiting": "Warten auf Gegner",
     "status_fighting": "Im Kampf",
-    "status_stopped": "Sitzung beendet — Neustart?"
+    "status_stopped": "Sitzung beendet — Neustart?",
+    "target": "Ziel"
   },
   "feed": {
     "title": "KAMPF-FEED",

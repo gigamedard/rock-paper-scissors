@@ -59,6 +59,7 @@
             <button class="wallet-btn" id="connect-btn" data-i18n="connect.btn">Connect Wallet</button>
             <button class="wallet-btn wallet-btn-wc" id="connect-wc-btn" data-i18n="connect.wc_btn">WalletConnect</button>
         </div>
+        <button id="sound-btn" class="wallet-btn wallet-btn-chip" title="Son" style="min-width:38px; display:flex; align-items:center; justify-content:center;">🔊</button>
     </div>
     </header>
 
@@ -210,6 +211,10 @@
                             <div class="card-label" data-i18n="dashboard.balance">Main Balance</div>
                             <div class="card-value" id="balance-val">0.0000 <span class="unit">TST</span></div>
                             <div class="card-trend up">↑ Live Sync</div>
+                            <canvas id="balance-chart" style="width:100%; height:64px; margin-top:8px; display:block;"></canvas>
+                            <div id="balance-target-line" style="font-size:0.78rem; color:var(--text-dim); margin-top:2px;">
+                                <span data-i18n="dashboard.target">Objectif</span> : <b id="balance-target-val" style="color:var(--gold-primary);">—</b>
+                            </div>
                         </div>
                         <div class="card stat-card">
                             <div class="card-label" data-i18n="dashboard.bet">Current Bet</div>

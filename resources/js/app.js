@@ -16,6 +16,7 @@ import { addPingalaNetwork, getActiveEip1193Provider, closeWalletModal, ensureWa
 import { JsonRpcProvider, Contract, formatEther, formatUnits } from 'ethers';
 import { initDebugLog, debugLog } from './modules/debug-log.js';
 import { initOnboardingCore } from './modules/onboarding-core.js';
+import { isSoundMuted, toggleSound, unlockAudio } from './core/audio.js';
 
 // ===== ÉTAT GLOBAL =====
 window.userState = {
@@ -157,6 +158,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (disconnectBtn) {
         disconnectBtn.addEventListener('click', () => logout());
     }
+
+    // Bouton son (🔊/🔇) + déverrouillage de l'AudioContext au 1er geste.
+    const soundBtn = document.getElementById('sound-btn');
+    if (soundBtn) {
+        const applySoundIcon = () => { soundBtn.textContent = isSoundMuted() ? '🔇' : '🔊'; };
+        applySoundIcon();
+        soundBtn.addEventListener('click', () => { toggleSound(); applySoundIcon(); });
+    }
+    const unlockOnce = () => { unlockAudio(); window.removeEventListener('pointerdown', unlockOnce); };
+    window.addEventListener('pointerdown', unlockOnce, { once: true });
 
     // Bouton « 🎁 Réclamer l'airdrop » (50 TST de bienvenue, une seule fois)
     const faucetBtn = document.getElementById('faucet-claim-btn');

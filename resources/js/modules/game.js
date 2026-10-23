@@ -5,6 +5,8 @@ import { secureFetch } from '../core/api.js';
 import { parseRpcError } from '../core/auth.js';
 import { t } from './i18n.js';
 import { showToast } from '../core/toast.js';
+import { initBalanceChart, pushBalance, resetBalanceChart } from './balance-chart.js';
+import { playSound } from '../core/audio.js';
 
 const gameState = {
     preMoves: [],
@@ -121,6 +123,7 @@ export function initGame() {
             window.userState.balance = parseFloat(e.detail.initial_balance) || 0;
             window.userState._displayBalance = window.userState.balance;
             window.userState.status = 'in_pool';
+            resetBalanceChart(window.userState.balance);
             showCombatOverlay("RECHERCHE D'ADVERSAIRES...");
             updateUI();
         });
@@ -161,6 +164,7 @@ export function initGame() {
             }
 
             if (e.detail.reason === 'SUCCESS') {
+                playSound('claim');
                 const profit = (parseFloat(e.detail.user.balance) - parseFloat(window.userState.session_start_balance || 0)).toFixed(4);
                 addToFeed(t('feed.victory', { balance: parseFloat(e.detail.user.balance).toFixed(4), profit: profit }), "var(--success)");
             } else {
@@ -193,6 +197,7 @@ export function initGame() {
             if (gameState.hasClaimed || window.userState.status === 'stopped') return;
             if (window.userState?.walletAddress && e.detail.users.includes(window.userState.walletAddress.toLowerCase())) {
                 window.userState.status = 'in_fight';
+                playSound('pool');
                 showCombatOverlay("POOL FOUND — COMBAT EN COURS...");
                 addToFeed(t('feed.match_found'), "var(--primary)");
                 updateUI();
@@ -242,6 +247,7 @@ export function initGame() {
     window.addMove = addMove;
     window.clearMoves = clearMoves;
 
+    initBalanceChart();
     fetchConfig();
     fetchUserStatus();
     renderSlots();
@@ -286,6 +292,9 @@ async function fetchUserStatus() {
             window.userState.cooldown_until = data.cooldown_until;
             window.userState.autoplay_active = data.autoplay_active;
             window.userState.session_started = data.session_started;
+            window.userState.session_start_balance = parseFloat(data.session_start_balance) || 0;
+            window.userState.session_start_battle_balance = parseFloat(data.session_start_battle_balance) || 0;
+            window.userState.target_q = parseFloat(data.target_q) || 0;
             // Afficher/masquer le bouton d'airdrop selon le flag serveur
             // (et le flag local anti-réaffichage après un claim réussi).
             const faucetBtn = document.getElementById('faucet-claim-btn');
@@ -633,6 +642,15 @@ async function claim() {
     }
 }
 
+function computeSessionTarget() {
+    const ssb = (parseFloat(window.userState.session_start_balance) || 0)
+        + (parseFloat(window.userState.session_start_battle_balance) || 0);
+    const tq = parseFloat(window.userState.target_q) || 0;
+    const fee = parseFloat(gameState.config.smart_contract_fee_percentage) || 0;
+    if (ssb > 0 && tq > 1) return ssb * tq * (1 + fee / 100);
+    return null;
+}
+
 export function updateUI() {
     if (!window.userState) return;
 
@@ -706,12 +724,22 @@ export function updateUI() {
         const betEl = document.getElementById('bet-val');
         if(betEl) betEl.innerHTML = bet.toFixed(4) + ' <span class="unit">' + PRANA_NETWORK.nativeCurrency.symbol + '</span>';
 
+        // Graphique : évolution du solde vers l'objectif de session.
+        const tgt = computeSessionTarget();
+        pushBalance(displayBalance, tgt);
+        const targetValEl = document.getElementById('balance-target-val');
+        if (targetValEl) {
+            targetValEl.innerText = tgt
+                ? (tgt.toFixed(4) + ' ' + PRANA_NETWORK.nativeCurrency.symbol)
+                : '—';
+        }
+
         if (activeView === views['dashboard']) {
             const joinBtn = document.getElementById('join-btn');
             const statusText = document.getElementById('status-text');
 
             if (window.userState.status === 'dashboard' || window.userState.status === 'available' || window.userState.status === 'invalid') {
-                if (joinBtn) joinBtn.style.display = 'block';
+                if (joinBtn) { joinBtn.style.display = 'block'; joinBtn.disabled = false; }
                 if (statusText) {
                     statusText.innerText = window.userState.status === 'invalid'
                         ? 'Session invalidée — relancer'
@@ -762,14 +790,14 @@ export function updateUI() {
                 }
                 // Si en cooldown, ne pas cacher l'overlay (il affiche le cooldown)
             } else if (window.userState.status === 'waiting' || window.userState.status === 'in_pool') {
-                if (joinBtn) joinBtn.style.display = 'none';
+                if (joinBtn) { joinBtn.style.display = 'none'; joinBtn.disabled = true; }
                 if (statusText) {
                     statusText.innerText = "Waiting for Match";
                     statusText.className = "battle-status-tag status-busy";
                 }
                 showCombatOverlay("WAITING FOR OPPONENT...");
             } else if (window.userState.status === 'in_fight') {
-                if (joinBtn) joinBtn.style.display = 'none';
+                if (joinBtn) { joinBtn.style.display = 'none'; joinBtn.disabled = true; }
                 if (statusText) {
                     statusText.innerText = "In Combat";
                     statusText.className = "battle-status-tag status-busy";
@@ -842,6 +870,7 @@ function triggerClash(myMove, opponentMove, result, delta) {
     const overlay = document.getElementById('combat-overlay');
     if(!overlay) return;
     const combatText = document.getElementById('combat-text');
+    playSound(result === 'win' ? 'win' : (result === 'draw' ? 'draw' : 'loss'));
     showCombatOverlay("ROUND CLASH!");
     const clashDiv = document.createElement('div');
     clashDiv.className = 'clash-container fade-in';

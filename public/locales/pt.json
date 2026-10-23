@@ -67,7 +67,8 @@
     "status_available": "Disponível",
     "status_waiting": "Aguardando Oponente",
     "status_fighting": "Em Combate",
-    "status_stopped": "Sessão Encerrada — Reiniciar?"
+    "status_stopped": "Sessão Encerrada — Reiniciar?",
+    "target": "Meta"
   },
   "feed": {
     "title": "FEED DE BATALHA",

@@ -68,7 +68,8 @@
     "status_available": "Disponible",
     "status_waiting": "En Attente de Match",
     "status_fighting": "En Combat",
-    "status_stopped": "Session Terminée — Relancer ?"
+    "status_stopped": "Session Terminée — Relancer ?",
+    "target": "Objectif"
   },
   "feed": {
     "title": "FLUX DE COMBAT",

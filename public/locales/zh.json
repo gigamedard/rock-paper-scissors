@@ -68,7 +68,8 @@
     "status_available": "可用",
     "status_waiting": "等待对手",
     "status_fighting": "战斗中",
-    "status_stopped": "会话结束 — 重新开始？"
+    "status_stopped": "会话结束 — 重新开始？",
+    "target": "目标"
   },
   "feed": {
     "title": "战斗动态",
