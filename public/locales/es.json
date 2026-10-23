@@ -68,7 +68,8 @@
     "status_waiting": "Esperando Oponente",
     "status_fighting": "En Combate",
     "status_stopped": "Sesión Terminada — ¿Reiniciar?",
-    "target": "Objetivo"
+    "target": "Objetivo",
+    "progress": "Progreso"
   },
   "feed": {
     "title": "FEED DE BATALLA",

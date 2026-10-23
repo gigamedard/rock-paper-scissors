@@ -59,11 +59,10 @@ html {
 
 body {
     background-color: var(--bg-color);
-    /* Fond : image d'arène (daima_bg) assombrie par-dessus le dégradé existant.
-       Opacité maîtrisée via un voile linéaire pour préserver la lisibilité. */
+    /* Fond : image d'arène daima_bg, avec un voile sombre translucide (l'image
+       doit rester visible). NE PAS remettre de dégradé opaque au-dessus. */
     background:
-        linear-gradient(rgba(15,12,27,0.90), rgba(15,12,27,0.95)),
-        radial-gradient(1200px 800px at 50% 15%, #2A243D 0%, #0F0C1B 60%),
+        linear-gradient(rgba(15,12,27,0.62), rgba(15,12,27,0.78)),
         url('/daima_bg.png') center / cover no-repeat;
     background-attachment: fixed;
     color: var(--text);

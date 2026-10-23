@@ -46,6 +46,10 @@ export function initGame() {
                 showToast("Vous êtes déjà dans une battle. Attendez la fin.", 'warn');
                 return;
             }
+            if (window.userState.session_started) {
+                showToast("Session en cours — attendez la fin ou quittez la pool.", 'warn');
+                return;
+            }
             if (gameState.pendingClaim) {
                 showToast(t('errors.claim_previous'), 'warn');
                 return;
@@ -123,6 +127,7 @@ export function initGame() {
             window.userState.balance = parseFloat(e.detail.initial_balance) || 0;
             window.userState._displayBalance = window.userState.balance;
             window.userState.status = 'in_pool';
+            window.userState.session_started = true;
             resetBalanceChart(window.userState.balance);
             showCombatOverlay("RECHERCHE D'ADVERSAIRES...");
             updateUI();
@@ -142,6 +147,7 @@ export function initGame() {
             }
             
             window.userState.status = 'stopped';
+            window.userState.session_started = false;
             hideCombatOverlay();
             
             if (e.detail.user) {
@@ -726,12 +732,23 @@ export function updateUI() {
 
         // Graphique : évolution du solde vers l'objectif de session.
         const tgt = computeSessionTarget();
-        pushBalance(displayBalance, tgt);
+        const sessionStart = (parseFloat(window.userState.session_start_balance) || 0)
+            + (parseFloat(window.userState.session_start_battle_balance) || 0);
+        pushBalance(displayBalance, tgt, sessionStart);
         const targetValEl = document.getElementById('balance-target-val');
         if (targetValEl) {
             targetValEl.innerText = tgt
                 ? (tgt.toFixed(4) + ' ' + PRANA_NETWORK.nativeCurrency.symbol)
                 : '—';
+        }
+        const progEl = document.getElementById('balance-progress');
+        if (progEl) {
+            if (tgt && sessionStart > 0 && tgt > sessionStart) {
+                const pct = Math.max(0, Math.min(100, ((displayBalance - sessionStart) / (tgt - sessionStart)) * 100));
+                progEl.innerText = pct.toFixed(0) + '%';
+            } else {
+                progEl.innerText = '—';
+            }
         }
 
         if (activeView === views['dashboard']) {
@@ -739,12 +756,19 @@ export function updateUI() {
             const statusText = document.getElementById('status-text');
 
             if (window.userState.status === 'dashboard' || window.userState.status === 'available' || window.userState.status === 'invalid') {
-                if (joinBtn) { joinBtn.style.display = 'block'; joinBtn.disabled = false; }
+                const inSession = !!window.userState.session_started;
+                if (joinBtn) {
+                    joinBtn.style.display = 'block';
+                    joinBtn.disabled = inSession;
+                    joinBtn.innerText = inSession ? 'SESSION EN COURS…' : (t('dashboard.strategy') || 'STRATEGY SETUP');
+                    joinBtn.style.opacity = inSession ? '0.5' : '1';
+                    joinBtn.style.cursor = inSession ? 'not-allowed' : 'pointer';
+                }
                 if (statusText) {
                     statusText.innerText = window.userState.status === 'invalid'
                         ? 'Session invalidée — relancer'
-                        : 'Available';
-                    statusText.className = "battle-status-tag status-online";
+                        : (inSession ? 'Session en cours' : 'Available');
+                    statusText.className = inSession ? 'battle-status-tag status-busy' : 'battle-status-tag status-online';
                 }
                 hideCombatOverlay();
             } else if (window.userState.status === 'stopped') {

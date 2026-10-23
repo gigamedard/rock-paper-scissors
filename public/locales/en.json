@@ -69,7 +69,8 @@
     "status_waiting": "Waiting for Match",
     "status_fighting": "In Combat",
     "status_stopped": "Session Stopped — Restart?",
-    "target": "Target"
+    "target": "Target",
+    "progress": "Progress"
   },
   "feed": {
     "title": "BATTLE FEED",
