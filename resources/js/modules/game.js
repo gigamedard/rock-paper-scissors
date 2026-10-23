@@ -697,10 +697,12 @@ export function updateUI() {
             const joinBtn = document.getElementById('join-btn');
             const statusText = document.getElementById('status-text');
 
-            if (window.userState.status === 'dashboard' || window.userState.status === 'available') {
+            if (window.userState.status === 'dashboard' || window.userState.status === 'available' || window.userState.status === 'invalid') {
                 if (joinBtn) joinBtn.style.display = 'block';
                 if (statusText) {
-                    statusText.innerText = "Available";
+                    statusText.innerText = window.userState.status === 'invalid'
+                        ? 'Session invalidée — relancer'
+                        : 'Available';
                     statusText.className = "battle-status-tag status-online";
                 }
                 hideCombatOverlay();
