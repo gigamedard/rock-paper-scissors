@@ -156,7 +156,12 @@
     "approved_btn_label": "✅ Approved",
     "creating_btn_label": "⏳ Approval in progress...",
     "close": "Close",
-    "error_loading": "Error loading marketplace."
+    "error_loading": "Error loading marketplace.",
+    "add_prana": "➕ Add PRANA to wallet",
+    "add_prana_ok": "PRANA added to wallet ✅",
+    "add_prana_cancel": "Add cancelled.",
+    "add_prana_no_wallet": "Open your wallet and try again.",
+    "add_prana_fallback": "Auto-add not supported. PRANA address copied: 0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B"
   },
   "referral": {
     "title": "Referral Dashboard",

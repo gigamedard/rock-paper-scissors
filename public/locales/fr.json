@@ -156,7 +156,12 @@
     "approved_btn_label": "✅ Approuvé",
     "creating_btn_label": "⏳ Approbation en cours...",
     "close": "Fermer",
-    "error_loading": "Erreur lors du chargement du marché."
+    "error_loading": "Erreur lors du chargement du marché.",
+    "add_prana": "➕ Ajouter PRANA au wallet",
+    "add_prana_ok": "PRANA ajouté au wallet ✅",
+    "add_prana_cancel": "Ajout annulé.",
+    "add_prana_no_wallet": "Ouvrez votre wallet puis réessayez.",
+    "add_prana_fallback": "Ajout auto non supporté. Adresse PRANA copiée : 0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B"
   },
   "referral": {
     "title": "Tableau de Parrainage",

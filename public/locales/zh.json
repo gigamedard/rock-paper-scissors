@@ -156,7 +156,12 @@
     "approved_btn_label": "✅ 已授权",
     "creating_btn_label": "⏳ 授权进行中...",
     "close": "关闭",
-    "error_loading": "加载市场时出错。"
+    "error_loading": "加载市场时出错。",
+    "add_prana": "➕ 将 PRANA 添加到钱包",
+    "add_prana_ok": "PRANA 已添加到钱包 ✅",
+    "add_prana_cancel": "添加已取消。",
+    "add_prana_no_wallet": "请打开钱包后重试。",
+    "add_prana_fallback": "不支持自动添加。已复制 PRANA 地址：0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B"
   },
   "referral": {
     "title": "推荐仪表板",

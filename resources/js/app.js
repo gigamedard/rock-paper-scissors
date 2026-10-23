@@ -203,6 +203,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateFaucetButton(!!(user && user.has_received_airdrop));
     });
 
+    // Bouton « ➕ Ajouter PRANA au wallet » (EIP-747 wallet_watchAsset).
+    // Sur mobile (Core/MetaMask), ajoute le token ERC-20 PRANA à la liste des
+    // tokens visibles. Fallback : copie de l'adresse du contrat.
+    const addPranaBtn = document.getElementById('add-prana-btn');
+    if (addPranaBtn) {
+        const PRANA_ADDR = '0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B';
+        const tx = (k, d) => (window.t ? window.t(k) : d);
+        addPranaBtn.addEventListener('click', async () => {
+            try {
+                const { getActiveEip1193Provider } = await import('./web3/web3-core.js');
+                const provider = (typeof window.ethereum !== 'undefined' && window.ethereum)
+                    ? window.ethereum
+                    : getActiveEip1193Provider();
+                if (!provider || typeof provider.request !== 'function') {
+                    showToast(tx('marketplace.add_prana_no_wallet', 'Ouvrez votre wallet puis réessayez.'), 'warn');
+                    return;
+                }
+                const ok = await provider.request({
+                    method: 'wallet_watchAsset',
+                    params: { type: 'ERC20', options: { address: PRANA_ADDR, symbol: 'PRANA', decimals: 18 } }
+                });
+                if (ok) {
+                    showToast(tx('marketplace.add_prana_ok', 'PRANA ajouté au wallet ✅'), 'success');
+                } else {
+                    showToast(tx('marketplace.add_prana_cancel', 'Ajout annulé.'), 'info');
+                }
+            } catch (e) {
+                try { await navigator.clipboard.writeText(PRANA_ADDR); } catch (_) { /* noop */ }
+                showToast(tx('marketplace.add_prana_fallback',
+                    'Ajout auto non supporté. Adresse PRANA copiée : 0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B'), 'info', 8000);
+            }
+        });
+    }
+
     // ===== PONT EIP-1193 App1 → iframe App 2 (index.html, cross-origin) =====
     // Le pont postMessage (script inline de index.html) relaie les RPC de
     // l'iframe sur CE getter, qui renvoie le provider ACTIF (injecté OU

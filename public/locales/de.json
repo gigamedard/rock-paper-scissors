@@ -156,7 +156,12 @@
     "approved_btn_label": "✅ Freigegeben",
     "creating_btn_label": "⏳ Freigabe in Arbeit...",
     "close": "Schließen",
-    "error_loading": "Fehler beim Laden des Marktplatzes."
+    "error_loading": "Fehler beim Laden des Marktplatzes.",
+    "add_prana": "➕ PRANA zur Wallet hinzufügen",
+    "add_prana_ok": "PRANA zur Wallet hinzugefügt ✅",
+    "add_prana_cancel": "Hinzufügen abgebrochen.",
+    "add_prana_no_wallet": "Öffne deine Wallet und versuche es erneut.",
+    "add_prana_fallback": "Automatisches Hinzufügen nicht unterstützt. PRANA-Adresse kopiert: 0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B"
   },
   "referral": {
     "title": "Empfehlungs-Dashboard",

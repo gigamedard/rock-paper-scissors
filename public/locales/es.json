@@ -155,7 +155,12 @@
     "approved_btn_label": "✅ Aprobado",
     "creating_btn_label": "⏳ Aprobación en progreso...",
     "close": "Cerrar",
-    "error_loading": "Error al cargar el mercado."
+    "error_loading": "Error al cargar el mercado.",
+    "add_prana": "➕ Añadir PRANA a la cartera",
+    "add_prana_ok": "PRANA añadido a la cartera ✅",
+    "add_prana_cancel": "Adición cancelada.",
+    "add_prana_no_wallet": "Abre tu cartera e inténtalo de nuevo.",
+    "add_prana_fallback": "Adición automática no soportada. Dirección PRANA copiada: 0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B"
   },
   "referral": {
     "title": "Panel de Referidos",

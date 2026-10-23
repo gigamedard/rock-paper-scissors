@@ -155,7 +155,12 @@
     "approved_btn_label": "✅ Aprovado",
     "creating_btn_label": "⏳ Aprovação em andamento...",
     "close": "Fechar",
-    "error_loading": "Erro ao carregar o mercado."
+    "error_loading": "Erro ao carregar o mercado.",
+    "add_prana": "➕ Adicionar PRANA à carteira",
+    "add_prana_ok": "PRANA adicionado à carteira ✅",
+    "add_prana_cancel": "Adição cancelada.",
+    "add_prana_no_wallet": "Abra sua carteira e tente novamente.",
+    "add_prana_fallback": "Adição automática não suportada. Endereço PRANA copiado: 0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B"
   },
   "referral": {
     "title": "Painel de Referências",
