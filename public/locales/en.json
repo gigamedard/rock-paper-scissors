@@ -54,7 +54,8 @@
     "required_stake": "Required Stake",
     "fee": "Matchmaking Fee",
     "total_deposit": "TOTAL DEPOSIT:",
-    "btn": "INITIALIZE BATTLE SEQUENCE"
+    "btn": "INITIALIZE BATTLE SEQUENCE",
+    "effective_target": "Effective target (fees included)"
   },
   "combat": {
     "in_progress": "COMBAT IN PROGRESS",

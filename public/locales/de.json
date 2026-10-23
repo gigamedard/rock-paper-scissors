@@ -54,7 +54,8 @@
     "required_stake": "Erforderlicher Einsatz",
     "fee": "Matchmaking-Gebühr",
     "total_deposit": "GESAMTEINZAHLUNG:",
-    "btn": "KAMPFSEQUENZ INITIALISIEREN"
+    "btn": "KAMPFSEQUENZ INITIALISIEREN",
+    "effective_target": "Effektives Ziel (Gebühren inklusive)"
   },
   "combat": {
     "in_progress": "KAMPF LÄUFT",

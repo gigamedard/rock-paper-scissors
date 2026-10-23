@@ -21,6 +21,10 @@ export function initGame() {
     if (betInput) {
         betInput.onchange = updateFeeDisplay;
     }
+    const qInput = document.getElementById('target-q-input');
+    if (qInput) {
+        qInput.onchange = updateFeeDisplay;
+    }
     
     const startBtn = document.getElementById('start-session-btn');
     if (startBtn) {
@@ -376,6 +380,15 @@ function updateFeeDisplay() {
     const elFeePct = document.getElementById('display-fee-percent');
     const elFeeAmt = document.getElementById('display-fee-amount');
     const elTotal = document.getElementById('display-total-deposit');
+
+    // Objectif RÉEL = target_q × (1 + frais) : le seuil de gain inclut les frais
+    // contrat. Afficher le pourcentage réel évite la confusion « +0.1% » alors
+    // qu'il faut en réalité ~+2.6% (frais 2.5%).
+    const qEl = document.getElementById('target-q-input');
+    const targetQ = qEl ? (parseFloat(qEl.value) || 1.2) : 1.2;
+    const effective = targetQ * (1 + feePct / 100);
+    const elEff = document.getElementById('effective-target');
+    if (elEff) elEff.innerText = 'x' + effective.toFixed(4) + ' (+' + ((effective - 1) * 100).toFixed(2) + '%)';
 
     if (elCoeff) elCoeff.innerText = coeff;
     if (elStake) elStake.innerText = stake.toFixed(4) + " " + PRANA_NETWORK.nativeCurrency.symbol;

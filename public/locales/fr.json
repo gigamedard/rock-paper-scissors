@@ -54,7 +54,8 @@
     "required_stake": "Mise Requise",
     "fee": "Frais de Matchmaking",
     "total_deposit": "DÉPÔT TOTAL :",
-    "btn": "INITIALISER LA SÉQUENCE DE COMBAT"
+    "btn": "INITIALISER LA SÉQUENCE DE COMBAT",
+    "effective_target": "Objectif réel (frais inclus)"
   },
   "combat": {
     "in_progress": "COMBAT EN COURS",

@@ -54,7 +54,8 @@
     "required_stake": "要求股份",
     "fee": "匹配费用",
     "total_deposit": "总存款:",
-    "btn": "初始化战斗序列"
+    "btn": "初始化战斗序列",
+    "effective_target": "实际目标（含手续费）"
   },
   "combat": {
     "in_progress": "战斗进行中",

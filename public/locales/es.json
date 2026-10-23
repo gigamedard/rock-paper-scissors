@@ -53,7 +53,8 @@
     "required_stake": "Apuesta Requerida",
     "fee": "Tarifa de Partida",
     "total_deposit": "DEPÓSITO TOTAL:",
-    "btn": "INICIALIZAR SECUENCIA DE BATALLA"
+    "btn": "INICIALIZAR SECUENCIA DE BATALLA",
+    "effective_target": "Objetivo real (comisiones incluidas)"
   },
   "combat": {
     "in_progress": "COMBATE EN PROGRESO",

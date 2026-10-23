@@ -53,7 +53,8 @@
     "required_stake": "Aposta Obrigatória",
     "fee": "Taxa de Partida",
     "total_deposit": "DEPÓSITO TOTAL:",
-    "btn": "INICIALIZAR SEQUÊNCIA DE BATALHA"
+    "btn": "INICIALIZAR SEQUÊNCIA DE BATALHA",
+    "effective_target": "Alvo real (taxas incluídas)"
   },
   "combat": {
     "in_progress": "COMBATE EM ANDAMENTO",
