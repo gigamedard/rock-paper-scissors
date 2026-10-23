@@ -82,6 +82,36 @@ python3 -m http.server 5173
 
 Ouvrir **http://localhost:5173** dans le navigateur où l'extension Core est active.
 
+### 4bis. Test mobile (WalletConnect) — sans acheter de domaine
+
+La PoC propose deux modes :
+- **1a. injecté** : extension Core sur desktop (localhost suffit).
+- **1b. WalletConnect** : Core mobile (iPhone/Android). WalletConnect exige une
+  origine **HTTPS publique** — mais **pas** un domaine payant : un tunnel gratuit
+  suffit.
+
+1. Lancer le serveur local :
+   ```bash
+   python3 -m http.server 5173
+   ```
+2. Ouvrir un tunnel HTTPS public vers ce port :
+   ```bash
+   # Option A (Cloudflare, gratuit, pas de compte)
+   cloudflared tunnel --url http://localhost:5173
+
+   # Option B (localtunnel)
+   npx localtunnel --port 5173
+   ```
+   Noter l'URL publique `https://xxxx…`.
+3. Dans **Reown / WalletConnect Cloud** → ton projet → **Allowed origins**, ajouter
+   l'URL du tunnel (ou utiliser le `projectId` fourni et autoriser cette origine).
+4. Sur le téléphone, ouvrir l'URL du tunnel, cliquer **1b. Connecter
+   (WalletConnect)** et approuver dans **Core**.
+5. Continuer avec les étapes ci-dessous (snapshot → claim → analyse → export).
+
+> Pour que la PoC se connecte, `metadata.url = location.origin` (l'URL du tunnel)
+> doit correspondre à une origine autorisée du projet Reown.
+
 ---
 
 ## 5. Procédure de reproduction (pas à pas)

