@@ -2,21 +2,321 @@
   {
     "index": 0,
     "address": "0x2f97A909233AbAD1BD04be899f42ccd0A7eebec5",
-    "note": "bot prod pingala #1 - PK dans battlepool/.env local (BOT_PK_1), JAMAIS committée"
+    "note": "bot prod pingala #1 - PK dans battlepool/.env local (BOT_PK_1), JAMAIS committ\u00e9e"
   },
   {
     "index": 1,
     "address": "0xDF78912015B2B7c22D8751DC8823D0a49E041221",
-    "note": "bot prod pingala #2 - PK dans battlepool/.env local (BOT_PK_2), JAMAIS committée"
+    "note": "bot prod pingala #2 - PK dans battlepool/.env local (BOT_PK_2), JAMAIS committ\u00e9e"
   },
   {
     "index": 2,
     "address": "0xF0E517F765112A525F01a7Ff33a83555E1A4A80D",
-    "note": "bot prod pingala #3 - PK dans battlepool/.env local (BOT_PK_3), JAMAIS committée"
+    "note": "bot prod pingala #3 - PK dans battlepool/.env local (BOT_PK_3), JAMAIS committ\u00e9e"
   },
   {
     "index": 3,
     "address": "0x37fDa9082Fa111b2832367bc2F568851842aCB5F",
-    "note": "bot prod pingala #4 - PK dans battlepool/.env local (BOT_PK_4), JAMAIS committée"
+    "note": "bot prod pingala #4 - PK dans battlepool/.env local (BOT_PK_4), JAMAIS committ\u00e9e"
+  },
+  {
+    "index": 4,
+    "address": "0xA0C5486AF467FF36bA57492Da34a9DE7b39B851E",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 5,
+    "address": "0xCe89BA9388C1fdCbd3daDFF428721859fc02c783",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 6,
+    "address": "0x9F994F8dF9B050945a031Ad1F7cC99D2B7D081de",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 7,
+    "address": "0x6A7205e496C9336544b2C0E5a116deb4D4eD05c3",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 8,
+    "address": "0x3Be2dDBc41602007C9e56cCDAA939852e3AA6465",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 9,
+    "address": "0xb518FaC8ACddcAEa9D34B3828C607F343E6B00DA",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 10,
+    "address": "0x3465787F18799e90471e25A6430A9C464C3d0b44",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 11,
+    "address": "0xd0755BEa14aa97319ec6d475dbae336D30e9872D",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 12,
+    "address": "0x117138D632810Baedd86BF368f45Df7Fc8868f32",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 13,
+    "address": "0xa578cF559D200f4bFB578f4BaB34C4BED44c6236",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 14,
+    "address": "0x34C756F85B4E85e710de1eD69aE0e700ffa52954",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 15,
+    "address": "0x63F40D8e6b090c259719124AdB37556894808b59",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 16,
+    "address": "0x5AaCe47ad644702E054Dbd7EA32c9Fee08477A64",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 17,
+    "address": "0xA0238207118234F2eEFE3584AedD8Ee4A5bDb39e",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 18,
+    "address": "0xDCb4063B49e61323E4A1027A3A18e905428d6798",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 19,
+    "address": "0x0E19C99be67796aabdD96F26257296d2c2926698",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 20,
+    "address": "0x63C963FB50073676b19c0F6Fe6394914e6d420Ee",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 21,
+    "address": "0x6FC1e5b07D4c16e52670Ca4376bfe1353FA53880",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 22,
+    "address": "0x3fA27cb065B0F5a95494B98942240A3b903bb52C",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 23,
+    "address": "0x4c946e7D730D694dc9a9a33017302E1B86CD68dB",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 24,
+    "address": "0x01aE00e527839826e50371a3FbEE393208a222e6",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 25,
+    "address": "0x250535942EA61e340b508793Db427e28D050399D",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 26,
+    "address": "0xe3b1a57AD31b8a40b9e69276fb868B63499d90D4",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 27,
+    "address": "0x3168b6ED06aD7e4DfF157866ee9Ab22Bb330b54c",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 28,
+    "address": "0x93263409a164533b4373481097cacDbfca668137",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 29,
+    "address": "0xC6fae11b6d453da461A27dC7BB5bF96cE14A1144",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 30,
+    "address": "0x04593C75B157899C05dDAF645F16748C0e5Dc86C",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 31,
+    "address": "0xc3Df5f42C285ab73B781aEcCA77E6141b4670fd0",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 32,
+    "address": "0xA756F7807282a7fF15cFB9A93EbB48ceD78d78f5",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 33,
+    "address": "0xCb0926602B2f069a4d6fAF6ef1FB03678aF6333f",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 34,
+    "address": "0x32a63cE2ABd54eE8De18AC359fB4CE0aC76C8d9b",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 35,
+    "address": "0x685fD2ebe8e171663Dca0f2478aCac33d8518A1a",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 36,
+    "address": "0xdE263f4BAf0A78857ff84ABA26BEF518e3137DAB",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 37,
+    "address": "0x9c3e490864ed4BbFF2a45551D0145C9be5582BdB",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 38,
+    "address": "0x38BE0F2D3d984f55dbF8FB1dE0430e4Cf866975A",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 39,
+    "address": "0x72381f5cFe9D1e792c0EB17F22606b75801bcFEb",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 40,
+    "address": "0x472604e56A5B5581FDF1398C2890da4b8c48F4C1",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 41,
+    "address": "0x00786C680128961c3C8df0EE0288e68Ebf65144a",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 42,
+    "address": "0xECF51fcb92C4a3b32932Bc2122C9d139e0A886fB",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 43,
+    "address": "0xc7C92ce39390778d245dDd4D6534B4Abf94274eb",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 44,
+    "address": "0xb8a7990F86aFad9c30E52B80e5CfcAb0FeA9dc57",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 45,
+    "address": "0xf3845Db68bb5DdD0aA4e02d88795b53CEE09b49a",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 46,
+    "address": "0xabb63E17153F424Dc51b8B5DA1D18846566414dC",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 47,
+    "address": "0x09382e5B891453FBa425a6019b2F2CB46f37C8E3",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 48,
+    "address": "0x48E984bA7336aca842E69c3a265Fef29c2C47861",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 49,
+    "address": "0x7F30106AD1c95Dc5bB5CdBc10426c2A665E14248",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 50,
+    "address": "0xC116aE195e3f06F730ef8cF6aD0f1dd8Af88410a",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 51,
+    "address": "0xfCcD5ade371Db2B5d00e377055B4124a0e522B6a",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 52,
+    "address": "0xE67f20b8ba11aD034Da469Fb623C5110134f3439",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 53,
+    "address": "0x370369DB967253a2860eBFa314CAF910Dbeac170",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 54,
+    "address": "0x96c26C6c78Ca6FE106057733e624aCcc5Ce03bE4",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 55,
+    "address": "0x96f459CCc221E194BB9452b94274C31639992DC4",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 56,
+    "address": "0xD033b622894c9B7B53d3d17b2AAEEf4eB0560049",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 57,
+    "address": "0xAcF4f2aFdA9E78E075A6F09bb8Beed42d378f674",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 58,
+    "address": "0xdA3E98F8e26C4c73259d62F4e52e8c77500fD752",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 59,
+    "address": "0x8698b0235626dC595DBdC03C235E7a05b8F143e5",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 60,
+    "address": "0x6eDa586A50AF46DcE357026c3315Da8A0E0078f2",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 61,
+    "address": "0x45a796b0e012B51B01728d23709cF9C68D7C6F1a",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 62,
+    "address": "0xBeeF283b0873A41a8a2080f1722E4d33a655a4cd",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+  },
+  {
+    "index": 63,
+    "address": "0x1fEc9C17121f036311d90E400DdE3abF417CB812",
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
   }
 ]
