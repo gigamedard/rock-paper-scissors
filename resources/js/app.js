@@ -191,8 +191,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateFaucetButton(claimed) {
         if (!faucetBtn) return;
         if (claimed) {
+            window.__bpFaucetClaimed = true;
             faucetBtn.style.display = 'none';
-        } else {
+        } else if (!window.__bpFaucetClaimed) {
             faucetBtn.style.display = 'block';
         }
     }

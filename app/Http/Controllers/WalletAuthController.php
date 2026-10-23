@@ -110,6 +110,12 @@ class WalletAuthController extends Controller
 
             $user->save();
 
+            // firstOrCreate renvoie un modèle PARTIEL quand l'utilisateur vient
+            // d'être créé (les colonnes à défaut DB — balance, status,
+            // has_received_airdrop… — ne sont pas chargées). On recharge pour
+            // que la réponse contienne l'utilisateur complet.
+            $user->refresh();
+
             // Check if user has already applied a referral code
             $user->has_used_referral_code = $user->referredBy()->exists();
 

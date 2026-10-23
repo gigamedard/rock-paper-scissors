@@ -283,10 +283,13 @@ async function fetchUserStatus() {
             window.userState.autoplay_active = data.autoplay_active;
             window.userState.session_started = data.session_started;
             // Afficher/masquer le bouton d'airdrop selon le flag serveur
+            // (et le flag local anti-réaffichage après un claim réussi).
             const faucetBtn = document.getElementById('faucet-claim-btn');
             if (faucetBtn && data.has_received_airdrop !== undefined) {
-                faucetBtn.style.display = data.has_received_airdrop ? 'none' : 'block';
-            }            // Ne pas écraser les états actifs locaux (in_pool, in_fight, waiting)
+                const claimed = data.has_received_airdrop || window.__bpFaucetClaimed;
+                faucetBtn.style.display = claimed ? 'none' : 'block';
+            }
+            // Ne pas écraser les états actifs locaux (in_pool, in_fight, waiting)
             // si le serveur dit 'available' (désynchronisation DB/blockchain possible)
             const activeLocalStatuses = ['in_pool', 'in_fight', 'waiting', 'setup'];
             if (activeLocalStatuses.includes(window.userState.status) && data.status === 'available') {
