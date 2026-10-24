@@ -28,11 +28,12 @@ import { createWatchers } from './handlers.js';
  * @param {(endpoint: string, body: object) => Promise<void>} opts.postToLaravel
  * @returns {Promise<void>} - ne résout jamais (boucle infinie) sauf arrêt.
  */
-export async function startIndexer({ provider, gameContract, marketplaceContract, sntContract, marketplaceAddress, postToLaravel }) {
+export async function startIndexer({ provider, gameContract, gameContractV2, marketplaceContract, sntContract, marketplaceAddress, postToLaravel }) {
   await initSchema();
 
   const watchers = createWatchers({
     gameContract,
+    gameContractV2,
     marketplaceContract,
     sntContract,
     marketplaceAddress,

@@ -18,6 +18,7 @@ import {
     FAUCET_WALLET_PK,
     SECURITY_COEFFICIENT,
     CHAIN_ID,
+    GAME_CURRENCY,
     pinata,
     contracts
 } from "./config.js";
@@ -70,8 +71,18 @@ app.post("/ipfs/add-json", async (req, res) => {
 const gameProvider = new JsonRpcProvider(LOCAL_HARDHAT_URL);
 const gameWallet = new Wallet(PAYOUT_OPERATOR_PK, gameProvider);
 const gameContract = new Contract(contracts.game.address, contracts.game.abi, gameWallet);
+// BattlepoolV2 (ERC-20 AVAXe) — port de Battlepool, même rôles (payoutOperator/signer).
+const gameContractV2 = new Contract(contracts.gameV2.address, contracts.gameV2.abi, gameWallet);
+// AVAXe — jeton ERC-20 de mise (read + transfer faucet).
+const avaxeContract = new Contract(contracts.avaxe.address, contracts.avaxe.abi, gameProvider);
 // SECURITY: separate signer wallet for claim signatures (rotatable via setSigner).
 const signerWallet = new Wallet(SIGNER_WALLET_PK, gameProvider);
+
+// --- Contrat de jeu ACTIF (bascule globale GAME_CURRENCY: "tst" | "avaxe") ---
+function activeGame() {
+    return GAME_CURRENCY === "avaxe" ? gameContractV2 : gameContract;
+}
+console.log(`🎮 [GAME] Devise active : ${GAME_CURRENCY.toUpperCase()} → contrat ${activeGame().target}`);
 
 // Faucet wallet (airdrop de bienvenue) — raw native TST transfers to new users.
 let faucetWallet = null;
@@ -130,7 +141,7 @@ app.post("/sendPoolCID", async (req, res) => {
 
         console.log(`📡 Sending  CID on smart contract...`);
         // Call the smart contract function (Replace with actual function name)
-        const tx = await enqueueTx((nonce) => gameContract.storeMatchHistoryCID(poolId, CID, { nonce }));
+        const tx = await enqueueTx((nonce) => activeGame().storeMatchHistoryCID(poolId, CID, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -149,7 +160,7 @@ app.post("/sendSessionCID", async (req, res) => {
 
         console.log(`📡 Sending session  CID on smart contract...`)
         // Call the smart contract function (Replace with actual function name)
-        const tx = await enqueueTx((nonce) => gameContract.storeSessionCID(wallet, CID, { nonce }));
+        const tx = await enqueueTx((nonce) => activeGame().storeSessionCID(wallet, CID, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -168,30 +179,32 @@ app.post("/sendPayment", async (req, res) => {
             return res.status(400).json({ error: "Missing required parameters." });
         }
 
-        console.log(`📡 Sending payment - amount: ${formatEther(amount)} ETH on smart contract...`);
+        console.log(`📡 Sending payment - amount: ${formatEther(amount)} ${GAME_CURRENCY.toUpperCase()} on smart contract...`);
 
         // SECURITY: Sync on-chain balance with database balance before payOut.
         // Fights are resolved off-chain, so userBalances on-chain may be lower
         // than the actual balance (deposit + gains). updateUserBalance ensures
         // the require(amount <= userBalances[user]) check in payOut will pass.
         try {
-            const syncTx = await enqueueTx((nonce) => gameContract.updateUserBalance(wallet, amount, { nonce }));
-            console.log(`✅ Synced on-chain balance for ${wallet}: ${formatEther(amount)} ETH`);
+            const syncTx = await enqueueTx((nonce) => activeGame().updateUserBalance(wallet, amount, { nonce }));
+            console.log(`✅ Synced on-chain balance for ${wallet}: ${formatEther(amount)} ${GAME_CURRENCY.toUpperCase()}`);
         } catch (syncErr) {
             console.error(`⚠️  Failed to sync balance for ${wallet}: ${syncErr.message}`);
             // Continue anyway — the balance may already be correct
         }
 
-        const balanceBefore = await gameProvider.getBalance(wallet);
+        // Balance du bénéficiaire : natif (TST) ou ERC-20 (AVAXe).
+        const balanceOf = (w) => GAME_CURRENCY === "avaxe" ? avaxeContract.balanceOf(w) : gameProvider.getBalance(w);
+        const balanceBefore = await balanceOf(wallet);
 
         // Step 2: Send the payout transaction
-        const tx = await enqueueTx((nonce) => gameContract.payOut(wallet, amount, { nonce }));
+        const tx = await enqueueTx((nonce) => activeGame().payOut(wallet, amount, { nonce }));
 
         // Step 3: Small delay to allow for sync (optional in local dev)
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Step 4: Get balance after payment
-        const balanceAfter = await gameProvider.getBalance(wallet);
+        const balanceAfter = await balanceOf(wallet);
 
         // Step 5: Calculate difference
         const balanceDiff = balanceAfter - balanceBefore;
@@ -206,7 +219,7 @@ app.post("/sendPayment", async (req, res) => {
             actualIncrease: formatEther(balanceDiff)
         });
         //log the actual increase in balance
-        console.log(`💰 Payment sent successfully! Expected: ${formatEther(amount)} ETH, Actual: ${formatEther(balanceDiff)} ETH`);
+        console.log(`💰 Payment sent successfully! Expected: ${formatEther(amount)} ${GAME_CURRENCY.toUpperCase()}, Actual: ${formatEther(balanceDiff)}`);
     } catch (error) {
         console.error("❌ Error sending Payement to smart contract:", error);
         res.status(500).json({ error: error.message });
@@ -242,6 +255,33 @@ app.post("/faucet", async (req, res) => {
     }
 });
 
+app.post("/avaxe-faucet", async (req, res) => {
+    try {
+        const { wallet, amount } = req.body;
+
+        if (!wallet || !amount) {
+            return res.status(400).json({ error: "Missing required parameters." });
+        }
+
+        if (!faucetWallet) {
+            return res.status(503).json({ error: "Faucet wallet not configured (FAUCET_WALLET_PK missing)." });
+        }
+
+        console.log(`🚰 [avaxe-faucet] Envoi de ${formatEther(amount)} AVAXe à ${wallet}`);
+
+        // Transfert ERC-20 (AVAXe) depuis le portefeuille faucet (pré-financé par l'owner).
+        const avaxeFaucet = new Contract(contracts.avaxe.address, contracts.avaxe.abi, faucetWallet);
+        const tx = await avaxeFaucet.transfer(wallet, amount);
+        const receipt = await tx.wait();
+
+        res.json({ success: true, txHash: tx.hash, blockNumber: receipt.blockNumber });
+        console.log(`✅ [avaxe-faucet] ${formatEther(amount)} AVAXe envoyés à ${wallet} (tx ${tx.hash})`);
+    } catch (error) {
+        console.error("❌ [avaxe-faucet] Error sending AVAXe airdrop:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post("/sendBatchPayment", async (req, res) => {
     try {
         const { wallets, amounts } = req.body;
@@ -255,7 +295,7 @@ app.post("/sendBatchPayment", async (req, res) => {
         // Each wallet's balance is updated individually before the batch payout.
         for (let i = 0; i < wallets.length; i++) {
             try {
-                await enqueueTx((nonce) => gameContract.updateUserBalance(wallets[i], amounts[i], { nonce }));
+                await enqueueTx((nonce) => activeGame().updateUserBalance(wallets[i], amounts[i], { nonce }));
                 console.log(`✅ Synced balance for ${wallets[i]}: ${formatEther(amounts[i])} ETH`);
             } catch (syncErr) {
                 console.error(`⚠️  Failed to sync balance for ${wallets[i]}: ${syncErr.message}`);
@@ -263,7 +303,7 @@ app.post("/sendBatchPayment", async (req, res) => {
         }
 
         // Call the smart contract function
-        const tx = await enqueueTx((nonce) => gameContract.batchPayOut(wallets, amounts, { nonce }));
+        const tx = await enqueueTx((nonce) => activeGame().batchPayOut(wallets, amounts, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -280,7 +320,7 @@ app.post("/setUserLimits", async (req, res) => {
         }
 
         console.log(`📡 Setting user limits for ${wallet} on smart contract...`);
-        const tx = await enqueueTx((nonce) => gameContract.setUserLimits(wallet, maxBaseBet, maxQ, minCooldown, expiry, { nonce }));
+        const tx = await enqueueTx((nonce) => activeGame().setUserLimits(wallet, maxBaseBet, maxQ, minCooldown, expiry, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -298,7 +338,7 @@ app.post("/setUserNextSessionTime", async (req, res) => {
         }
 
         console.log(`📡 Setting next session time for ${wallet} to ${nextTime} on smart contract...`);
-        const tx = await enqueueTx((nonce) => gameContract.setUserNextSessionTime(wallet, nextTime, { nonce }));
+        const tx = await enqueueTx((nonce) => activeGame().setUserNextSessionTime(wallet, nextTime, { nonce }));
 
         res.json({ success: true, txHash: tx.hash });
     } catch (error) {
@@ -310,7 +350,7 @@ app.post("/setUserNextSessionTime", async (req, res) => {
 app.get('/getUserNonce/:wallet', async (req, res) => {
     try {
         const { wallet } = req.params;
-        const nonce = await gameContract.nonces(wallet);
+        const nonce = await activeGame().nonces(wallet);
         res.json({ nonce: nonce.toString() });
     } catch (error) {
         console.error("Error fetching nonce:", error);
@@ -332,21 +372,21 @@ app.post("/generate-signature", async (req, res) => {
         // the actual balance (deposit + gains). updateUserBalance ensures the
         // require(amount <= userBalances[user]) check in claimAndExit will pass.
         try {
-            const syncTx = await enqueueTx((nonce) => gameContract.updateUserBalance(wallet, amount, { nonce }));
+            const syncTx = await enqueueTx((nonce) => activeGame().updateUserBalance(wallet, amount, { nonce }));
             console.log(`✅ Synced on-chain balance for ${wallet}: ${amount} wei`);
         } catch (syncErr) {
             console.error(`⚠️  Failed to sync balance for ${wallet}: ${syncErr.message}`);
             // Continue anyway — the balance may already be correct from a previous sync
         }
         
-        const nonce = await gameContract.nonces(wallet);
+        const nonce = await activeGame().nonces(wallet);
         const chainId = (await gameProvider.getNetwork()).chainId;
         // Signature valid for 24h (prevents indefinite replay)
         const deadline = Math.floor(Date.now() / 1000) + 86400;
         
         const messageHash = solidityPackedKeccak256(
             ["address", "uint256", "uint256", "address", "uint256", "uint256"],
-            [wallet, amount, nonce, contracts.game.address, chainId, deadline]
+            [wallet, amount, nonce, activeGame().target, chainId, deadline]
         );
         const messageHashBytes = getBytes(messageHash);
         const signature = await signerWallet.signMessage(messageHashBytes);
@@ -472,6 +512,11 @@ app.get("/get-game-config", (req, res) => {
             snt: contracts.snt,
             // Pingala : wrapper AVAX (mise/asset) — exposé au frontend via /api/artefacts
             wavax: contracts.wavax,
+            // BattlepoolV2 (ERC-20 AVAXe) + jeton AVAXe — chantier feat/avaxe-bridge (P2/P3)
+            gameV2: contracts.gameV2,
+            avaxe: contracts.avaxe,
+            // Devise active du jeu (bascule globale P2)
+            game_currency: GAME_CURRENCY,
             // Réseau cible (L1 souveraine) — lu dynamiquement par le service de chain
             chain_id: CHAIN_ID,
             security_coefficient: SECURITY_COEFFICIENT,
@@ -486,8 +531,8 @@ app.get("/get-game-config", (req, res) => {
 
 app.get("/admin/contract-stats", async (req, res) => {
     try {
-        const devBalance = await gameContract.devBalance();
-        const contractBalance = await gameContract.getContractBalance();
+        const devBalance = await activeGame().devBalance();
+        const contractBalance = await activeGame().getContractBalance();
         res.json({
             houseBalance: formatEther(devBalance),
             contractBalance: formatEther(contractBalance)
@@ -511,8 +556,8 @@ app.post("/pool/validate", async (req, res) => {
         }
 
         const baseBetWei = parseUnits(baseBet.toString(), 18);
-        console.log(`   [Action] Calling gameContract.validatePool(${baseBetWei.toString()})...`);
-        const tx = await enqueueTx((nonce) => gameContract.validatePool(baseBetWei, { nonce }));
+        console.log(`   [Action] Calling activeGame().validatePool(${baseBetWei.toString()})...`);
+        const tx = await enqueueTx((nonce) => activeGame().validatePool(baseBetWei, { nonce }));
 
         console.log(`   ✅ Pool Validated! TX Hash: ${tx.hash}`);
         res.json({ success: true, txHash: tx.hash });
@@ -543,8 +588,8 @@ app.post("/pool/invalidate", async (req, res) => {
         }
 
         const baseBetWei = parseUnits(baseBet.toString(), 18);
-        console.log(`   [Action] Calling gameContract.invalidatePoolUsers...`);
-        const tx = await enqueueTx((nonce) => gameContract.invalidatePoolUsers(baseBetWei, invalidUsers, { nonce }));
+        console.log(`   [Action] Calling activeGame().invalidatePoolUsers...`);
+        const tx = await enqueueTx((nonce) => activeGame().invalidatePoolUsers(baseBetWei, invalidUsers, { nonce }));
 
         console.log(`   ✅ Pool Users Invalidated! TX Hash: ${tx.hash}`);
         res.json({ success: true, txHash: tx.hash });
@@ -608,6 +653,7 @@ async function startBlockchainListeners() {
     // evenements OfferCreated/Transfer sont ignores -> marketplace UI vide.
     const requiredAbiEvents = {
         game: ["PoolEmitted", "DepositReceived"],
+        gameV2: ["PoolEmitted", "DepositReceived"],
         marketplace: ["OfferCreated", "OfferFulfilled", "OfferCancelled"],
         snt: ["Transfer"],
     };
@@ -623,13 +669,14 @@ async function startBlockchainListeners() {
             process.exit(1);
         }
     }
-    console.log("✅ [BRIDGE] ABIs validées (game/marketplace/snt contiennent leurs événements requis).");
+    console.log("✅ [BRIDGE] ABIs validées (game/gameV2/marketplace/snt contiennent leurs événements requis).");
 
     const sntContract = new Contract(contracts.snt.address, contracts.snt.abi, gameWallet);
 
     await startIndexer({
         provider: gameProvider,
         gameContract,
+        gameContractV2,
         marketplaceContract,
         sntContract,
         marketplaceAddress: contracts.marketplace.address,

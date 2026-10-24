@@ -1,6 +1,6 @@
 // resources/js/modules/game.js
 import { Contract, parseUnits, parseEther } from 'ethers';
-import { getProvider, ensurePingalaNetwork, ensureWalletVisibleForTx, PRANA_NETWORK } from '../web3/web3-core.js';
+import { getProvider, ensurePingalaNetwork, ensureWalletVisibleForTx } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
 import { parseRpcError } from '../core/auth.js';
 import { t } from './i18n.js';
@@ -12,8 +12,27 @@ const gameState = {
     preMoves: [],
     pendingClaim: null,
     config: {},
-    contractAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+    contractAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    // Chantier feat/avaxe-bridge (P3) : devise active "tst" | "avaxe".
+    // v2Address/avaxeAddress remplis depuis /api/artefacts (bridge get-game-config).
+    currency: 'tst',
+    v2Address: null,
+    avaxeAddress: null,
 };
+
+// ABI minimal ERC-20 pour approve/allowance/balanceOf (AVAXe).
+const ERC20_ABI = [
+    'function approve(address spender, uint256 amount) external returns (bool)',
+    'function allowance(address owner, address spender) external view returns (uint256)',
+    'function balanceOf(address) view returns (uint256)'
+];
+
+// ABI BattlepoolV2 : dépôt via transferFrom (submitPremoveCID avec amount).
+const V2_SUBMIT_ABI = ["function submitPremoveCID(uint256 baseBet, string cid, uint256 amount) external"];
+
+function isAvaxe() { return gameState.currency === 'avaxe'; }
+function activeGameAddress() { return isAvaxe() ? gameState.v2Address : gameState.contractAddress; }
+function currencySymbol() { return isAvaxe() ? 'AVAXe' : 'TST'; }
 
 export function initGame() {
     console.log("[Game] Initialisation du module Game");
@@ -109,7 +128,7 @@ export function initGame() {
             } else {
                 const el = document.getElementById('balance-val');
                 if (el && !el.classList.contains('animating')) {
-                    el.innerHTML = total.toFixed(4) + ' <span class="unit">' + PRANA_NETWORK.nativeCurrency.symbol + '</span>';
+                    el.innerHTML = total.toFixed(4) + ' <span class="unit">' + currencySymbol() + '</span>';
                 }
             }
             updateUI();
@@ -371,12 +390,33 @@ async function fetchConfig() {
             gameState.config.security_coefficient = data.security_coefficient;
             gameState.config.smart_contract_fee_percentage = data.smart_contract_fee_percentage;
             gameState.contractAddress = data.address || gameState.contractAddress;
+            // Chantier feat/avaxe-bridge (P3) : contrats V2 + jeton AVAXe exposés par le bridge.
+            gameState.v2Address = data.gameV2?.address || null;
+            gameState.avaxeAddress = data.avaxe?.address || null;
+            // Devise active par défaut = celle du bridge (bascule globale GAME_CURRENCY).
+            if (data.game_currency === 'avaxe' && gameState.v2Address) {
+                gameState.currency = 'avaxe';
+            }
             updateFeeDisplay();
         }
     } catch (e) {
         console.error("Failed to fetch config", e);
     }
 }
+
+/** Bascule la devise active (TST natif ↔ AVAXe ERC-20). Retourne la devise retenue. */
+export function setCurrency(currency) {
+    if (currency === 'avaxe' && !gameState.v2Address) {
+        showToast("Contrat BattlepoolV2 non chargé (config).", 'error');
+        return gameState.currency;
+    }
+    gameState.currency = (currency === 'avaxe') ? 'avaxe' : 'tst';
+    updateFeeDisplay();
+    window.dispatchEvent(new CustomEvent('app:refresh'));
+    return gameState.currency;
+}
+
+export function getCurrency() { return gameState.currency; }
 
 function updateFeeDisplay() {
     const betInput = document.getElementById('base-bet-input');
@@ -406,10 +446,10 @@ function updateFeeDisplay() {
     if (elEff) elEff.innerText = 'x' + effective.toFixed(4) + ' (+' + ((effective - 1) * 100).toFixed(2) + '%)';
 
     if (elCoeff) elCoeff.innerText = coeff;
-    if (elStake) elStake.innerText = stake.toFixed(4) + " " + PRANA_NETWORK.nativeCurrency.symbol;
+    if (elStake) elStake.innerText = stake.toFixed(4) + " " + currencySymbol();
     if (elFeePct) elFeePct.innerText = feePct;
-    if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " " + PRANA_NETWORK.nativeCurrency.symbol;
-    if (elTotal) elTotal.innerText = total.toFixed(4) + " " + PRANA_NETWORK.nativeCurrency.symbol;
+    if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " " + currencySymbol();
+    if (elTotal) elTotal.innerText = total.toFixed(4) + " " + currencySymbol();
 }
 
 function getIcon(move) {
@@ -497,9 +537,7 @@ async function startSession() {
         const stakeWei = baseBetWei * BigInt(securityCoefficient);
         const feeWei = (stakeWei * BigInt(Math.round(feePercentage * 100))) / BigInt(10000);
         const amountToSendWei = stakeWei + feeWei;
-        
-        const abi = ["function submitPremoveCID(uint256 baseBet, string cid) external payable"];
-        const contract = new Contract(gameState.contractAddress, abi, signer);
+
         console.info('[Business] 2/4 valeurs tx', {
             baseBet: bet,
             baseBetWei: baseBetWei.toString(),
@@ -507,7 +545,9 @@ async function startSession() {
             stakeWei: stakeWei.toString(),
             feePct: feePercentage,
             feeWei: feeWei.toString(),
-            total: amountToSendWei.toString()
+            total: amountToSendWei.toString(),
+            currency: gameState.currency,
+            contract: activeGameAddress(),
         });
 
         // RÉVEIL WALLET (journal 14:07 : la tx partait dans le vide — Core en
@@ -515,12 +555,37 @@ async function startSession() {
         // ré-ouvert AVANT l'émission de la tx, il la verra à l'ouverture.
         ensureWalletVisibleForTx('core');
 
-        // Garde anti-freeze : promesse plafonnée (le bouton reste réactif même
-        // si le socket WC meurt — au délai, erreur claire + bouton réactivé).
-        const sendPromise = contract.submitPremoveCID(baseBetWei, cid, {
-            value: amountToSendWei,
-            gasLimit: 500000
-        });
+        let sendPromise;
+        if (isAvaxe()) {
+            // AVAXe (ERC-20) : approve(BattlepoolV2, amount) puis
+            // submitPremoveCID(baseBet, cid, amount) via transferFrom.
+            if (!gameState.avaxeAddress) throw new Error('Adresse AVAXe non chargée (config).');
+            const token = new Contract(gameState.avaxeAddress, ERC20_ABI, signer);
+            const walletAddr = await signer.getAddress();
+            const allowance = await token.allowance(walletAddr, activeGameAddress());
+            if (allowance < amountToSendWei) {
+                console.info('[Business] 2/4 approve AVAXe', amountToSendWei.toString());
+                const approvePromise = token.approve(activeGameAddress(), amountToSendWei, { gasLimit: 100000 });
+                const approveTx = await Promise.race([
+                    approvePromise,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error(
+                        'Délai dépassé : approve AVAXe non reçu par le wallet. Réessayez.'
+                    )), 120000))
+                ]);
+                await approveTx.wait();
+            }
+            const v2 = new Contract(activeGameAddress(), V2_SUBMIT_ABI, signer);
+            sendPromise = v2.submitPremoveCID(baseBetWei, cid, amountToSendWei, { gasLimit: 500000 });
+        } else {
+            // TST (natif) : payable submitPremoveCID avec value.
+            const abi = ["function submitPremoveCID(uint256 baseBet, string cid) external payable"];
+            const contract = new Contract(activeGameAddress(), abi, signer);
+            sendPromise = contract.submitPremoveCID(baseBetWei, cid, {
+                value: amountToSendWei,
+                gasLimit: 500000
+            });
+        }
+
         const tx = await Promise.race([
             sendPromise,
             new Promise((_, reject) => setTimeout(() => reject(new Error(
@@ -596,7 +661,7 @@ async function claim() {
         const signer = await provider.getSigner();
 
         const abi = ["function claimAndExit(uint256 amount, uint256 deadline, bytes signature) external"];
-        const contract = new Contract(gameState.contractAddress, abi, signer);
+        const contract = new Contract(activeGameAddress(), abi, signer);
 
         const amountWei = parseEther(gameState.pendingClaim.amount.toString());
 
@@ -724,11 +789,11 @@ export function updateUI() {
         
         const balanceEl = document.getElementById('balance-val');
         if(balanceEl && !balanceEl.classList.contains('animating')) {
-            balanceEl.innerHTML = displayBalance.toFixed(4) + ' <span class="unit">' + PRANA_NETWORK.nativeCurrency.symbol + '</span>';
+            balanceEl.innerHTML = displayBalance.toFixed(4) + ' <span class="unit">' + currencySymbol() + '</span>';
         }
         
         const betEl = document.getElementById('bet-val');
-        if(betEl) betEl.innerHTML = bet.toFixed(4) + ' <span class="unit">' + PRANA_NETWORK.nativeCurrency.symbol + '</span>';
+        if(betEl) betEl.innerHTML = bet.toFixed(4) + ' <span class="unit">' + currencySymbol() + '</span>';
 
         // Graphique : évolution du solde vers l'objectif de session.
         const tgt = computeSessionTarget();
@@ -738,7 +803,7 @@ export function updateUI() {
         const targetValEl = document.getElementById('balance-target-val');
         if (targetValEl) {
             targetValEl.innerText = tgt
-                ? (tgt.toFixed(4) + ' ' + PRANA_NETWORK.nativeCurrency.symbol)
+                ? (tgt.toFixed(4) + ' ' + currencySymbol())
                 : '—';
         }
         const progEl = document.getElementById('balance-progress');
@@ -867,7 +932,7 @@ function animateValue(id, start, end, decimals) {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
         const val = progress * (eVal - sVal) + sVal;
-        obj.innerHTML = val.toFixed(decimals) + ' <span class="unit">' + PRANA_NETWORK.nativeCurrency.symbol + '</span>';
+        obj.innerHTML = val.toFixed(decimals) + ' <span class="unit">' + currencySymbol() + '</span>';
         if (progress < 1) window.requestAnimationFrame(step);
         else {
             obj.classList.remove('animating');
@@ -912,7 +977,7 @@ function triggerClash(myMove, opponentMove, result, delta) {
         const color = result === 'win' ? 'var(--success)' : (result === 'draw' ? 'var(--primary)' : 'var(--accent)');
         if(combatText) {
             combatText.style.color = color;
-            combatText.innerText = result.toUpperCase() + " (" + delta + " " + PRANA_NETWORK.nativeCurrency.symbol + ")";
+            combatText.innerText = result.toUpperCase() + " (" + delta + " " + currencySymbol() + ")";
         }
         clashDiv.classList.add('fade-out');
         setTimeout(() => overlay.removeChild(clashDiv), 500);

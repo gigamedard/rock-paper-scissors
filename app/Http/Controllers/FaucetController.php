@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Jobs\ProcessFaucetJob;
+use App\Jobs\ProcessAvaxeFaucetJob;
 
 /**
  * AIRDROP DE BIENVENUE (faucet) — 2026-10-06.
@@ -74,6 +75,62 @@ class FaucetController extends Controller
         } catch (\Throwable $e) {
             Log::error('[FAUCET] Échec user ' . $user->id . ': ' . $e->getMessage());
             return response()->json(['error' => 'Échec de la réclamation : ' . $e->getMessage()], 500);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * Faucet AVAXe (ERC-20) — chantier feat/avaxe-bridge (P2).
+     * Dotation de test en AVAXe (pré-financée côté bridge par l'owner).
+     * Même politique anti-abuse que l'airdrop TST : one-shot par wallet,
+     * lock + flag DB idempotent, transfert asynchrone.
+     */
+    public function avaxeClaim(Request $request): JsonResponse
+    {
+        if (!config('economy.avaxe_airdrop.enabled', true)) {
+            return response()->json(['error' => 'AVAXe airdrop disabled'], 403);
+        }
+
+        /** @var User $user */
+        $user = $request->user();
+
+        $lock = Cache::lock('avaxe_faucet_claim_' . $user->id, 10);
+        if (!$lock->get()) {
+            return response()->json(['error' => 'Action already in progress'], 429);
+        }
+
+        try {
+            return DB::transaction(function () use ($user) {
+                $locked = User::where('id', $user->id)->lockForUpdate()->first();
+
+                if ($locked->has_received_avaxe_airdrop) {
+                    return response()->json(['error' => 'AVAXe airdrop already claimed'], 409);
+                }
+
+                if (!$locked->wallet_address) {
+                    return response()->json(['error' => 'No wallet address'], 400);
+                }
+
+                $amount = (float) config('economy.avaxe_airdrop.amount', 5);
+
+                ProcessAvaxeFaucetJob::dispatch($locked->id, $locked->wallet_address, $amount);
+
+                Log::channel('business')->info('AVAXE_FAUCET_CLAIM', [
+                    'user' => $locked->id,
+                    'wallet' => $locked->wallet_address,
+                    'amount' => $amount,
+                ]);
+
+                return response()->json([
+                    'message' => 'AVAXe airdrop requested — ' . $amount . ' AVAXe will arrive shortly.',
+                    'amount' => $amount,
+                    'has_received_avaxe_airdrop' => false,
+                ]);
+            });
+        } catch (\Throwable $e) {
+            Log::error('[AVAXE-FAUCET] Échec user ' . $user->id . ': ' . $e->getMessage());
+            return response()->json(['error' => 'Échec de la réclamation AVAXe : ' . $e->getMessage()], 500);
         } finally {
             $lock->release();
         }

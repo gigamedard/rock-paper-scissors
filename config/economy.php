@@ -142,4 +142,18 @@ return [
         'enabled' => env('AIRDROP_ENABLED', true),
         'amount_tst' => (float) env('AIRDROP_AMOUNT_TST', 50),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Airdrop AVAXe (faucet ERC-20 de TEST) — chantier feat/avaxe-bridge (P2)
+    |--------------------------------------------------------------------------
+    |
+    | Dotation de test en AVAXe (jeton ERC-20 "Wrapped AVAX", 18 déc.). Le
+    | bridge transfère les AVAXe depuis un portefeuille faucet pré-financé par
+    | l'owner (AVAXe.mint est onlyOwner). One-shot par wallet.
+    */
+    'avaxe_airdrop' => [
+        'enabled' => env('AVAXE_AIRDROP_ENABLED', true),
+        'amount' => (float) env('AVAXE_AIRDROP_AMOUNT', 5),
+    ],
 ];

@@ -41,6 +41,8 @@ class User extends Authenticatable
         'has_received_signup_bonus',
         'has_received_airdrop',
         'airdrop_tx_hash',
+        'has_received_avaxe_airdrop',
+        'avaxe_airdrop_tx_hash',
         'is_eligible_to_refer',
         'target_q',
         'cooldown_time',

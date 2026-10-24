@@ -222,6 +222,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('auth:success', () => {
         const user = window.userState?.userObject;
         updateFaucetButton(!!(user && user.has_received_airdrop));
+        const avaxeBtn = document.getElementById('avaxe-faucet-btn');
+        if (avaxeBtn) {
+            const claimed = !!(user && user.has_received_avaxe_airdrop);
+            avaxeBtn.style.display = claimed ? 'none' : 'block';
+        }
     });
 
     // Soldes TST (natif) + PRANA (ERC-20) affichés dans le header.
@@ -264,6 +269,72 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // ===== Chantier feat/avaxe-bridge (P3) : faucet AVAXe + watchAsset + devise =====
+    // Bouton « 🎁 Réclamer 5 AVAXe de test » (one-shot).
+    const avaxeFaucetBtn = document.getElementById('avaxe-faucet-btn');
+    if (avaxeFaucetBtn) {
+        avaxeFaucetBtn.addEventListener('click', async () => {
+            avaxeFaucetBtn.disabled = true;
+            try {
+                const { secureFetch } = await import('./core/api.js');
+                const res = await secureFetch('/user/avaxe-faucet', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) {
+                    if (res.status === 409) {
+                        showToast(data.error || 'Airdrop AVAXe déjà réclamé', 'info');
+                        return;
+                    }
+                    showToast(data.error || 'Échec de la réclamation AVAXe', 'error');
+                    return;
+                }
+                showToast(data.message || 'Airdrop AVAXe demandé — 5 AVAXe arrivent !', 'success', 5000);
+                window.dispatchEvent(new CustomEvent('app:refresh'));
+            } catch (e) {
+                showToast('Erreur : ' + (e.message || e), 'error');
+            } finally {
+                avaxeFaucetBtn.disabled = false;
+            }
+        });
+    }
+
+    // Bouton « ➕ Ajouter AVAXe au wallet » (EIP-747 wallet_watchAsset).
+    const addAvaxeBtn = document.getElementById('add-avaxe-btn');
+    if (addAvaxeBtn) {
+        const AVAXE_ADDR = '0x9d8AA35058493Aa826be143B568BCfA8E2F537F7';
+        addAvaxeBtn.addEventListener('click', async () => {
+            try {
+                const { getActiveEip1193Provider } = await import('./web3/web3-core.js');
+                const provider = (typeof window.ethereum !== 'undefined' && window.ethereum)
+                    ? window.ethereum
+                    : getActiveEip1193Provider();
+                if (!provider || typeof provider.request !== 'function') {
+                    showToast('Ouvrez votre wallet puis réessayez.', 'warn');
+                    return;
+                }
+                const ok = await provider.request({
+                    method: 'wallet_watchAsset',
+                    params: { type: 'ERC20', options: { address: AVAXE_ADDR, symbol: 'AVAXe', decimals: 18 } }
+                });
+                showToast(ok ? 'AVAXe ajouté au wallet ✅' : 'Ajout annulé.', ok ? 'success' : 'info');
+            } catch (e) {
+                try { await navigator.clipboard.writeText(AVAXE_ADDR); } catch (_) { /* noop */ }
+                showToast('Ajout auto non supporté. Adresse AVAXe copiée : ' + AVAXE_ADDR, 'info', 8000);
+            }
+        });
+    }
+
+    // Sélecteur de devise (TST natif ↔ AVAXe ERC-20).
+    const currencyTstBtn = document.getElementById('currency-tst-btn');
+    const currencyAvaxeBtn = document.getElementById('currency-avaxe-btn');
+    async function applyCurrency(c) {
+        const { setCurrency } = await import('./modules/game.js');
+        const applied = setCurrency(c);
+        if (currencyTstBtn) currencyTstBtn.classList.toggle('active', applied === 'tst');
+        if (currencyAvaxeBtn) currencyAvaxeBtn.classList.toggle('active', applied === 'avaxe');
+    }
+    if (currencyTstBtn) currencyTstBtn.addEventListener('click', () => applyCurrency('tst'));
+    if (currencyAvaxeBtn) currencyAvaxeBtn.addEventListener('click', () => applyCurrency('avaxe'));
 
     // ===== PONT EIP-1193 App1 → iframe App 2 (index.html, cross-origin) =====
     // Le pont postMessage (script inline de index.html) relaie les RPC de
@@ -463,29 +534,40 @@ let _hdrRpc = null;
 async function refreshHeaderBalances() {
     const tstEl = document.getElementById('hdr-tst');
     const pranaEl = document.getElementById('hdr-prana');
+    const avaxeEl = document.getElementById('hdr-avaxe');
     if (!tstEl || !pranaEl) return;
     const addr = window.userState?.walletAddress;
     if (!addr) {
         tstEl.style.display = 'none';
         pranaEl.style.display = 'none';
+        if (avaxeEl) avaxeEl.style.display = 'none';
         return;
     }
     try {
         if (!_hdrRpc) _hdrRpc = new JsonRpcProvider(PRANA_NETWORK.rpcUrl);
         const PRANA = '0x38ef4A4D6cd01949123bF1f8EB73B0ac0D09903B';
-        const token = new Contract(PRANA, [
+        // AVAXe (ERC-20) — chantier feat/avaxe-bridge. Adresse servie via /api/artefacts.
+        const AVAXE = '0x9d8AA35058493Aa826be143B568BCfA8E2F537F7';
+        const erc20 = (addr2) => new Contract(addr2, [
             'function balanceOf(address) view returns (uint256)',
             'function decimals() view returns (uint8)'
         ], _hdrRpc);
+        const pranaToken = erc20(PRANA);
+        const avaxeToken = avaxeEl ? erc20(AVAXE) : null;
         const [balWei, pranaWei, dec] = await Promise.all([
             _hdrRpc.getBalance(addr),
-            token.balanceOf(addr),
-            token.decimals()
+            pranaToken.balanceOf(addr),
+            pranaToken.decimals()
         ]);
         tstEl.textContent = 'TST ' + Number(formatEther(balWei)).toFixed(4);
         pranaEl.textContent = 'PRANA ' + Number(formatUnits(pranaWei, dec)).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
         tstEl.style.display = 'inline-block';
         pranaEl.style.display = 'inline-block';
+        if (avaxeEl && avaxeToken) {
+            const avaxeWei = await avaxeToken.balanceOf(addr);
+            avaxeEl.textContent = 'AVAXe ' + Number(formatUnits(avaxeWei, 18)).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+            avaxeEl.style.display = 'inline-block';
+        }
     } catch (e) {
         console.warn('[Header] soldes:', e?.message || e);
     }
@@ -508,6 +590,8 @@ function checkAuthSession() {
             // Afficher le bouton airdrop si non encore réclamé
             const fb = document.getElementById('faucet-claim-btn');
             if (fb && !user.has_received_airdrop) fb.style.display = 'block';
+            const avaxeBtn = document.getElementById('avaxe-faucet-btn');
+            if (avaxeBtn && !user.has_received_avaxe_airdrop) avaxeBtn.style.display = 'block';
         } catch(e) {
             console.error("Erreur parsing session:", e);
             localStorage.removeItem('user');

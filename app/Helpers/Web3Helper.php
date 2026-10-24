@@ -198,6 +198,21 @@ class Web3Helper
         return $response->json();
     }
 
+    /**
+     * Airdrop/faucet AVAXe (ERC-20) : envoi de jetons AVAXe depuis le portefeuille
+     * faucet du bridge (pré-financé en AVAXe par l'owner) vers le wallet du joueur.
+     * Chantier feat/avaxe-bridge (P2) — faucet de TEST.
+     */
+    public static function sendAvaxeFaucet($nodeUrl, $walletAddress, $amount)
+    {
+        $response = Http::post("{$nodeUrl}/avaxe-faucet", [
+            'wallet' => $walletAddress,
+            'amount' => self::etherToWei($amount),
+        ])->throw();
+
+        return $response->json();
+    }
+
     public static function sendBatchPayment($nodeUrl, array $walletAddresses, array $amounts)
     {
         // Validate that both arrays have the same length

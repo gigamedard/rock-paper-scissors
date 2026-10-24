@@ -10,66 +10,86 @@ import { formatEther } from 'ethers';
  *
  * @param {object} ctx
  * @param {import('ethers').Contract} ctx.gameContract
+ * @param {import('ethers').Contract} [ctx.gameContractV2] - BattlepoolV2 (ERC-20 AVAXe)
  * @param {import('ethers').Contract} ctx.marketplaceContract
  * @param {import('ethers').Contract} ctx.sntContract
  * @param {string} ctx.marketplaceAddress - adresse du marketplace (pour dédup SNT)
  * @param {(endpoint: string, body: object) => Promise<void>} ctx.postToLaravel
  * @returns {Array<{key: string, contractAddress: string, contract: object, handlers: object}>}
  */
-export function createWatchers({ gameContract, marketplaceContract, sntContract, marketplaceAddress, postToLaravel }) {
+export function createWatchers({ gameContract, gameContractV2, marketplaceContract, sntContract, marketplaceAddress, postToLaravel }) {
   const marketplaceLower = marketplaceAddress.toLowerCase();
 
-  return [
-    {
-      key: 'game',
-      contractAddress: gameContract.target,
-      contract: gameContract,
-      handlers: {
-        async PoolEmitted(args) {
-          const [poolId, baseBet, users, premoveCIDs, poolSalt, balances] = args;
-          await postToLaravel('/internal/handle-pool-emited', {
-            pool_id: poolId.toString(),
-            base_bet: baseBet.toString(),
-            users,
-            premove_cids: premoveCIDs,
-            pool_salt: poolSalt,
-            balances: balances.map((b) => b.toString()),
-          });
-        },
-        async DepositReceived(args) {
-          const [user, amount] = args;
-          await postToLaravel('/internal/update-balance', {
-            wallet_address: user,
-            balance: amount.toString(),
-          });
-        },
-        async SecurityCoefficientUpdated(args) {
-          const [newCoefficient] = args;
-          await postToLaravel('/internal/update-setting', {
-            key: 'security_coefficient',
-            value: newCoefficient.toString(),
-            type: 'integer',
-          });
-        },
-        async FeeBasisPointsUpdated(args) {
-          const [newFee] = args;
-          const percentage = parseFloat(newFee) / 100; // 250 -> 2.5
-          await postToLaravel('/internal/update-setting', {
-            key: 'smart_contract_fee_percentage',
-            value: percentage.toString(),
-            type: 'float',
-          });
-        },
-        async PayoutProcessed(args) {
-          const [wallet] = args;
-          await postToLaravel('/internal/handle-claim', { wallet_address: wallet });
-        },
-        async PlayerClaimed(args) {
-          const [wallet] = args;
-          await postToLaravel('/internal/handle-claim', { wallet_address: wallet });
-        },
+  // Handlers du contrat de jeu (V1 Battlepool ET V2 BattlepoolV2 : mêmes
+  // événements → mêmes webhooks Laravel). Partagés pour éviter toute dérive.
+  function buildGameHandlers() {
+    return {
+      async PoolEmitted(args) {
+        const [poolId, baseBet, users, premoveCIDs, poolSalt, balances] = args;
+        await postToLaravel('/internal/handle-pool-emited', {
+          pool_id: poolId.toString(),
+          base_bet: baseBet.toString(),
+          users,
+          premove_cids: premoveCIDs,
+          pool_salt: poolSalt,
+          balances: balances.map((b) => b.toString()),
+        });
       },
-    },
+      async DepositReceived(args) {
+        const [user, amount] = args;
+        await postToLaravel('/internal/update-balance', {
+          wallet_address: user,
+          balance: amount.toString(),
+        });
+      },
+      async SecurityCoefficientUpdated(args) {
+        const [newCoefficient] = args;
+        await postToLaravel('/internal/update-setting', {
+          key: 'security_coefficient',
+          value: newCoefficient.toString(),
+          type: 'integer',
+        });
+      },
+      async FeeBasisPointsUpdated(args) {
+        const [newFee] = args;
+        const percentage = parseFloat(newFee) / 100; // 250 -> 2.5
+        await postToLaravel('/internal/update-setting', {
+          key: 'smart_contract_fee_percentage',
+          value: percentage.toString(),
+          type: 'float',
+        });
+      },
+      async PayoutProcessed(args) {
+        const [wallet] = args;
+        await postToLaravel('/internal/handle-claim', { wallet_address: wallet });
+      },
+      async PlayerClaimed(args) {
+        const [wallet] = args;
+        await postToLaravel('/internal/handle-claim', { wallet_address: wallet });
+      },
+    };
+  }
+
+  const gameWatcher = {
+    key: 'game',
+    contractAddress: gameContract.target,
+    contract: gameContract,
+    handlers: buildGameHandlers(),
+  };
+
+  const watchers = [gameWatcher];
+
+  // BattlepoolV2 (AVAXe) : mêmes événements, même pipeline, contrat distinct.
+  if (gameContractV2) {
+    watchers.push({
+      key: 'game_v2',
+      contractAddress: gameContractV2.target,
+      contract: gameContractV2,
+      handlers: buildGameHandlers(),
+    });
+  }
+
+  watchers.push(
     {
       key: 'marketplace',
       contractAddress: marketplaceContract.target,
@@ -127,6 +147,8 @@ export function createWatchers({ gameContract, marketplaceContract, sntContract,
           });
         },
       },
-    },
-  ];
+    }
+  );
+
+  return watchers;
 }
