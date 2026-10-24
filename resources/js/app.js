@@ -47,14 +47,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 0 bis. Journal visuel mobile (bouton 🐞 → pop-up + copie presse-papiers) :
     // l'utilisateur transmet les logs depuis l'iPhone pour le debug à distance.
-    // PROD HARDENING : désactivé hors DEV. Activable ponctuellement via `?debug=1`
-    // (ou en localhost) — le bouton n'est plus exposé en prod par défaut.
-    const _isDevHost = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
-    const _debugFlag = new URLSearchParams(location.search).has('debug');
-    if (_isDevHost || _debugFlag) {
-        initDebugLog();
-        debugLog('APP', 'DOMContentLoaded Battlepool SPA');
-    }
+    // Toujours actif : le bouton doit apparaître aussi dans la PWA (où aucun
+    // paramètre d'URL `?debug=1` n'est disponible).
+    initDebugLog();
+    debugLog('APP', 'DOMContentLoaded Battlepool SPA');
     // 0 ter. Onboarding Core Wallet (ajout manuel de Pingala) : handlers
     // copier + QR + auto-add. Initialisé tôt pour les nouveaux utilisateurs.
     initOnboardingCore();
