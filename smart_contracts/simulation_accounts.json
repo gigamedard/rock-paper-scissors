@@ -2,621 +2,1221 @@
   {
     "index": 0,
     "address": "0x2f97A909233AbAD1BD04be899f42ccd0A7eebec5",
-    "note": "bot prod pingala #1 - PK dans battlepool/.env local (BOT_PK_1), JAMAIS committ\u00e9e"
+    "note": "bot prod pingala #1 - PK dans battlepool/.env local (BOT_PK_1), JAMAIS committée"
   },
   {
     "index": 1,
     "address": "0xDF78912015B2B7c22D8751DC8823D0a49E041221",
-    "note": "bot prod pingala #2 - PK dans battlepool/.env local (BOT_PK_2), JAMAIS committ\u00e9e"
+    "note": "bot prod pingala #2 - PK dans battlepool/.env local (BOT_PK_2), JAMAIS committée"
   },
   {
     "index": 2,
     "address": "0xF0E517F765112A525F01a7Ff33a83555E1A4A80D",
-    "note": "bot prod pingala #3 - PK dans battlepool/.env local (BOT_PK_3), JAMAIS committ\u00e9e"
+    "note": "bot prod pingala #3 - PK dans battlepool/.env local (BOT_PK_3), JAMAIS committée"
   },
   {
     "index": 3,
     "address": "0x37fDa9082Fa111b2832367bc2F568851842aCB5F",
-    "note": "bot prod pingala #4 - PK dans battlepool/.env local (BOT_PK_4), JAMAIS committ\u00e9e"
+    "note": "bot prod pingala #4 - PK dans battlepool/.env local (BOT_PK_4), JAMAIS committée"
   },
   {
     "index": 4,
     "address": "0xA0C5486AF467FF36bA57492Da34a9DE7b39B851E",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 5,
     "address": "0xCe89BA9388C1fdCbd3daDFF428721859fc02c783",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 6,
     "address": "0x9F994F8dF9B050945a031Ad1F7cC99D2B7D081de",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 7,
     "address": "0x6A7205e496C9336544b2C0E5a116deb4D4eD05c3",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 8,
     "address": "0x3Be2dDBc41602007C9e56cCDAA939852e3AA6465",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 9,
     "address": "0xb518FaC8ACddcAEa9D34B3828C607F343E6B00DA",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 10,
     "address": "0x3465787F18799e90471e25A6430A9C464C3d0b44",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 11,
     "address": "0xd0755BEa14aa97319ec6d475dbae336D30e9872D",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 12,
     "address": "0x117138D632810Baedd86BF368f45Df7Fc8868f32",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 13,
     "address": "0xa578cF559D200f4bFB578f4BaB34C4BED44c6236",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 14,
     "address": "0x34C756F85B4E85e710de1eD69aE0e700ffa52954",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 15,
     "address": "0x63F40D8e6b090c259719124AdB37556894808b59",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 16,
     "address": "0x5AaCe47ad644702E054Dbd7EA32c9Fee08477A64",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 17,
     "address": "0xA0238207118234F2eEFE3584AedD8Ee4A5bDb39e",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 18,
     "address": "0xDCb4063B49e61323E4A1027A3A18e905428d6798",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 19,
     "address": "0x0E19C99be67796aabdD96F26257296d2c2926698",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 20,
     "address": "0x63C963FB50073676b19c0F6Fe6394914e6d420Ee",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 21,
     "address": "0x6FC1e5b07D4c16e52670Ca4376bfe1353FA53880",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 22,
     "address": "0x3fA27cb065B0F5a95494B98942240A3b903bb52C",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 23,
     "address": "0x4c946e7D730D694dc9a9a33017302E1B86CD68dB",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 24,
     "address": "0x01aE00e527839826e50371a3FbEE393208a222e6",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 25,
     "address": "0x250535942EA61e340b508793Db427e28D050399D",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 26,
     "address": "0xe3b1a57AD31b8a40b9e69276fb868B63499d90D4",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 27,
     "address": "0x3168b6ED06aD7e4DfF157866ee9Ab22Bb330b54c",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 28,
     "address": "0x93263409a164533b4373481097cacDbfca668137",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 29,
     "address": "0xC6fae11b6d453da461A27dC7BB5bF96cE14A1144",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 30,
     "address": "0x04593C75B157899C05dDAF645F16748C0e5Dc86C",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 31,
     "address": "0xc3Df5f42C285ab73B781aEcCA77E6141b4670fd0",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 32,
     "address": "0xA756F7807282a7fF15cFB9A93EbB48ceD78d78f5",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 33,
     "address": "0xCb0926602B2f069a4d6fAF6ef1FB03678aF6333f",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 34,
     "address": "0x32a63cE2ABd54eE8De18AC359fB4CE0aC76C8d9b",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 35,
     "address": "0x685fD2ebe8e171663Dca0f2478aCac33d8518A1a",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 36,
     "address": "0xdE263f4BAf0A78857ff84ABA26BEF518e3137DAB",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 37,
     "address": "0x9c3e490864ed4BbFF2a45551D0145C9be5582BdB",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 38,
     "address": "0x38BE0F2D3d984f55dbF8FB1dE0430e4Cf866975A",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 39,
     "address": "0x72381f5cFe9D1e792c0EB17F22606b75801bcFEb",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 40,
     "address": "0x472604e56A5B5581FDF1398C2890da4b8c48F4C1",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 41,
     "address": "0x00786C680128961c3C8df0EE0288e68Ebf65144a",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 42,
     "address": "0xECF51fcb92C4a3b32932Bc2122C9d139e0A886fB",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 43,
     "address": "0xc7C92ce39390778d245dDd4D6534B4Abf94274eb",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 44,
     "address": "0xb8a7990F86aFad9c30E52B80e5CfcAb0FeA9dc57",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 45,
     "address": "0xf3845Db68bb5DdD0aA4e02d88795b53CEE09b49a",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 46,
     "address": "0xabb63E17153F424Dc51b8B5DA1D18846566414dC",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 47,
     "address": "0x09382e5B891453FBa425a6019b2F2CB46f37C8E3",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 48,
     "address": "0x48E984bA7336aca842E69c3a265Fef29c2C47861",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 49,
     "address": "0x7F30106AD1c95Dc5bB5CdBc10426c2A665E14248",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 50,
     "address": "0xC116aE195e3f06F730ef8cF6aD0f1dd8Af88410a",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 51,
     "address": "0xfCcD5ade371Db2B5d00e377055B4124a0e522B6a",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 52,
     "address": "0xE67f20b8ba11aD034Da469Fb623C5110134f3439",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 53,
     "address": "0x370369DB967253a2860eBFa314CAF910Dbeac170",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 54,
     "address": "0x96c26C6c78Ca6FE106057733e624aCcc5Ce03bE4",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 55,
     "address": "0x96f459CCc221E194BB9452b94274C31639992DC4",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 56,
     "address": "0xD033b622894c9B7B53d3d17b2AAEEf4eB0560049",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 57,
     "address": "0xAcF4f2aFdA9E78E075A6F09bb8Beed42d378f674",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 58,
     "address": "0xdA3E98F8e26C4c73259d62F4e52e8c77500fD752",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 59,
     "address": "0x8698b0235626dC595DBdC03C235E7a05b8F143e5",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 60,
     "address": "0x6eDa586A50AF46DcE357026c3315Da8A0E0078f2",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 61,
     "address": "0x45a796b0e012B51B01728d23709cF9C68D7C6F1a",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 62,
     "address": "0xBeeF283b0873A41a8a2080f1722E4d33a655a4cd",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 63,
     "address": "0x1fEc9C17121f036311d90E400DdE3abF417CB812",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 64,
     "address": "0xCe3993C05aAcC67Fd56F96568B32665FB35Aec03",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 65,
     "address": "0x3B66F6E9Eb112400Ae13AB1D36A14c04e9f32c60",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 66,
     "address": "0x423842d133C0c4e3A56794dfd34F72ae046143aB",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 67,
     "address": "0x0520be67e1a8A8A47B128227eC4506702A0459C3",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 68,
     "address": "0xB6489317fF3E64a54c77Ddcf99BAd5b35355c198",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 69,
     "address": "0xA3DE52E8675338eCeD516BE8beb57A8bfc313bC6",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 70,
     "address": "0xc88A9694Ed278dE595E5bd542D677f1714a2dd79",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 71,
     "address": "0xE08D4B4946eD24A2D4d5A2A703CF2859Eff68649",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 72,
     "address": "0x9356B126e225FA788407ebe2Dc2bc8B0EEDAD87f",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 73,
     "address": "0x5c841f58dc3A655652804bD4e61a21fa9f1458b9",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 74,
     "address": "0x14E3bB66bF0456ef946bC44c7cEBE308f99F1c1F",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 75,
     "address": "0x218C4Ed80923B9E8ab8fe5a2491c2983F0325638",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 76,
     "address": "0x4edd82833B3fB9B31401930A08FF856e761fe03d",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 77,
     "address": "0xc14a64B942aCFC5149F9C80CeC99ea3cc4F46021",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 78,
     "address": "0x712167d7793aa0af1b253a7A42E3D51782cba7F3",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 79,
     "address": "0xD19b2024AB3D6DaAa5f656CA88447d3982483893",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 80,
     "address": "0x4A35405A1e90E53b94aE657b8a7c4FA7C17F7a42",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 81,
     "address": "0xC89BAB85d731963C8f3F213E5610a1c5437525b3",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 82,
     "address": "0x0E3A43124FFaE3D041BDE16A0e0DeBC63Eb7eB07",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 83,
     "address": "0x28f5D6DEd7fEFc38B5B316f549a26bCA3f5B386c",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 84,
     "address": "0xA7d96888820DE2fe4B6cC971c596f935aaBD00E7",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 85,
     "address": "0x0d88050F9ea8DCd65FBdC0F52Fc590607f311B9B",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 86,
     "address": "0x783cfbA306b68DAbd63E80cA8CF8f6B0c058e881",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 87,
     "address": "0x486196f93A40053747d3Dae76F84ab0B6ff0F2bb",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 88,
     "address": "0x8495E1e2f4e11fC49225dc2A5F3fcAAb6ad5c013",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 89,
     "address": "0xED2d220e586d6f3513c7b59eA475cd74d238e31c",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 90,
     "address": "0x7AA17A998176E79DbB204FE444510b0ccd4d95C1",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 91,
     "address": "0x5727507fe2F87B15696Df9EecC8FEf8cB8ad9fA6",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 92,
     "address": "0x7236D6Aedc8fbb6fc1d77bB525AC4Ec795fD1758",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 93,
     "address": "0xA1a18d8c7E319aC9420DDe457B62EFD45a8846E3",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 94,
     "address": "0x47780F269fD1296494BBB84dC8cbDBe80eAD900c",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 95,
     "address": "0xCF7375C5fE109a4ff32Dd68011C49C686Ef93F03",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 96,
     "address": "0x7c42498a98Dd05d2134409A4aB12b402a8ae792E",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 97,
     "address": "0xAB66cF1aef5F85E51208Ba05EF846DDa32fDd5DC",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 98,
     "address": "0x796B911D4335d1E281c6AD869a019e9F2B0E3a5f",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 99,
     "address": "0x360cBf0cc1ACD6f0cFE392741083EC1B20A95CE5",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 100,
     "address": "0x6E0428C2401A2A39fCf602711e1241f15FD487Ab",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 101,
     "address": "0xa93F16c6ECf957E26057D5DfB45e5d4c8cC3736a",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 102,
     "address": "0xfE9B302Ce6434Ae817Be87d6BC3aAb0c438556cD",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 103,
     "address": "0x5e5e33Fc8F4A479678EE9744683b41Bcc8abBc37",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 104,
     "address": "0x60cb59800752Dfa9430968E44A607F3F0E48e2B9",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 105,
     "address": "0x20Cd224a81E75AC90a62f72B19209cBaa26123b0",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 106,
     "address": "0x77077e26FdA658c9B592F40C241C5d1f1543a5AE",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 107,
     "address": "0x9CE74CbEb823927AaA50aBab14a59469E7aE4436",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 108,
     "address": "0x87D1c9d586cFfCc6e6049E04504061bD3D9B6Ce2",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 109,
     "address": "0xe83D0D396f5466eA8090a0a2c9dE91d9e46fa107",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 110,
     "address": "0xced612650F4f75b2520734d9638a5828CfC18f31",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 111,
     "address": "0xB92Cb0562a7FFdE4c7620Ce672CfE753c351b06E",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 112,
     "address": "0x537fbC7876D0C4de376d72082D2093D169732914",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 113,
     "address": "0x87021c2A49F97096AE2FCA179b075E34a8A3A756",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 114,
     "address": "0x365333ce3FDEe0B9995dB6de9357978aC9eD6007",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 115,
     "address": "0xDa0A5B4C080CdD2743ac9aC7f65835827B5B8C06",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 116,
     "address": "0x145f4FEB964B182bEB6a8f73C76E1837E9769091",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 117,
     "address": "0x6c4b595BFe3627Bd0A6c3844Fe84d106662583a8",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 118,
     "address": "0x211f5e42AA15BAe7783fe570Eb4BB887dF0AB997",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 119,
     "address": "0xf7e9e7D31Baa189aeD2886156db282552F3f5F05",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 120,
     "address": "0x8Ec96Dae558bFb261cbc2B2c7900ecCf8510ac30",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 121,
     "address": "0x68629C5e2fEF87B0feb6227E852813c81Ce03A86",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 122,
     "address": "0x2abaff7752c4bAec4A10bD5C35b91Da04302c638",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
   },
   {
     "index": 123,
     "address": "0x07bf7b3c54BB58bA74E024850Bb7c02017D034Dd",
-    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committ\u00e9e)"
+    "note": "bot prod pingala (enrole 2026-10-23, PK dans .secrets/bots_keys.json - JAMAIS committée)"
+  },
+  {
+    "index": 124,
+    "address": "0xf667d6b39d79e76b7b431f5d0e957dc7a9b3c738",
+    "note": "bot prod pingala #124 - ajout 240"
+  },
+  {
+    "index": 125,
+    "address": "0x7b344cdd98d1af23204ea2b2cae160f199959faf",
+    "note": "bot prod pingala #125 - ajout 240"
+  },
+  {
+    "index": 126,
+    "address": "0x2c6e01826949eca47c2eaf34db5b95d9045c710d",
+    "note": "bot prod pingala #126 - ajout 240"
+  },
+  {
+    "index": 127,
+    "address": "0x2fdfe532094592636bd7daf73a6f27e7c697d7b4",
+    "note": "bot prod pingala #127 - ajout 240"
+  },
+  {
+    "index": 128,
+    "address": "0xb7092da3b707f5040ced89ea817259276fe16df3",
+    "note": "bot prod pingala #128 - ajout 240"
+  },
+  {
+    "index": 129,
+    "address": "0xe109e5e153c80f35e16845e1f0293cddb686e0da",
+    "note": "bot prod pingala #129 - ajout 240"
+  },
+  {
+    "index": 130,
+    "address": "0x48ed0bbc811077ed2b35bdf65505f673d15e7d86",
+    "note": "bot prod pingala #130 - ajout 240"
+  },
+  {
+    "index": 131,
+    "address": "0xff1525cca02b69a2fb9a4ec74d992d3575e6e476",
+    "note": "bot prod pingala #131 - ajout 240"
+  },
+  {
+    "index": 132,
+    "address": "0x15e54453cd07b644c0f890b70a12818021ad110e",
+    "note": "bot prod pingala #132 - ajout 240"
+  },
+  {
+    "index": 133,
+    "address": "0x0aacc3d6122453bf17f1e32171b377b36e08784a",
+    "note": "bot prod pingala #133 - ajout 240"
+  },
+  {
+    "index": 134,
+    "address": "0xc45a3391d6da559c87284fa2b00caebbf31e7734",
+    "note": "bot prod pingala #134 - ajout 240"
+  },
+  {
+    "index": 135,
+    "address": "0x8f9fda03bc5ba61cacf7cb098ca853e43918a7a9",
+    "note": "bot prod pingala #135 - ajout 240"
+  },
+  {
+    "index": 136,
+    "address": "0x46980469732a76f8d00cd1f193ad4186c85f920f",
+    "note": "bot prod pingala #136 - ajout 240"
+  },
+  {
+    "index": 137,
+    "address": "0xd8ab403c2815abffb5e4a60588a48ec9094b00a0",
+    "note": "bot prod pingala #137 - ajout 240"
+  },
+  {
+    "index": 138,
+    "address": "0x8b644ba6547c57650fd47505dfbb78ed5adc0b71",
+    "note": "bot prod pingala #138 - ajout 240"
+  },
+  {
+    "index": 139,
+    "address": "0x46ed2e9c8c2e57dd6c90c91ea8215c009704e66e",
+    "note": "bot prod pingala #139 - ajout 240"
+  },
+  {
+    "index": 140,
+    "address": "0x0f9b42a0282495e8bf72e9be599527e175dc31f0",
+    "note": "bot prod pingala #140 - ajout 240"
+  },
+  {
+    "index": 141,
+    "address": "0xf6538f7912e013864c717dd2c2029cf79eb437e1",
+    "note": "bot prod pingala #141 - ajout 240"
+  },
+  {
+    "index": 142,
+    "address": "0xdaf55ff472510d5f127907a171337fddac53d237",
+    "note": "bot prod pingala #142 - ajout 240"
+  },
+  {
+    "index": 143,
+    "address": "0x8bd5b1fc83f50161b904bb0f75e34941f72539be",
+    "note": "bot prod pingala #143 - ajout 240"
+  },
+  {
+    "index": 144,
+    "address": "0x3669e7204a6b671b4c55244b462bb466f4fe431c",
+    "note": "bot prod pingala #144 - ajout 240"
+  },
+  {
+    "index": 145,
+    "address": "0xbeb609992915eafdabd2b2debd8440ed6d259819",
+    "note": "bot prod pingala #145 - ajout 240"
+  },
+  {
+    "index": 146,
+    "address": "0xa51ae5f09b80957adb0cb522b30cef5fd0c50e8b",
+    "note": "bot prod pingala #146 - ajout 240"
+  },
+  {
+    "index": 147,
+    "address": "0x3805125b308c35f5c26c6a553198edff0d9c5efe",
+    "note": "bot prod pingala #147 - ajout 240"
+  },
+  {
+    "index": 148,
+    "address": "0xc93da50b3107e05acd42d554c01467b8fea68e06",
+    "note": "bot prod pingala #148 - ajout 240"
+  },
+  {
+    "index": 149,
+    "address": "0x6a3b2efa7fd6bd67af7eaf42d2801d64fcca0d36",
+    "note": "bot prod pingala #149 - ajout 240"
+  },
+  {
+    "index": 150,
+    "address": "0x7e2467e041ca8fcf099195a74c7552bba8531c5f",
+    "note": "bot prod pingala #150 - ajout 240"
+  },
+  {
+    "index": 151,
+    "address": "0x50d654cb6a480c25a471bf77d53f2e182d419fd0",
+    "note": "bot prod pingala #151 - ajout 240"
+  },
+  {
+    "index": 152,
+    "address": "0x9f7a10b4a0fb14a5b189205772d6e611dbc7b6d1",
+    "note": "bot prod pingala #152 - ajout 240"
+  },
+  {
+    "index": 153,
+    "address": "0x708db516023bfcf390d6ceda52955e668a72e7ca",
+    "note": "bot prod pingala #153 - ajout 240"
+  },
+  {
+    "index": 154,
+    "address": "0x10c787c972fd87ed40bba7e94e1636a0d1292ae3",
+    "note": "bot prod pingala #154 - ajout 240"
+  },
+  {
+    "index": 155,
+    "address": "0xdabcbdbff25263f3879051311c90cb7c5853d064",
+    "note": "bot prod pingala #155 - ajout 240"
+  },
+  {
+    "index": 156,
+    "address": "0xf2bdc31ffd03aee053e02247d76a9b7e8074796a",
+    "note": "bot prod pingala #156 - ajout 240"
+  },
+  {
+    "index": 157,
+    "address": "0x5ae9dd98be591af32ef52e31aded8b66e2342a23",
+    "note": "bot prod pingala #157 - ajout 240"
+  },
+  {
+    "index": 158,
+    "address": "0xddb60ef3813f598e8afc6d16ab68cfa90e352ea0",
+    "note": "bot prod pingala #158 - ajout 240"
+  },
+  {
+    "index": 159,
+    "address": "0xb6809516a76991342412e051ead81f4cf18a9f0c",
+    "note": "bot prod pingala #159 - ajout 240"
+  },
+  {
+    "index": 160,
+    "address": "0x6740b9a7454f6a998c5a9ce8364c18073bdf7d9a",
+    "note": "bot prod pingala #160 - ajout 240"
+  },
+  {
+    "index": 161,
+    "address": "0x5c779aab260b7cbefb354ee6c6b6436b2e594837",
+    "note": "bot prod pingala #161 - ajout 240"
+  },
+  {
+    "index": 162,
+    "address": "0xe93701fd3847f2420846894ba9b0a7d4692c9b3c",
+    "note": "bot prod pingala #162 - ajout 240"
+  },
+  {
+    "index": 163,
+    "address": "0xc262ea2bfe65cf841ecca43cfb16713ccbe2afe0",
+    "note": "bot prod pingala #163 - ajout 240"
+  },
+  {
+    "index": 164,
+    "address": "0x4774deeddab82a032bafe4df77433b6be92266c4",
+    "note": "bot prod pingala #164 - ajout 240"
+  },
+  {
+    "index": 165,
+    "address": "0x71e9061c487cff2ff23b28b88373312c25e24373",
+    "note": "bot prod pingala #165 - ajout 240"
+  },
+  {
+    "index": 166,
+    "address": "0xac58f4ce1ba6bc4f9f4e187681ac597d21cafd13",
+    "note": "bot prod pingala #166 - ajout 240"
+  },
+  {
+    "index": 167,
+    "address": "0x56393aaa1269f91efff39e04dc840f7f57f9209d",
+    "note": "bot prod pingala #167 - ajout 240"
+  },
+  {
+    "index": 168,
+    "address": "0x8880f61a01c0d3e45a7748235c3dcc0e4dafd748",
+    "note": "bot prod pingala #168 - ajout 240"
+  },
+  {
+    "index": 169,
+    "address": "0x41ee99e757c3a120593deb2fd8c10a291aba1285",
+    "note": "bot prod pingala #169 - ajout 240"
+  },
+  {
+    "index": 170,
+    "address": "0xa9c2a3ef21b9ea1c43cae2e6b66c0bc86ff5d698",
+    "note": "bot prod pingala #170 - ajout 240"
+  },
+  {
+    "index": 171,
+    "address": "0x05daece896f9b844bd1b587a5befca8dda17d5c7",
+    "note": "bot prod pingala #171 - ajout 240"
+  },
+  {
+    "index": 172,
+    "address": "0x5e3bbf102d2ac31df58a78e9d500bc70903fb6f2",
+    "note": "bot prod pingala #172 - ajout 240"
+  },
+  {
+    "index": 173,
+    "address": "0x1a30742b708f9235397ec335a26f5393832e8580",
+    "note": "bot prod pingala #173 - ajout 240"
+  },
+  {
+    "index": 174,
+    "address": "0xdf69433e5f9fd395ae30a168de5a3efc753cbd2c",
+    "note": "bot prod pingala #174 - ajout 240"
+  },
+  {
+    "index": 175,
+    "address": "0xbc33fb68ad1630cae21f99c7c995b7d059d61859",
+    "note": "bot prod pingala #175 - ajout 240"
+  },
+  {
+    "index": 176,
+    "address": "0xca1d78ae109c2a5c78e8ec603b1cc707bf9c5bd3",
+    "note": "bot prod pingala #176 - ajout 240"
+  },
+  {
+    "index": 177,
+    "address": "0xe9122787cdf4806bea878f0a4767dcd1890de992",
+    "note": "bot prod pingala #177 - ajout 240"
+  },
+  {
+    "index": 178,
+    "address": "0x2a6b0108354bd3b3dd26064ab09236afc6a29239",
+    "note": "bot prod pingala #178 - ajout 240"
+  },
+  {
+    "index": 179,
+    "address": "0xf2f34b04117a4f22fd253d0202b7b7cad010464b",
+    "note": "bot prod pingala #179 - ajout 240"
+  },
+  {
+    "index": 180,
+    "address": "0x75dc813ee0fec86b425e808b7c04cfe94494dc23",
+    "note": "bot prod pingala #180 - ajout 240"
+  },
+  {
+    "index": 181,
+    "address": "0x93f27654f08fa187cdebbdb29aea79b26fab41d2",
+    "note": "bot prod pingala #181 - ajout 240"
+  },
+  {
+    "index": 182,
+    "address": "0xc4d2b9f6a36b22fab39e438d5836ac7b4a1a0f89",
+    "note": "bot prod pingala #182 - ajout 240"
+  },
+  {
+    "index": 183,
+    "address": "0x2319c6cdf849651f0a284d1e2bb155bca3e05d08",
+    "note": "bot prod pingala #183 - ajout 240"
+  },
+  {
+    "index": 184,
+    "address": "0x6da21ffe95ef8c753c40e12befcea7523de38c32",
+    "note": "bot prod pingala #184 - ajout 240"
+  },
+  {
+    "index": 185,
+    "address": "0x1cd257f52d448192baddaa187de3bf0fd8e0834b",
+    "note": "bot prod pingala #185 - ajout 240"
+  },
+  {
+    "index": 186,
+    "address": "0x51f76d8d8a714dce156e89a60d23b63b1d2c7891",
+    "note": "bot prod pingala #186 - ajout 240"
+  },
+  {
+    "index": 187,
+    "address": "0x72b13efeffc8f390fc1dccc8b578d3fa903a993d",
+    "note": "bot prod pingala #187 - ajout 240"
+  },
+  {
+    "index": 188,
+    "address": "0x002eab8d5cf91ef60e41d7c7dfd99b9ca888fcb2",
+    "note": "bot prod pingala #188 - ajout 240"
+  },
+  {
+    "index": 189,
+    "address": "0x5a1998884e8c8dc1290201266ffa6a1e340329e4",
+    "note": "bot prod pingala #189 - ajout 240"
+  },
+  {
+    "index": 190,
+    "address": "0xe891dd2a8e9b2eb6c869fa93177e5dfdb92e1a13",
+    "note": "bot prod pingala #190 - ajout 240"
+  },
+  {
+    "index": 191,
+    "address": "0x6dfacdce75259f43fd2a9da0856f0f93338eb846",
+    "note": "bot prod pingala #191 - ajout 240"
+  },
+  {
+    "index": 192,
+    "address": "0x6611643b5db45a8d2dd66005471cd40226b58bbd",
+    "note": "bot prod pingala #192 - ajout 240"
+  },
+  {
+    "index": 193,
+    "address": "0x7c2a9f62caa5e6a9945bb12cc51d0708e1368c4d",
+    "note": "bot prod pingala #193 - ajout 240"
+  },
+  {
+    "index": 194,
+    "address": "0xc1eb54d71714c7d5c1487320e22598bb28bd88b0",
+    "note": "bot prod pingala #194 - ajout 240"
+  },
+  {
+    "index": 195,
+    "address": "0x84cbd2f939d6d667fcfbfcb4345173cf8b7351ec",
+    "note": "bot prod pingala #195 - ajout 240"
+  },
+  {
+    "index": 196,
+    "address": "0xc703d14598b04990d75b6cca182617fb4939d190",
+    "note": "bot prod pingala #196 - ajout 240"
+  },
+  {
+    "index": 197,
+    "address": "0x0f20cbc0ee7f9cd718518dae8d6e68d2eb5eb829",
+    "note": "bot prod pingala #197 - ajout 240"
+  },
+  {
+    "index": 198,
+    "address": "0x959cae9705929ecaaf0533d3a4553f8b7adec19d",
+    "note": "bot prod pingala #198 - ajout 240"
+  },
+  {
+    "index": 199,
+    "address": "0x6cf7f012a0c4be21e4f8075f20d5ad9ec093ba33",
+    "note": "bot prod pingala #199 - ajout 240"
+  },
+  {
+    "index": 200,
+    "address": "0x3d403d9f5d687218701eb762ae3711e13b6fce6d",
+    "note": "bot prod pingala #200 - ajout 240"
+  },
+  {
+    "index": 201,
+    "address": "0x136a2fc66df59338abf4aa223ff5cf022bdea9e1",
+    "note": "bot prod pingala #201 - ajout 240"
+  },
+  {
+    "index": 202,
+    "address": "0xb849e7511269a41f7761d61ff30a268bbda12f9c",
+    "note": "bot prod pingala #202 - ajout 240"
+  },
+  {
+    "index": 203,
+    "address": "0x05d96c0d5bf061cb35ff108b788076770bdffc9b",
+    "note": "bot prod pingala #203 - ajout 240"
+  },
+  {
+    "index": 204,
+    "address": "0xea2290032f4438417e704ea0e265a8c858bbcd42",
+    "note": "bot prod pingala #204 - ajout 240"
+  },
+  {
+    "index": 205,
+    "address": "0x8ed9228ac8bd57b6db9904e3096522dc2031aa7e",
+    "note": "bot prod pingala #205 - ajout 240"
+  },
+  {
+    "index": 206,
+    "address": "0xc118d8484891b5fc7a41ac421d061f99e690e333",
+    "note": "bot prod pingala #206 - ajout 240"
+  },
+  {
+    "index": 207,
+    "address": "0xc37073749ca3a91fa586d008ddfe3040e50993db",
+    "note": "bot prod pingala #207 - ajout 240"
+  },
+  {
+    "index": 208,
+    "address": "0x39f0e09d5d066cb0efdce32e5d1339c74d19bb5c",
+    "note": "bot prod pingala #208 - ajout 240"
+  },
+  {
+    "index": 209,
+    "address": "0x0862bf29e53a4d23755fe627361e68fdd1bb5b88",
+    "note": "bot prod pingala #209 - ajout 240"
+  },
+  {
+    "index": 210,
+    "address": "0x5866c6f744066a43e8e2603828c3e1b567b6ca79",
+    "note": "bot prod pingala #210 - ajout 240"
+  },
+  {
+    "index": 211,
+    "address": "0x8faa7af4d4265642e84b013b588e609d685b0fe6",
+    "note": "bot prod pingala #211 - ajout 240"
+  },
+  {
+    "index": 212,
+    "address": "0x2dd5fff3e95b87474a1c826b0f71f3f31e7cb405",
+    "note": "bot prod pingala #212 - ajout 240"
+  },
+  {
+    "index": 213,
+    "address": "0x768e83fc02fbb4302599cfc09d3b28e6b5394c2e",
+    "note": "bot prod pingala #213 - ajout 240"
+  },
+  {
+    "index": 214,
+    "address": "0xf2a0fc2b9223be10b6a6e10e7e476c6351fda088",
+    "note": "bot prod pingala #214 - ajout 240"
+  },
+  {
+    "index": 215,
+    "address": "0x6770a2c4da252140b1c11917f539ded87c738548",
+    "note": "bot prod pingala #215 - ajout 240"
+  },
+  {
+    "index": 216,
+    "address": "0x248a2adedfb31716b1eec6aa533a2de34e1a359d",
+    "note": "bot prod pingala #216 - ajout 240"
+  },
+  {
+    "index": 217,
+    "address": "0xdc6a39fd1e839081a0dc7f3371bbbe2e191af6d4",
+    "note": "bot prod pingala #217 - ajout 240"
+  },
+  {
+    "index": 218,
+    "address": "0xa16f89cc5dbcb77694f8e76f5777c7cb961b8a47",
+    "note": "bot prod pingala #218 - ajout 240"
+  },
+  {
+    "index": 219,
+    "address": "0xf4a0457db7f7a39d654456006c9d8c7645be7fa4",
+    "note": "bot prod pingala #219 - ajout 240"
+  },
+  {
+    "index": 220,
+    "address": "0x5b19cfbe916569abb777ad2a090e6e2d388c6326",
+    "note": "bot prod pingala #220 - ajout 240"
+  },
+  {
+    "index": 221,
+    "address": "0x1617b944b28faacada62fe380ac4b94658dfc345",
+    "note": "bot prod pingala #221 - ajout 240"
+  },
+  {
+    "index": 222,
+    "address": "0x8abeeb10d351372aee7e03f17349e77e5c821e69",
+    "note": "bot prod pingala #222 - ajout 240"
+  },
+  {
+    "index": 223,
+    "address": "0x884635dcfa69db8e2d81afa9f776eac6014fd50f",
+    "note": "bot prod pingala #223 - ajout 240"
+  },
+  {
+    "index": 224,
+    "address": "0x6385f6d1f5cd528576227c57830d0d62679f2355",
+    "note": "bot prod pingala #224 - ajout 240"
+  },
+  {
+    "index": 225,
+    "address": "0x2073069e6d0e70441697fd3d69b31dd496d68d7c",
+    "note": "bot prod pingala #225 - ajout 240"
+  },
+  {
+    "index": 226,
+    "address": "0xdbe1bf247a03b36eefdc738df11798605a0c32de",
+    "note": "bot prod pingala #226 - ajout 240"
+  },
+  {
+    "index": 227,
+    "address": "0xe424052579a193719d4c4bc43c43eab443dfb1de",
+    "note": "bot prod pingala #227 - ajout 240"
+  },
+  {
+    "index": 228,
+    "address": "0xa60db377a7794ad7a25b1edde298d72ac67e032b",
+    "note": "bot prod pingala #228 - ajout 240"
+  },
+  {
+    "index": 229,
+    "address": "0x26813c4f4856e671b32b6a1d465270474ef80ee1",
+    "note": "bot prod pingala #229 - ajout 240"
+  },
+  {
+    "index": 230,
+    "address": "0x01f737289c65404db510b235ebbfdb0890a192a0",
+    "note": "bot prod pingala #230 - ajout 240"
+  },
+  {
+    "index": 231,
+    "address": "0xe00fa2180eff43c3ecdcc434fef2cadedd35d078",
+    "note": "bot prod pingala #231 - ajout 240"
+  },
+  {
+    "index": 232,
+    "address": "0xdccfef0cf302a7be104338d711acfa701a78f2e3",
+    "note": "bot prod pingala #232 - ajout 240"
+  },
+  {
+    "index": 233,
+    "address": "0x9d84e6bb26e25eee9cb3d1f2b5361e4af26dd40d",
+    "note": "bot prod pingala #233 - ajout 240"
+  },
+  {
+    "index": 234,
+    "address": "0x2dbece7a37d4ab90874c116e211631ba40790ea6",
+    "note": "bot prod pingala #234 - ajout 240"
+  },
+  {
+    "index": 235,
+    "address": "0x035e0d51be232491fa3efb8dd71f14f5216a07e3",
+    "note": "bot prod pingala #235 - ajout 240"
+  },
+  {
+    "index": 236,
+    "address": "0x35f9cab92d11da25563f5e257266250bdfa8cbec",
+    "note": "bot prod pingala #236 - ajout 240"
+  },
+  {
+    "index": 237,
+    "address": "0xaacee63993bdba61f092419f3d88904d29251d0c",
+    "note": "bot prod pingala #237 - ajout 240"
+  },
+  {
+    "index": 238,
+    "address": "0xad0affd3d1dc029ac4bbe963e8c43fa44563c1ad",
+    "note": "bot prod pingala #238 - ajout 240"
+  },
+  {
+    "index": 239,
+    "address": "0x0a9b31613894c6e2f513927dc3059be4bed35e12",
+    "note": "bot prod pingala #239 - ajout 240"
+  },
+  {
+    "index": 240,
+    "address": "0x3b9374030f2e89f3aee78695b9c5cc427840c2c5",
+    "note": "bot prod pingala #240 - ajout 240"
+  },
+  {
+    "index": 241,
+    "address": "0x81d8ecf9be9c584e03f8d21f7bf53d1866a65d85",
+    "note": "bot prod pingala #241 - ajout 240"
+  },
+  {
+    "index": 242,
+    "address": "0x54a0d4266973a392f103141ddedf1649a71a5b3b",
+    "note": "bot prod pingala #242 - ajout 240"
+  },
+  {
+    "index": 243,
+    "address": "0x38ecdbd5ad36f0ba79d7ad0be99e946d11fcf7fe",
+    "note": "bot prod pingala #243 - ajout 240"
   }
 ]
