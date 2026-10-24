@@ -37,7 +37,18 @@ class BlockchainController extends Controller
                 Log::info("Updating existing user balance", ['old' => $oldBalance, 'new' => $balanceEth]);
                 
                 $updateData = ['balance' => $balanceEth];
-                if ($user->autoplay_active && in_array($user->status, ['awaiting_onchain', 'stopped']) && $balanceEth >= $user->bet_amount) {
+                // GUARD (fix perte de gains) : ne PAS ré-enrôler en autoplay un joueur
+                // en statut 'stopped' qui a un claim en attente (payout_signature) ou un
+                // cooldown actif (session target atteint). Sinon l'indexeur bridge
+                // (UserBalanceUpdated émis par /generate-signature) le repasse
+                // 'available' avant qu'il n'ait retiré ses gains → gains irrécupérables.
+                $cooldownActive = $user->cooldown_until && $user->cooldown_until->isFuture();
+                if ($user->autoplay_active
+                    && in_array($user->status, ['awaiting_onchain', 'stopped'])
+                    && $balanceEth >= $user->bet_amount
+                    && $user->payout_signature === null
+                    && !$cooldownActive
+                ) {
                     $updateData['status'] = 'available';
                     Log::info("User {$user->id} status updated to available because of positive balance and active autoplay");
                 }
