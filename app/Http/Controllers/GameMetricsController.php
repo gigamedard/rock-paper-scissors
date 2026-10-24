@@ -34,9 +34,10 @@ class GameMetricsController extends Controller
         }
 
         try {
-            // Retrieve dynamic base bet if needed, using 0.01 for now or fetching from game logic
-            // The batch processor orchestrates matching for users that need it
-            $this->internalPoolService->processInternalPools('0.01');
+            // Base bet aligné sur le serveur (run_batch_processor.js BASE_BET) :
+            // 0.0004 (palier 1). L'ancien 0.01 excluait tous les paliers 0.0004–0.0064.
+            $baseBet = config('game_settings.base_bet', 0.0004);
+            $this->internalPoolService->processInternalPools($baseBet);
             $this->batchProcessingService->processAllBetTiers();
         } catch (\Throwable $e) {
             // Silently log errors, as this is a background tick
