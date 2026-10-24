@@ -657,7 +657,27 @@ async function claim() {
     console.info('[Business] claim : pendingClaim=', gameState.pendingClaim);
 
     try {
+        // FORCER Pingala AVANT la tx : sinon Core envoie la tx sur le réseau
+        // actif (AVAX) où le contrat n'existe pas → « succès » côté wallet mais
+        // aucun claim réel (le bouton revient, le solde ne bouge pas).
+        try {
+            await ensurePingalaNetwork();
+        } catch (e) {
+            if (e && e.code === 4001) {
+                throw new Error('Réseau Pingala refusé. Sélectionnez « Pingala Chain » dans le wallet puis réessayez.');
+            }
+            console.warn('[Business] claim : switch Pingala échoué', e);
+        }
         const provider = await getProvider();
+        try {
+            const net = await provider.getNetwork();
+            if (Number(net.chainId) !== 99999) {
+                throw new Error('Réseau incorrect (' + Number(net.chainId) + '). Passez sur Pingala Chain (99999) dans le wallet.');
+            }
+        } catch (netErr) {
+            if (String(netErr.message || '').includes('Réseau incorrect')) throw netErr;
+            console.warn('[Business] claim : lecture chainId échouée', netErr);
+        }
         const signer = await provider.getSigner();
 
         const abi = ["function claimAndExit(uint256 amount, uint256 deadline, bytes signature) external"];
@@ -680,8 +700,13 @@ async function claim() {
             tx.wait(),
             new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 180000))
         ]);
-        if (mined === 'TIMEOUT') console.warn('[Business] claim tx non minée en 180 s — suite quand même');
-        else console.info('[Business] claim tx minée');
+        if (mined === 'TIMEOUT') {
+            throw new Error('Transaction non confirmée (timeout). Vérifiez votre wallet puis réessayez.');
+        }
+        if (mined && typeof mined.status === 'number' && mined.status !== 1) {
+            throw new Error('Transaction rejetée on-chain (status ' + mined.status + '). Réessayez.');
+        }
+        console.info('[Business] claim tx minée');
         addToFeed(t('feed.claim_success'), "var(--success)");
         gameState.hasClaimed = true;
         document.getElementById('claim-section').style.display = 'none';
