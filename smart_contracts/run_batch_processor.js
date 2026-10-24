@@ -4,7 +4,7 @@ import { LARAVEL_API_URL, INTERNAL_API_SECRET } from "./config.js";
 
 const app = express();
 const PORT = process.env.PROCESS_PORT || 3001; // Port for this worker
-const INTERVAL = 5000; // Return to 5s for stability
+const INTERVAL = parseInt(process.env.BATCH_PROCESSOR_INTERVAL || "5000", 10); // configurable via env (ms)
 const BASE_BET = process.env.BASE_BET || "0.0004"; // Default base bet (palier 1 ≈ 2000 XOF), can be made dynamic
 
 app.use(express.json());
