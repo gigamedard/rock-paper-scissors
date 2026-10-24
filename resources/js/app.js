@@ -282,13 +282,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const data = await res.json();
                 if (!res.ok) {
                     if (res.status === 409) {
-                        showToast(data.error || 'Airdrop AVAXe déjà réclamé', 'info');
+                        showToast(data.error || (window.t ? window.t('avaxe.claim_already') : 'Airdrop AVAXe déjà réclamé'), 'info');
                         return;
                     }
-                    showToast(data.error || 'Échec de la réclamation AVAXe', 'error');
+                    showToast(data.error || (window.t ? window.t('avaxe.claim_failed') : 'Échec de la réclamation AVAXe'), 'error');
                     return;
                 }
-                showToast(data.message || 'Airdrop AVAXe demandé — 5 AVAXe arrivent !', 'success', 5000);
+                showToast(data.message || (window.t ? window.t('avaxe.claim_ok') : 'Airdrop AVAXe demandé — 5 AVAXe arrivent !'), 'success', 5000);
                 window.dispatchEvent(new CustomEvent('app:refresh'));
             } catch (e) {
                 showToast('Erreur : ' + (e.message || e), 'error');
@@ -309,17 +309,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ? window.ethereum
                     : getActiveEip1193Provider();
                 if (!provider || typeof provider.request !== 'function') {
-                    showToast('Ouvrez votre wallet puis réessayez.', 'warn');
+                    showToast(window.t ? window.t('marketplace.add_prana_no_wallet') : 'Ouvrez votre wallet puis réessayez.', 'warn');
                     return;
                 }
                 const ok = await provider.request({
                     method: 'wallet_watchAsset',
                     params: { type: 'ERC20', options: { address: AVAXE_ADDR, symbol: 'AVAXe', decimals: 18 } }
                 });
-                showToast(ok ? 'AVAXe ajouté au wallet ✅' : 'Ajout annulé.', ok ? 'success' : 'info');
+                showToast(ok ? (window.t ? window.t('avaxe.added_ok') : 'AVAXe ajouté au wallet ✅') : (window.t ? window.t('avaxe.add_cancel') : 'Ajout annulé.'), ok ? 'success' : 'info');
             } catch (e) {
                 try { await navigator.clipboard.writeText(AVAXE_ADDR); } catch (_) { /* noop */ }
-                showToast('Ajout auto non supporté. Adresse AVAXe copiée : ' + AVAXE_ADDR, 'info', 8000);
+                showToast((window.t ? window.t('avaxe.add_fallback') : 'Ajout auto non supporté. Adresse AVAXe copiée : ') + AVAXE_ADDR, 'info', 8000);
             }
         });
     }

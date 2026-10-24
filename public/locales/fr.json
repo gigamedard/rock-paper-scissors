@@ -262,5 +262,17 @@
     "sign_in_wallet": "Core s'ouvre : si un popup « Switch Network » apparaît, choisissez Pingala Chain, puis Signez.",
     "approve_confirm_wallet": "Confirmation dans ton wallet…",
     "btn": "Connecter Wallet"
+  },
+  "avaxe": {
+    "faucet_btn": "🎁 RÉCLAMER 5 AVAXe DE TEST",
+    "currency_tst": "TST (natif)",
+    "currency_avaxe": "AVAXe (ERC-20)",
+    "add_wallet": "➕ Ajouter AVAXe au wallet",
+    "claim_ok": "Airdrop AVAXe demandé — 5 AVAXe arrivent !",
+    "claim_already": "Airdrop AVAXe déjà réclamé",
+    "claim_failed": "Échec de la réclamation AVAXe",
+    "added_ok": "AVAXe ajouté au wallet ✅",
+    "add_cancel": "Ajout annulé.",
+    "add_fallback": "Ajout auto non supporté. Adresse AVAXe copiée : "
   }
 }

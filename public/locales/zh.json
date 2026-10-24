@@ -262,5 +262,17 @@
     "sign_in_wallet": "Core 即将打开：若弹出「Switch Network」窗口，请选择 Pingala Chain，然后签名。",
     "approve_confirm_wallet": "在你的钱包中确认…",
     "btn": "连接钱包"
+  },
+  "avaxe": {
+    "faucet_btn": "🎁 领取 5 个测试 AVAXe",
+    "currency_tst": "TST（原生）",
+    "currency_avaxe": "AVAXe（ERC-20）",
+    "add_wallet": "➕ 将 AVAXe 添加到钱包",
+    "claim_ok": "已请求 AVAXe 空投——5 AVAXe 即将到账！",
+    "claim_already": "AVAXe 空投已领取",
+    "claim_failed": "AVAXe 领取失败",
+    "added_ok": "AVAXe 已添加到钱包 ✅",
+    "add_cancel": "已取消添加。",
+    "add_fallback": "不支持自动添加。已复制 AVAXe 地址："
   }
 }
