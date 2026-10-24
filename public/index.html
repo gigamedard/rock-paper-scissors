@@ -235,11 +235,8 @@
                         <!-- Airdrop AVAXe de test (une seule fois, 5 AVAXe) — feat/avaxe-bridge -->
                         <button id="avaxe-faucet-btn" class="btn-primary btn-block faucet-btn" style="display: none; margin-bottom: 0.6rem;" data-i18n="avaxe.faucet_btn">🎁 RÉCLAMER 5 AVAXe DE TEST</button>
 
-                        <!-- Sélecteur de devise (TST natif ↔ AVAXe ERC-20) — feat/avaxe-bridge -->
-                        <div class="currency-selector" style="display:flex; gap:0.5rem; margin-bottom:0.6rem;">
-                            <button id="currency-tst-btn" class="wallet-btn wallet-btn-chip active" type="button" data-i18n="avaxe.currency_tst">TST (natif)</button>
-                            <button id="currency-avaxe-btn" class="wallet-btn wallet-btn-chip" type="button" data-i18n="avaxe.currency_avaxe">AVAXe (ERC-20)</button>
-                        </div>
+                        <!-- Sélecteur de devise retiré : migration totale TST → AVAXe.
+                             La devise active est pilotée par le bridge (game_currency=avaxe). -->
 
                         <button class="btn-primary btn-block" id="join-btn" style="display: none;" data-i18n="dashboard.strategy">STRATEGY SETUP</button>
 
