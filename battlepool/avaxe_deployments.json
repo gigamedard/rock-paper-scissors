@@ -1,0 +1,42 @@
+{
+  "network": "pingala",
+  "chainId": 99999,
+  "chainName": "Pingala Chain",
+  "rpcUrl": "https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc",
+  "deployedAt": "2026-10-24T05:42:12.788Z",
+  "deployer": {
+    "address": "0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee"
+  },
+  "roles": {
+    "owner": {
+      "address": "0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee"
+    },
+    "signer": {
+      "address": "0xBe24F203E4e35A79E242d77c3710cE608C16a3De",
+      "envVar": "PINGALA_SIGNER_PK",
+      "keyGenerated": false
+    },
+    "payoutOperator": {
+      "address": "0x9A60327ce58A94a411987119047A75A8F1076663",
+      "envVar": "PINGALA_PAYOUT_PK",
+      "keyGenerated": false
+    },
+    "devWallet": {
+      "address": "0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee",
+      "envVar": "PINGALA_DEV_PK",
+      "keyGenerated": false
+    }
+  },
+  "contracts": {
+    "avaxe": {
+      "address": "0x9d8AA35058493Aa826be143B568BCfA8E2F537F7",
+      "deployTxHash": "0xa96e02ec18aed69a3d2d724dcaff5b0d22b0ad4a7a33379e19d0d1eaf88cf1e9"
+    },
+    "battlepoolV2": {
+      "address": "0xb628C8dE0ed6c1192dEB4C4C336fe3595370385E",
+      "token": "0x9d8AA35058493Aa826be143B568BCfA8E2F537F7",
+      "deployTxHash": "0xa549f8f08146ced56217e257992c83abd4e305387efc99b1b4f127aa71e3528a"
+    }
+  },
+  "note": "Gas = TST natif. AVAXe mint/burn = owner (opérateur bridge custodial). BattlepoolV2 devise = AVAXe (ERC-20)."
+}

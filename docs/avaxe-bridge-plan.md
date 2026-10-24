@@ -61,7 +61,25 @@ C-Chain (AVAX Fuji)                          Pingala (gas TST)
 - [x] Branche `feat/avaxe-bridge` créée.
 - [x] `battlepool/contracts/AVAXe.sol` (ERC-20, mint/burn opérateur).
 - [x] `battlepool/contracts/BattlepoolV2.sol` (port ERC-20 complet).
+- [x] **Compilé** (Hardhat, 22 fichiers).
+- [x] **Déployé sur Pingala (99999)** — voir adresses ci-dessous.
+- [x] **Smoke test on-chain** : mint → approve → deposit 1 AVAXe (solde 0.97560975) → claim
+  par signature (status 1) → wallet récupère 9.97560975 AVAXe, fee dev 0.02439024. OK.
 - [ ] P0 bridge (AvaVault + relayer).
 - [ ] P2 backend (indexer, payout ERC-20, faucet AVAX.e).
-- [ ] P3 frontend.
-- [ ] Déploiement + tests.
+- [ ] P3 frontend (approve + dépôt ERC-20, affichage, claim).
+
+## Déploiement P1 (Pingala 99999)
+
+| Élément | Adresse |
+|---|---|
+| **AVAXe** (ERC-20) | `0x9d8AA35058493Aa826be143B568BCfA8E2F537F7` |
+| **BattlepoolV2** (devise AVAXe) | `0xb628C8dE0ed6c1192dEB4C4C336fe3595370385E` |
+| owner/deployer/dev | `0xD62909EAD1cbE35d5A7BD145f00530Fd574763Ee` |
+| signer | `0xBe24F203E4e35A79E242d77c3710cE608C16a3De` |
+| payoutOperator | `0x9A60327ce58A94a411987119047A75A8F1076663` |
+
+Paramètres V2 : `securityCoefficient=1000`, `feeBasisPoints=250` (2.5%), `maxBaseBet=100`,
+`maxQ=2.0`, rôles initialisés. Détails + tx hashes : `battlepool/avaxe_deployments.json`
+(aucune clé privée). Script : `battlepool/deploy_avaxe.js`.
+
