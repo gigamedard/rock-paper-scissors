@@ -95,6 +95,15 @@ class SessionManager
 
     private function processFoughtUser(User $user, Pool $pool): void
     {
+        // GUARD (fix claim disparu) : ne pas ré-évaluer un joueur qui a déjà
+        // atteint son target (claim en attente OU cooldown actif). Sinon une
+        // 2e évaluation (recoverStuckUsersInPool / race de ré-enrôlement) avec
+        // session_start_balance=0 (SESSION_GUARD q=0) retomberait en 'available'
+        // et écraserait le statut 'stopped' → le bouton claim disparaît.
+        if ($user->payout_signature || ($user->cooldown_until && $user->cooldown_until->isFuture())) {
+            return;
+        }
+
         // NOTE: la validation de parrainage se fait désormais à la PREMIÈRE SESSION
         // (voir PoolReconstructionService::initializeUsersForPool) et non plus au premier combat.
 
