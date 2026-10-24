@@ -137,7 +137,7 @@ class PoolAutoMatchController extends Controller
             'payout_signature' => $user->payout_signature,
             'payout_deadline' => $user->payout_deadline,
             'cooldown_until' => $user->cooldown_until ? $user->cooldown_until->toIso8601String() : null,
-            'client_batch_interval' => config('game_settings.client_batch_interval', 5000),
+            'client_batch_interval' => (int) (\App\Models\GameSetting::where('key', 'client_batch_interval')->value('value') ?? 5000),
             'has_received_airdrop' => $user->has_received_airdrop,
             'target_q' => $user->target_q,
         ]);
