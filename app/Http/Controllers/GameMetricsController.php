@@ -26,7 +26,7 @@ class GameMetricsController extends Controller
         // Multiple connected clients each fire /metrics/collect every 5s; without
         // a lock, processInternalPools (locks `users`) and processAllBetTiers
         // (locks `pools`) run concurrently and deadlock on MySQL FOR UPDATE.
-        $lock = \Illuminate\Support\Facades\Cache::lock('metrics_collect_tick', 1);
+        $lock = \Illuminate\Support\Facades\Cache::lock('metrics_collect_tick', 0.2);
 
         if (!$lock->get()) {
             // Another tick is already running — skip this one (fire-and-forget).
