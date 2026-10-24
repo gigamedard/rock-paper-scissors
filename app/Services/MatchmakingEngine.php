@@ -106,9 +106,12 @@ class MatchmakingEngine
         }
 
         for ($i = 0; $i < $availableUsers->count(); $i += 2) {
+            $user1 = $availableUsers[$i];
+            $user2 = $availableUsers[$i + 1];
+
             $fight = Fight::create([
-                'user1_id'        => $availableUsers[$i]->id,
-                'user2_id'        => $availableUsers[$i + 1]->id,
+                'user1_id'        => $user1->id,
+                'user2_id'        => $user2->id,
                 'base_bet_amount' => $pool->base_bet,
                 'status'          => 'waiting_for_result',
                 'pool_id'         => $pool->id,
@@ -116,10 +119,16 @@ class MatchmakingEngine
 
             $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
 
-            \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\MatchFound($availableUsers[$i], $fight->id, $availableUsers[$i + 1]->wallet_address)), "MatchFound user {$availableUsers[$i]->id} fight {$fight->id}");
-            \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\MatchFound($availableUsers[$i + 1], $fight->id, $availableUsers[$i]->wallet_address)), "MatchFound user {$availableUsers[$i + 1]->id} fight {$fight->id}");
+            // Perf : combat bot-vs-bot → pas de broadcast (MatchFound) ni de
+            // notification (BATTLE_STARTED). Ces écritures sont inutiles pour
+            // des bots sans frontend.
+            $bothBots = $user1->isBot() && $user2->isBot();
+            if (!$bothBots) {
+                \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\MatchFound($user1, $fight->id, $user2->wallet_address)), "MatchFound user {$user1->id} fight {$fight->id}");
+                \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\MatchFound($user2, $fight->id, $user1->wallet_address)), "MatchFound user {$user2->id} fight {$fight->id}");
 
-            $this->notifyBattleStarted($availableUsers[$i], $availableUsers[$i + 1], $fight, $pool->id);
+                $this->notifyBattleStarted($user1, $user2, $fight, $pool->id);
+            }
         }
     }
 

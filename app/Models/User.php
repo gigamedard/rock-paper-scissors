@@ -68,6 +68,33 @@ class User extends Authenticatable
         'cooldown_until' => 'datetime',
     ];
 
+    /**
+     * Indique si le wallet est un bot de simulation (présent dans
+     * smart_contracts/simulation_accounts.json). Liste mise en cache statique
+     * (chargée une fois par worker) pour éviter la lecture fichier à chaque appel.
+     */
+    public function isBot(): bool
+    {
+        static $botAddresses = null;
+
+        if ($botAddresses === null) {
+            $botAddresses = [];
+            $jsonPath = base_path('smart_contracts/simulation_accounts.json');
+            if (file_exists($jsonPath)) {
+                $accounts = json_decode((string) file_get_contents($jsonPath), true);
+                if (is_array($accounts)) {
+                    foreach ($accounts as $acc) {
+                        if (isset($acc['address'])) {
+                            $botAddresses[strtolower($acc['address'])] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return isset($botAddresses[strtolower((string) $this->wallet_address)]);
+    }
+
     public function challengesSent()
     {
         return $this->hasMany(Challenge::class, 'sender_id');
