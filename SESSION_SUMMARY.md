@@ -10,14 +10,16 @@
 
 - Projet **BattlePool** : jeu PvP RPS on-chain, L1 **Pingala** (chainId **99999**, natif **TST**),
   RPC `https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc`.
-- **Prod** : `https://battlepool.31.187.72.98.sslip.io` — 9 conteneurs `battlepool-*` healthy.
-- **SHA déployé en prod** : **`e90529d`** (voir §1).
-- **120 bots** tournent en continu (pools de **5**), ~1 000+ combats/5 min.
-- Un **airdrop faucet 50 TST** est en service (une seule fois par wallet), solde faucet ~651 TST.
-- Un chantier **« jouer avec de l'AVAX bridgé (AVAX.e) »** vient d'être ouvert sur la branche
-  `feat/avaxe-bridge` (contrats écrits, non déployés).
-- Une **PoC de divulgation responsable** (bug suspect de sponsorship Core) existe dans
-  `poc/core-fee-sponsorship/` (single-shot).
+- **Prod** : `https://battlepool.31.187.72.98.sslip.io` — conteneurs `battlepool-*` healthy.
+- **SHA déployé en prod** : **`fe88739`** (branche `feat/avaxe-bridge`).
+- **Migration TST → AVAXe FAITE** : devise de jeu = **AVAXe** (ERC-20 `0x9d8A…37F7`), contrat
+  **BattlepoolV2** `0xb628C8dE…385E` (dépôt/payout/claim ERC-20). TST = gas natif uniquement.
+- **240 bots** (indices 0-239, `simulation_accounts.json` 244 entrées), pools de **5**.
+- **Config matchmaking** (équilibrée après bench) : serveur `run_batch_processor.js` intervalle
+  **1,57 s** (env `BATCH_PROCESSOR_INTERVAL`), **6 workers** Swoole, lock `metrics_collect_tick` TTL **10 s**,
+  polling client **200 ms**.
+- **Optimisations DB** (migrations) : index composites `f_hists`/`users`/`pools`, buffer pool **2 G**,
+  `innodb_flush_log_at_trx_commit=2` (dans `docker-compose.prod.yml`, pas dans git).
 
 ---
 
@@ -27,7 +29,7 @@
 |---|---|---|
 | `feat/app1-deeplink-app2` | `9712b03` | **Ligne de travail principale** (toutes les features UI/game) |
 | `feat/app1-claim-pingala-fix` | `3653ef0` | **Version corrigée du claim** (force Pingala) — mise de côté à la demande de l'opérateur |
-| `feat/avaxe-bridge` | 1 commit | **Nouveau chantier AVAX.e** (BattlepoolV2 + AVAXe + plan) |
+| `feat/avaxe-bridge` | `fe88739` | **Branche active = prod** (migration AVAXe + 240 bots + index DB) |
 | `docs/cloud-faucet-2026-10-18` | — | Passations/COLLAB_STATE (docs du protocole) |
 | `master` | ancien | Intégration (PR uniquement, pas de push direct) |
 
