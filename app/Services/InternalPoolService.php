@@ -63,6 +63,9 @@ class InternalPoolService
                 ->where('bet_amount', $tierBet)
                 ->where('autoplay_active', true)
                 ->whereNull('payout_signature') // GUARD: jamais auto-matcher un joueur avec un claim en attente
+                ->where(function ($q) {
+                    $q->whereNull('cooldown_until')->orWhere('cooldown_until', '<=', now());
+                }) // GUARD: jamais re-matcher pendant un cooldown actif (target atteint)
                 ->where('balance', '>=', $tierBet) // On vérifie seulement s'ils peuvent payer la mise
                 ->limit($limit)
                 ->lockForUpdate();
@@ -105,6 +108,9 @@ class InternalPoolService
                         ->where('bet_amount', $fallbackTier)
                         ->where('autoplay_active', true)
                         ->whereNull('payout_signature') // GUARD: idem fallback
+                        ->where(function ($q) {
+                            $q->whereNull('cooldown_until')->orWhere('cooldown_until', '<=', now());
+                        }) // GUARD: idem fallback (cooldown)
                         ->where('balance', '>=', $fallbackTier)
                         ->limit($limit)
                         ->lockForUpdate()
