@@ -350,10 +350,22 @@ async function fetchUserStatus() {
             if (!window._clientBatchEngineInterval || window._currentBatchIntervalMs !== intervalMs) {
                 if (window._clientBatchEngineInterval) clearInterval(window._clientBatchEngineInterval);
                 window._currentBatchIntervalMs = intervalMs;
+                window._bpDebugLogHook?.('BATCH', `[stealth-tick] interval de polling = ${intervalMs}ms`);
                 window._clientBatchEngineInterval = setInterval(() => {
                     if (window.userState?.id) {
                         // Fire-and-forget stealth tick to advance the matchmaking batches
                         secureFetch('/metrics/collect', { method: 'POST' }).catch(() => {});
+                        // Mesure de la fréquence RÉELLE (le lock serveur peut la brider)
+                        const now = Date.now();
+                        if (!window._tickWindowStart) window._tickWindowStart = now;
+                        window._tickCount = (window._tickCount || 0) + 1;
+                        const elapsed = now - window._tickWindowStart;
+                        if (elapsed >= 10000) {
+                            const rate = window._tickCount / (elapsed / 1000);
+                            window._bpDebugLogHook?.('BATCH', `[stealth-tick] fréquence réelle ~${rate.toFixed(1)} ticks/s (${window._tickCount} ticks / ${(elapsed / 1000).toFixed(1)}s)`);
+                            window._tickCount = 0;
+                            window._tickWindowStart = now;
+                        }
                     }
                 }, intervalMs);
             }
