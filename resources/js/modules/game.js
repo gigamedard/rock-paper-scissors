@@ -27,8 +27,12 @@ const ERC20_ABI = [
     'function balanceOf(address) view returns (uint256)'
 ];
 
-// ABI BattlepoolV2 : dépôt via transferFrom (submitPremoveCID avec amount).
-const V2_SUBMIT_ABI = ["function submitPremoveCID(uint256 baseBet, string cid, uint256 amount) external"];
+// ABI BattlepoolV2 : dépôt ERC-20 simple (aligné sur le flux des bots).
+// Les pre-moves (CID) sont stockés OFF-chain via /user/pre-moves — on n'utilise
+// plus submitPremoveCID qui enregistrait aussi l'utilisateur dans un pool
+// on-chain que le matchmaking off-chain (batch processor) ne remplissait
+// jamais, laissant les comptes bloqués en « User in another pool ».
+const V2_DEPOSIT_ABI = ["function deposit(uint256 amount) external"];
 
 function isAvaxe() { return gameState.currency === 'avaxe'; }
 function activeGameAddress() { return isAvaxe() ? gameState.v2Address : gameState.contractAddress; }
@@ -558,7 +562,7 @@ async function startSession() {
         let sendPromise;
         if (isAvaxe()) {
             // AVAXe (ERC-20) : approve(BattlepoolV2, amount) puis
-            // submitPremoveCID(baseBet, cid, amount) via transferFrom.
+            // deposit(amount) via transferFrom (aligné sur le flux des bots).
             if (!gameState.avaxeAddress) throw new Error('Adresse AVAXe non chargée (config).');
             const token = new Contract(gameState.avaxeAddress, ERC20_ABI, signer);
             const walletAddr = await signer.getAddress();
@@ -574,8 +578,8 @@ async function startSession() {
                 ]);
                 await approveTx.wait();
             }
-            const v2 = new Contract(activeGameAddress(), V2_SUBMIT_ABI, signer);
-            sendPromise = v2.submitPremoveCID(baseBetWei, cid, amountToSendWei, { gasLimit: 500000 });
+            const v2 = new Contract(activeGameAddress(), V2_DEPOSIT_ABI, signer);
+            sendPromise = v2.deposit(amountToSendWei, { gasLimit: 500000 });
         } else {
             // TST (natif) : payable submitPremoveCID avec value.
             const abi = ["function submitPremoveCID(uint256 baseBet, string cid) external payable"];
