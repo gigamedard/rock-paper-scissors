@@ -147,6 +147,11 @@ node secrets-manager.mjs deprovision
 
 - Ne pas toucher `Battlepool.sol`, `.env.staging`, `deploy/`, `security-entrypoint.sh`,
   `secrets-manager.mjs` sans accord (le chantier AVAX.e utilise un **contrat séparé** `BattlepoolV2`).
+- **Réinitialisation DB = rembourser l'on-chain aussi** : `TRUNCATE` des tables ne vide PAS les
+  soldes on-chain (V2 `userBalances`). Le `deposit()` fait `userBalances += amount` (il **ajoute**),
+  donc après un truncate le nouveau dépôt s'ajoute au solde résiduel → balance ×2/×4 → objectif
+  d'affichage (`session_start_balance × target_q`) faux. Avant/après un reset, rembourser les soldes
+  V2 (`batchPayOut` via payoutOperator) et `FLUSHALL` Redis (sinon `batches.last_pool_id` obsolète → matchmaking bloqué).
 - `chainId 99999` partout ; alias technique `snt`/`sntToken` immuable.
 - Secrets jamais en clair dans git ; `scratch/`, `.secrets/`, `deploy/` jamais commités.
 - Un commit = une chose ; vérifier le **bundle servi** après tout deploy front.
