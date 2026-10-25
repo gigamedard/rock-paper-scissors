@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule) {
         // Re-sync blockchain limits when time-based cards expire (prevents on-chain expiry bypass)
         $schedule->command('cards:sync-expired-limits')->everyFiveMinutes();
+        // Purge finished pools older than 3 minutes (keeps pools + f_hists tables capped)
+        $schedule->command('battle:cleanup')->everyMinute();
     })
 
     ->withMiddleware(function (Middleware $middleware) {

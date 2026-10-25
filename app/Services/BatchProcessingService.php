@@ -250,8 +250,20 @@ class BatchProcessingService
     private function recoverFinishedPools(): void
     {
         try {
-            $stuckPools = \App\Models\Pool::where('status', 'from_server_finished')
-                ->whereHas('users', fn ($query) => $query->where('status', 'in_pool'))
+            // Perf : partir des users 'in_pool' (users.pool_id est indexé) plutôt
+            // que de scanner toutes les pools 'finished' + 1 sous-requête par pool.
+            $poolIds = \App\Models\User::where('status', 'in_pool')
+                ->whereNotNull('pool_id')
+                ->pluck('pool_id')
+                ->unique()
+                ->values();
+
+            if ($poolIds->isEmpty()) {
+                return;
+            }
+
+            $stuckPools = \App\Models\Pool::whereIn('id', $poolIds)
+                ->where('status', 'from_server_finished')
                 ->get();
 
             foreach ($stuckPools as $pool) {

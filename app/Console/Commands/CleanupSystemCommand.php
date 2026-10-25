@@ -112,6 +112,23 @@ class CleanupSystemCommand extends Command
             }
         }
 
+        // 5. Finished pools older than 3 minutes (keeps the pools table capped)
+        //    -- pool_id is referenced by users/fights/f_hists. A user row is
+        //    attached to pools.id, so pools must be deleted only if that is
+        //    nullified first, otherwise user rows would be cascade-deleted.
+        $oldPoolIds = Pool::where('status', 'from_server_finished')
+            ->where('updated_at', '<', now()->subMinutes(3))
+            ->pluck('id');
+
+        if ($oldPoolIds->isNotEmpty()) {
+            $detachedUsers = User::whereIn('pool_id', $oldPoolIds)->update(['pool_id' => null]);
+
+            $deletedPools = Pool::whereIn('id', $oldPoolIds)->delete();
+
+            $this->info("Deleted {$deletedPools} finished pools older than 3 minutes (detached {$detachedUsers} users).");
+            UserTracker::info("Cleanup: Purged {$deletedPools} finished pools (>3min), detached {$detachedUsers} users.");
+        }
+
         $this->info("Cleanup completed successfully!");
         return 0;
     }
