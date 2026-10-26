@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monte Carlo Battle Martingale Simulator - Spatial Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-overlay: linear-gradient(135deg, rgba(30, 24, 22, 0.7) 0%, rgba(15, 12, 11, 0.85) 100%);
+            --glass-bg: rgba(36, 32, 30, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-glow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+            
+            --accent-peach: #f97316;
+            --accent-lavender: #a855f7;
+            --accent-pink: #ec4899;
+            
+            --text-main: #ffffff;
+            --text-dim: #d6c5c0;
+            --text-muted: #8b7d7a;
+            
+            --gradient-warm: linear-gradient(135deg, #a855f7 0%, #f97316 100%);
+            --gradient-card: linear-gradient(135deg, rgba(236, 72, 153, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=1920&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Dark spatial ambient blur overlay */
+        .ambient-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-overlay);
+            backdrop-filter: blur(10px);
+            z-index: 1;
+        }
+
+        /* Main Glassmorphic Panel Container */
+        .glass-board {
+            position: relative;
+            z-index: 2;
+            width: 95vw;
+            height: 90vh;
+            max-width: 1600px;
+            max-height: 1000px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 36px;
+            box-shadow: var(--glass-glow);
+            backdrop-filter: blur(35px) saturate(180%);
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            overflow: hidden;
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+
+        /* Floating Sidebar Pill (Navigation) */
+        .sidebar-pill {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem 0;
+            gap: 1.5rem;
+        }
+
+        .side-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .side-btn:hover, .side-btn.active {
+            color: white;
+            background: white;
+            transform: scale(1.08);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .side-btn.active svg {
+            stroke: #24201e;
+        }
+
+        .side-btn svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            transition: stroke 0.3s;
+        }
+
+        /* Top Pill Container */
+        .workspace {
+            display: grid;
+            grid-template-rows: 60px 1fr;
+            gap: 1rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .top-bar-pill {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            justify-content: space-between;
+        }
+
+        .presets-tabs {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            padding: 0.5rem 1.25rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .preset-btn.active {
+            background: white;
+            color: #24201e;
+            font-weight: 600;
+            border-color: white;
+        }
+
+        .dashboard-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            background: var(--gradient-warm);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Dashboard Main Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 1.25rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Scroller utility for spatial cards */
+        .scroller {
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 1.25rem;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s, border-color 0.3s;
+            margin-bottom: 1.25rem;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-header svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--accent-peach);
+        }
+
+        /* Inputs & Form Controls */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .input-group.full-width {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+
+        input, select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 0.65rem 0.8rem;
+            color: white;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-peach);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.2);
+        }
+
+        /* Glowing Gradient Card (Smart TV / Noise Style) */
+        .glowing-card {
+            background: var(--gradient-card);
+            border: 1px solid rgba(236, 72, 153, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glowing-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Custom Switch Slider */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .switch-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .slider::before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .slider {
+            background: var(--gradient-warm);
+        }
+
+        input:checked + .slider::before {
+            transform: translateX(20px);
+        }
+
+        /* Right Workspace Area */
+        .workspace-grid {
+            display: grid;
+            grid-template-rows: 240px 1fr 70px;
+            gap: 1.25rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .top-row-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 1.25rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Dial success gauge card */
+        .gauge-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 1rem;
+        }
+
+        .gauge-wrapper {
+            position: relative;
+            width: 150px;
+            height: 140px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .gauge-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 150px;
+            height: 150px;
+        }
+
+        .gauge-center-text {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            top: 45%;
+            transform: translateY(-50%);
+        }
+
+        .gauge-value {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+        }
+
+        .gauge-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        /* Metrics list */
+        .metrics-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            width: 100%;
+            margin-top: auto;
+        }
+
+        .mini-metric {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 0.4rem;
+        }
+
+        .mini-metric-val {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .mini-metric-lbl {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Console Report Card */
+        .console-card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            padding: 1rem;
+        }
+
+        .console-terminal {
+            flex: 1;
+            background: rgba(15, 12, 11, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 0.85rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.8rem;
+            color: #d6c5c0;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        /* Center Row (Line Chart Panel) */
+        .chart-panel-card {
+            display: grid;
+            grid-template-rows: 40px 1fr;
+            gap: 0.75rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .chart-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-tab-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            padding: 0.35rem 1rem;
+            border-radius: 14px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .chart-tab-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .chart-tab-btn.active {
+            background: white;
+            color: #24201e;
+            font-weight: 600;
+        }
+
+        .chart-view-area {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .tab-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .tab-content.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Bottom Action / Run Button */
+        .action-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .sim-status {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        .run-btn {
+            background: var(--gradient-warm);
+            border: none;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 0.65rem 2rem;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .run-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+        }
+
+        .run-btn:disabled {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Custom Loader */
+        .loader-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 18, 17, 0.6);
+            backdrop-filter: blur(5px);
+            border-radius: 24px;
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--accent-peach);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="ambient-overlay"></div>
+
+    <div class="glass-board">
+        <!-- Floating Sidebar Pill -->
+        <div class="sidebar-pill">
+            <button class="side-btn active" id="sideBtnMain" title="Simulations">
+                <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            </button>
+            <button class="side-btn" id="sideBtnDist" title="Distribution">
+                <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            </button>
+            <button class="side-btn" id="sideBtnReport" title="Report">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            </button>
+        </div>
+
+        <!-- Right Workspace -->
+        <div class="workspace">
+            <!-- Top Bar Pill -->
+            <div class="top-bar-pill">
+                <div class="dashboard-title">Monte Carlo Battle Simulator</div>
+                <div class="presets-tabs">
+                    <button class="preset-btn active" onclick="applyPreset('default')">Défaut</button>
+                    <button class="preset-btn" onclick="applyPreset('aggressive')">Agressif</button>
+                    <button class="preset-btn" onclick="applyPreset('conservative')">Conservateur</button>
+                    <button class="preset-btn" onclick="applyPreset('masterclass')">Masterclass 1</button>
+                </div>
+            </div>
+
+            <!-- Dashboard Columns -->
+            <div class="dashboard-grid">
+                <!-- Left Side Panel (Controls) -->
+                <div class="scroller">
+                    <!-- Standard Settings Card -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                            Paramètres de Combat
+                        </div>
+                        <div class="form-grid">
+                            <div class="input-group">
+                                <label>Balance Initiale</label>
+                                <input type="number" id="initialBalance" value="1000" step="10">
+                            </div>
+                            <div class="input-group">
+                                <label>Mise de Base</label>
+                                <input type="number" id="baseBet" value="10" step="1">
+                            </div>
+                            <div class="input-group">
+                                <label>Limite Double (N)</label>
+                                <input type="number" id="maxDoubling" value="5" step="1">
+                            </div>
+                            <div class="input-group">
+                                <label>Rounds par Combat</label>
+                                <input type="number" id="roundsPerBattle" value="10" step="1">
+                            </div>
+                            <div class="input-group full-width">
+                                <label>Algorithme de Combat</label>
+                                <select id="battleAlgo">
+                                    <option value="1">Standard (Fixe +/-)</option>
+                                    <option value="2">Progressif (Multiplicateur Round)</option>
+                                    <option value="3">Pondéré (Round 2 x2)</option>
+                                    <option value="4">Pondéré V2 (R2 x2, R3 x4)</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Victoire (%)</label>
+                                <input type="number" id="pWin" value="34" step="1">
+                            </div>
+                            <div class="input-group">
+                                <label>Nul (%)</label>
+                                <input type="number" id="pDraw" value="32" step="1">
+                            </div>
+                            <div class="input-group full-width">
+                                <label>Cible de Gain (Multiple)</label>
+                                <input type="number" id="targetMultiplier" value="1.5" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Glowing Noise Card -->
+                    <div class="glass-card glowing-card">
+                        <div class="switch-container">
+                            <span class="switch-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="width:18px;height:18px;"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M8.3 15.7c-2.2-2.2-2.2-5.8 0-8M15.7 8.3c2.2 2.2 2.2 5.8 0 8M12 12v.01"/></svg>
+                                Activer le Bruit (Volatilité)
+                            </span>
+                            <label class="switch">
+                                <input type="checkbox" id="enableNoise" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="input-group full-width" id="noiseLevelGroup" style="margin-bottom:0;">
+                            <label style="color:white;">Pourcentage de Bruit (%)</label>
+                            <input type="number" id="noiseLevel" value="33.33" min="0" max="100" step="0.01" style="background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1);">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Workspace Grid -->
+                <div class="workspace-grid">
+                    <!-- Top metrics & Console -->
+                    <div class="top-row-grid">
+                        <!-- Glass Gauge Card -->
+                        <div class="glass-card gauge-card">
+                            <div class="gauge-wrapper">
+                                <canvas id="successGauge" class="gauge-canvas" width="150" height="150"></canvas>
+                                <div class="gauge-center-text">
+                                    <div class="gauge-value" id="statSuccess">--%</div>
+                                    <div class="gauge-label">Réussite</div>
+                                </div>
+                            </div>
+                            <div class="metrics-list">
+                                <div class="mini-metric">
+                                    <div class="mini-metric-val" id="statFinal">--</div>
+                                    <div class="mini-metric-lbl">Sessions</div>
+                                </div>
+                                <div class="mini-metric">
+                                    <div class="mini-metric-val" id="statDrawdown" style="color: var(--accent-pink);">--%</div>
+                                    <div class="mini-metric-lbl">Max DD</div>
+                                </div>
+                                <div class="mini-metric">
+                                    <div class="mini-metric-val" id="statMaxBet" style="color: var(--accent-peach);">--</div>
+                                    <div class="mini-metric-lbl">Max Bet</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Console log -->
+                        <div class="glass-card console-card">
+                            <div class="card-header">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                                Rapport Monte Carlo
+                            </div>
+                            <div class="console-terminal" id="report">
+                                En attente du lancement de la simulation...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Line Chart Card -->
+                    <div class="glass-card chart-panel-card" style="position: relative;">
+                        <!-- Loader overlay inside chart -->
+                        <div class="loader-overlay" id="loader">
+                            <div class="spinner"></div>
+                            <div style="font-weight: 600; font-size: 0.9rem;">Simulation de 10 000 sessions en cours...</div>
+                        </div>
+
+                        <div class="chart-tabs">
+                            <button class="chart-tab-btn active" id="tabBtnSessions">Évolution Sessions</button>
+                            <button class="chart-tab-btn" id="tabBtnDist">Distribution des Mises</button>
+                        </div>
+                        <div class="chart-view-area">
+                            <div id="tab-sessions" class="tab-content active">
+                                <canvas id="mainChart"></canvas>
+                            </div>
+                            <div id="tab-distribution" class="tab-content">
+                                <canvas id="distChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Row (Bottom) -->
+                    <div class="action-row">
+                        <div class="sim-status">
+                            <span class="status-dot"></span>
+                            <span id="status">Prêt pour la simulation.</span>
+                        </div>
+                        <button class="run-btn" id="runBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Lancer Simulation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mainChart = null;
+        let distChart = null;
+
+        function initCharts() {
+            // Main Chart (Sessions)
+            const ctxMain = document.getElementById('mainChart').getContext('2d');
+            
+            // Custom Neon Gradient for line
+            const neonGrad = ctxMain.createLinearGradient(0, 0, 800, 0);
+            neonGrad.addColorStop(0, '#a855f7'); // Purple
+            neonGrad.addColorStop(1, '#f97316'); // Peach
+
+            mainChart = new Chart(ctxMain, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Évolution du Solde',
+                        borderColor: neonGrad,
+                        borderWidth: 3,
+                        fill: false,
+                        pointRadius: 0,
+                        data: []
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            ticks: { color: '#d6c5c0', font: { family: 'Outfit' } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Distribution Chart (Bar)
+            const ctxDist = document.getElementById('distChart').getContext('2d');
+            distChart = new Chart(ctxDist, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Nombre de batailles',
+                        backgroundColor: 'rgba(168, 85, 247, 0.45)',
+                        borderColor: '#a855f7',
+                        borderWidth: 1.5,
+                        data: []
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#d6c5c0', font: { family: 'Outfit' } }
+                        },
+                        y: {
+                            type: 'logarithmic',
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            ticks: { color: '#d6c5c0', font: { family: 'Outfit' } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Circular Success Gauge Drawing
+        function drawSuccessGauge(percent) {
+            const canvas = document.getElementById('successGauge');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const x = canvas.width / 2;
+            const y = canvas.height / 2;
+            const radius = 55;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Outer Ring base
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0.75 * Math.PI, 2.25 * Math.PI);
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            // Value Arc
+            if (percent > 0) {
+                ctx.beginPath();
+                const endAngle = (0.75 + (percent / 100) * 1.5) * Math.PI;
+                ctx.arc(x, y, radius, 0.75 * Math.PI, endAngle);
+                ctx.lineWidth = 10;
+                
+                const grad = ctx.createLinearGradient(0, y - radius, 0, y + radius);
+                grad.addColorStop(0, '#a855f7'); 
+                grad.addColorStop(1, '#f97316'); 
+                
+                ctx.strokeStyle = grad;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+            
+            // Subtle ticks
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1.5;
+            for (let angle = 0.75 * Math.PI; angle <= 2.25 * Math.PI; angle += 0.08 * Math.PI) {
+                const startX = x + (radius - 12) * Math.cos(angle);
+                const startY = y + (radius - 12) * Math.sin(angle);
+                const endX = x + (radius - 8) * Math.cos(angle);
+                const endY = y + (radius - 8) * Math.sin(angle);
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+            }
+        }
+
+        // Preset Configurations
+        function applyPreset(name) {
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = event ? event.target : null;
+            if (activeBtn) activeBtn.classList.add('active');
+
+            if (name === 'default') {
+                document.getElementById('initialBalance').value = 1000;
+                document.getElementById('baseBet').value = 10;
+                document.getElementById('maxDoubling').value = 5;
+                document.getElementById('roundsPerBattle').value = 10;
+                document.getElementById('battleAlgo').value = '1';
+                document.getElementById('enableNoise').checked = false;
+                document.getElementById('pWin').value = 34;
+                document.getElementById('pDraw').value = 32;
+                document.getElementById('targetMultiplier').value = 1.5;
+            } else if (name === 'aggressive') {
+                document.getElementById('initialBalance').value = 1000;
+                document.getElementById('baseBet').value = 10;
+                document.getElementById('maxDoubling').value = 5;
+                document.getElementById('roundsPerBattle').value = 10;
+                document.getElementById('battleAlgo').value = '2';
+                document.getElementById('enableNoise').checked = false;
+                document.getElementById('pWin').value = 34;
+                document.getElementById('pDraw').value = 32;
+                document.getElementById('targetMultiplier').value = 1.5;
+            } else if (name === 'conservative') {
+                document.getElementById('initialBalance').value = 1000;
+                document.getElementById('baseBet').value = 10;
+                document.getElementById('maxDoubling').value = 5;
+                document.getElementById('roundsPerBattle').value = 10;
+                document.getElementById('battleAlgo').value = '4';
+                document.getElementById('enableNoise').checked = false;
+                document.getElementById('pWin').value = 34;
+                document.getElementById('pDraw').value = 32;
+                document.getElementById('targetMultiplier').value = 1.5;
+            } else if (name === 'masterclass') {
+                document.getElementById('initialBalance').value = 1000;
+                document.getElementById('baseBet').value = 1;
+                document.getElementById('maxDoubling').value = 3;
+                document.getElementById('roundsPerBattle').value = 5;
+                document.getElementById('battleAlgo').value = '4';
+                document.getElementById('enableNoise').checked = true;
+                document.getElementById('noiseLevel').value = 16;
+                document.getElementById('pWin').value = 33.34;
+                document.getElementById('pDraw').value = 33.33;
+                document.getElementById('targetMultiplier').value = 2.0;
+            }
+            toggleNoiseVisibility();
+        }
+
+        // Tab switches logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.chart-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.side-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            document.getElementById(tabId).classList.add('active');
+
+            if (tabId === 'tab-sessions') {
+                document.getElementById('tabBtnSessions').classList.add('active');
+                document.getElementById('sideBtnMain').classList.add('active');
+            } else {
+                document.getElementById('tabBtnDist').classList.add('active');
+                document.getElementById('sideBtnDist').classList.add('active');
+            }
+        }
+
+        document.getElementById('tabBtnSessions').addEventListener('click', () => switchTab('tab-sessions'));
+        document.getElementById('tabBtnDist').addEventListener('click', () => switchTab('tab-distribution'));
+        document.getElementById('sideBtnMain').addEventListener('click', () => switchTab('tab-sessions'));
+        document.getElementById('sideBtnDist').addEventListener('click', () => switchTab('tab-distribution'));
+        document.getElementById('sideBtnReport').addEventListener('click', () => {
+            document.getElementById('report').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Battle logic simulations
+        function simulateBattle1(bet, config) {
+            let battleBalance = bet;
+            for (let r = 0; r < config.roundsPerBattle; r++) {
+                const rand = Math.random();
+                if (rand < config.pWin) {
+                    let gain = bet;
+                    if (config.enableNoise && Math.random() < config.noiseProbability) {
+                        gain = bet;
+                    }
+                    battleBalance += gain;
+                } else if (rand < config.pWin + config.pDraw) {
+                    // Draw
+                } else {
+                    battleBalance -= bet;
+                }
+                if (battleBalance <= 0) return 0;
+            }
+            return battleBalance;
+        }
+
+        function simulateBattle2(bet, config) {
+            let battleBalance = bet;
+            for (let r = 1; r <= config.roundsPerBattle; r++) {
+                const rand = Math.random();
+                let change = 0;
+                const isNoise = config.enableNoise && Math.random() < config.noiseProbability;
+                
+                if (r === 1) {
+                    if (rand < config.pWin) {
+                        change = bet;
+                    } else if (rand < config.pWin + config.pDraw) {
+                        change = 0;
+                    } else {
+                        change = -bet;
+                    }
+                } else {
+                    const mult = r - 1;
+                    if (rand < config.pWin) {
+                        change = isNoise ? bet : (mult * bet);
+                    } else if (rand < config.pWin + config.pDraw) {
+                        change = 0;
+                    } else {
+                        change = isNoise ? -bet : (-mult * bet);
+                    }
+                }
+                
+                battleBalance += change;
+                if (battleBalance <= 0) return 0;
+            }
+            return battleBalance;
+        }
+
+        function simulateBattle3(bet, config) {
+            let battleBalance = bet;
+            for (let r = 1; r <= config.roundsPerBattle; r++) {
+                const rand = Math.random();
+                let change = 0;
+                let weight = 1;
+                const isNoise = config.enableNoise && Math.random() < config.noiseProbability;
+                
+                if (r === 2) weight = 2;
+                
+                if (rand < config.pWin) {
+                    change = isNoise ? bet : (weight * bet);
+                } else if (rand < config.pWin + config.pDraw) {
+                    change = 0;
+                } else {
+                    change = isNoise ? -bet : (-weight * bet);
+                }
+                
+                battleBalance += change;
+                if (battleBalance <= 0) return 0;
+            }
+            return battleBalance;
+        }
+
+        function simulateBattle4(bet, config) {
+            let battleBalance = bet;
+            for (let r = 1; r <= config.roundsPerBattle; r++) {
+                const rand = Math.random();
+                let change = 0;
+                let weight = 1;
+                const isNoise = config.enableNoise && Math.random() < config.noiseProbability;
+                
+                if (r === 2) {
+                    weight = 2;
+                } else if (r === 3) {
+                    weight = 4;
+                }
+                
+                if (rand < config.pWin) {
+                    change = isNoise ? bet : (weight * bet);
+                } else if (rand < config.pWin + config.pDraw) {
+                    change = 0;
+                } else {
+                    change = isNoise ? -bet : (-weight * bet);
+                }
+                
+                battleBalance += change;
+                if (battleBalance <= 0) return 0;
+            }
+            return battleBalance;
+        }
+
+        async function runSimulation() {
+            const config = {
+                initialBalance: parseFloat(document.getElementById('initialBalance').value),
+                baseBet: parseFloat(document.getElementById('baseBet').value),
+                maxDoubling: parseInt(document.getElementById('maxDoubling').value),
+                roundsPerBattle: parseInt(document.getElementById('roundsPerBattle').value),
+                pWin: parseFloat(document.getElementById('pWin').value) / 100,
+                pDraw: parseFloat(document.getElementById('pDraw').value) / 100,
+                targetMultiplier: parseFloat(document.getElementById('targetMultiplier').value),
+                battleAlgo: document.getElementById('battleAlgo').value,
+                enableNoise: document.getElementById('enableNoise').checked,
+                noiseProbability: parseFloat(document.getElementById('noiseLevel').value) / 100,
+                numSessions: 10000
+            };
+
+            const targetBalance = config.initialBalance * config.targetMultiplier;
+            const pLoss = 1 - config.pWin - config.pDraw;
+
+            document.getElementById('runBtn').disabled = true;
+            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('status').innerText = 'Simulation de 10,000 sessions...';
+
+            setTimeout(() => {
+                let sessionSuccesses = 0;
+                let globalMaxDrawdown = 0;
+                let globalMaxBetReached = 0;
+                let lastSessionHistory = [];
+                let betDistribution = {};
+                let startTime = performance.now();
+
+                for (let s = 0; s < config.numSessions; s++) {
+                    let balance = config.initialBalance;
+                    let currentBet = config.baseBet;
+                    let doublingCount = 0;
+                    let peak = balance;
+                    let sessionMaxDrawdown = 0;
+                    let sessionHistory = [balance];
+                    let isLastSession = (s === config.numSessions - 1);
+
+                    while (balance >= currentBet && balance < targetBalance) {
+                        const currentMultiplier = currentBet / config.baseBet;
+                        betDistribution[currentMultiplier] = (betDistribution[currentMultiplier] || 0) + 1;
+
+                        const battleCost = currentBet;
+                        let battleFn;
+                        if (config.battleAlgo === '1') battleFn = simulateBattle1;
+                        else if (config.battleAlgo === '2') battleFn = simulateBattle2;
+                        else if (config.battleAlgo === '3') battleFn = simulateBattle3;
+                        else battleFn = simulateBattle4;
+                        
+                        const battleBalance = battleFn(currentBet, config);
+                        balance = balance - battleCost + battleBalance;
+
+                        if (battleBalance > battleCost) {
+                            currentBet = config.baseBet;
+                            doublingCount = 0;
+                        } else if (battleBalance < battleCost) {
+                            if (doublingCount < config.maxDoubling) {
+                                currentBet *= 2;
+                                doublingCount++;
+                            } else {
+                                currentBet = config.baseBet;
+                                doublingCount = 0;
+                            }
+                        }
+
+                        if (currentBet > globalMaxBetReached) globalMaxBetReached = currentBet;
+
+                        if (balance > peak) peak = balance;
+                        let currentDrawdown = peak > 0 ? (peak - balance) / peak : 1;
+                        if (currentDrawdown > sessionMaxDrawdown) sessionMaxDrawdown = currentDrawdown;
+
+                        if (isLastSession) sessionHistory.push(balance);
+                    }
+
+                    if (balance >= targetBalance) sessionSuccesses++;
+                    if (sessionMaxDrawdown > globalMaxDrawdown) globalMaxDrawdown = sessionMaxDrawdown;
+                    if (isLastSession) lastSessionHistory = sessionHistory;
+                }
+
+                let endTime = performance.now();
+                updateUI(lastSessionHistory, sessionSuccesses, globalMaxDrawdown, globalMaxBetReached, betDistribution, (endTime - startTime).toFixed(2));
+                generateReport(config, sessionSuccesses, globalMaxDrawdown, globalMaxBetReached, pLoss, targetBalance);
+            }, 100);
+        }
+
+        function updateUI(history, successes, maxDrawdown, maxBet, distribution, time) {
+            document.getElementById('runBtn').disabled = false;
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('status').innerText = `Terminé en ${time}ms`;
+
+            const successPct = (successes / 10000) * 100;
+            document.getElementById('statSuccess').innerText = successPct.toFixed(2) + '%';
+            document.getElementById('statDrawdown').innerText = (maxDrawdown * 100).toFixed(2) + '%';
+            document.getElementById('statFinal').innerText = successes.toLocaleString() + ' / 10k';
+            document.getElementById('statMaxBet').innerText = maxBet.toLocaleString();
+
+            // Draw Success Gauge Canvas
+            drawSuccessGauge(successPct);
+
+            // Update Main Chart
+            mainChart.data.labels = history.map((_, i) => i);
+            mainChart.data.datasets[0].data = history;
+            mainChart.update();
+
+            // Update Distribution Chart
+            const sortedMultipliers = Object.keys(distribution).map(Number).sort((a, b) => a - b);
+            distChart.data.labels = sortedMultipliers.map(m => m + 'x');
+            distChart.data.datasets[0].data = sortedMultipliers.map(m => distribution[m]);
+            distChart.update();
+        }
+
+        function generateReport(config, successes, maxDrawdown, maxBet, pLoss, target) {
+            const successRate = (successes / 10000) * 100;
+            const report = `
+=== RAPPORT DE SIMULATION MONTE CARLO ===
+Date : ${new Date().toLocaleString()}
+Simulations : 10,000 sessions indépendantes
+
+1. LOGIQUE DE MARTINGALE
+- Gestion : Doublement de la mise de combat après une bataille perdante.
+- Limite : Reset à la mise de base après ${config.maxDoubling} doublements.
+- Résultat : Mise maximale observée sur 10k sessions : ${maxBet.toLocaleString()} unités.
+
+2. MÉTHODE DE PROBABILITÉS
+- Combat : Tirage aléatoire par round.
+- Probabilités Round : Victoire ${config.pWin * 100}%, Nul ${config.pDraw * 100}%, Défaite ${(pLoss * 100).toFixed(1)}%.
+- Battle Outcome : Profit si Balance Bataille > Mise Bataille.
+
+3. ANALYSE DE SESSION
+- Objectif : Atteindre ${target.toLocaleString()} (Multiple X${config.targetMultiplier}).
+- Taux de succès global : ${successRate.toFixed(2)}% (Sessions gagnantes).
+- Drawdown Maximum (Pire cas) : ${(maxDrawdown * 100).toFixed(2)}%
+
+4. POINTS D'OPTIMISATION IDENTIFIÉS
+- La Martingale augmente drastiquement le risque de ruine brutale (Drawdown 100%).
+- Consultez l'onglet "Distribution des Mises" pour voir la rareté des gros paliers.
+- Recommandation : Limiter les sessions à un petit profit fixe pour sécuriser la balance.
+            `;
+            document.getElementById('report').innerText = report;
+        }
+
+        // Noise Toggle Visibility Logic
+        const enableNoiseCheckbox = document.getElementById('enableNoise');
+        const noiseLevelGroup = document.getElementById('noiseLevelGroup');
+        function toggleNoiseVisibility() {
+            noiseLevelGroup.style.display = enableNoiseCheckbox.checked ? 'flex' : 'none';
+        }
+        enableNoiseCheckbox.addEventListener('change', toggleNoiseVisibility);
+        
+        window.addEventListener('load', () => {
+            initCharts();
+            drawSuccessGauge(0);
+            toggleNoiseVisibility();
+        });
+
+        document.getElementById('runBtn').addEventListener('click', runSimulation);
+
+    </script>
+</body>
+
+</html>
