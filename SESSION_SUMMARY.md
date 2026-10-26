@@ -11,7 +11,7 @@
 - Projet **BattlePool** : jeu PvP RPS on-chain, L1 **Pingala** (chainId **99999**, natif **TST**),
   RPC `https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc`.
 - **Prod** : `https://battlepool.31.187.72.98.sslip.io` — conteneurs `battlepool-*` healthy.
-- **SHA déployé en prod** : **`6628503`** (deploy 2026-10-26 par agent local) ; tip git **`fe5153a`** — branche `feat/avaxe-bridge` (voir §7).
+- **SHA déployé en prod** : **`6628503`** (deploy 2026-10-26 par agent local) ; tip git **`87fb832`** — branche `feat/avaxe-bridge` (voir §7).
 - **Migration TST → AVAXe FAITE** : devise de jeu = **AVAXe** (ERC-20 `0x9d8A…37F7`), contrat
   **BattlepoolV2** `0xb628C8dE…385E` (dépôt/payout/claim ERC-20). TST = gas natif uniquement.
 - **71 bots** (réduit de 240 pour alléger la charge CPU ; `simulation_accounts.json`), pools de **5**.
@@ -26,6 +26,10 @@
   `recoverFinishedPools` en JOIN inversée, purge des pools finies >3 min (commande `battle:cleanup`).
 - **Scheduler** : conteneur `battlepool-scheduler` (`php artisan schedule:work`) → `battle:cleanup` chaque
   minute (pools finies purgées). Service présent dans `docker-compose.yml` (git) ET `docker-compose.prod.yml` (VPS).
+- **Simulateur** (`simulator/index.html`, Monte Carlo) : **Algo 5 « New Engine »** implémenté — pool par rounds
+  (R1 ×2, R2 prend toute la battle balance ×4, R3+ ±base, nul/bye = bruit, éliminé si bal≤0). `poolSize`
+  défaut **13** (max **16**), `maxRounds` défaut 5. Estimation actuelle (stack 0.4/baseBet 0.0004/target 1.2) :
+  succès ~44 % (≤30k fights), ruin 0 %, **~12-14k fights pour atteindre le target**.
 
 ---
 
