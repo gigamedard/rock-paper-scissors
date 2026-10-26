@@ -32,6 +32,8 @@
   `maxRounds` défaut 5. Estimations (stack 0.4/baseBet 0.0004) : Algo 5 → ~44 % succès, 0 % ruine, ~12-14k
   fights ; Algo 6 (martingale) → ~45 % succès mais ~44 % ruine ; Algo 6 (fixe) → target ×2 trop loin (~0,5 %).
   Constat : la **distance du target** (ruine du joueur) est le facteur clé — ×1.2 ≫ ×2.
+- **Simulateur Algo 6 autonome** : `public/simulator-algo6.html` (HTML/CSS/JS, Monte Carlo, testable seul,
+  sans dépendance).
 
 ---
 
