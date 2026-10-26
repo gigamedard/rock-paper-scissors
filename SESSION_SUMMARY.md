@@ -11,7 +11,7 @@
 - Projet **BattlePool** : jeu PvP RPS on-chain, L1 **Pingala** (chainId **99999**, natif **TST**),
   RPC `https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc`.
 - **Prod** : `https://battlepool.31.187.72.98.sslip.io` — conteneurs `battlepool-*` healthy.
-- **SHA déployé en prod** : **`d561e34`** (avant le déploiement du 2026-10-25 ; voir §7) — branche `feat/avaxe-bridge`.
+- **SHA déployé en prod** : **`f5ec00b`** (2026-10-26 ; images `:f5ec00b`, stack healthy) — branche `feat/avaxe-bridge` (voir §7).
 - **Migration TST → AVAXe FAITE** : devise de jeu = **AVAXe** (ERC-20 `0x9d8A…37F7`), contrat
   **BattlepoolV2** `0xb628C8dE…385E` (dépôt/payout/claim ERC-20). TST = gas natif uniquement.
 - **240 bots** (indices 0-239, `simulation_accounts.json` 244 entrées), pools de **5**.
@@ -29,7 +29,7 @@
 |---|---|---|
 | `feat/app1-deeplink-app2` | `9712b03` | **Ligne de travail principale** (toutes les features UI/game) |
 | `feat/app1-claim-pingala-fix` | `3653ef0` | **Version corrigée du claim** (force Pingala) — mise de côté à la demande de l'opérateur |
-| `feat/avaxe-bridge` | `5cd3eac` | **Branche active = prod** (migration AVAXe + 240 bots + index DB + fix claim §7) |
+| `feat/avaxe-bridge` | `f5ec00b` | **Branche active = prod** (migration AVAXe + 240 bots + index DB + fix claim §7) |
 | `docs/app1-collab-protocol` | `8c14341` | **Protocole LOCAL↔CLOUD** (COLLAB_STATE + handoffs + onboarding) — PR → master |
 | `docs/cloud-faucet-2026-10-18` | — | Passations/COLLAB_STATE (docs du protocole) |
 | `master` | ancien | Intégration (PR uniquement, pas de push direct) |
@@ -187,5 +187,19 @@ node secrets-manager.mjs deprovision
 - Front (`resources/js/modules/game.js`) : état « **Génération de votre récompense…** » au lieu
   de masquer la zone.
 
-### Prod
-- Avant déploiement : `d561e34`. **Déployé à l'issue de ce commit** sur `feat/avaxe-bridge`.
+### Prod (déploiement 2026-10-26)
+- Avant : `d561e34`. **Déployé : `f5ec00b`** (branche `feat/avaxe-bridge`) — images taguées
+  `:f5ec00b`, stack **healthy**, `GET /api/health` OK.
+- **Incidents corrigés pendant ce deploy** (à connaître pour la suite) :
+  1. `db-entrypoint.sh` était versionné **mode 644** → MySQL « permission denied » au démarrage.
+     Corrigé en **755** dans git (`1d0c034`).
+  2. **Dérive de migrations** : certains index existaient déjà en base alors que la migration
+     n'était pas enregistrée → `init-db` exit 1 (`Duplicate key name`). Migrations rendues
+     **idempotentes** : `idx_f_hists_user1/2`, `idx_users_matchmaking`, `idx_pools_matchmaking`,
+     `idx_pools_status_created_at` (`802e13a`, `f5ec00b`).
+  3. **Health gate** : le conteneur orphelin `battlepool-scheduler` (hors compose, **sans
+     healthcheck**) était compté `unhealthy` → `BP-FATAL` alors que la stack était saine.
+     Gate corrigé (`deploy/deploy_vps.sh` : ignore les conteneurs sans healthcheck).
+- **Note** : `battlepool-scheduler` tourne une image **`c670807`** (orphelin, absent du
+  `docker-compose.prod.yml`) ; le schedule (`battle:cleanup` everyMinute,
+  `cards:sync-expired-limits`) fonctionne. **À intégrer proprement dans le compose prod** ensuite.
