@@ -15,7 +15,7 @@
 - **Migration TST → AVAXe FAITE** : devise de jeu = **AVAXe** (ERC-20 `0x9d8A…37F7`), contrat
   **BattlepoolV2** `0xb628C8dE…385E` (dépôt/payout/claim ERC-20). TST = gas natif uniquement.
 - **71 bots** (réduit de 240 pour alléger la charge CPU ; `simulation_accounts.json`), pools de **5**.
-- **Config matchmaking** : serveur `run_batch_processor.js` intervalle **2 s** (env `BATCH_PROCESSOR_INTERVAL`),
+- **Config matchmaking** : serveur `run_batch_processor.js` intervalle **1,57 s** (env `BATCH_PROCESSOR_INTERVAL`),
   **6 workers** Swoole, lock `metrics_collect_tick` TTL **10 s**, polling client **200 ms**.
 - **Anti-deadlock** : le lock `metrics_collect_tick` est partagé serveur+client — `PoolAutoMatchController`
   (processBatch/processAllBetTiers/processInternalPools) l'acquiert comme `GameMetricsController` → un seul
