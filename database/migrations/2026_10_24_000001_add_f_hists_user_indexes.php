@@ -19,9 +19,28 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('f_hists', function (Blueprint $table) {
-            $table->index(['user1_id', 'created_at'], 'idx_f_hists_user1');
-            $table->index(['user2_id', 'created_at'], 'idx_f_hists_user2');
+        // IDEMPOTENT : sur la base prod, ces index peuvent déjà exister
+        // (création manuelle / run partiel) alors que la migration n'est pas
+        // enregistrée → « Duplicate key name ». On n'ajoute que les manquants.
+        $existing = \Illuminate\Support\Facades\DB::table('information_schema.STATISTICS')
+            ->where('TABLE_SCHEMA', \Illuminate\Support\Facades\DB::getDatabaseName())
+            ->where('TABLE_NAME', 'f_hists')
+            ->pluck('INDEX_NAME')
+            ->unique()
+            ->all();
+
+        $missing = array_values(array_diff(['idx_f_hists_user1', 'idx_f_hists_user2'], $existing));
+        if (empty($missing)) {
+            return;
+        }
+
+        Schema::table('f_hists', function (Blueprint $table) use ($missing) {
+            if (in_array('idx_f_hists_user1', $missing, true)) {
+                $table->index(['user1_id', 'created_at'], 'idx_f_hists_user1');
+            }
+            if (in_array('idx_f_hists_user2', $missing, true)) {
+                $table->index(['user2_id', 'created_at'], 'idx_f_hists_user2');
+            }
         });
     }
 
