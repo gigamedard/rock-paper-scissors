@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulateur Algo 6 — Battle Pool</title>
+<style>
+    :root {
+        --bg: #0a1220;
+        --card: #121e30;
+        --border: #1e3350;
+        --text: #e6f1ff;
+        --muted: #7f9bb8;
+        --accent: #00e5ff;
+        --gold: #ffc700;
+        --green: #22c55e;
+        --red: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 24px 16px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 {
+        font-size: 1.5rem;
+        margin-bottom: 4px;
+        letter-spacing: 0.5px;
+    }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+    .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+    .field label {
+        display: block;
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+    }
+    .field input {
+        width: 100%;
+        background: #0a1626;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 9px 11px;
+        color: var(--text);
+        font-size: 0.95rem;
+        outline: none;
+    }
+    .field input:focus { border-color: var(--accent); }
+    button {
+        width: 100%;
+        background: linear-gradient(135deg, var(--accent), #0088cc);
+        color: #02121e;
+        border: none;
+        border-radius: 10px;
+        padding: 13px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-top: 4px;
+    }
+    .stat {
+        background: #0d1a2b;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+    }
+    .stat .val {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin-bottom: 2px;
+    }
+    .stat .lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .green { color: var(--green); }
+    .red { color: var(--red); }
+    .gold { color: var(--gold); }
+    .accent { color: var(--accent); }
+    .hint { font-size: 0.75rem; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+    #status { font-size: 0.8rem; color: var(--accent); margin-top: 10px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Simulateur Algo 6</h1>
+    <p class="sub">Battle Pool — Monte Carlo · R1 base, R2/R3 bénéfice, R4+ base, martingale</p>
+
+    <div class="card">
+        <div class="grid">
+            <div class="field"><label>Balance initiale</label><input id="initialBalance" type="number" value="0.4" step="0.1"></div>
+            <div class="field"><label>Mise de base</label><input id="baseBet" type="number" value="0.0004" step="0.0001"></div>
+            <div class="field"><label>Target (multiple)</label><input id="targetMultiplier" type="number" value="2" step="0.1"></div>
+            <div class="field"><label>Max doublements</label><input id="maxDoubling" type="number" value="4" step="1"></div>
+            <div class="field"><label>Taille pool</label><input id="poolSize" type="number" value="13" min="2" max="16" step="1"></div>
+            <div class="field"><label>Rounds / pool</label><input id="maxRounds" type="number" value="5" step="1"></div>
+            <div class="field"><label>Victoire (%)</label><input id="pWin" type="number" value="33.33" step="0.01"></div>
+            <div class="field"><label>Nul (%)</label><input id="pDraw" type="number" value="33.33" step="0.01"></div>
+            <div class="field"><label>Simulations</label><input id="numSessions" type="number" value="10000" step="1000"></div>
+            <div class="field"><label>Fights max / session</label><input id="maxFights" type="number" value="100000" step="10000"></div>
+        </div>
+        <button id="runBtn">Lancer la simulation</button>
+        <div id="status"></div>
+    </div>
+
+    <div class="card">
+        <div class="stats" id="stats">
+            <div class="stat"><div class="val muted">—</div><div class="lbl">Succès (target)</div></div>
+            <div class="stat"><div class="val muted">—</div><div class="lbl">Ruine</div></div>
+            <div class="stat"><div class="val muted">—</div><div class="lbl">Non résolus</div></div>
+            <div class="stat"><div class="val muted">—</div><div class="lbl">Fights → target (moy)</div></div>
+            <div class="stat"><div class="val muted">—</div><div class="lbl">Fights → ruine (moy)</div></div>
+            <div class="stat"><div class="val muted">—</div><div class="lbl">Temps</div></div>
+        </div>
+        <p class="hint">
+            Algo 6 : chaque pool a <b>poolSize</b> joueurs démarrant à la <b>mise courante</b>.
+            Round 1 : le gagnant prend la mise du perdant (×2, perdant éliminé). Rounds 2-3 : le gagnant prend le
+            <b>bénéfice</b> du perdant (le perdant garde la base). Rounds 4+ : ±mise. Nul/bye = pas de changement.
+            Martingale : victoire (balance finale &gt; mise) → reset ; défaite → ×2 (max <b>maxDoublements</b>), puis reset.
+        </p>
+    </div>
+</div>
+
+<script>
+    // ---------- Algo 6 : un pool ----------
+    // Retourne la battle balance finale du joueur 0 (index 0), en unités monétaires.
+    function simulatePool(bet, poolSize, maxRounds, pWin, pDraw) {
+        const bals = new Array(poolSize).fill(bet);
+
+        for (let round = 1; round <= maxRounds; round++) {
+            // joueurs encore vivants
+            const idx = [];
+            for (let i = 0; i < bals.length; i++) if (bals[i] > 0) idx.push(i);
+
+            // mélange aléatoire
+            for (let i = idx.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+            }
+
+            // appariement 2 à 2 (bye si impair)
+            for (let k = 0; k + 1 < idx.length; k += 2) {
+                const a = idx[k], b = idx[k + 1];
+                const r = Math.random();
+                let w, l;
+                if (r < pWin) { w = a; l = b; }
+                else if (r < pWin + pDraw) continue; // nul
+                else { w = b; l = a; }
+
+                if (round === 1) {
+                    // le gagnant prend la mise du perdant (perdant éliminé)
+                    bals[w] += bet;
+                    bals[l] -= bet;
+                } else if (round === 2 || round === 3) {
+                    // le gagnant prend le bénéfice du perdant, qui garde la base
+                    const benefit = Math.max(0, bals[l] - bet);
+                    bals[w] += benefit;
+                    bals[l] = bet;
+                } else {
+                    // rounds 4+ : ± mise
+                    bals[w] += bet;
+                    bals[l] -= bet;
+                }
+            }
+
+            if (bals[0] <= 0) return 0; // joueur suivi éliminé
+        }
+        return bals[0];
+    }
+
+    // ---------- Simulation Monte Carlo ----------
+    function runSimulation() {
+        const cfg = {
+            initialBalance: parseFloat(document.getElementById('initialBalance').value),
+            baseBet: parseFloat(document.getElementById('baseBet').value),
+            targetMultiplier: parseFloat(document.getElementById('targetMultiplier').value),
+            maxDoubling: parseInt(document.getElementById('maxDoubling').value),
+            poolSize: parseInt(document.getElementById('poolSize').value),
+            maxRounds: parseInt(document.getElementById('maxRounds').value),
+            pWin: parseFloat(document.getElementById('pWin').value) / 100,
+            pDraw: parseFloat(document.getElementById('pDraw').value) / 100,
+            numSessions: parseInt(document.getElementById('numSessions').value),
+            maxFights: parseInt(document.getElementById('maxFights').value)
+        };
+
+        if (!cfg.initialBalance || !cfg.baseBet || !cfg.targetMultiplier || !cfg.numSessions) {
+            document.getElementById('status').innerText = 'Vérifie les paramètres.';
+            return;
+        }
+
+        const target = cfg.initialBalance * cfg.targetMultiplier;
+        const btn = document.getElementById('runBtn');
+        btn.disabled = true;
+        document.getElementById('status').innerText = `Simulation de ${cfg.numSessions.toLocaleString()} sessions…`;
+
+        setTimeout(() => {
+            const t0 = performance.now();
+
+            let success = 0, ruin = 0, capped = 0;
+            let sumFightsSuccess = 0, sumFightsRuin = 0;
+            const distSuccess = [];
+
+            for (let s = 0; s < cfg.numSessions; s++) {
+                let balance = cfg.initialBalance;
+                let currentBet = cfg.baseBet;
+                let doublingCount = 0;
+                let fights = 0;
+
+                while (balance >= currentBet && balance < target && fights < cfg.maxFights) {
+                    const battleBalance = simulatePool(
+                        currentBet, cfg.poolSize, cfg.maxRounds, cfg.pWin, cfg.pDraw
+                    );
+                    balance = balance - currentBet + battleBalance;
+                    fights++;
+
+                    // martingale
+                    if (battleBalance > currentBet) {
+                        currentBet = cfg.baseBet;
+                        doublingCount = 0;
+                    } else if (battleBalance < currentBet) {
+                        if (doublingCount < cfg.maxDoubling) {
+                            currentBet *= 2;
+                            doublingCount++;
+                        } else {
+                            currentBet = cfg.baseBet;
+                            doublingCount = 0;
+                        }
+                    }
+                }
+
+                if (balance >= target) {
+                    success++;
+                    sumFightsSuccess += fights;
+                    distSuccess.push(fights);
+                } else if (balance < currentBet) {
+                    ruin++;
+                    sumFightsRuin += fights;
+                } else {
+                    capped++;
+                }
+            }
+
+            const elapsed = performance.now() - t0;
+            const pct = n => ((n / cfg.numSessions) * 100).toFixed(2) + '%';
+            const avgSuccess = success ? Math.round(sumFightsSuccess / success) : 0;
+            const avgRuin = ruin ? Math.round(sumFightsRuin / ruin) : 0;
+
+            document.getElementById('stats').innerHTML = `
+                <div class="stat"><div class="val green">${pct(success)}</div><div class="lbl">Succès (target)</div></div>
+                <div class="stat"><div class="val red">${pct(ruin)}</div><div class="lbl">Ruine</div></div>
+                <div class="stat"><div class="val gold">${pct(capped)}</div><div class="lbl">Non résolus</div></div>
+                <div class="stat"><div class="val accent">${avgSuccess.toLocaleString()}</div><div class="lbl">Fights → target (moy)</div></div>
+                <div class="stat"><div class="val accent">${avgRuin.toLocaleString()}</div><div class="lbl">Fights → ruine (moy)</div></div>
+                <div class="stat"><div class="val">${Math.round(elapsed)} ms</div><div class="lbl">Temps</div></div>
+            `;
+            document.getElementById('status').innerText = `Terminé — ${cfg.numSessions.toLocaleString()} sessions en ${Math.round(elapsed)} ms`;
+            btn.disabled = false;
+        }, 50);
+    }
+
+    document.getElementById('runBtn').addEventListener('click', runSimulation);
+</script>
+</body>
+</html>
