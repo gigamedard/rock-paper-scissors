@@ -11,15 +11,17 @@
 - Projet **BattlePool** : jeu PvP RPS on-chain, L1 **Pingala** (chainId **99999**, natif **TST**),
   RPC `https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc`.
 - **Prod** : `https://battlepool.31.187.72.98.sslip.io` — conteneurs `battlepool-*` healthy.
-- **SHA déployé en prod** : **`f5ec00b`** (2026-10-26 ; images `:f5ec00b`, stack healthy) — branche `feat/avaxe-bridge` (voir §7).
+- **SHA déployé en prod** : **`6628503`** (deploy 2026-10-26 par agent local) ; tip git **`9f78e9d`** (scheduler commité) — branche `feat/avaxe-bridge` (voir §7).
 - **Migration TST → AVAXe FAITE** : devise de jeu = **AVAXe** (ERC-20 `0x9d8A…37F7`), contrat
   **BattlepoolV2** `0xb628C8dE…385E` (dépôt/payout/claim ERC-20). TST = gas natif uniquement.
-- **240 bots** (indices 0-239, `simulation_accounts.json` 244 entrées), pools de **5**.
-- **Config matchmaking** (équilibrée après bench) : serveur `run_batch_processor.js` intervalle
-  **1,57 s** (env `BATCH_PROCESSOR_INTERVAL`), **6 workers** Swoole, lock `metrics_collect_tick` TTL **10 s**,
-  polling client **200 ms**.
-- **Optimisations DB** (migrations) : index composites `f_hists`/`users`/`pools`, buffer pool **2 G**,
-  `innodb_flush_log_at_trx_commit=2` (dans `docker-compose.prod.yml`, pas dans git).
+- **71 bots** (réduit de 240 pour alléger la charge CPU ; `simulation_accounts.json`), pools de **5**.
+- **Config matchmaking** : serveur `run_batch_processor.js` intervalle **2 s** (env `BATCH_PROCESSOR_INTERVAL`),
+  **6 workers** Swoole, lock `metrics_collect_tick` TTL **10 s**, polling client **200 ms**.
+- **Optimisations DB** (migrations) : index composites `f_hists`/`users`/`pools`/`pools(status,created_at)`,
+  buffer pool **2 G**, `innodb_flush_log_at_trx_commit=2` (dans `docker-compose.prod.yml`, pas dans git),
+  `recoverFinishedPools` en JOIN inversée, purge des pools finies >3 min (commande `battle:cleanup`).
+- **Scheduler** : conteneur `battlepool-scheduler` (`php artisan schedule:work`) → `battle:cleanup` chaque
+  minute (pools finies purgées). Service présent dans `docker-compose.yml` (git) ET `docker-compose.prod.yml` (VPS).
 
 ---
 
@@ -29,7 +31,7 @@
 |---|---|---|
 | `feat/app1-deeplink-app2` | `9712b03` | **Ligne de travail principale** (toutes les features UI/game) |
 | `feat/app1-claim-pingala-fix` | `3653ef0` | **Version corrigée du claim** (force Pingala) — mise de côté à la demande de l'opérateur |
-| `feat/avaxe-bridge` | `f5ec00b` | **Branche active = prod** (migration AVAXe + 240 bots + index DB + fix claim §7) |
+| `feat/avaxe-bridge` | `9f78e9d` | **Branche active = prod** (migration AVAXe + 71 bots + index DB + purge pools + scheduler + fix claim §7) |
 | `docs/app1-collab-protocol` | `8c14341` | **Protocole LOCAL↔CLOUD** (COLLAB_STATE + handoffs + onboarding) — PR → master |
 | `docs/cloud-faucet-2026-10-18` | — | Passations/COLLAB_STATE (docs du protocole) |
 | `master` | ancien | Intégration (PR uniquement, pas de push direct) |
