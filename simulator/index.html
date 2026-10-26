@@ -705,6 +705,14 @@
                                 <label>Rounds par Combat</label>
                                 <input type="number" id="roundsPerBattle" value="10" step="1">
                             </div>
+                            <div class="input-group">
+                                <label>Taille Pool (New Engine)</label>
+                                <input type="number" id="poolSize" value="13" min="2" max="16" step="1">
+                            </div>
+                            <div class="input-group">
+                                <label>Rounds par Pool (New Engine)</label>
+                                <input type="number" id="maxRounds" value="5" step="1">
+                            </div>
                             <div class="input-group full-width">
                                 <label>Algorithme de Combat</label>
                                 <select id="battleAlgo">
@@ -712,6 +720,7 @@
                                     <option value="2">Progressif (Multiplicateur Round)</option>
                                     <option value="3">Pondéré (Round 2 x2)</option>
                                     <option value="4">Pondéré V2 (R2 x2, R3 x4)</option>
+                                    <option value="5">New Engine (Pool: R1 x2, R2 x4, R3+ ±base, élimination)</option>
                                 </select>
                             </div>
                             <div class="input-group">
@@ -1135,6 +1144,36 @@
             return battleBalance;
         }
 
+        // NEW ENGINE (Algo 5) — pool par rounds.
+        // R1: win += base (x2). R2: win prend TOUTE la battle balance adverse (x4).
+        // R3+: win/lose += / -= base. Nul/bye = pas de changement. Éliminé si bal <= 0.
+        // Retourne le solde final du joueur 0 (en unités de baseBet).
+        function simulateNewEnginePool(poolSize, maxRounds, pWin, pDraw) {
+            let bals = new Array(poolSize).fill(1); // 1 unité = baseBet
+            for (let round = 1; round <= maxRounds; round++) {
+                let idx = [];
+                for (let i = 0; i < bals.length; i++) if (bals[i] > 0) idx.push(i);
+                for (let i = idx.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    const tmp = idx[i]; idx[i] = idx[j]; idx[j] = tmp;
+                }
+                for (let k = 0; k + 1 < idx.length; k += 2) {
+                    const a = idx[k], b = idx[k + 1];
+                    const rand = Math.random();
+                    if (rand < pWin) applyNewEngineWin(bals, a, b, round);
+                    else if (rand < pWin + pDraw) { /* nul */ }
+                    else applyNewEngineWin(bals, b, a, round);
+                }
+                if (bals[0] <= 0) return 0;
+            }
+            return bals[0];
+        }
+        function applyNewEngineWin(bals, w, l, round) {
+            if (round === 1) { bals[w] += 1; bals[l] -= 1; }
+            else if (round === 2) { bals[w] += bals[l]; bals[l] = 0; }
+            else { bals[w] += 1; bals[l] -= 1; }
+        }
+
         async function runSimulation() {
             const config = {
                 initialBalance: parseFloat(document.getElementById('initialBalance').value),
@@ -1147,6 +1186,8 @@
                 battleAlgo: document.getElementById('battleAlgo').value,
                 enableNoise: document.getElementById('enableNoise').checked,
                 noiseProbability: parseFloat(document.getElementById('noiseLevel').value) / 100,
+                poolSize: parseInt(document.getElementById('poolSize').value) || 5,
+                maxRounds: parseInt(document.getElementById('maxRounds').value) || 5,
                 numSessions: 10000
             };
 
@@ -1167,47 +1208,62 @@
 
                 for (let s = 0; s < config.numSessions; s++) {
                     let balance = config.initialBalance;
-                    let currentBet = config.baseBet;
-                    let doublingCount = 0;
                     let peak = balance;
                     let sessionMaxDrawdown = 0;
                     let sessionHistory = [balance];
                     let isLastSession = (s === config.numSessions - 1);
 
-                    while (balance >= currentBet && balance < targetBalance) {
-                        const currentMultiplier = currentBet / config.baseBet;
-                        betDistribution[currentMultiplier] = (betDistribution[currentMultiplier] || 0) + 1;
+                    if (config.battleAlgo === '5') {
+                        // New Engine : mise fixe = baseBet, pool par rounds (pas de martingale)
+                        while (balance >= config.baseBet && balance < targetBalance) {
+                            balance -= config.baseBet;
+                            const finalUnits = simulateNewEnginePool(config.poolSize, config.maxRounds, config.pWin, config.pDraw);
+                            balance += finalUnits * config.baseBet;
 
-                        const battleCost = currentBet;
-                        let battleFn;
-                        if (config.battleAlgo === '1') battleFn = simulateBattle1;
-                        else if (config.battleAlgo === '2') battleFn = simulateBattle2;
-                        else if (config.battleAlgo === '3') battleFn = simulateBattle3;
-                        else battleFn = simulateBattle4;
-                        
-                        const battleBalance = battleFn(currentBet, config);
-                        balance = balance - battleCost + battleBalance;
+                            if (balance > peak) peak = balance;
+                            let dd = peak > 0 ? (peak - balance) / peak : 1;
+                            if (dd > sessionMaxDrawdown) sessionMaxDrawdown = dd;
+                            if (isLastSession) sessionHistory.push(balance);
+                        }
+                    } else {
+                        let currentBet = config.baseBet;
+                        let doublingCount = 0;
 
-                        if (battleBalance > battleCost) {
-                            currentBet = config.baseBet;
-                            doublingCount = 0;
-                        } else if (battleBalance < battleCost) {
-                            if (doublingCount < config.maxDoubling) {
-                                currentBet *= 2;
-                                doublingCount++;
-                            } else {
+                        while (balance >= currentBet && balance < targetBalance) {
+                            const currentMultiplier = currentBet / config.baseBet;
+                            betDistribution[currentMultiplier] = (betDistribution[currentMultiplier] || 0) + 1;
+
+                            const battleCost = currentBet;
+                            let battleFn;
+                            if (config.battleAlgo === '1') battleFn = simulateBattle1;
+                            else if (config.battleAlgo === '2') battleFn = simulateBattle2;
+                            else if (config.battleAlgo === '3') battleFn = simulateBattle3;
+                            else battleFn = simulateBattle4;
+
+                            const battleBalance = battleFn(currentBet, config);
+                            balance = balance - battleCost + battleBalance;
+
+                            if (battleBalance > battleCost) {
                                 currentBet = config.baseBet;
                                 doublingCount = 0;
+                            } else if (battleBalance < battleCost) {
+                                if (doublingCount < config.maxDoubling) {
+                                    currentBet *= 2;
+                                    doublingCount++;
+                                } else {
+                                    currentBet = config.baseBet;
+                                    doublingCount = 0;
+                                }
                             }
+
+                            if (currentBet > globalMaxBetReached) globalMaxBetReached = currentBet;
+
+                            if (balance > peak) peak = balance;
+                            let currentDrawdown = peak > 0 ? (peak - balance) / peak : 1;
+                            if (currentDrawdown > sessionMaxDrawdown) sessionMaxDrawdown = currentDrawdown;
+
+                            if (isLastSession) sessionHistory.push(balance);
                         }
-
-                        if (currentBet > globalMaxBetReached) globalMaxBetReached = currentBet;
-
-                        if (balance > peak) peak = balance;
-                        let currentDrawdown = peak > 0 ? (peak - balance) / peak : 1;
-                        if (currentDrawdown > sessionMaxDrawdown) sessionMaxDrawdown = currentDrawdown;
-
-                        if (isLastSession) sessionHistory.push(balance);
                     }
 
                     if (balance >= targetBalance) sessionSuccesses++;
