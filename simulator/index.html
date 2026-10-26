@@ -721,6 +721,7 @@
                                     <option value="3">Pondéré (Round 2 x2)</option>
                                     <option value="4">Pondéré V2 (R2 x2, R3 x4)</option>
                                     <option value="5">New Engine (Pool: R1 x2, R2 x4, R3+ ±base, élimination)</option>
+                                    <option value="6">Algo 6 (R1 base, R2/R3 bénéfice, R4+ base, target x2)</option>
                                 </select>
                             </div>
                             <div class="input-group">
@@ -1174,6 +1175,41 @@
             else { bals[w] += 1; bals[l] -= 1; }
         }
 
+        // ALGO 6 — pool par rounds :
+        // R1: gagnant prend la base du perdant (x2, perdant éliminé).
+        // R2/R3: gagnant prend le BÉNÉFICE du perdant (perdant garde la base) -> 3x, 5x.
+        // R4+: gagnant prend seulement la base.
+        // Retourne le solde final du joueur 0.
+        function simulateBattle6(bet, config) {
+            let bals = new Array(config.poolSize).fill(bet);
+            for (let round = 1; round <= config.maxRounds; round++) {
+                let idx = [];
+                for (let i = 0; i < bals.length; i++) if (bals[i] > 0) idx.push(i);
+                for (let i = idx.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    const t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+                }
+                for (let k = 0; k + 1 < idx.length; k += 2) {
+                    const a = idx[k], b = idx[k + 1];
+                    const r = Math.random();
+                    let w, l;
+                    if (r < config.pWin) { w = a; l = b; }
+                    else if (r < config.pWin + config.pDraw) continue;
+                    else { w = b; l = a; }
+                    if (round === 1) {
+                        bals[w] += bet; bals[l] -= bet;
+                    } else if (round === 2 || round === 3) {
+                        const benefit = Math.max(0, bals[l] - bet);
+                        bals[w] += benefit; bals[l] = bet;
+                    } else {
+                        bals[w] += bet; bals[l] -= bet;
+                    }
+                }
+                if (bals[0] <= 0) return 0;
+            }
+            return bals[0];
+        }
+
         async function runSimulation() {
             const config = {
                 initialBalance: parseFloat(document.getElementById('initialBalance').value),
@@ -1238,6 +1274,7 @@
                             if (config.battleAlgo === '1') battleFn = simulateBattle1;
                             else if (config.battleAlgo === '2') battleFn = simulateBattle2;
                             else if (config.battleAlgo === '3') battleFn = simulateBattle3;
+                            else if (config.battleAlgo === '6') battleFn = simulateBattle6;
                             else battleFn = simulateBattle4;
 
                             const battleBalance = battleFn(currentBet, config);
