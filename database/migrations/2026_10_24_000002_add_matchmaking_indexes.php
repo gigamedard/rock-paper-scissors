@@ -22,13 +22,28 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->index(['status', 'autoplay_active', 'bet_amount'], 'idx_users_matchmaking');
-        });
+        // IDEMPOTENT : ces index peuvent déjà exister en prod (création manuelle /
+        // run partiel) alors que la migration n'est pas enregistrée → éviter
+        // « Duplicate key name ». On n'ajoute que les manquants.
+        $db = \Illuminate\Support\Facades\DB::getDatabaseName();
+        $existing = \Illuminate\Support\Facades\DB::table('information_schema.STATISTICS')
+            ->where('TABLE_SCHEMA', $db)
+            ->whereIn('TABLE_NAME', ['users', 'pools'])
+            ->pluck('INDEX_NAME')
+            ->unique()
+            ->all();
 
-        Schema::table('pools', function (Blueprint $table) {
-            $table->index(['base_bet', 'pool_size', 'status'], 'idx_pools_matchmaking');
-        });
+        if (!in_array('idx_users_matchmaking', $existing, true)) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->index(['status', 'autoplay_active', 'bet_amount'], 'idx_users_matchmaking');
+            });
+        }
+
+        if (!in_array('idx_pools_matchmaking', $existing, true)) {
+            Schema::table('pools', function (Blueprint $table) {
+                $table->index(['base_bet', 'pool_size', 'status'], 'idx_pools_matchmaking');
+            });
+        }
     }
 
     public function down(): void
