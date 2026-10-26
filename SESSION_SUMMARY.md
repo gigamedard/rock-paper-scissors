@@ -26,10 +26,12 @@
   `recoverFinishedPools` en JOIN inversée, purge des pools finies >3 min (commande `battle:cleanup`).
 - **Scheduler** : conteneur `battlepool-scheduler` (`php artisan schedule:work`) → `battle:cleanup` chaque
   minute (pools finies purgées). Service présent dans `docker-compose.yml` (git) ET `docker-compose.prod.yml` (VPS).
-- **Simulateur** (`simulator/index.html`, Monte Carlo) : **Algo 5 « New Engine »** implémenté — pool par rounds
-  (R1 ×2, R2 prend toute la battle balance ×4, R3+ ±base, nul/bye = bruit, éliminé si bal≤0). `poolSize`
-  défaut **13** (max **16**), `maxRounds` défaut 5. Estimation actuelle (stack 0.4/baseBet 0.0004/target 1.2) :
-  succès ~44 % (≤30k fights), ruin 0 %, **~12-14k fights pour atteindre le target**.
+- **Simulateur** (`simulator/index.html`, Monte Carlo) : **Algo 5 « New Engine »** (pool par rounds : R1 ×2,
+  R2 prend toute la battle balance ×4, R3+ ±base, nul/bye = bruit, éliminé si bal≤0) et **Algo 6** (R1 base,
+  R2/R3 prennent le bénéfice en laissant la base, R4+ base, target ×2). `poolSize` défaut **13** (max **16**),
+  `maxRounds` défaut 5. Estimations (stack 0.4/baseBet 0.0004) : Algo 5 → ~44 % succès, 0 % ruine, ~12-14k
+  fights ; Algo 6 (martingale) → ~45 % succès mais ~44 % ruine ; Algo 6 (fixe) → target ×2 trop loin (~0,5 %).
+  Constat : la **distance du target** (ruine du joueur) est le facteur clé — ×1.2 ≫ ×2.
 
 ---
 
