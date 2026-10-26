@@ -217,6 +217,22 @@ services:
       init-db:
         condition: service_completed_successfully
 
+  # ------------------------------------------------------ scheduler
+  # Exécute les commandes planifiées (battle:cleanup → purge pools finies >3min).
+  scheduler:
+    image: rock-paper-scissors-app:latest
+    command: ["php", "artisan", "schedule:work"]
+    restart: unless-stopped
+    env_file: .env.staging
+    secrets:
+      - app_key
+      - mysql_password
+      - db_app_password
+      - internal_api_secret
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+
 # ============================================================
 # VOLUMES PERSISTANTS
 # ============================================================
