@@ -193,23 +193,46 @@ class PoolAutoMatchController extends Controller
     public function processBatch(Request $request): JsonResponse
     {
         $validated = $request->validate(['base_bet' => 'required|numeric']);
-        $result = $this->batchProcessingService->processBatch($validated['base_bet']);
 
-        return response()->json($result, $result['http_code'] ?? 200);
+        $lock = \Illuminate\Support\Facades\Cache::lock('metrics_collect_tick', 10);
+        if (!$lock->get()) {
+            return response()->json(['status' => 'skipped', 'http_code' => 200]);
+        }
+        try {
+            $result = $this->batchProcessingService->processBatch($validated['base_bet']);
+            return response()->json($result, $result['http_code'] ?? 200);
+        } finally {
+            $lock->release();
+        }
     }
 
     public function processAllBetTiers(Request $request): JsonResponse
     {
-        $result = $this->batchProcessingService->processAllBetTiers();
-
-        return response()->json($result, $result['http_code'] ?? 200);
+        $lock = \Illuminate\Support\Facades\Cache::lock('metrics_collect_tick', 10);
+        if (!$lock->get()) {
+            return response()->json(['status' => 'skipped', 'http_code' => 200]);
+        }
+        try {
+            $result = $this->batchProcessingService->processAllBetTiers();
+            return response()->json($result, $result['http_code'] ?? 200);
+        } finally {
+            $lock->release();
+        }
     }
 
     public function processInternalPools(Request $request): JsonResponse
     {
         $validated = $request->validate(['base_bet' => 'required|numeric']);
 
-        return response()->json($this->internalPoolService->processInternalPools($validated['base_bet']));
+        $lock = \Illuminate\Support\Facades\Cache::lock('metrics_collect_tick', 10);
+        if (!$lock->get()) {
+            return response()->json(['status' => 'skipped']);
+        }
+        try {
+            return response()->json($this->internalPoolService->processInternalPools($validated['base_bet']));
+        } finally {
+            $lock->release();
+        }
     }
 
     public function handleStagnantRefund(Request $request): JsonResponse

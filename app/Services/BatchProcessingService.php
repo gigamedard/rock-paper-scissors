@@ -58,6 +58,7 @@ class BatchProcessingService
             $staleRunningBatches = \App\Models\Batch::where('status', 'running')
                 ->where('updated_at', '<', now()->subSeconds(config('pool.batch_ttl_seconds', 60)))
                 ->lockForUpdate()
+                ->skipLocked()
                 ->get();
             foreach ($staleRunningBatches as $staleBatch) {
                 $staleBatch->status = 'waiting';
