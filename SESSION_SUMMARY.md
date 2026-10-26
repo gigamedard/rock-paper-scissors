@@ -11,7 +11,7 @@
 - Projet **BattlePool** : jeu PvP RPS on-chain, L1 **Pingala** (chainId **99999**, natif **TST**),
   RPC `https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc`.
 - **Prod** : `https://battlepool.31.187.72.98.sslip.io` — conteneurs `battlepool-*` healthy.
-- **SHA déployé en prod** : **`fe88739`** (branche `feat/avaxe-bridge`).
+- **SHA déployé en prod** : **`d561e34`** (avant le déploiement du 2026-10-25 ; voir §7) — branche `feat/avaxe-bridge`.
 - **Migration TST → AVAXe FAITE** : devise de jeu = **AVAXe** (ERC-20 `0x9d8A…37F7`), contrat
   **BattlepoolV2** `0xb628C8dE…385E` (dépôt/payout/claim ERC-20). TST = gas natif uniquement.
 - **240 bots** (indices 0-239, `simulation_accounts.json` 244 entrées), pools de **5**.
@@ -29,7 +29,8 @@
 |---|---|---|
 | `feat/app1-deeplink-app2` | `9712b03` | **Ligne de travail principale** (toutes les features UI/game) |
 | `feat/app1-claim-pingala-fix` | `3653ef0` | **Version corrigée du claim** (force Pingala) — mise de côté à la demande de l'opérateur |
-| `feat/avaxe-bridge` | `fe88739` | **Branche active = prod** (migration AVAXe + 240 bots + index DB) |
+| `feat/avaxe-bridge` | `5cd3eac` | **Branche active = prod** (migration AVAXe + 240 bots + index DB + fix claim §7) |
+| `docs/app1-collab-protocol` | `8c14341` | **Protocole LOCAL↔CLOUD** (COLLAB_STATE + handoffs + onboarding) — PR → master |
 | `docs/cloud-faucet-2026-10-18` | — | Passations/COLLAB_STATE (docs du protocole) |
 | `master` | ancien | Intégration (PR uniquement, pas de push direct) |
 
@@ -155,3 +156,36 @@ node secrets-manager.mjs deprovision
 - `chainId 99999` partout ; alias technique `snt`/`sntToken` immuable.
 - Secrets jamais en clair dans git ; `scratch/`, `.secrets/`, `deploy/` jamais commités.
 - Un commit = une chose ; vérifier le **bundle servi** après tout deploy front.
+
+---
+
+## 7. Dernières modifications (2026-10-25)
+
+### Sécurité prod (`4caab5f`, inclus dans `feat/avaxe-bridge`)
+- Suppression des endpoints dev/test **publics** : `public/test_env.php`, `test.php`,
+  `test_integration.html`, `test_sanctum.html`, `debug-test.html`, `admin.html`.
+- Retrait de la route `/api/debug-referral`.
+- Page debug 🐞 **dev-only** (`?debug=1` ou localhost).
+- `LOG_LEVEL=warning` (`.env.staging`).
+- En-têtes Caddy : `Referrer-Policy`, `Permissions-Policy`, `CSP frame-ancestors …app2…`.
+
+### Protocole LOCAL ↔ CLOUD
+- Fichiers sur `docs/app1-collab-protocol` (`75b91ab` → `8c14341`) :
+  `docs/COLLAB_STATE.md`, `docs/handoffs/2026-10-18-local*.md`, `AGENT_ONBOARDING_APP1.md`.
+- Arbitrage : S3/S9 = tâches **App 2** (hors App 1) ; **déploiement = LOCAL uniquement**
+  (le CLOUD root VPS n'a pas `run_deploy.ps1` / `secrets-manager` / clé deploy).
+- **À merger sur `master` par PR** (LOCAL) pour que le protocole soit sur la branche d'intégration.
+
+### Fix « bouton CLAIM invisible » (`5cd3eac`)
+- **Cause** : bridge `/generate-signature` saturé (file `enqueueTx` FIFO, bots) → timeout
+  Laravel → `payout_signature = NULL` → le front masquait la zone de claim.
+- `SessionManager::ensureHumanPayoutSignature()` : rattrapage **humain** (statut `stopped`,
+  solde > 0, session terminée, non-bot), throttle 10 s.
+- `/api/user/status` (`PoolAutoMatchController::getPollingStatus`) : rattrapage automatique.
+- Bridge `/generate-signature` : synchro on-chain bornée (`Promise.race` 8 s) → **la signature
+  est toujours rendue** (la synchro continue en fond).
+- Front (`resources/js/modules/game.js`) : état « **Génération de votre récompense…** » au lieu
+  de masquer la zone.
+
+### Prod
+- Avant déploiement : `d561e34`. **Déployé à l'issue de ce commit** sur `feat/avaxe-bridge`.
