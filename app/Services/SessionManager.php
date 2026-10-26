@@ -509,6 +509,55 @@ class SessionManager
         }
     }
 
+    /**
+     * RATTRAPAGE CLAIM (bug historique « bouton claim invisible »).
+     *
+     * À la fin de session, la signature de payout est générée via le bridge Node
+     * (`POST /generate-signature`). Si la file de tx du bridge est engorgée par les
+     * bots, l'appel peut expirer → `payout_signature` restait NULL alors que le
+     * joueur a atteint son target → le front masquait la zone de CLAIM.
+     *
+     * Cette méthode garantit qu'un joueur HUMAIN en statut `stopped` avec un solde
+     * > 0 possède une signature. Idempotente : ne fait rien si elle existe déjà.
+     * Appelée par `/api/user/status` (rattrapage au polling).
+     *
+     * @return string|null la signature (existante ou régénérée), ou null
+     */
+    public function ensureHumanPayoutSignature(User $user): ?string
+    {
+        if (!empty($user->payout_signature)) {
+            return $user->payout_signature;
+        }
+        // Uniquement en fin de session, avec des fonds, pour un humain.
+        if ($user->status !== 'stopped' || $user->session_started) {
+            return null;
+        }
+        if ((float) $user->balance <= 0.0) {
+            return null;
+        }
+        if ($this->isBotUser($user)) {
+            return null;
+        }
+        // Throttle : au plus un essai toutes les 10 s (évite de marteler le bridge).
+        $cacheKey = "claim_sig_catchup:{$user->id}";
+        if (!\Illuminate\Support\Facades\Cache::add($cacheKey, 1, 10)) {
+            return null;
+        }
+
+        $sigData = $this->generateHumanSignature($user);
+        if (empty($sigData['signature'])) {
+            return null;
+        }
+
+        $user->payout_signature = $sigData['signature'];
+        $user->payout_deadline = $sigData['deadline'] ?? null;
+        $user->save();
+
+        UserTracker::info("[CLAIM_CATCHUP] ✅ Signature de payout régénérée pour {$user->wallet_address} (solde {$user->balance}).", ['wallet' => $user->wallet_address]);
+
+        return $user->payout_signature;
+    }
+
     private function isBotUser(User $user): bool
     {
         $jsonPath = base_path('smart_contracts/simulation_accounts.json');

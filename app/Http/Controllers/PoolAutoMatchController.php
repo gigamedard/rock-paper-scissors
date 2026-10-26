@@ -125,6 +125,19 @@ class PoolAutoMatchController extends Controller
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
+        // RATTRAPAGE CLAIM (bug historique) : si le joueur a atteint son target
+        // mais que la signature n'a pas pu être générée en fin de session (bridge
+        // engorgé / timeout), on la régénère ici pour que le bouton CLAIM
+        // apparaisse au prochain polling. No-op si la signature existe déjà.
+        if ($user->status === 'stopped' && empty($user->payout_signature) && (float) $user->balance > 0) {
+            try {
+                app(\App\Services\SessionManager::class)->ensureHumanPayoutSignature($user);
+                $user->refresh();
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("[CLAIM_CATCHUP] échec pour {$user->wallet_address} : " . $e->getMessage());
+            }
+        }
+
         return response()->json([
             'status' => $user->status,
             'autoplay_active' => $user->autoplay_active,

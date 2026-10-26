@@ -371,12 +371,24 @@ app.post("/generate-signature", async (req, res) => {
         // Fights are resolved off-chain, so userBalances on-chain may be lower than
         // the actual balance (deposit + gains). updateUserBalance ensures the
         // require(amount <= userBalances[user]) check in claimAndExit will pass.
+        //
+        // ANTI-BLOCAGE : la file de tx (enqueueTx) est FIFO et peut être saturée par
+        // les bots → l'attente de la synchro faisait expirer l'appel Laravel →
+        // payout_signature NULL → bouton CLAIM invisible (bug historique). On borne
+        // l'attente : la signature est TOUJOURS rendue ; la synchro continue en fond.
+        const syncPromise = enqueueTx((nonce) => activeGame().updateUserBalance(wallet, amount, { nonce }))
+            .then((tx) => { console.log(`✅ Synced on-chain balance for ${wallet}: ${amount} wei`); return tx; })
+            .catch((syncErr) => {
+                console.error(`⚠️  Failed to sync balance for ${wallet}: ${syncErr.message}`);
+                return null; // Continue : le solde peut déjà être correct (sync précédente)
+            });
         try {
-            const syncTx = await enqueueTx((nonce) => activeGame().updateUserBalance(wallet, amount, { nonce }));
-            console.log(`✅ Synced on-chain balance for ${wallet}: ${amount} wei`);
-        } catch (syncErr) {
-            console.error(`⚠️  Failed to sync balance for ${wallet}: ${syncErr.message}`);
-            // Continue anyway — the balance may already be correct from a previous sync
+            await Promise.race([
+                syncPromise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('sync timeout (tx queue)')), 8000)),
+            ]);
+        } catch (e) {
+            console.warn(`⏳ Sync on-chain ignorée pour ${wallet} (${e.message}) — signature générée quand même`);
         }
         
         const nonce = await activeGame().nonces(wallet);

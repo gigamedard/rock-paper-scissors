@@ -383,11 +383,34 @@ async function fetchUserStatus() {
             
             const claimSection = document.getElementById('claim-section');
             if (claimSection) {
+                const claimBtn = document.getElementById('claim-btn');
+                if (!gameState._claimBtnOrig && claimBtn) gameState._claimBtnOrig = claimBtn.innerText;
+                const stoppedWithFunds = window.userState.status === 'stopped'
+                    && (b + bb) > 0 && !gameState.hasClaimed;
                 if (gameState.pendingClaim && window.userState.status === 'stopped') {
                     claimSection.style.display = 'block';
                     document.getElementById('claim-amount-display').innerText = (b + bb).toFixed(4);
+                    if (claimBtn) {
+                        claimBtn.disabled = false;
+                        if (gameState._claimBtnOrig) claimBtn.innerText = gameState._claimBtnOrig;
+                    }
+                } else if (stoppedWithFunds) {
+                    // Signature pas encore prête (rattrapage backend en cours) : on
+                    // GARDE la zone visible avec un état « génération… » au lieu de la
+                    // cacher (bug historique : bouton claim invisible alors que le
+                    // target était atteint).
+                    claimSection.style.display = 'block';
+                    document.getElementById('claim-amount-display').innerText = (b + bb).toFixed(4);
+                    if (claimBtn) {
+                        claimBtn.disabled = true;
+                        claimBtn.innerText = 'Génération de votre récompense…';
+                    }
                 } else {
                     claimSection.style.display = 'none';
+                    if (claimBtn) {
+                        claimBtn.disabled = false;
+                        if (gameState._claimBtnOrig) claimBtn.innerText = gameState._claimBtnOrig;
+                    }
                 }
             }
             updateUI();
