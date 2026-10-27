@@ -42,7 +42,7 @@ class FightService
         return $result;
     }
 
-    public function handlePoolAutoplayFight(Fight $fight, $baseBet, $poolSize)
+    public function handlePoolAutoplayFight(Fight $fight, $baseBet, $poolSize, int $round = 1)
     {
         // Real-time Event: Fight Started via NotificationService
         $this->notificationService->notifyFightStarted(User::find($fight->user1_id), User::find($fight->user2_id), $fight);
@@ -54,47 +54,58 @@ class FightService
         $fight->user1_chosed = $user1Move;
         $fight->user2_chosed = $user2Move;
 
-        $user1 = User::find($fight->user1_id);
-        $user2 = User::find($fight->user2_id);
-
         $result = $this->determineResult($user1Move, $user2Move);
         $fight->result = $result;
+        $fight->round = $round;
 
         $fHist = $this->historicalFightService->archiveFight($fight->id);
 
+        $amount = 0.0;
+
         if ($result === 'draw') {
+            // Nul = « bruit » : aucun transfert, les deux restent dans la pool.
             User::where('id', $fight->user1_id)->update(['status' => 'in_pool']);
             User::where('id', $fight->user2_id)->update(['status' => 'in_pool']);
 
             $user1 = User::find($fight->user1_id);
             $user2 = User::find($fight->user2_id);
-            if ($user1) event(new \App\Events\FightResult($user1, 'draw', '0', (string)$user1->balance, $user1Move, $user2Move));
-            if ($user2) event(new \App\Events\FightResult($user2, 'draw', '0', (string)$user2->balance, $user2Move, $user1Move));
+            if ($user1) event(new \App\Events\FightResult($user1, 'draw', '0', (string)$user1->balance, $user1Move, $user2Move, $round));
+            if ($user2) event(new \App\Events\FightResult($user2, 'draw', '0', (string)$user2->balance, $user2Move, $user1Move, $round));
         } else {
             $winnerId = ($result === 'user1_win') ? $fight->user1_id : $fight->user2_id;
             $loserId = ($result === 'user1_win') ? $fight->user2_id : $fight->user1_id;
 
-            // Transfer the base bet amount from loser to winner in battle_balance
-            $this->transferBattleBalance($winnerId, $loserId, $baseBet);
+            // Règles par round : on lit le stack du perdant AVANT le transfert.
+            $loserStack = (float) (User::find($loserId)?->battle_balance ?? 0);
+            $amount = $this->computeRoundTransfer($round, $loserStack, (float) $baseBet);
+
+            $this->transferBattleBalance($winnerId, $loserId, $amount);
 
             // LOGGING ENHANCEMENT: Explicit Transfer Log
             $winnerUser = User::find($winnerId);
             $loserUser = User::find($loserId);
             $winnerWallet = $winnerUser->wallet_address ?? 'UNKNOWN';
             $loserWallet = $loserUser->wallet_address ?? 'UNKNOWN';
-            UserTracker::info("[FIGHT_TRANSFER] ⚔️ Player {$winnerWallet} won against {$loserWallet}. Transferred {$baseBet} from Loser to Winner.", ['winner' => $winnerWallet, 'loser' => $loserWallet, 'amount' => $baseBet]);
+            UserTracker::info("[FIGHT_TRANSFER] ⚔️ R{$round} — Player {$winnerWallet} won against {$loserWallet}. Transferred {$amount} from Loser to Winner (loser stack before: {$loserStack}).", [
+                'round' => $round,
+                'winner' => $winnerWallet,
+                'loser' => $loserWallet,
+                'amount' => $amount,
+                'loser_stack' => $loserStack,
+                'base_bet' => $baseBet,
+            ]);
 
-            if ($winnerUser) event(new \App\Events\FightResult($winnerUser, 'win', "+{$baseBet}", (string)$winnerUser->balance, ($result === 'user1_win' ? $user1Move : $user2Move), ($result === 'user1_win' ? $user2Move : $user1Move)));
-            if ($loserUser) event(new \App\Events\FightResult($loserUser, 'loss', "-{$baseBet}", (string)$loserUser->balance, ($result === 'user1_win' ? $user2Move : $user1Move), ($result === 'user1_win' ? $user1Move : $user2Move)));
+            if ($winnerUser) event(new \App\Events\FightResult($winnerUser, 'win', "+{$amount}", (string)$winnerUser->balance, ($result === 'user1_win' ? $user1Move : $user2Move), ($result === 'user1_win' ? $user2Move : $user1Move), $round));
+            if ($loserUser) event(new \App\Events\FightResult($loserUser, 'loss', "-{$amount}", (string)$loserUser->balance, ($result === 'user1_win' ? $user2Move : $user1Move), ($result === 'user1_win' ? $user1Move : $user2Move), $round));
 
-            // Notify winner (User gains baseBet)
+            // Notify winner (User gains the round amount)
             if ($winnerUser) {
-                $this->notificationService->notifyFightWin($winnerUser, $baseBet, $fight->id);
+                $this->notificationService->notifyFightWin($winnerUser, $amount, $fight->id);
             }
 
             // Check loser's remaining battle balance
-            if ($loserUser->battle_balance < $baseBet) {
-                UserTracker::info("[FIGHT_ELIMINATION] ⚠️ Player {$loserWallet} eliminated from current pool matching (battle_balance < baseBet). Will wait for SessionManager to evaluate session.", ['wallet' => $loserWallet, 'battle_balance' => $loserUser->battle_balance]);
+            if ($loserUser && $loserUser->battle_balance < $baseBet) {
+                UserTracker::info("[FIGHT_ELIMINATION] ⚠️ R{$round} — Player {$loserWallet} eliminated from current pool matching (battle_balance < baseBet). Will wait for SessionManager to evaluate session.", ['wallet' => $loserWallet, 'battle_balance' => $loserUser->battle_balance, 'round' => $round]);
             }
 
             // Add loser to queue_table (legacy compatibility)
@@ -108,10 +119,28 @@ class FightService
             }
         }
 
+        $fight->transferred_amount = $amount;
         $fight->status = 'completed';
         $fight->save();
 
         $this->historicalFightService->archiveFight($fight->id, $fHist);
+    }
+
+    /**
+     * Montant transféré du perdant vers le gagnant selon le round.
+     *
+     * R1    : la mise de base (« le perdant n'a plus rien » car il n'a que sa base).
+     * R2/R3 : le bénéfice du perdant (le perdant garde sa base et survit).
+     * R4+   : la mise de base, même si c'est tout ce qui reste au perdant
+     *         (il est alors éliminé ; s'il lui restait plus, il conserve le surplus).
+     */
+    private function computeRoundTransfer(int $round, float $loserStack, float $baseBet): float
+    {
+        if ($round === 2 || $round === 3) {
+            return max(0.0, $loserStack - $baseBet);
+        }
+
+        return max(0.0, min($baseBet, $loserStack));
     }
 
     public function getPreMove($userId)

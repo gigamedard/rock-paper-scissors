@@ -22,6 +22,8 @@ class Fight extends Model
         'base_bet_amount',
         'max_bet_amount',
         'pool_id',
+        'round',
+        'transferred_amount',
     ];
 
     protected $fightService;
@@ -85,8 +87,8 @@ class Fight extends Model
         return $this->fightService->handleAutoplayFight($this);
     }
 
-    public function handlePoolAutoplayFight($baseBet, $poolSize)
+    public function handlePoolAutoplayFight($baseBet, $poolSize, int $round = 1)
     {
-        return $this->fightService->handlePoolAutoplayFight($this, $baseBet, $poolSize);
+        return $this->fightService->handlePoolAutoplayFight($this, $baseBet, $poolSize, $round);
     }
 }

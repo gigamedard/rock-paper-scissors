@@ -19,8 +19,9 @@ class FightResult implements ShouldBroadcast
     public $current_balance;
     public $my_move;
     public $opponent_move;
+    public $round;
 
-    public function __construct(User $user, string $result, string $delta, string $current_balance, string $my_move = 'rock', string $opponent_move = 'rock')
+    public function __construct(User $user, string $result, string $delta, string $current_balance, string $my_move = 'rock', string $opponent_move = 'rock', int $round = 1)
     {
         $this->user = $user;
         $this->result = $result;
@@ -28,6 +29,7 @@ class FightResult implements ShouldBroadcast
         $this->current_balance = $current_balance;
         $this->my_move = $my_move;
         $this->opponent_move = $opponent_move;
+        $this->round = $round;
     }
 
     public function broadcastOn(): array

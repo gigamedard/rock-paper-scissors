@@ -80,6 +80,7 @@ class HistoricalFightService
     private function updateExistingFHist(Fight $fight, FHist $fHist): FHist
     {
         $ndata = [
+            'round' => $fight->round,
             'user1_move' => $fight->user1_chosed,
             'user2_move' => $fight->user2_chosed,
             'user1_balance' => $fight->user1->balance,
@@ -105,6 +106,7 @@ class HistoricalFightService
 
         $data = [
             'pool_id' => $fight->pool_id,
+            'round' => $fight->round,
             'user1_id' => $fight->user1_id,
             'user1_address' => $fight->user1->wallet_address,
             'old_user1_balance' => $old1,

@@ -12,6 +12,7 @@ class FHist extends Model
     protected $fillable = [
         'pool_id',
         'fight_id',
+        'round',
         'user1_id',
         'user1_address',
         'user1_balance',

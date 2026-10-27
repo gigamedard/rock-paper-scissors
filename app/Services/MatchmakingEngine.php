@@ -80,6 +80,9 @@ class MatchmakingEngine
 
     private function executeMatchingRound(Pool $pool, int $iterationIndex): void
     {
+        // Round 1-based : R1, R2, R3, R4, R5… (les règles de transfert en dépendent).
+        $round = $iterationIndex + 1;
+
         $availableUsers = $pool->users;
 
         // Filter out users who were eliminated in a previous matching round
@@ -115,9 +118,10 @@ class MatchmakingEngine
                 'base_bet_amount' => $pool->base_bet,
                 'status'          => 'waiting_for_result',
                 'pool_id'         => $pool->id,
+                'round'           => $round,
             ]);
 
-            $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size);
+            $fight->handlePoolAutoplayFight($pool->base_bet, $pool->pool_size, $round);
 
             // Perf : combat bot-vs-bot → pas de broadcast (MatchFound) ni de
             // notification (BATTLE_STARTED). Ces écritures sont inutiles pour
