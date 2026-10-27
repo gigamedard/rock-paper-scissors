@@ -167,7 +167,7 @@ export const NODE_SERVER_PORT = process.env.NODE_SERVER_PORT || 3000;
 // --- Devise active du jeu (bascule globale P2) ---
 // "tst"   → Battlepool V1 (dépôt/payout en TST natif) — défaut, aucune régression.
 // "avaxe" → BattlepoolV2 (dépôt/payout en AVAXe ERC-20).
-export const GAME_CURRENCY = (process.env.GAME_CURRENCY || "tst").toLowerCase();
+export const GAME_CURRENCY = (process.env.GAME_CURRENCY || "avaxe").toLowerCase();
 
 // ===================================
 // == PORTEFEUILLES (WALLETS)
