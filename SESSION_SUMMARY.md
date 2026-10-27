@@ -11,7 +11,8 @@
 - Projet **BattlePool** : jeu PvP RPS on-chain, L1 **Pingala** (chainId **99999**, natif **TST**),
   RPC `https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc`.
 - **Prod** : `https://battlepool.31.187.72.98.sslip.io` — conteneurs `battlepool-*` healthy.
-- **SHA déployé en prod** : **`6628503`** (deploy 2026-10-26 par agent local) ; tip git **`87fb832`** — branche `feat/avaxe-bridge` (voir §7).
+- **SHA déployé en prod** : app **`5982272`**, bridge/batch-processor/reverb **`6628503`**, queue-workers/scheduler **`fe5153a`** ; tip git **`8c67be7`** — branche `feat/avaxe-bridge` (voir §7/§8).
+- **⚠️ Incident 2026-10-27 — `GAME_CURRENCY` perdu** : suite au deploy `6628503`, `GAME_CURRENCY` avait disparu de `.env.staging` → le bridge retombait sur le défaut `tst` → **toute l'app en V1/TST** (`/api/artefacts` renvoyait `game_currency:"tst"`, contrat V1 `0x0790…`), d'où les claims impossibles. **Corrigé** : `GAME_CURRENCY=avaxe` remis dans `.env.staging`, défaut `config.js` passé à `avaxe` (cloud `8c67be7` + fichier monté `/opt/battlepool/smart_contracts/config.js`). `/api/artefacts` renvoie de nouveau `avaxe` / V2 `0xb628…` / AVAXe `0x9d8A…`. Détail §8.
 - **Migration TST → AVAXe FAITE** : devise de jeu = **AVAXe** (ERC-20 `0x9d8A…37F7`), contrat
   **BattlepoolV2** `0xb628C8dE…385E` (dépôt/payout/claim ERC-20). TST = gas natif uniquement.
 - **71 bots** (réduit de 240 pour alléger la charge CPU ; `simulation_accounts.json`), pools de **5**.
@@ -217,3 +218,32 @@ node secrets-manager.mjs deprovision
 - **Note** : `battlepool-scheduler` tourne une image **`c670807`** (orphelin, absent du
   `docker-compose.prod.yml`) ; le schedule (`battle:cleanup` everyMinute,
   `cards:sync-expired-limits`) fonctionne. **À intégrer proprement dans le compose prod** ensuite.
+
+---
+
+## 8. Incident 2026-10-27 — Claim impossible = `GAME_CURRENCY` perdu (V1/TST)
+
+**Symptôme** : utilisateurs (mobile/desktop) ne peuvent plus réclamer leurs gains ; `/api/artefacts`
+renvoie `game_currency:"tst"` (au lieu de `avaxe`) et le contrat V1 `0x0790…` ; log
+`[Business] claim ÉCHEC: TypeError: Cannot read properties of undefined (reading 'then')`.
+
+**Cause** : lors du deploy `6628503` (agent local), `GAME_CURRENCY` a disparu de
+`/opt/battlepool/.env.staging`. `smart_contracts/config.js` retombe alors sur son défaut `"tst"`
+→ `activeGame()` = V1 → front en TST/V1. Le `claimAndExit` V1 (contrat déprécié) échoue (le `.then`
+venait du flux V1 ; le bundle V2 n'a pas de `.then`).
+
+**Correctif appliqué (live)** :
+- `GAME_CURRENCY=avaxe` remis dans `/opt/battlepool/.env.staging` ; bridge recréé **avec
+  `GIT_SHA=6628503`** (⚠️ `--force-recreate` sans `GIT_SHA` prend `:latest`, image obsolète sans `gameV2`).
+- `Cache::remember('game_config')` (5 min) purgé (`php artisan cache:forget game_config` + clés Redis `*game_config*`).
+- Défaut durable : `config.js` `GAME_CURRENCY` défaut `tst`→`avaxe` (cloud **`8c67be7`** poussé +
+  fichier monté `/opt/battlepool/smart_contracts/config.js`).
+- Vérifié : `/api/artefacts` → `game_currency:"avaxe"`, `gameV2:0xb628…`, `avaxe:0x9d8A…`.
+- Compte test `id 243` (`0x74F1…`) remis à zéro (balance 0, `payout_signature`/cooldown nul,
+  `autoplay_active=0`, `status=available`) — son solde V1 0,4128 TST était orphelin (V1 abandonné).
+
+**À faire** : re-tester le claim côté navigateur après **hard reload** (le SW est network-first sur
+`/build/assets/`, donc pas de bundle périmé). Si `.then` persiste, inspecter le bundle servi.
+
+**Leçon** : `.env.staging` n'est pas git-suivi → tout réglage critique (devise) doit avoir un défaut
+de code sûr (`avaxe`) pour survivre aux redeploys.
