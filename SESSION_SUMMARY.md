@@ -247,3 +247,40 @@ venait du flux V1 ; le bundle V2 n'a pas de `.then`).
 
 **Leçon** : `.env.staging` n'est pas git-suivi → tout réglage critique (devise) doit avoir un défaut
 de code sûr (`avaxe`) pour survivre aux redeploys.
+
+---
+
+## 9. Logique de rounds (transfert intra-pool) — 2026-10-27 (commit `1df7e3f`)
+
+**Constat** : la martingale existante (`SessionManager::processFoughtUser`) ne s'applique qu'à la
+**fin de pool**. Les règles voulues portent sur les **rounds** (c'est le round qui détermine l'issue).
+
+**Règles implémentées** (`FightService::computeRoundTransfer`) :
+- **R1** : le gagnant prend la mise de base → le perdant (qui n'a que sa base) tombe à 0 → éliminé.
+- **R2/R3** : le gagnant prend le **bénéfice** du perdant → le perdant garde sa base (survit).
+- **R4+** : le gagnant prend la mise de base **même si c'est tout ce qui reste** (perdant éliminé
+  s'il n'a que sa base ; s'il lui restait plus, il conserve le surplus).
+
+**Fichiers modifiés** :
+- `app/Services/MatchmakingEngine.php` : `$round = $iterationIndex + 1`, transmis via
+  `Fight::create(['round' => …])` et `handlePoolAutoplayFight(…, $round)`.
+- `app/Services/FightService.php` : signature `int $round = 1`, `computeRoundTransfer()`, lecture du
+  stack du perdant **avant** transfert, `transferred_amount` persisté, `FightResult` delta réel + round.
+- `app/Models/Fight.php` : `round` + `transferred_amount` dans `$fillable`, signature.
+- `app/Events/FightResult.php` : `round` ajouté au payload.
+- `app/Models/FHist.php` + `app/Services/HistoricalFightService.php` : `round` archivé.
+
+**Migrations** :
+- `2026_10_27_000000_fix_monetary_precision.php` : `fights.base_bet_amount/max_bet_amount`,
+  `users.initial_base_bet`, `user_settings.*`, `queue_table.base_bet`, `challenges.*`,
+  `transactions.amount` → `decimal(18,8)`. Le contrat Solidity est déjà en 18 décimales
+  (AVAXe ERC-20, montants `uint256` wei) : **aucune modif on-chain nécessaire**.
+- `2026_10_27_000001_add_round_to_fights_and_hist.php` : `fights.round` + `fights.transferred_amount`
+  + `f_hist.round`.
+
+**Compat** : les tests existants (`FightServiceLogicTest`) restent valides (R1 par défaut =
+`min(baseBet, loserStack)`, identique à l'ancien comportement pour les cas testés). Règle validée par
+script autonome (R1/R2/R3/R4/R4-edge). PHPUnit absent de l'image prod → suite non exécutée ici.
+
+**À faire** : lancer `php artisan migrate` au prochain deploy (sinon `fights.round` /
+`transferred_amount` absents → erreur à l'enregistrement du combat).
