@@ -23,8 +23,8 @@ class InternalPoolService
      */
     public function processInternalPools(float $baseBet): array
     {
-        $poolSizes = config('pool.size', [5]);
-        $targetPoolSize = $poolSizes[0] ?? 5;
+        $poolSizes = config('pool.size', [13]);
+        $targetPoolSize = $poolSizes[0] ?? 13;
         $limit = 1000;
 
         return DB::transaction(function () use ($baseBet, $targetPoolSize, $limit) {

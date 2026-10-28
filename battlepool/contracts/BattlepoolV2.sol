@@ -88,6 +88,7 @@ contract BattlepoolV2 is ReentrancyGuard {
     address public payoutOperator;
     uint256 public securityCoefficient = 1000;
     uint256 public defaultPoolMaxSize;
+    uint256 public constant MAX_POOL_SIZE = 16; // Plafond dur (Algo 6 : max 16 joueurs)
     uint256 public stagnantBlockLimit = 100;
     uint256 public feeBasisPoints = 500; // 5.0%
     uint256 public constant MAX_FEE_BASIS_POINTS = 1000; // max 10%
@@ -149,7 +150,7 @@ contract BattlepoolV2 is ReentrancyGuard {
         signer = msg.sender;
         payoutOperator = msg.sender;
         devWallet = payable(msg.sender);
-        defaultPoolMaxSize = 5;
+        defaultPoolMaxSize = 13;
         defaultMaxBaseBet = 100 ether;
         defaultMaxQ = 2.0 * 1e18;
         defaultMinCooldown = 86400;
@@ -222,7 +223,7 @@ contract BattlepoolV2 is ReentrancyGuard {
     }
 
     function setDefaultPoolMaxSize(uint256 newSize) external onlyOwner {
-        require(newSize >= 2, "Default size must be at least 2");
+        require(newSize >= 2 && newSize <= MAX_POOL_SIZE, "Invalid pool size");
         defaultPoolMaxSize = newSize;
         emit DefaultPoolMaxSizeChanged(newSize);
     }
@@ -272,7 +273,7 @@ contract BattlepoolV2 is ReentrancyGuard {
 
     function createPool(uint256 baseBet, uint256 maxSize) private {
         require(pools[baseBet].poolId == 0, "Pool already exists");
-        require(maxSize > 0, "Invalid maxSize");
+        require(maxSize > 0 && maxSize <= MAX_POOL_SIZE, "Invalid maxSize");
         Pool storage newPool = pools[baseBet];
         newPool.poolId = nextPoolId;
         newPool.baseBet = baseBet;
@@ -387,6 +388,7 @@ contract BattlepoolV2 is ReentrancyGuard {
     function setPoolMaxSize(uint256 baseBet, uint256 newMaxSize) external onlyOwner {
         Pool storage pool = pools[baseBet];
         require(pool.poolId != 0, "Pool does not exist");
+        require(newMaxSize >= 2 && newMaxSize <= MAX_POOL_SIZE, "Invalid pool size");
         pool.maxSize = newMaxSize;
     }
 
