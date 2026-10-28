@@ -284,3 +284,43 @@ script autonome (R1/R2/R3/R4/R4-edge). PHPUnit absent de l'image prod → suite 
 
 **À faire** : lancer `php artisan migrate` au prochain deploy (sinon `fights.round` /
 `transferred_amount` absents → erreur à l'enregistrement du combat).
+
+---
+
+## 10. Pools 13 joueurs / 5 rounds + comparaison A/B (2026-10-28)
+
+**Contrat** (`BattlepoolV2.sol`, commit `4ec0440`, compile OK) :
+- `MAX_POOL_SIZE = 16` (plafond dur) ; `defaultPoolMaxSize = 13`.
+- `setDefaultPoolMaxSize` / `setPoolMaxSize` / `createPool` : `require(2 <= size <= 16)`.
+- **Pas de redéploiement** (le contrat déployé acceptait déjà ≥ 2, donc 16). Appliqué **on-chain**
+  via le setter : `setDefaultPoolMaxSize(13)` — owner `0xD629…763Ee`, clé `faucet_wallet_pk`
+  (`0xD629…`, 445 TST gas), tx `0xe016a741…50d9`. `defaultPoolMaxSize()` = **13** confirmé.
+- Le déploiement du bytecode avec le cap 16 reste à faire **uniquement si on redéploie** (non nécessaire).
+
+**App / config** (commit `4ec0440`) :
+- `config/pool.php` : `'size' => [13]`, nouveau `'rounds' => 5`.
+- `MatchmakingEngine` : `$maxIterations = config('pool.rounds', 5)` (fixe, plus `pool_size`).
+- Fallbacks `InternalPoolService` / `CleanupSystemCommand` : `13`.
+- DB : nouvelles pools `pool_size=13` ; `batches.pool_size=13` ; rien d'autre à migrer.
+- Images : `battlepool-app:round2` (nouvel algo 13/5, **live**) ; `battlepool-app:old135`
+  (ancien algo + 13/5, pour le test). Branches : `feat/round-rules` (`4ec0440`) et
+  `feat/old-algo-13-5` (`2eaad5f`).
+
+**A/B 13 joueurs / 5 rounds — 74 bots, 30 min chacun, reset identique** :
+
+| Indicateur | Ancien algo 13/5 | Nouvel algo 13/5 |
+|---|---|---|
+| Succès (cible +20 %) | **4 / 74 (5,4 %)** | **0 / 74** |
+| Ruine | 0 | 0 |
+| Balance moy. (départ 0.4) | **0.3797** (−5,1 %) | **0.3992** (−0,2 %) |
+| Balance max | 0.4860 | 0.4848 |
+| Mises 1×/2×/4×/8×/16× | 12 / 20 / 23 / 11 / 8 | 28 / 22 / 2 / 16 / 6 |
+
+**Lecture** : le nouvel algo **préserve mieux le capital** (moy. quasi break-even, moins de bots
+poussés à 4×) mais **atteint moins souvent la cible** : en R2/R23 le gagnant ne prend que le
+bénéfice, donc il accumule plus lentement, tandis que l'ancien prend toute la base et élimine
+les perdants (plus de destruction : moy. −5,1 %, min 0). Échantillon faible (0–4 succès) →
+non concluant statistiquement. Un run plus long (ou cible 1.05) est nécessaire pour trancher.
+
+**État live** : `round2` (nouvel algo 13/5) sur `app`, `queue-workers`, `scheduler` ; bridge
+inchangé (`6628503`, `GAME_CURRENCY=avaxe`).
