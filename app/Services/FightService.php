@@ -130,14 +130,21 @@ class FightService
      * Montant transféré du perdant vers le gagnant selon le round.
      *
      * R1    : la mise de base (« le perdant n'a plus rien » car il n'a que sa base).
-     * R2/R3 : le bénéfice du perdant (le perdant garde sa base et survit).
+     * R2/R3 : le bénéfice du perdant s'il en a un (le perdant garde sa base) ;
+     *         si le perdant n'a que sa base (aucun bénéfice), le gagnant prend TOUT.
      * R4+   : la mise de base, même si c'est tout ce qui reste au perdant
      *         (il est alors éliminé ; s'il lui restait plus, il conserve le surplus).
      */
     private function computeRoundTransfer(int $round, float $loserStack, float $baseBet): float
     {
         if ($round === 2 || $round === 3) {
-            return max(0.0, $loserStack - $baseBet);
+            // Perdant sans bénéfice (stack <= base) → le gagnant prend TOUT (perdant éliminé).
+            if ($loserStack <= $baseBet + 1e-9) {
+                return max(0.0, $loserStack);
+            }
+
+            // Sinon → le gagnant prend le bénéfice, le perdant garde sa base.
+            return $loserStack - $baseBet;
         }
 
         return max(0.0, min($baseBet, $loserStack));
