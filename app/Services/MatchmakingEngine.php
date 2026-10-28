@@ -47,7 +47,8 @@ class MatchmakingEngine
             return;
         }
 
-        $maxIterations = $pool->pool_size;
+        // Nombre de rounds fixé par la config (5), indépendant du nombre de joueurs.
+        $maxIterations = (int) config('pool.rounds', 5);
         $iterations = 0;
 
         while ($this->hasSufficientUsersForMatch($pool->users->count(), $minUsers) && $iterations < $maxIterations) {

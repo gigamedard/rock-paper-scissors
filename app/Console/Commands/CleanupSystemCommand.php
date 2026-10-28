@@ -44,7 +44,7 @@ class CleanupSystemCommand extends Command
 
         // 3. Under-populated pools (waiting but have fewer active users than pool_size)
         //    These are orphaned pools that will NEVER fill up — must be closed immediately.
-        $targetPoolSize = config('pool.size')[0] ?? 5;
+        $targetPoolSize = config('pool.size')[0] ?? 13;
         $baseBet = (float) collect(config('pool.base_bet', [0.01]))->min();
 
         $waitingPools = Pool::where('status', 'from_server_waitting')->get();
