@@ -87,14 +87,25 @@ class InternalPoolService
                 $excludedCount = count($excludedIds);
 
                 if ($excludedCount > 0) {
-                    User::whereIn('id', $excludedIds)->update([
-                        'status'          => 'stopped',
-                        'session_started' => false,
-                        'bet_amount'      => $baseBet,
-                    ]);
-                    UserTracker::info("InternalPoolService: Auto-stopped {$excludedCount} users at tier {$tierBet} due to insufficient funds. bet_amount reset to {$baseBet}.", [
-                        'tier'         => $tierBet,
-                        'excluded_ids' => $excludedIds
+                    $excludedUsers = User::whereIn('id', $excludedIds)->get();
+                    $reactivated = 0;
+                    foreach ($excludedUsers as $eu) {
+                        $eu->bet_amount = $baseBet;
+                        $eu->session_started = false;
+                        // Si le solde permet encore la mise de base, le joueur revient au
+                        // palier 1 (au lieu de rester bloqué 'stopped' avec un solde résiduel).
+                        if ((float) $eu->balance >= (float) $baseBet) {
+                            $eu->status = 'available';
+                            $reactivated++;
+                        } else {
+                            $eu->status = 'stopped';
+                        }
+                        $eu->save();
+                    }
+                    UserTracker::info("InternalPoolService: Auto-stopped {$excludedCount} users at tier {$tierBet} (insufficient funds). Reactivated {$reactivated} at base {$baseBet}.", [
+                        'tier'          => $tierBet,
+                        'excluded_ids'  => $excludedIds,
+                        'reactivated'   => $reactivated,
                     ]);
                 }
 
