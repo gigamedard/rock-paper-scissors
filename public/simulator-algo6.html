@@ -1,287 +1,317 @@
-<!DOCTYPE html>
-<html lang="fr">
+<!DOCTYPE html><html lang="fr" class="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulateur Algo 6 — Battle Pool</title>
+<title>Simulateur Monte Carlo — Algorithme réel</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { darkMode:'class', theme:{ extend:{ colors:{ dark:{900:'#0b0f19',800:'#111827',700:'#1f2937',600:'#374151'} } } } }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    :root {
-        --bg: #0a1220;
-        --card: #121e30;
-        --border: #1e3350;
-        --text: #e6f1ff;
-        --muted: #7f9bb8;
-        --accent: #00e5ff;
-        --gold: #ffc700;
-        --green: #22c55e;
-        --red: #ef4444;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: var(--bg);
-        color: var(--text);
-        min-height: 100vh;
-        padding: 24px 16px;
-    }
-    .container { max-width: 900px; margin: 0 auto; }
-    h1 {
-        font-size: 1.5rem;
-        margin-bottom: 4px;
-        letter-spacing: 0.5px;
-    }
-    .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
-    .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 20px;
-        margin-bottom: 16px;
-    }
-    .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 14px;
-        margin-bottom: 18px;
-    }
-    .field label {
-        display: block;
-        font-size: 0.72rem;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 5px;
-    }
-    .field input {
-        width: 100%;
-        background: #0a1626;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 9px 11px;
-        color: var(--text);
-        font-size: 0.95rem;
-        outline: none;
-    }
-    .field input:focus { border-color: var(--accent); }
-    button {
-        width: 100%;
-        background: linear-gradient(135deg, var(--accent), #0088cc);
-        color: #02121e;
-        border: none;
-        border-radius: 10px;
-        padding: 13px;
-        font-size: 0.95rem;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        cursor: pointer;
-        transition: opacity 0.2s;
-    }
-    button:hover { opacity: 0.9; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 12px;
-        margin-top: 4px;
-    }
-    .stat {
-        background: #0d1a2b;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 14px;
-    }
-    .stat .val {
-        font-size: 1.35rem;
-        font-weight: 700;
-        margin-bottom: 2px;
-    }
-    .stat .lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .green { color: var(--green); }
-    .red { color: var(--red); }
-    .gold { color: var(--gold); }
-    .accent { color: var(--accent); }
-    .hint { font-size: 0.75rem; color: var(--muted); margin-top: 12px; line-height: 1.5; }
-    #status { font-size: 0.8rem; color: var(--accent); margin-top: 10px; text-align: center; }
+body{font-family:'Inter',sans-serif}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#111827}
+::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#4b5563}
 </style>
 </head>
-<body>
-<div class="container">
-    <h1>Simulateur Algo 6</h1>
-    <p class="sub">Battle Pool — Monte Carlo · R1 base, R2/R3 bénéfice, R4+ base, martingale</p>
+<body class="bg-dark-900 text-gray-100 min-h-screen flex flex-col antialiased">
+<header class="border-b border-dark-700 bg-dark-800/50 backdrop-blur sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <div class="flex items-center space-x-3">
+      <div class="bg-indigo-600 p-2 rounded-xl text-white font-bold text-xl shadow-lg shadow-indigo-500/30">🎲</div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight">Monte Carlo — Algorithme réel (pierre-feuille-ciseaux)</h1>
+        <p class="text-xs text-gray-400">13 joueurs • 5 rounds • transferts R1=base, R2/R3=bénéfice, R4+=base • martingale de pool</p>
+      </div>
+    </div>
+    <button id="run-btn" onclick="startSimulation()" class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center space-x-2 cursor-pointer active:scale-95">
+      <span id="btn-icon">⚡</span><span id="btn-text">Lancer la Simulation</span>
+    </button>
+  </div>
+</header>
 
-    <div class="card">
-        <div class="grid">
-            <div class="field"><label>Balance initiale</label><input id="initialBalance" type="number" value="0.4" step="0.1"></div>
-            <div class="field"><label>Mise de base</label><input id="baseBet" type="number" value="0.0004" step="0.0001"></div>
-            <div class="field"><label>Target (multiple)</label><input id="targetMultiplier" type="number" value="2" step="0.1"></div>
-            <div class="field"><label>Max doublements</label><input id="maxDoubling" type="number" value="4" step="1"></div>
-            <div class="field"><label>Taille pool</label><input id="poolSize" type="number" value="13" min="2" max="16" step="1"></div>
-            <div class="field"><label>Rounds / pool</label><input id="maxRounds" type="number" value="5" step="1"></div>
-            <div class="field"><label>Victoire (%)</label><input id="pWin" type="number" value="33.33" step="0.01"></div>
-            <div class="field"><label>Nul (%)</label><input id="pDraw" type="number" value="33.33" step="0.01"></div>
-            <div class="field"><label>Simulations</label><input id="numSessions" type="number" value="10000" step="1000"></div>
-            <div class="field"><label>Fights max / session</label><input id="maxFights" type="number" value="100000" step="10000"></div>
-        </div>
-        <button id="runBtn">Lancer la simulation</button>
-        <div id="status"></div>
+<main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full grid grid-cols-1 lg:grid-cols-4 gap-6">
+  <aside class="lg:col-span-1 bg-dark-800 border border-dark-700 rounded-2xl p-5 flex flex-col gap-4 h-fit shadow-xl">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-indigo-400 border-b border-dark-700 pb-2">⚙️ Paramètres</h2>
+    <div>
+      <label class="block text-xs font-medium text-gray-300 mb-1">Nombre de runs (Monte Carlo)</label>
+      <select id="sim-runs" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+        <option value="100">100 runs (Rapide)</option>
+        <option value="500" selected>500 runs (Standard)</option>
+        <option value="1000">1 000 runs (Précis)</option>
+        <option value="5000">5 000 runs (Expert)</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-300 mb-1">Joueurs par pool (max 16)</label>
+      <input type="number" id="pool-size" value="13" min="3" max="16" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-300 mb-1">Mise de base (bet_amount initial)</label>
+      <input type="number" id="base-stake" value="0.0004" step="0.0001" min="0.0001" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-300 mb-1">Capital initial (balance)</label>
+      <input type="number" id="initial-capital" value="0.4" step="0.01" min="0.0001" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-300 mb-1">Rounds par pool (max 5)</label>
+      <input type="number" id="rounds-count" value="5" min="1" max="5" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-300 mb-1">Frais réseau (%) — seuil = cible × (1+frais)</label>
+      <input type="number" id="fee-percent" value="2.5" step="0.1" min="0" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-300 mb-1">Max doublements (Martingale)</label>
+      <input type="number" id="max-doublings" value="4" min="0" max="8" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-300 mb-1">Objectif de profit (target_q)</label>
+      <select id="target-mult" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+        <option value="1.05">×1.05</option>
+        <option value="1.2">×1.2</option>
+        <option value="1.5">×1.5</option>
+        <option value="2.0" selected>×2.0 (standard)</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-300 mb-1">Cap de pools (sécurité)</label>
+      <input type="number" id="max-pools" value="5000" min="100" step="100" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+    </div>
+  </aside>
+
+  <section class="lg:col-span-3 flex flex-col gap-6">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4 shadow-lg">
+        <p class="text-xs text-gray-400 font-medium">Taux de Réussite</p>
+        <h3 id="kpi-winrate" class="text-2xl font-bold text-emerald-400 mt-1">0.0%</h3>
+        <p class="text-[10px] text-gray-500 mt-1">Cible atteinte (q ≥ target×(1+frais))</p>
+      </div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4 shadow-lg">
+        <p class="text-xs text-gray-400 font-medium">Profit / Perte Moyen</p>
+        <h3 id="kpi-avg-profit" class="text-2xl font-bold text-indigo-400 mt-1">0.0000</h3>
+        <p class="text-[10px] text-gray-500 mt-1">Sur le capital</p>
+      </div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4 shadow-lg">
+        <p class="text-xs text-gray-400 font-medium">Pools Moyennes</p>
+        <h3 id="kpi-avg-pools" class="text-2xl font-bold text-blue-400 mt-1">0</h3>
+        <p class="text-[10px] text-gray-500 mt-1">Par run</p>
+      </div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4 shadow-lg">
+        <p class="text-xs text-gray-400 font-medium">Taux de Ruine</p>
+        <h3 id="kpi-ruin-rate" class="text-2xl font-bold text-rose-400 mt-1">0.0%</h3>
+        <p class="text-[10px] text-gray-500 mt-1">balance &lt; bet_amount</p>
+      </div>
     </div>
 
-    <div class="card">
-        <div class="stats" id="stats">
-            <div class="stat"><div class="val muted">—</div><div class="lbl">Succès (target)</div></div>
-            <div class="stat"><div class="val muted">—</div><div class="lbl">Ruine</div></div>
-            <div class="stat"><div class="val muted">—</div><div class="lbl">Non résolus</div></div>
-            <div class="stat"><div class="val muted">—</div><div class="lbl">Fights → target (moy)</div></div>
-            <div class="stat"><div class="val muted">—</div><div class="lbl">Fights → ruine (moy)</div></div>
-            <div class="stat"><div class="val muted">—</div><div class="lbl">Temps</div></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5 shadow-lg flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-semibold text-gray-200">📈 Trajectoires Bankroll (échantillon)</h3>
+          <span class="text-xs text-gray-500 font-mono">10 runs</span>
         </div>
-        <p class="hint">
-            Algo 6 : chaque pool a <b>poolSize</b> joueurs démarrant à la <b>mise courante</b>.
-            Round 1 : le gagnant prend la mise du perdant (×2, perdant éliminé). Rounds 2-3 : le gagnant prend le
-            <b>bénéfice</b> du perdant (le perdant garde la base). Rounds 4+ : ±mise. Nul/bye = pas de changement.
-            Martingale : victoire (balance finale &gt; mise) → reset ; défaite → ×2 (max <b>maxDoublements</b>), puis reset.
-        </p>
+        <div class="relative flex-grow w-full h-64 bg-dark-900 rounded-xl overflow-hidden border border-dark-700/50 flex items-center justify-center">
+          <canvas id="bankrollCanvas" class="w-full h-full"></canvas>
+          <div id="chart-placeholder" class="absolute text-xs text-gray-500">Lancez la simulation</div>
+        </div>
+      </div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5 shadow-lg flex flex-col">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-semibold text-gray-200">📊 Distribution des Résultats</h3>
+          <span id="dist-summary" class="text-xs text-gray-500 font-mono">Succès / Ruine / Timeout</span>
+        </div>
+        <div class="relative flex-grow w-full h-64 bg-dark-900 rounded-xl overflow-hidden border border-dark-700/50 flex items-center justify-center">
+          <canvas id="distCanvas" class="w-full h-full"></canvas>
+          <div id="dist-placeholder" class="absolute text-xs text-gray-500">Lancez la simulation</div>
+        </div>
+      </div>
     </div>
-</div>
+
+    <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5 shadow-lg flex flex-col">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-sm font-semibold text-gray-200">📜 Journal d'un run exemplaire</h3>
+        <span class="text-xs text-gray-400">Détail pool par pool</span>
+      </div>
+      <div id="logs-container" class="bg-dark-900 border border-dark-700 rounded-xl p-4 h-56 overflow-y-auto font-mono text-xs text-gray-300 space-y-1 leading-relaxed">
+        <span class="text-gray-500 italic">En attente…</span>
+      </div>
+    </div>
+  </section>
+</main>
 
 <script>
-    // ---------- Algo 6 : un pool ----------
-    // Retourne la battle balance finale du joueur 0 (index 0), en unités monétaires.
-    function simulatePool(bet, poolSize, maxRounds, pWin, pDraw) {
-        const bals = new Array(poolSize).fill(bet);
+function setupCanvas(id){const c=document.getElementById(id);const r=c.parentElement.getBoundingClientRect();c.width=r.width*window.devicePixelRatio;c.height=r.height*window.devicePixelRatio;const ctx=c.getContext('2d');ctx.scale(window.devicePixelRatio,window.devicePixelRatio);return{c,ctx,width:r.width,height:r.height};}
+const MOVES=['rock','paper','scissors'];
+function randMove(){return MOVES[Math.floor(Math.random()*3)];}
+function fight(a,b){if(a===b)return'draw';const beats={rock:'scissors',scissors:'paper',paper:'rock'};return beats[a]===b?'A':'B';}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
 
-        for (let round = 1; round <= maxRounds; round++) {
-            // joueurs encore vivants
-            const idx = [];
-            for (let i = 0; i < bals.length; i++) if (bals[i] > 0) idx.push(i);
+// Règle EXACTE du code (FightService::computeRoundTransfer)
+function computeRoundTransfer(round, loserStack, baseBet){
+  if(round===2 || round===3){
+    if(loserStack <= baseBet + 1e-12) return Math.max(0, loserStack); // perdant a que sa base -> prend TOUT
+    return loserStack - baseBet; // prend le bénéfice, le perdant garde sa base
+  }
+  return Math.max(0, Math.min(baseBet, loserStack)); // R1 et R4+ : la base
+}
 
-            // mélange aléatoire
-            for (let i = idx.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                const t = idx[i]; idx[i] = idx[j]; idx[j] = t;
-            }
-
-            // appariement 2 à 2 (bye si impair)
-            for (let k = 0; k + 1 < idx.length; k += 2) {
-                const a = idx[k], b = idx[k + 1];
-                const r = Math.random();
-                let w, l;
-                if (r < pWin) { w = a; l = b; }
-                else if (r < pWin + pDraw) continue; // nul
-                else { w = b; l = a; }
-
-                if (round === 1) {
-                    // le gagnant prend la mise du perdant (perdant éliminé)
-                    bals[w] += bet;
-                    bals[l] -= bet;
-                } else if (round === 2 || round === 3) {
-                    // le gagnant prend le bénéfice du perdant, qui garde la base
-                    const benefit = Math.max(0, bals[l] - bet);
-                    bals[w] += benefit;
-                    bals[l] = bet;
-                } else {
-                    // rounds 4+ : ± mise
-                    bals[w] += bet;
-                    bals[l] -= bet;
-                }
-            }
-
-            if (bals[0] <= 0) return 0; // joueur suivi éliminé
-        }
-        return bals[0];
+// Simule UNE pool de poolSize joueurs sur `rounds` rounds. Le joueur suivi = joueur 0.
+function simulatePool(cfg, baseBet){
+  const players = Array.from({length:cfg.poolSize},()=>({bal:baseBet}));
+  const me = players[0];
+  let fights=0,wins=0,losses=0,draws=0,byes=0,eliminated=false;
+  const rounds = Math.min(cfg.roundsCount,5);
+  for(let round=1; round<=rounds; round++){
+    let eligible = players.filter(p=>p.bal >= baseBet - 1e-12);
+    if(eligible.length < 2) break;
+    if(eligible.length % 2 !== 0){ if(eligible[eligible.length-1]===me) byes++; eligible.pop(); }
+    shuffle(eligible);
+    for(let i=0;i+1<eligible.length;i+=2){
+      const a=eligible[i], b=eligible[i+1];
+      const res = fight(randMove(), randMove());
+      let amount=0;
+      if(res==='A'){ amount=computeRoundTransfer(round,b.bal,baseBet); b.bal-=amount; a.bal+=amount; }
+      else if(res==='B'){ amount=computeRoundTransfer(round,a.bal,baseBet); a.bal-=amount; b.bal+=amount; }
+      if(a===me||b===me){
+        fights++;
+        if(res==='draw') draws++;
+        else if((res==='A'&&a===me)||(res==='B'&&b===me)) wins++;
+        else { losses++; if(me.bal < baseBet - 1e-12) eliminated=true; }
+      }
     }
+  }
+  const finalBal = me.bal;
+  let poolResult;
+  if(finalBal < baseBet - 1e-12) poolResult='loss';
+  else if(finalBal > baseBet + 1e-12) poolResult='win';
+  else poolResult='null';
+  return { poolResult, finalBal, netProfit: finalBal-baseBet, fights, wins, losses, draws, byes, eliminated };
+}
 
-    // ---------- Simulation Monte Carlo ----------
-    function runSimulation() {
-        const cfg = {
-            initialBalance: parseFloat(document.getElementById('initialBalance').value),
-            baseBet: parseFloat(document.getElementById('baseBet').value),
-            targetMultiplier: parseFloat(document.getElementById('targetMultiplier').value),
-            maxDoubling: parseInt(document.getElementById('maxDoubling').value),
-            poolSize: parseInt(document.getElementById('poolSize').value),
-            maxRounds: parseInt(document.getElementById('maxRounds').value),
-            pWin: parseFloat(document.getElementById('pWin').value) / 100,
-            pDraw: parseFloat(document.getElementById('pDraw').value) / 100,
-            numSessions: parseInt(document.getElementById('numSessions').value),
-            maxFights: parseInt(document.getElementById('maxFights').value)
-        };
+function runSingleSimulation(cfg, recordLogs=false){
+  const initialBase=cfg.baseStake;
+  let capital=cfg.initialCapital;
+  const sessionStart=capital;
+  const threshold=cfg.targetMult*(1+cfg.feePercent/100); // q requis
+  const targetCap=sessionStart*threshold;
+  const maxStake=initialBase*Math.pow(2,cfg.maxDoublings);
+  let stake=initialBase;
+  let pools=0;
+  const history=[capital];
+  const logs=[];
+  if(recordLogs) logs.push(`[Départ] capital=${capital.toFixed(4)} | cible=${targetCap.toFixed(4)} (q≥${threshold.toFixed(3)}) | base=${initialBase} | max stake=${maxStake.toFixed(4)}`);
 
-        if (!cfg.initialBalance || !cfg.baseBet || !cfg.targetMultiplier || !cfg.numSessions) {
-            document.getElementById('status').innerText = 'Vérifie les paramètres.';
-            return;
-        }
-
-        const target = cfg.initialBalance * cfg.targetMultiplier;
-        const btn = document.getElementById('runBtn');
-        btn.disabled = true;
-        document.getElementById('status').innerText = `Simulation de ${cfg.numSessions.toLocaleString()} sessions…`;
-
-        setTimeout(() => {
-            const t0 = performance.now();
-
-            let success = 0, ruin = 0, capped = 0;
-            let sumFightsSuccess = 0, sumFightsRuin = 0;
-            const distSuccess = [];
-
-            for (let s = 0; s < cfg.numSessions; s++) {
-                let balance = cfg.initialBalance;
-                let currentBet = cfg.baseBet;
-                let doublingCount = 0;
-                let fights = 0;
-
-                while (balance >= currentBet && balance < target && fights < cfg.maxFights) {
-                    const battleBalance = simulatePool(
-                        currentBet, cfg.poolSize, cfg.maxRounds, cfg.pWin, cfg.pDraw
-                    );
-                    balance = balance - currentBet + battleBalance;
-                    fights++;
-
-                    // martingale
-                    if (battleBalance > currentBet) {
-                        currentBet = cfg.baseBet;
-                        doublingCount = 0;
-                    } else if (battleBalance < currentBet) {
-                        if (doublingCount < cfg.maxDoubling) {
-                            currentBet *= 2;
-                            doublingCount++;
-                        } else {
-                            currentBet = cfg.baseBet;
-                            doublingCount = 0;
-                        }
-                    }
-                }
-
-                if (balance >= target) {
-                    success++;
-                    sumFightsSuccess += fights;
-                    distSuccess.push(fights);
-                } else if (balance < currentBet) {
-                    ruin++;
-                    sumFightsRuin += fights;
-                } else {
-                    capped++;
-                }
-            }
-
-            const elapsed = performance.now() - t0;
-            const pct = n => ((n / cfg.numSessions) * 100).toFixed(2) + '%';
-            const avgSuccess = success ? Math.round(sumFightsSuccess / success) : 0;
-            const avgRuin = ruin ? Math.round(sumFightsRuin / ruin) : 0;
-
-            document.getElementById('stats').innerHTML = `
-                <div class="stat"><div class="val green">${pct(success)}</div><div class="lbl">Succès (target)</div></div>
-                <div class="stat"><div class="val red">${pct(ruin)}</div><div class="lbl">Ruine</div></div>
-                <div class="stat"><div class="val gold">${pct(capped)}</div><div class="lbl">Non résolus</div></div>
-                <div class="stat"><div class="val accent">${avgSuccess.toLocaleString()}</div><div class="lbl">Fights → target (moy)</div></div>
-                <div class="stat"><div class="val accent">${avgRuin.toLocaleString()}</div><div class="lbl">Fights → ruine (moy)</div></div>
-                <div class="stat"><div class="val">${Math.round(elapsed)} ms</div><div class="lbl">Temps</div></div>
-            `;
-            document.getElementById('status').innerText = `Terminé — ${cfg.numSessions.toLocaleString()} sessions en ${Math.round(elapsed)} ms`;
-            btn.disabled = false;
-        }, 50);
+  while(capital>0 && capital<targetCap && pools<cfg.maxPools){
+    pools++;
+    const p=simulatePool(cfg,stake);
+    const prevCapital=capital;
+    capital += p.netProfit;
+    history.push(capital);
+    if(recordLogs && pools<=30){
+      logs.push(`Pool #${pools} | mise=${stake.toFixed(6)} | ${p.poolResult.toUpperCase()} | net=${p.netProfit>=0?'+':''}${p.netProfit.toFixed(6)} | capital=${capital.toFixed(6)} | combats W${p.wins}/L${p.losses}/D${p.draws}${p.byes?' (bye)':''}${p.eliminated?' [éliminé]':''}`);
     }
+    // Martingale AU NIVEAU POOL (comme SessionManager::processFoughtUser)
+    if(p.poolResult==='loss'){
+      const next=stake*2;
+      if(next>maxStake){ stake=initialBase; } else { stake=next; }
+    } else if(p.poolResult==='win'){
+      stake=initialBase;
+    } // null : inchangé
+    // Évaluation de session (comme evaluateUserSession)
+    const q=capital/sessionStart;
+    if(q>=threshold) break;          // succès
+    if(capital<stake) break;         // ruine (balance < bet_amount)
+  }
 
-    document.getElementById('runBtn').addEventListener('click', runSimulation);
+  const q=capital/sessionStart;
+  let status='timeout';
+  if(q>=threshold) status='success';
+  else if(capital<stake) status='ruin';
+  if(recordLogs) logs.push(`[Fin] ${status.toUpperCase()} après ${pools} pools | capital=${capital.toFixed(6)} | q=${q.toFixed(3)} | stake=${stake.toFixed(6)}`);
+  return { status, poolsPlayed:pools, finalCapital:capital, profit:capital-sessionStart, history, logs };
+}
+
+async function startSimulation(){
+  const btn=document.getElementById('run-btn'),btnText=document.getElementById('btn-text'),btnIcon=document.getElementById('btn-icon');
+  btn.disabled=true;btnText.innerText='Simulation…';btnIcon.innerText='⏳';
+  const cfg={
+    runs:parseInt(document.getElementById('sim-runs').value),
+    poolSize:parseInt(document.getElementById('pool-size').value),
+    baseStake:parseFloat(document.getElementById('base-stake').value),
+    initialCapital:parseFloat(document.getElementById('initial-capital').value),
+    roundsCount:parseInt(document.getElementById('rounds-count').value),
+    feePercent:parseFloat(document.getElementById('fee-percent').value),
+    maxDoublings:parseInt(document.getElementById('max-doublings').value),
+    targetMult:parseFloat(document.getElementById('target-mult').value),
+    maxPools:parseInt(document.getElementById('max-pools').value)
+  };
+  document.getElementById('chart-placeholder').style.display='none';
+  document.getElementById('dist-placeholder').style.display='none';
+  let successCount=0,ruinCount=0,timeoutCount=0,totalPools=0,totalProfit=0,sampleHistories=[],sampleLogs=[];
+  const batchSize=50;let completed=0;
+  function runBatch(){
+    const limit=Math.min(completed+batchSize,cfg.runs);
+    for(let i=completed;i<limit;i++){
+      const res=runSingleSimulation(cfg,i===0);
+      if(res.status==='success')successCount++;else if(res.status==='ruin')ruinCount++;else timeoutCount++;
+      totalPools+=res.poolsPlayed;totalProfit+=res.profit;
+      if(i<10)sampleHistories.push(res.history);
+      if(i===0)sampleLogs=res.logs;
+    }
+    completed=limit;
+    if(completed<cfg.runs){requestAnimationFrame(runBatch);}
+    else{
+      finalizeResults({runs:cfg.runs,successCount,ruinCount,timeoutCount,totalPools,totalProfit,sampleHistories,sampleLogs});
+      btn.disabled=false;btnText.innerText='Lancer la Simulation';btnIcon.innerText='⚡';
+    }
+  }
+  requestAnimationFrame(runBatch);
+}
+
+function finalizeResults(d){
+  const winRate=(d.successCount/d.runs)*100,ruinRate=(d.ruinCount/d.runs)*100,avgProfit=d.totalProfit/d.runs,avgPools=Math.round(d.totalPools/d.runs);
+  document.getElementById('kpi-winrate').innerText=winRate.toFixed(1)+'%';
+  document.getElementById('kpi-avg-profit').innerText=avgProfit.toFixed(4);
+  document.getElementById('kpi-avg-pools').innerText=avgPools;
+  document.getElementById('kpi-ruin-rate').innerText=ruinRate.toFixed(1)+'%';
+  const c=document.getElementById('logs-container');c.innerHTML='';
+  d.sampleLogs.forEach(log=>{const div=document.createElement('div');div.innerText=log;
+    if(log.includes('SUCCESS'))div.className='text-emerald-400';
+    else if(log.includes('RUIN')||log.includes('Fin'))div.className='text-rose-400';
+    else if(log.includes('NULL'))div.className='text-amber-400';
+    else if(log.includes('WIN'))div.className='text-emerald-300';
+    else if(log.includes('LOSS'))div.className='text-rose-300';
+    else div.className='text-gray-300';
+    c.appendChild(div);});
+  drawBankrollChart(d.sampleHistories);
+  drawDistributionChart(d.successCount,d.ruinCount,d.timeoutCount);
+}
+
+function drawBankrollChart(histories){
+  const{c,ctx,width,height}=setupCanvas('bankrollCanvas');ctx.clearRect(0,0,width,height);
+  if(!histories||histories.length===0)return;
+  const maxLen=Math.max(...histories.map(h=>h.length));
+  const minVal=Math.min(...histories.flat());const maxVal=Math.max(...histories.flat());
+  const pad=30,gW=width-pad*2,gH=height-pad*2;
+  ctx.strokeStyle='#1f2937';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,pad);ctx.lineTo(pad,height-pad);ctx.lineTo(width-pad,height-pad);ctx.stroke();
+  histories.forEach((h,idx)=>{ctx.beginPath();ctx.strokeStyle=idx%2===0?'#6366f1':'#8b5cf6';ctx.lineWidth=1.5;
+    h.forEach((v,s)=>{const x=pad+(s/(maxLen-1||1))*gW;const y=height-pad-((v-minVal)/(maxVal-minVal||1))*gH;if(s===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();});
+}
+
+function drawDistributionChart(success,ruin,timeout){
+  const{c,ctx,width,height}=setupCanvas('distCanvas');ctx.clearRect(0,0,width,height);
+  const total=success+ruin+timeout||1;
+  const cats=[{label:'Succès',count:success,color:'#10b981'},{label:'Ruine',count:ruin,color:'#f43f5e'},{label:'Timeout',count:timeout,color:'#6b7280'}];
+  const pad=40,cW=width-pad*2,cH=height-pad*2,bW=cW/cats.length-20;
+  const maxCount=Math.max(...cats.map(x=>x.count),1);
+  cats.forEach((cat,idx)=>{const x=pad+idx*(cW/cats.length)+10;const bh=(cat.count/maxCount)*cH;const y=height-pad-bh;
+    ctx.fillStyle=cat.color;ctx.beginPath();ctx.roundRect(x,y,bW,Math.max(0,bh),[6,6,0,0]);ctx.fill();
+    ctx.fillStyle='#9ca3af';ctx.font='10px Inter';ctx.textAlign='center';
+    ctx.fillText(cat.label,x+bW/2,height-pad+15);ctx.fillText(((cat.count/total)*100).toFixed(1)+'%',x+bW/2,y-6);});
+}
 </script>
 </body>
 </html>
