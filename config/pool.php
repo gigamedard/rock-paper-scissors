@@ -8,7 +8,7 @@ return [
     'number_of_base_bet'=>2,
     'number_of_pool_size'=>4,
     'percentage_limit_of_pool_size'=>0.1,
-    'batch_max_size' => 50, // Maximum number of pools a batch can hold (turbo test)
+    'batch_max_size' => 25, // Maximum number of pools a batch can hold (turbo test)
     'batch_initial_limit' => 50, // How many pools to grab when creating a new batch
     'batch_max_iterations' => 100,  // Max processing iterations before settling (turbo test)
     'max_martingale_level' => 4,  // Maximum doublings allowed (paliers de martingale inchangés)
