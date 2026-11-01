@@ -75,6 +75,12 @@ class User extends Authenticatable
      */
     public function isBot(): bool
     {
+        // Dans cette simulation, tout joueur autoplay est un bot (perf : notifications/broadcasts
+        // coupés pour les combats bot-vs-bot, y compris les bots ajoutés hors simulation_accounts.json).
+        if ($this->autoplay_active) {
+            return true;
+        }
+
         static $botAddresses = null;
 
         if ($botAddresses === null) {
