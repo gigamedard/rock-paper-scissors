@@ -88,6 +88,8 @@ class SessionManager
         
         $user->status = 'available';
         $user->pool_id = null;
+        $user->max_balance = max((float) ($user->max_balance ?? 0), (float) $user->balance);
+        $user->min_balance = $user->min_balance === null ? (float) $user->balance : min((float) $user->min_balance, (float) $user->balance);
         $user->save();
 
         UserTracker::info("[POOL_FINISH] 🔄 Player {$user->wallet_address} had no fight. Refunded {$refunded} ETH. Balance restored to: {$user->balance}.", ['wallet' => $user->wallet_address]);
@@ -166,6 +168,10 @@ class SessionManager
         $user->balance += $user->battle_balance;
         $user->battle_balance = 0;
         $user->pool_id = null;
+
+        // Suivi min/max de la balance (analyse a posteriori des cas de ruine).
+        $user->max_balance = max((float) ($user->max_balance ?? 0), (float) $user->balance);
+        $user->min_balance = $user->min_balance === null ? (float) $user->balance : min((float) $user->min_balance, (float) $user->balance);
 
         $this->evaluateUserSession($user, $q);
     }

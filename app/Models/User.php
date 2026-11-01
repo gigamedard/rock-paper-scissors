@@ -32,6 +32,8 @@ class User extends Authenticatable
         'token_balance',
         'locked_balance',
         'balance',
+        'max_balance',
+        'min_balance',
         'battle_balance',
         'pool_id',
         'session_start_balance',
