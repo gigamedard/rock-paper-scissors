@@ -324,3 +324,35 @@ non concluant statistiquement. Un run plus long (ou cible 1.05) est nécessaire 
 
 **État live** : `round2` (nouvel algo 13/5) sur `app`, `queue-workers`, `scheduler` ; bridge
 inchangé (`6628503`, `GAME_CURRENCY=avaxe`).
+
+---
+
+## 11. Test Q=2 + accélération « turbo » (2026-10-31 → 11-01)
+
+**Test Q=2** : `target_q=2.0` (cible ≈ 0.82), 13 joueurs / 5 rounds, 737 bots. Résultat : premières
+cibles après ~44 h ; puis accélération (~14 vraies cibles + quelques micro-gagnants, 3–5 ruines).
+
+**Correctif `round4`** (`743ee3e`) : après un auto-stop `InternalPoolService` (fonds insuffisants pour
+le palier), le bot est remis **`available`** si `balance >= base_bet` (au lieu de rester `stopped`).
+Les 9 bots bloqués ont été réactivés.
+
+**Mode TURBO** (le vrai accélérateur) :
+- `InternalPoolService::processInternalPools($baseBet, ?float $forcedTier)` : `round5`/`f16a615` —
+  traite **tous les paliers** de création par cycle (le contrôleur boucle sur les paliers).
+- `BatchProcessingService::processAllBetTiers` : `round6`/`aafbfe7` — traite **tous les paliers** de
+  pools par cycle (c'était le goulot : round-robin 1 palier/cycle).
+- `config/pool.php` : `batch_max_size=50`, `batch_max_iterations=100` (`round7`/`c33e2ab`).
+- `BATCH_PROCESSOR_INTERVAL=1000` (1 s).
+- Mesures : débit passé de ~48 pools/min / 907 fights/min → **~76–89 pools/min / ~1500–1660 fights/min**
+  (×1,8). ⚠️ Load moyenne monté à ~4 (2 cœurs) : proche saturation.
+
+**Ops / espace** (crise disque résolue) :
+- Cause : **binlogs MySQL** (~1 Go × 30 j = 32 Go). Correctif : `--skip-log-bin` dans le compose
+  (recréation `db`), `log_bin=OFF` ; DB 32 Go → 2,1 Go ; disque 100 % → ~56 %.
+- Purges : logs app **toutes les 15 min**, garde-fou disque **toutes les 2 min** (si ≥85 %).
+- Réapprovisionnement : boucle `replenish_stopped.sh` — **+30 bots par 30 `stopped`** (vérif 10 min),
+  via `add_bots.sh` (wallets `ethers` + users/premoves). Scripts dans `/opt/battlepool/`.
+- Bilan horaire conservé (`bilan_q2.log`) ; `max_gain.svg/csv` (courbe du gain max).
+
+**État live** : `battlepool-app:round7` sur `app`, `queue-workers`, `scheduler` ; bridge inchangé
+(`6628503`, `GAME_CURRENCY=avaxe`) ; DB avec `--skip-log-bin`. Branche `feat/round-rules` (`c33e2ab`).
