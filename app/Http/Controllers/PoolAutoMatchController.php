@@ -229,7 +229,37 @@ class PoolAutoMatchController extends Controller
             return response()->json(['status' => 'skipped']);
         }
         try {
-            return response()->json($this->internalPoolService->processInternalPools($validated['base_bet']));
+            // MODE TURBO : traiter TOUS les paliers en un seul cycle (au lieu d'un seul),
+            // pour accélérer les tests. Chaque palier est traité indépendamment.
+            $tiers = \App\Models\User::where('status', 'available')
+                ->where('autoplay_active', true)
+                ->where('bet_amount', '>=', $validated['base_bet'])
+                ->distinct()
+                ->orderBy('bet_amount')
+                ->pluck('bet_amount')
+                ->toArray();
+
+            if (empty($tiers)) {
+                return response()->json($this->internalPoolService->processInternalPools($validated['base_bet']));
+            }
+
+            $created = 0;
+            $processed = 0;
+            $details = [];
+            foreach ($tiers as $tier) {
+                $r = $this->internalPoolService->processInternalPools($validated['base_bet'], (float) $tier);
+                $created += (int) ($r['created_pools'] ?? 0);
+                $processed += (int) ($r['users_processed'] ?? 0);
+                $details[] = ['tier' => (float) $tier, 'created' => (int) ($r['created_pools'] ?? 0)];
+            }
+
+            return response()->json([
+                'message' => 'Turbo: processed ' . count($tiers) . ' tiers.',
+                'tiers' => count($tiers),
+                'created_pools' => $created,
+                'users_processed' => $processed,
+                'details' => $details,
+            ]);
         } finally {
             $lock->release();
         }

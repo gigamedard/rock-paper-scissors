@@ -21,13 +21,13 @@ class InternalPoolService
      * Round-robin: process ONE bet tier per call, cycling through active tiers.
      * Groups available autoplay users by their bet_amount (handles martingale-doubled bets).
      */
-    public function processInternalPools(float $baseBet): array
+    public function processInternalPools(float $baseBet, ?float $forcedTier = null): array
     {
         $poolSizes = config('pool.size', [13]);
         $targetPoolSize = $poolSizes[0] ?? 13;
         $limit = 1000;
 
-        return DB::transaction(function () use ($baseBet, $targetPoolSize, $limit) {
+        return DB::transaction(function () use ($baseBet, $targetPoolSize, $limit, $forcedTier) {
             $betTiers = User::where('status', 'available')
                 ->where('autoplay_active', true)
                 ->where('bet_amount', '>=', $baseBet)
@@ -45,13 +45,19 @@ class InternalPoolService
 
             sort($betTiers, SORT_NUMERIC);
 
-            $cacheKey = 'internal_pool_bet_tier_index';
-            $currentIndex = (int) \Illuminate\Support\Facades\Cache::get($cacheKey, 0) % count($betTiers);
-
-            $tierBet = $betTiers[$currentIndex];
-
-            $nextIndex = ($currentIndex + 1) % count($betTiers);
-            \Illuminate\Support\Facades\Cache::put($cacheKey, $nextIndex, now()->addMinutes(5));
+            if ($forcedTier !== null) {
+                // MODE TURBO : palier imposé par l'appelant (tous les paliers traités en un cycle).
+                $tierBet = $forcedTier;
+                $idx = array_search($tierBet, $betTiers, false);
+                $currentIndex = ($idx === false) ? 0 : $idx;
+                $nextIndex = null;
+            } else {
+                $cacheKey = 'internal_pool_bet_tier_index';
+                $currentIndex = (int) \Illuminate\Support\Facades\Cache::get($cacheKey, 0) % count($betTiers);
+                $tierBet = $betTiers[$currentIndex];
+                $nextIndex = ($currentIndex + 1) % count($betTiers);
+                \Illuminate\Support\Facades\Cache::put($cacheKey, $nextIndex, now()->addMinutes(5));
+            }
 
             $securityCoefficient = \App\Models\GameSetting::getValue('security_coefficient', config('game_settings.security_coefficient', 1000));
             
@@ -110,8 +116,8 @@ class InternalPoolService
                 }
 
                 // Si pas assez d'utilisateurs pour ce tier, essayer les autres tiers
-                // au lieu de retourner immédiatement (évite la stagnation)
-                foreach ($betTiers as $fallbackTier) {
+                // (uniquement en mode round-robin ; en mode turbo l'appelant traite tous les paliers).
+                foreach (($forcedTier === null ? $betTiers : []) as $fallbackTier) {
                     if ($fallbackTier == $tierBet) continue; // déjà essayé
 
                     $fallbackUsers = User::with('preMove')
