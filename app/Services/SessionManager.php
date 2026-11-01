@@ -278,42 +278,54 @@ class SessionManager
             
             \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} SUCCESS");
             
-        } elseif (($q < 1 && $user->balance < $user->bet_amount) || ($q >= 1 && $user->balance < $user->bet_amount)) {
+        } elseif ($user->balance < $user->bet_amount) {
             // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet)
             $type = ($q < 1) ? "RUIN" : "STRATEGIC_LIMIT";
-            UserTracker::info("[SESSION_{$type}] ⚠️ User {$user->wallet_address} (q=$q) cannot cover next bet ({$user->balance} < {$user->bet_amount}). Session ended.", ['wallet' => $user->wallet_address, 'q' => $q]);
-            
-            $this->closeSession($user, 'stopped');
-            $this->historyService->archiveSessionHistory($user);
-            
-            // DIVERGENCE: Bots get auto-payout for tests, Humans must manually withdraw
-            $payoutTriggered = false;
-            $signature = null;
-            $isBot = $this->isBotUser($user);
+            $sessionBaseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min()));
 
-            if ($user->autoplay_active && $isBot) {
-                UserTracker::info("[BOT_AUTO_WITHDRAW] 🤖 Bot {$user->wallet_address} ruined. Forcing payout to clear balance for next run.", ['wallet' => $user->wallet_address]);
-                $this->sendPayment($user); // Forces sending whatever is left (e.g. 0.45 ETH)
-                $payoutTriggered = true;
+            if ($user->balance >= $sessionBaseBet) {
+                // Solde résiduel >= mise de base → le joueur peut rejouer au palier 1 (ni blocked, ni payout).
+                UserTracker::info("[SESSION_{$type}] ♻️ User {$user->wallet_address} (q=$q) cannot cover tier bet ({$user->balance} < {$user->bet_amount}) but can retry at base ({$sessionBaseBet}). Restart at base.", ['wallet' => $user->wallet_address, 'q' => $q, 'balance' => $user->balance, 'base_bet' => $sessionBaseBet]);
+                $this->closeSession($user, 'available');
+                $this->historyService->archiveSessionHistory($user);
+
+                \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, $type, (string)$q, false, null)), "SessionFinished user {$user->id} {$type} (retry base)");
             } else {
-                if ($user->balance <= 0.0001) {
-                    UserTracker::info("[AUTO_EJECT] 🛑 Human player {$user->wallet_address} ruined with 0 ETH. Server pays gas to eject them from contract.", ['wallet' => $user->wallet_address]);
-                    $this->sendPayment($user); // Forces payout from server, clears isUserInAnyPool
+                // Vraie ruine : arrêt + payout (bots) / signature (humains).
+                UserTracker::info("[SESSION_{$type}] ⚠️ User {$user->wallet_address} (q=$q) cannot cover next bet ({$user->balance} < {$user->bet_amount}). Session ended.", ['wallet' => $user->wallet_address, 'q' => $q]);
+
+                $this->closeSession($user, 'stopped');
+                $this->historyService->archiveSessionHistory($user);
+
+                // DIVERGENCE: Bots get auto-payout for tests, Humans must manually withdraw
+                $payoutTriggered = false;
+                $signature = null;
+                $isBot = $this->isBotUser($user);
+
+                if ($user->autoplay_active && $isBot) {
+                    UserTracker::info("[BOT_AUTO_WITHDRAW] 🤖 Bot {$user->wallet_address} ruined. Forcing payout to clear balance for next run.", ['wallet' => $user->wallet_address]);
+                    $this->sendPayment($user); // Forces sending whatever is left (e.g. 0.45 ETH)
                     $payoutTriggered = true;
                 } else {
-                    UserTracker::info("[MANUAL_WITHDRAWAL_REQUIRED] 🛑 Human player {$user->wallet_address} ruined. Funds ({$user->balance} ETH) kept in DB. Manual withdraw required.", ['wallet' => $user->wallet_address]);
-                    $this->notificationService->notifyInsufficientBalance($user);
-                    // Even on ruin, we provide the signature for the remaining funds
-                    $sigData = $this->generateHumanSignature($user);
-                    $signature = $sigData['signature'] ?? null;
-                    $user->payout_signature = $signature;
-                    $user->payout_deadline = $sigData['deadline'] ?? null;
-                    $user->save();
+                    if ($user->balance <= 0.0001) {
+                        UserTracker::info("[AUTO_EJECT] 🛑 Human player {$user->wallet_address} ruined with 0 ETH. Server pays gas to eject them from contract.", ['wallet' => $user->wallet_address]);
+                        $this->sendPayment($user); // Forces payout from server, clears isUserInAnyPool
+                        $payoutTriggered = true;
+                    } else {
+                        UserTracker::info("[MANUAL_WITHDRAWAL_REQUIRED] 🛑 Human player {$user->wallet_address} ruined. Funds ({$user->balance} ETH) kept in DB. Manual withdraw required.", ['wallet' => $user->wallet_address]);
+                        $this->notificationService->notifyInsufficientBalance($user);
+                        // Even on ruin, we provide the signature for the remaining funds
+                        $sigData = $this->generateHumanSignature($user);
+                        $signature = $sigData['signature'] ?? null;
+                        $user->payout_signature = $signature;
+                        $user->payout_deadline = $sigData['deadline'] ?? null;
+                        $user->save();
+                    }
                 }
+
+                \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} {$type}");
             }
-            
-            \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} {$type}");
-            
+
         } else {
             // CASE 3: Session Continues (RETURN TO POOL QUEUE)
             UserTracker::info("[SESSION_CONTINUE] 🔄 User {$user->wallet_address} continues session (q=$q < $multiplier). Current Balance: {$user->balance}.", ['wallet' => $user->wallet_address]);
