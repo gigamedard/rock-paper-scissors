@@ -44,9 +44,14 @@ class FightService
 
     public function handlePoolAutoplayFight(Fight $fight, $baseBet, $poolSize, int $round = 1)
     {
-        // Real-time Event: Fight Started via NotificationService
-        $this->notificationService->notifyFightStarted(User::find($fight->user1_id), User::find($fight->user2_id), $fight);
-        $this->notificationService->notifyFightStarted(User::find($fight->user2_id), User::find($fight->user1_id), $fight);
+        // Perf : combat bot-vs-bot → pas de notifications ni broadcasts (aucun frontend).
+        $u1 = User::find($fight->user1_id);
+        $u2 = User::find($fight->user2_id);
+        $bothBots = $u1 && $u2 && $u1->isBot() && $u2->isBot();
+        if (!$bothBots) {
+            $this->notificationService->notifyFightStarted($u1, $u2, $fight);
+            $this->notificationService->notifyFightStarted($u2, $u1, $fight);
+        }
 
         $user1Move = $this->getPreMove($fight->user1_id);
         $user2Move = $this->getPreMove($fight->user2_id);
@@ -69,8 +74,10 @@ class FightService
 
             $user1 = User::find($fight->user1_id);
             $user2 = User::find($fight->user2_id);
-            if ($user1) event(new \App\Events\FightResult($user1, 'draw', '0', (string)$user1->balance, $user1Move, $user2Move, $round));
-            if ($user2) event(new \App\Events\FightResult($user2, 'draw', '0', (string)$user2->balance, $user2Move, $user1Move, $round));
+            if (!$bothBots) {
+                if ($user1) event(new \App\Events\FightResult($user1, 'draw', '0', (string)$user1->balance, $user1Move, $user2Move, $round));
+                if ($user2) event(new \App\Events\FightResult($user2, 'draw', '0', (string)$user2->balance, $user2Move, $user1Move, $round));
+            }
         } else {
             $winnerId = ($result === 'user1_win') ? $fight->user1_id : $fight->user2_id;
             $loserId = ($result === 'user1_win') ? $fight->user2_id : $fight->user1_id;
@@ -95,11 +102,13 @@ class FightService
                 'base_bet' => $baseBet,
             ]);
 
-            if ($winnerUser) event(new \App\Events\FightResult($winnerUser, 'win', "+{$amount}", (string)$winnerUser->balance, ($result === 'user1_win' ? $user1Move : $user2Move), ($result === 'user1_win' ? $user2Move : $user1Move), $round));
-            if ($loserUser) event(new \App\Events\FightResult($loserUser, 'loss', "-{$amount}", (string)$loserUser->balance, ($result === 'user1_win' ? $user2Move : $user1Move), ($result === 'user1_win' ? $user1Move : $user2Move), $round));
+            if (!$bothBots) {
+                if ($winnerUser) event(new \App\Events\FightResult($winnerUser, 'win', "+{$amount}", (string)$winnerUser->balance, ($result === 'user1_win' ? $user1Move : $user2Move), ($result === 'user1_win' ? $user2Move : $user1Move), $round));
+                if ($loserUser) event(new \App\Events\FightResult($loserUser, 'loss', "-{$amount}", (string)$loserUser->balance, ($result === 'user1_win' ? $user2Move : $user1Move), ($result === 'user1_win' ? $user1Move : $user2Move), $round));
+            }
 
-            // Notify winner (User gains the round amount)
-            if ($winnerUser) {
+            // Notify winner (User gains the round amount) — skip pour les bots
+            if ($winnerUser && !$bothBots) {
                 $this->notificationService->notifyFightWin($winnerUser, $amount, $fight->id);
             }
 
