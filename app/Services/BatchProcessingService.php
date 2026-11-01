@@ -220,27 +220,31 @@ class BatchProcessingService
 
         sort($activeBetTiers, SORT_NUMERIC);
 
-        $cacheKey = 'bet_tier_round_robin_index';
-        $currentIndex = (int) \Illuminate\Support\Facades\Cache::get($cacheKey, 0) % count($activeBetTiers);
+        // MODE TURBO : traiter TOUS les paliers actifs en un seul cycle (au lieu d'un seul),
+        // pour accélérer les tests.
+        $aggStatus = 'no_work';
+        $aggMessage = 'No work.';
+        $processed = 0;
+        $http = 200;
+        foreach ($activeBetTiers as $tierBet) {
+            $result = $this->processBatch((float) $tierBet);
+            $processed += (int) ($result['processed_count'] ?? 0);
+            $http = $result['http_code'] ?? $http;
+            if (($result['status'] ?? 'no_work') !== 'no_work') {
+                $aggStatus = $result['status'];
+                $aggMessage = $result['message'] ?? $aggMessage;
+            }
+        }
 
-        $tierBet = $activeBetTiers[$currentIndex];
-
-        $nextIndex = ($currentIndex + 1) % count($activeBetTiers);
-        \Illuminate\Support\Facades\Cache::put($cacheKey, $nextIndex, now()->addMinutes(5));
-
-        $result = $this->processBatch((float) $tierBet);
-
-        UserTracker::info("BatchProcessingService [Round-Robin {$currentIndex}/".(count($activeBetTiers) - 1)."]: Processing tier {$tierBet} → {$result['status']}", ['tier' => $tierBet, 'status' => $result['status']]);
+        UserTracker::info("BatchProcessingService [Turbo]: processed " . count($activeBetTiers) . " tiers, {$processed} pools → {$aggStatus}");
 
         return [
-            'status' => $result['status'],
-            'message' => $result['message'],
-            'current_tier' => $tierBet,
-            'tier_index' => $currentIndex,
-            'next_tier_index' => $nextIndex,
+            'status' => $aggStatus,
+            'message' => $aggMessage,
+            'tiers' => count($activeBetTiers),
             'active_tiers' => $activeBetTiers,
-            'processed_count' => $result['processed_count'] ?? 0,
-            'http_code' => $result['http_code'] ?? 200,
+            'processed_count' => $processed,
+            'http_code' => $http,
         ];
     }
 
