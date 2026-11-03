@@ -290,12 +290,18 @@ class SessionManager
             $sessionBaseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min()));
 
             if ($user->balance >= $sessionBaseBet) {
-                // Solde résiduel >= mise de base → le joueur peut rejouer au palier 1 (ni blocked, ni payout).
-                UserTracker::info("[SESSION_{$type}] ♻️ User {$user->wallet_address} (q=$q) cannot cover tier bet ({$user->balance} < {$user->bet_amount}) but can retry at base ({$sessionBaseBet}). Restart at base.", ['wallet' => $user->wallet_address, 'q' => $q, 'balance' => $user->balance, 'base_bet' => $sessionBaseBet]);
-                $this->closeSession($user, 'available');
-                $this->historyService->archiveSessionHistory($user);
-
-                \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, $type, (string)$q, false, null)), "SessionFinished user {$user->id} {$type} (retry base)");
+                // Solde résiduel >= mise de base → la session CONTINUE (on ne la ferme PAS, on ne la
+                // réinitialise PAS). Le joueur est simplement réintégré au palier de base et continue
+                // à jouer tant que balance >= base. Ainsi session_start_balance reste l'original (0.4)
+                // et doubler un solde minuscule ne déclenche PAS un faux succès.
+                UserTracker::info("[SESSION_{$type}] ♻️ User {$user->wallet_address} (q=$q) cannot cover tier bet ({$user->balance} < {$user->bet_amount}) but can continue at base ({$sessionBaseBet}). Session kept, retry at base.", ['wallet' => $user->wallet_address, 'q' => $q, 'balance' => $user->balance, 'base_bet' => $sessionBaseBet]);
+                $user->status = 'available';
+                $user->bet_amount = $sessionBaseBet;
+                if ($user->preMove) {
+                    $user->preMove->current_index = 0;
+                    $user->preMove->save();
+                }
+                $user->save();
             } else {
                 // Vraie ruine : arrêt + payout (bots) / signature (humains).
                 UserTracker::info("[SESSION_{$type}] ⚠️ User {$user->wallet_address} (q=$q) cannot cover next bet ({$user->balance} < {$user->bet_amount}). Session ended.", ['wallet' => $user->wallet_address, 'q' => $q]);
