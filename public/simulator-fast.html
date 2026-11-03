@@ -1,0 +1,255 @@
+<!DOCTYPE html><html lang="fr" class="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulateur rapide — Algorithme réel</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{colors:{dark:{900:'#0b0f19',800:'#111827',700:'#1f2937',600:'#374151'}}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Inter',sans-serif}</style>
+</head>
+<body class="bg-dark-900 text-gray-100 min-h-screen">
+<header class="border-b border-dark-700 bg-dark-800/60 backdrop-blur sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <div class="flex items-center space-x-3">
+      <div class="bg-indigo-600 p-2 rounded-xl text-white font-bold text-xl">🎲</div>
+      <div>
+        <h1 class="text-lg font-bold">Simulateur rapide — Algorithme réel (300–10 000 bots)</h1>
+        <p class="text-xs text-gray-400">PFC • 5 rounds • transferts R1/R2-R3/R4+ • martingale de pool • mode réappro + fusion de paliers</p>
+      </div>
+    </div>
+    <button id="run-btn" onclick="run()" class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg cursor-pointer">⚡ Lancer</button>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+  <aside class="lg:col-span-1 bg-dark-800 border border-dark-700 rounded-2xl p-5 flex flex-col gap-3 h-fit">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-indigo-400 border-b border-dark-700 pb-2">⚙️ Paramètres</h2>
+    <label class="text-xs text-gray-300">Bots initiaux (cohorte)
+      <input id="initialCount" type="number" value="300" min="10" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Runs Monte Carlo
+      <input id="runs" type="number" value="1" min="1" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Joueurs par pool
+      <input id="poolSize" type="number" value="13" min="3" max="16" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Rounds par pool
+      <input id="rounds" type="number" value="5" min="1" max="8" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Mise de base
+      <input id="baseBet" type="number" value="0.0004" step="0.0001" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Capital initial
+      <input id="initialCapital" type="number" value="0.4" step="0.01" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Objectif (target_q)
+      <input id="target" type="number" value="2.0" step="0.05" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Frais réseau (%)
+      <input id="fee" type="number" value="2.5" step="0.1" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Max doublements (martingale)
+      <input id="maxDoublings" type="number" value="4" min="0" max="8" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Réappro (bots / N stopped)
+      <input id="replenishStep" type="number" value="10" min="1" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Cap de pools (sécurité)
+      <input id="maxPools" type="number" value="100000" min="100" step="100" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+  </aside>
+
+  <section class="lg:col-span-3 flex flex-col gap-6">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Taux de réussite</p><h3 id="kpi-success" class="text-2xl font-bold text-emerald-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Taux de ruine</p><h3 id="kpi-ruin" class="text-2xl font-bold text-rose-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Timeout</p><h3 id="kpi-timeout" class="text-2xl font-bold text-gray-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Pools moyens / bot</p><h3 id="kpi-pools" class="text-2xl font-bold text-blue-400">—</h3></div>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Max moyen</p><h3 id="kpi-avgmax" class="text-2xl font-bold text-indigo-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Min moyen</p><h3 id="kpi-avgmin" class="text-2xl font-bold text-amber-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Drawdown moyen</p><h3 id="kpi-dd" class="text-2xl font-bold text-violet-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Temps</p><h3 id="kpi-time" class="text-2xl font-bold text-gray-300">—</h3></div>
+    </div>
+
+    <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5">
+      <h3 class="text-sm font-semibold mb-3">📊 Distribution des résultats (cohorte)</h3>
+      <div class="relative w-full h-64 bg-dark-900 rounded-xl border border-dark-700/50"><canvas id="dist" class="w-full h-full"></canvas></div>
+    </div>
+
+    <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5">
+      <h3 class="text-sm font-semibold mb-3">📈 Histogramme des `max_balance` (cohorte)</h3>
+      <div class="relative w-full h-56 bg-dark-900 rounded-xl border border-dark-700/50"><canvas id="hist" class="w-full h-full"></canvas></div>
+    </div>
+
+    <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5">
+      <h3 class="text-sm font-semibold mb-2">💀 Analyse des ruines</h3>
+      <div id="ruin-stats" class="text-xs text-gray-300 font-mono">—</div>
+    </div>
+  </section>
+</main>
+
+<!-- Worker: moteur de simulation -->
+<script id="sim-worker" type="javascript/worker">
+const MOVES=['rock','paper','scissors'];
+function randMove(){return MOVES[(Math.random()*3)|0];}
+function fight(a,b){if(a===b)return 0;const w={rock:'scissors',scissors:'paper',paper:'rock'};return w[a]===b?1:-1;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;const t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function computeRoundTransfer(round,loserStack,baseBet){
+  if(round===2||round===3){ if(loserStack<=baseBet+1e-12) return Math.max(0,loserStack); return loserStack-baseBet; }
+  return Math.max(0,Math.min(baseBet,loserStack));
+}
+function updateMM(b){ if(b.balance>b.maxBalance)b.maxBalance=b.balance; if(b.balance<b.minBalance)b.minBalance=b.balance; }
+
+function runCohort(cfg){
+  const bots=[]; const cohort=[]; let nextId=0;
+  const threshold=cfg.target*(1+cfg.fee/100);
+  function createBot(isInitial){
+    const b={id:nextId++,isInitial,balance:cfg.initialCapital,bet:cfg.baseBet,baseBet:cfg.baseBet,
+      sessionStart:cfg.initialCapital,battle:0,fought:false,maxBalance:cfg.initialCapital,minBalance:cfg.initialCapital,
+      status:'available',outcome:null,poolsPlayed:0};
+    bots.push(b); if(isInitial)cohort.push(b); return b;
+  }
+  for(let i=0;i<cfg.initialCount;i++)createBot(true);
+  const queues=new Map();
+  function enqueue(b){ if(b.status!=='available')return; let q=queues.get(b.bet); if(!q){q=[];queues.set(b.bet,q);} q.push(b); }
+  for(const b of bots)enqueue(b);
+  let activeCount=bots.length, stoppedCount=0, cohortStopped=0, lastReplenish=0, pools=0;
+  function addBots(n){ for(let i=0;i<n;i++){const b=createBot(false);enqueue(b);} activeCount+=n; }
+
+  function formPool(){
+    let bestTier=null,bestLen=0;
+    for(const [tier,q] of queues){ if(q.length>bestLen){bestLen=q.length;bestTier=tier;} }
+    if(bestLen>=cfg.poolSize){
+      const q=queues.get(bestTier); const picked=q.splice(0,cfg.poolSize);
+      if(q.length===0)queues.delete(bestTier);
+      return {bots:picked,baseBet:bestTier};
+    }
+    // fusion : prendre les plus gros soldes de mises
+    const all=[]; for(const q of queues.values()) for(const b of q) all.push(b);
+    if(all.length<cfg.poolSize) return null;
+    all.sort((a,b)=>b.bet-a.bet);
+    const picked=all.slice(0,cfg.poolSize); const baseBet=picked[0].bet;
+    const ps=new Set(picked);
+    for(const [tier,q] of [...queues.entries()]){ const kept=q.filter(b=>!ps.has(b)); if(kept.length===0)queues.delete(tier); else queues.set(tier,kept); }
+    return {bots:picked,baseBet};
+  }
+
+  function processPool(botsInPool,baseBet){
+    for(const b of botsInPool){ b.balance-=b.bet; b.battle=b.bet; b.fought=false; b.poolsPlayed++; }
+    for(let r=1;r<=cfg.rounds;r++){
+      const elig=[]; for(const b of botsInPool) if(b.battle>=b.bet-1e-12) elig.push(b);
+      if(elig.length<2) break;
+      if(elig.length%2!==0) elig.pop();
+      shuffle(elig);
+      for(let i=0;i+1<elig.length;i+=2){
+        const a=elig[i], b=elig[i+1]; const res=fight(randMove(),randMove());
+        if(res===1){ const amt=computeRoundTransfer(r,b.battle,b.bet); b.battle-=amt; a.battle+=amt; a.fought=true; b.fought=true; }
+        else if(res===-1){ const amt=computeRoundTransfer(r,a.battle,a.bet); a.battle-=amt; b.battle+=amt; a.fought=true; b.fought=true; }
+        else { a.fought=true; b.fought=true; }
+      }
+    }
+    for(const b of botsInPool){
+      if(!b.fought){ b.balance+=b.battle; b.battle=0; b.status='available'; updateMM(b); continue; }
+      const finalBattle=b.battle; b.balance+=b.battle; b.battle=0;
+      if(finalBattle<b.bet-1e-12){ const next=b.bet*2; const maxStake=b.baseBet*Math.pow(2,cfg.maxDoublings); if(next>maxStake)b.bet=b.baseBet; else b.bet=next; }
+      else if(finalBattle>b.bet+1e-12){ b.bet=b.baseBet; }
+      const q=b.balance/b.sessionStart;
+      if(q>=threshold){ b.status='stopped'; b.outcome='success'; }
+      else if(b.balance<b.bet-1e-12){ b.status='stopped'; b.outcome='ruin'; }
+      else { b.status='available'; }
+      updateMM(b);
+    }
+  }
+
+  while(pools<cfg.maxPools && cohortStopped<cfg.initialCount){
+    const pool=formPool();
+    if(!pool){ if(activeCount<cfg.poolSize){ addBots(cfg.poolSize-activeCount+cfg.replenishStep); continue; } break; }
+    processPool(pool.bots,pool.baseBet); pools++;
+    for(const b of pool.bots){ if(b.status==='available')enqueue(b); else { stoppedCount++; activeCount--; if(b.isInitial)cohortStopped++; } }
+    const due=stoppedCount-lastReplenish;
+    if(due>=cfg.replenishStep){ const n=Math.floor(due/cfg.replenishStep)*cfg.replenishStep; addBots(n); lastReplenish+=n; }
+  }
+
+  return cohort.map(b=>({outcome:b.outcome||'timeout',max:b.maxBalance,min:b.minBalance,pools:b.poolsPlayed,
+    drawdown:b.maxBalance>0?(b.maxBalance-b.minBalance)/b.maxBalance:0}));
+}
+
+function aggregate(all,cfg){
+  const n=all.length; let success=0,ruin=0,timeout=0,sumMax=0,sumMin=0,sumPools=0,sumDD=0;
+  let ruinMaxSum=0,ruinCount=0;
+  const hist={};
+  for(const s of all){
+    if(s.outcome==='success')success++; else if(s.outcome==='ruin'){ruin++;ruinMaxSum+=s.max;ruinCount++;} else timeout++;
+    sumMax+=s.max; sumMin+=s.min; sumPools+=s.pools; sumDD+=s.drawdown;
+    const b=(Math.round(s.max*40)/40).toFixed(3); hist[b]=(hist[b]||0)+1;
+  }
+  return {total:n,success,ruin,timeout,successRate:100*success/n,ruinRate:100*ruin/n,timeoutRate:100*timeout/n,
+    avgMax:sumMax/n,avgMin:sumMin/n,avgPools:sumPools/n,avgDD:100*sumDD/n,
+    ruinAvgMax:ruinCount?ruinMaxSum/ruinCount:null,hist};
+}
+
+self.onmessage=function(e){
+  const cfg=e.data; const all=[]; const t0=Date.now();
+  for(let r=0;r<cfg.runs;r++){ const cohort=runCohort(cfg); for(const s of cohort) all.push(s); }
+  const res=aggregate(all,cfg); res.ms=Date.now()-t0; res.runs=cfg.runs;
+  self.postMessage(res);
+};
+</script>
+
+<script>
+const workerCode=document.getElementById('sim-worker').textContent;
+const worker=new Worker(URL.createObjectURL(new Blob([workerCode],{type:'text/javascript'})));
+let running=false;
+
+function val(id){return parseFloat(document.getElementById(id).value);}
+function run(){
+  if(running)return; running=true;
+  const btn=document.getElementById('run-btn'); btn.disabled=true; btn.textContent='⏳ Calcul…';
+  const cfg={initialCount:Math.max(10,parseInt(document.getElementById('initialCount').value)),
+    runs:Math.max(1,parseInt(document.getElementById('runs').value)),
+    poolSize:Math.min(16,Math.max(3,parseInt(document.getElementById('poolSize').value))),
+    rounds:Math.max(1,parseInt(document.getElementById('rounds').value)),
+    baseBet:val('baseBet'),initialCapital:val('initialCapital'),target:val('target'),fee:val('fee'),
+    maxDoublings:parseInt(document.getElementById('maxDoublings').value),
+    replenishStep:Math.max(1,parseInt(document.getElementById('replenishStep').value)),
+    maxPools:Math.max(100,parseInt(document.getElementById('maxPools').value))};
+  worker.postMessage(cfg);
+}
+
+worker.onmessage=function(e){
+  const r=e.data;
+  document.getElementById('kpi-success').textContent=r.successRate.toFixed(1)+'%';
+  document.getElementById('kpi-ruin').textContent=r.ruinRate.toFixed(1)+'%';
+  document.getElementById('kpi-timeout').textContent=r.timeoutRate.toFixed(1)+'%';
+  document.getElementById('kpi-pools').textContent=Math.round(r.avgPools);
+  document.getElementById('kpi-avgmax').textContent=r.avgMax.toFixed(4);
+  document.getElementById('kpi-avgmin').textContent=r.avgMin.toFixed(4);
+  document.getElementById('kpi-dd').textContent=r.avgDD.toFixed(1)+'%';
+  document.getElementById('kpi-time').textContent=(r.ms/1000).toFixed(2)+' s';
+  document.getElementById('ruin-stats').innerText =
+    `Total cohorte (${r.runs} run(s)) : ${r.total} bots\n`+
+    `Succès : ${r.success} (${r.successRate.toFixed(1)}%) | Ruines : ${r.ruin} (${r.ruinRate.toFixed(1)}%) | Timeout : ${r.timeout}\n`+
+    `Max moyen : ${r.avgMax.toFixed(4)} | Min moyen : ${r.avgMin.toFixed(4)} | Drawdown moyen : ${r.avgDD.toFixed(1)}%\n`+
+    `Pools moyens/bot : ${Math.round(r.avgPools)}\n`+
+    (r.ruinAvgMax!=null ? `Ruines : max_balance moyen avant ruine = ${r.ruinAvgMax.toFixed(4)}` : '');
+  drawDist(r); drawHist(r.hist);
+  running=false; const btn=document.getElementById('run-btn'); btn.disabled=false; btn.textContent='⚡ Lancer';
+};
+
+function ctxFor(id){const c=document.getElementById(id);const rect=c.parentElement.getBoundingClientRect();c.width=rect.width*devicePixelRatio;c.height=rect.height*devicePixelRatio;const x=c.getContext('2d');x.scale(devicePixelRatio,devicePixelRatio);return{x,w:rect.width,h:rect.height};}
+
+function drawDist(r){
+  const {x,w,h}=ctxFor('dist'); x.clearRect(0,0,w,h);
+  const cats=[{label:'Succès',v:r.success,c:'#10b981'},{label:'Ruine',v:r.ruin,c:'#f43f5e'},{label:'Timeout',v:r.timeout,c:'#6b7280'}];
+  const total=cats.reduce((s,c)=>s+c.v,0)||1; const pad=45,cw=w-pad*2,ch=h-pad*2,bw=cw/3-20;
+  const mx=Math.max(...cats.map(c=>c.v),1);
+  cats.forEach((c,i)=>{const bx=pad+i*(cw/3)+10; const bh=(c.v/mx)*ch; const by=h-pad-bh;
+    x.fillStyle=c.c; x.beginPath(); x.roundRect(bx,by,bw,Math.max(0,bh),[6,6,0,0]); x.fill();
+    x.fillStyle='#9ca3af'; x.font='11px Inter'; x.textAlign='center';
+    x.fillText(c.label,bx+bw/2,h-pad+16); x.fillText((100*c.v/total).toFixed(1)+'%',bx+bw/2,by-6);});
+}
+
+function drawHist(hist){
+  const {x,w,h}=ctxFor('hist'); x.clearRect(0,0,w,h);
+  const keys=Object.keys(hist).sort((a,b)=>parseFloat(a)-parseFloat(b));
+  if(!keys.length)return;
+  const pad=40,cw=w-pad*2,ch=h-pad*2,bw=cw/keys.length;
+  const mx=Math.max(...keys.map(k=>hist[k]),1);
+  x.strokeStyle='#1f2937'; x.beginPath(); x.moveTo(pad,pad); x.lineTo(pad,h-pad); x.lineTo(w-pad,h-pad); x.stroke();
+  keys.forEach((k,i)=>{const bh=(hist[k]/mx)*ch; const bx=pad+i*bw; const by=h-pad-bh;
+    x.fillStyle='#6366f1'; x.fillRect(bx+1,by,Math.max(1,bw-2),bh);
+    if(keys.length<20){ x.fillStyle='#9ca3af'; x.font='9px Inter'; x.textAlign='center'; x.save(); x.translate(bx+bw/2,h-pad+4); x.rotate(-Math.PI/4); x.fillText(k,0,8); x.restore(); }});
+}
+</script>
+</body></html>
