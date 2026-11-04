@@ -1,0 +1,164 @@
+<!DOCTYPE html><html lang="fr" class="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulateur — Martingale de session (récupération)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{colors:{dark:{900:'#0b0f19',800:'#111827',700:'#1f2937',600:'#374151'}}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Inter',sans-serif}</style>
+</head>
+<body class="bg-dark-900 text-gray-100 min-h-screen">
+<header class="border-b border-dark-700 bg-dark-800/60 backdrop-blur sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <div class="flex items-center space-x-3">
+      <div class="bg-indigo-600 p-2 rounded-xl text-white font-bold text-xl">♻️</div>
+      <div>
+        <h1 class="text-lg font-bold">Martingale de session — calcul de X + simulation</h1>
+        <p class="text-xs text-gray-400">Après une session perdue, on ré-investit capital×X et cible×X. X auto = (1+target+fee)/target.</p>
+      </div>
+    </div>
+    <button onclick="run()" class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg cursor-pointer">⚡ Simuler</button>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+  <aside class="lg:col-span-1 bg-dark-800 border border-dark-700 rounded-2xl p-5 flex flex-col gap-3 h-fit">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-indigo-400 border-b border-dark-700 pb-2">⚙️ Paramètres</h2>
+    <label class="text-xs text-gray-300">Capital initial
+      <input id="initialCapital" type="number" value="0.4" step="0.01" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Mise de base
+      <input id="baseBet" type="number" value="0.0004" step="0.0001" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Target_q (ex. 1.05)
+      <input id="target" type="number" value="1.05" step="0.01" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Frais (%)
+      <input id="fee" type="number" value="2.5" step="0.1" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Max doublements (martingale de pool)
+      <input id="maxDoublings" type="number" value="4" min="0" max="8" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <div class="flex gap-2 items-end">
+      <label class="text-xs text-gray-300 flex-1">Facteur X (récupération)
+        <input id="recoveryX" type="number" value="21.525" step="0.001" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+      <button onclick="computeX()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-xl">X auto</button>
+    </div>
+    <label class="text-xs text-gray-300">Bankroll (× capital initial)
+      <input id="bankrollMult" type="number" value="100" min="1" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Max tentatives
+      <input id="maxAttempts" type="number" value="50" min="1" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Nombre de joueurs (runs)
+      <input id="runs" type="number" value="100000" min="100" step="1000" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <div id="x-info" class="text-[11px] text-gray-400 mt-1"></div>
+  </aside>
+
+  <section class="lg:col-span-3 flex flex-col gap-6">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">p(session gagnante)</p><h3 id="kpi-p" class="text-2xl font-bold text-sky-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">% gagnants (cible atteinte)</p><h3 id="kpi-won" class="text-2xl font-bold text-emerald-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">% faillite (bankroll épuisé)</p><h3 id="kpi-bank" class="text-2xl font-bold text-rose-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Tentatives moyennes</p><h3 id="kpi-att" class="text-2xl font-bold text-gray-300">—</h3></div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Capital moyen investi</p><h3 id="kpi-inv" class="text-2xl font-bold text-indigo-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Gain net moyen</p><h3 id="kpi-net" class="text-2xl font-bold text-amber-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Gain net médian</p><h3 id="kpi-netmed" class="text-2xl font-bold text-violet-400">—</h3></div>
+    </div>
+    <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5">
+      <h3 class="text-sm font-semibold mb-3">📊 Distribution des gains nets</h3>
+      <div class="relative w-full h-64 bg-dark-900 rounded-xl border border-dark-700/50"><canvas id="hist" class="w-full h-full"></canvas></div>
+    </div>
+    <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5">
+      <h3 class="text-sm font-semibold mb-2">🧮 Détail du calcul de X</h3>
+      <pre id="formula" class="text-xs text-gray-300 font-mono whitespace-pre-wrap">—</pre>
+    </div>
+  </section>
+</main>
+
+<script>
+function val(id){return parseFloat(document.getElementById(id).value);}
+function intval(id){return parseInt(document.getElementById(id).value);}
+
+function computeX(){
+  const t=val('target'), fee=val('fee');
+  const targetGain=t-1;                 // 5% pour 1.05
+  const feeAmount=t*fee/100;            // 2.5% du seuil
+  const X=(1+targetGain+feeAmount)/targetGain;
+  document.getElementById('recoveryX').value=X.toFixed(3);
+  document.getElementById('x-info').innerText =
+    `X auto = (1 + ${targetGain.toFixed(4)} + ${feeAmount.toFixed(5)}) / ${targetGain.toFixed(4)} = ${X.toFixed(3)}`;
+  return X;
+}
+
+function run(){
+  const t=val('target'), fee=val('fee');
+  const targetGain=t-1;
+  const feeAmount=t*fee/100;
+  const Xauto=(1+targetGain+feeAmount)/targetGain;
+  document.getElementById('x-info').innerText =
+    `X auto = (1 + target + frais) / target = ${Xauto.toFixed(3)}`;
+  document.getElementById('formula').innerText =
+`Capital perdu            = C
+Cible session précédente = target × C = ${(targetGain).toFixed(4)} × C
+Frais session précédente = target × (fee/100) × C = ${feeAmount.toFixed(5)} × C
+Dette totale             = (1 + ${targetGain.toFixed(4)} + ${feeAmount.toFixed(5)}) × C = ${(1+targetGain+feeAmount).toFixed(5)} × C
+Bénéfice net session suivante (si elle gagne) = (target-1) × (C×X) = ${targetGain.toFixed(4)} × C × X
+=> X = ${(1+targetGain+feeAmount).toFixed(5)} / ${targetGain.toFixed(4)} = ${Xauto.toFixed(3)}`;
+
+  const cfg={initialCapital:val('initialCapital'),baseBet:val('baseBet'),target:t,fee:fee,
+    maxDoublings:intval('maxDoublings'),recoveryX:val('recoveryX'),
+    bankrollMult:val('bankrollMult'),maxAttempts:intval('maxAttempts'),runs:Math.max(100,intval('runs'))};
+  const res=simRecovery(cfg);
+  render(res,cfg);
+}
+
+function simRecovery(cfg){
+  const ruinRatio=(cfg.baseBet*Math.pow(2,cfg.maxDoublings))/cfg.initialCapital;
+  const targetRel=cfg.target*(1+cfg.fee/100);
+  const p=Math.max(0,Math.min(1,(1-ruinRatio)/(targetRel-ruinRatio)));
+  const gainNet=cfg.target-1;
+  const bankroll=cfg.initialCapital*cfg.bankrollMult;
+  let won=0,bankrupt=0,timeout=0,sumAtt=0,sumInv=0,sumNet=0;
+  const nets=[];
+  for(let r=0;r<cfg.runs;r++){
+    let cap=cfg.initialCapital,inv=0,net=0,att=0,bk=false,w=false;
+    while(att<cfg.maxAttempts){
+      att++; inv+=cap;
+      if(Math.random()<p){ net+=cap*gainNet; w=true; break; }
+      else { net-=cap; cap*=cfg.recoveryX; if(inv+cap>bankroll){bk=true;break;} }
+    }
+    if(w)won++; else if(bk)bankrupt++; else timeout++;
+    sumAtt+=att; sumInv+=inv; sumNet+=net; nets.push(net);
+  }
+  nets.sort((a,b)=>a-b);
+  const median=nets[Math.floor(nets.length/2)]||0;
+  return {p,won,bankrupt,timeout,runs:cfg.runs,wonPct:100*won/cfg.runs,bankPct:100*bankrupt/cfg.runs,
+    avgAtt:sumAtt/cfg.runs,avgInv:sumInv/cfg.runs,avgNet:sumNet/cfg.runs,median,nets};
+}
+
+function render(r,cfg){
+  document.getElementById('kpi-p').textContent=(r.p*100).toFixed(2)+'%';
+  document.getElementById('kpi-won').textContent=r.wonPct.toFixed(2)+'%';
+  document.getElementById('kpi-bank').textContent=r.bankPct.toFixed(2)+'%';
+  document.getElementById('kpi-att').textContent=r.avgAtt.toFixed(2);
+  document.getElementById('kpi-inv').textContent=r.avgInv.toFixed(3);
+  document.getElementById('kpi-net').textContent=r.avgNet.toFixed(5);
+  document.getElementById('kpi-netmed').textContent=r.median.toFixed(5);
+  drawHist(r.nets,cfg);
+}
+
+function drawHist(nets,cfg){
+  const c=document.getElementById('hist');const rect=c.parentElement.getBoundingClientRect();
+  c.width=rect.width*devicePixelRatio;c.height=rect.height*devicePixelRatio;
+  const x=c.getContext('2d');x.scale(devicePixelRatio,devicePixelRatio);
+  const w=rect.width,h=rect.height;x.clearRect(0,0,w,h);
+  if(!nets.length)return;
+  const mn=nets[0],mx=nets[nets.length-1];
+  const B=40; const bins=new Array(B).fill(0); const span=(mx-mn)||1;
+  for(const v of nets){ let i=Math.floor((v-mn)/span*B); if(i<0)i=0; if(i>=B)i=B-1; bins[i]++; }
+  const maxB=Math.max(...bins,1); const pad=40; const cw=w-pad*2,ch=h-pad*2,bw=cw/B;
+  x.strokeStyle='#1f2937';x.beginPath();x.moveTo(pad,pad);x.lineTo(pad,h-pad);x.lineTo(w-pad,h-pad);x.stroke();
+  bins.forEach((v,i)=>{const bh=(v/maxB)*ch;const bx=pad+i*bw;const by=h-pad-bh;
+    x.fillStyle=v===maxB?'#6366f1':'#3b82f6';x.fillRect(bx,by,Math.max(1,bw-1),bh);});
+  x.fillStyle='#9ca3af';x.font='10px Inter';x.textAlign='left';x.fillText(mn.toFixed(4),pad,h-pad+14);
+  x.textAlign='right';x.fillText(mx.toFixed(4),w-pad,h-pad+14);
+}
+computeX();
+</script>
+</body></html>
