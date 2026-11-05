@@ -448,32 +448,32 @@ Aucune erreur `GameEngine` dans les logs après correctifs.
 avant prod réelle.
 
 **Modèle validé (A)** :
-- Budget de session **fixe** `C = baseBet × security_coefficient` (marge de sécurité).
-- Target de **session** `tq_s` = 1.05 / 1.2 → gain `t = tq_s − 1` sur `C`.
-- Frais prélevés **une seule fois** au début (paramètre).
-- Facteur de récupération `X = (1 + t + fee) / t` (fee=0 → `(1+t)/t`).
-  Ex. `tq_s=1.05, fee=0.5% → X=21.10` ; `tq_s=1.2 → X=6.03` (conforme au simulateur).
-- `B` = bankroll du joueur ; recommandé `B_init = C + C·X` (budget + une récupération).
-- **Objectif final : doubler le bankroll** `B ≥ 2 × B_init`.
+- Budget de session **fixe** `C = baseBet × security_coefficient`.
+- Target de **session** `tq_s` = 1.05 / 1.2 → `t = tq_s − 1`. **Sessions calculées SANS frais.**
+- `X = (1 + t) / t` (sans frais). Ex. 1.05 → 21.00 ; 1.2 → 6.00.
+- **Dépôt** : le joueur paie `B + frais` ; les frais sont **prélevés au dépôt**, seul `B` est crédité.
+  `frais = fee_rate × B`.
+- **Target de bankroll** : `T = B × final_multiplier + frais` (les frais sont ajoutés à la target).
+  Au succès, le joueur retire `T` ⇒ **net = (final_multiplier − 1) × B** (×2 → net = B, doublé).
+- **Objectif final** : atteindre `T`.
 
 **Déroulé** :
-- Session **gagnante** : `+t·C` au bankroll, `C` inchangé, nouvelle session.
-- Session **ruinée** : `−C`, puis UNE session de rattrapage `C·X` puisée dans `B`
-  (gagnée → `+t·C·X`, on continue ; perdue → **perte finale**).
-- **À chaque ruine** : une seule récupération (jamais `X²`, `X³`…).
+- Session gagnante : `+t·C` au bankroll, `C` inchangé, nouvelle session.
+- Session ruinée : `−C`, puis **une** récupération `C·X` puisée dans `B` (gagnée → `+t·C·X` ;
+  perdue → **perte finale**). **Une seule récupération par ruine** (jamais `X²`).
 
-**Socle posé** : `config/bankroll.php`, `app/Services/BankrollService.php`
-(`recoveryFactor`, `feeAmount`, `sessionWinAmount`, `recoveryCapital`, `recommendedBankroll`,
-`finalTarget`, `isSuccess`, `canFundRecovery`, `isRuin`, `breakdown`), migrations
+**Socle** : `config/bankroll.php`, `app/Services/BankrollService.php` (`recoveryFactor`,
+`feeAmount`, `depositAmount`, `finalTarget`, `payoutOnSuccess`, `playerNet`,
+`recommendedBankroll`, `isSuccess`, `canFundRecovery`, `isRuin`, `breakdown`), migrations
 `2026_11_05_000000_*` + `2026_11_05_000001_*`, `User::$fillable`.
 
 **Chiffres (C = 0.4)** :
-| tq_s | fee | X | Récup C·X | B recommandé | Cible finale (2×B) | Gain/session | Gain rattrapage |
+| tq_s | X | Récup C·X | B = C+C·X | frais (0.5 % B) | Dépôt B+frais | Target T=2B+frais | Net succès |
 |---|---|---|---|---|---|---|---|
-| 1.05 | 0.5 % | 21.100 | 8.440 | 8.840 | 17.680 | +0.020 | +0.422 |
-| 1.20 | 0.5 % | 6.025 | 2.410 | 2.810 | 5.620 | +0.080 | +0.482 |
+| 1.05 | 21.00 | 8.400 | 8.800 | 0.0440 | 8.844 | 17.644 | **8.800** |
+| 1.20 | 6.00 | 2.400 | 2.800 | 0.0140 | 2.814 | 5.614 | **2.800** |
 
-Vérifié : `t·(C·X) = C + t·C + fee·C` (résidu 0).
+Vérifié : `payout − dépôt = B` (doublement exact).
 
 **Prochaine étape** : state machine `SessionManager` (session→bankroll, rattrapage par ruine,
-succès à `B ≥ 2·B_init`), puis dépôt unique V2 + endpoint preview + UI.
+succès à `B ≥ T`), puis dépôt unique V2 (`B + frais`) + endpoint preview + UI.

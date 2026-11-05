@@ -2,28 +2,25 @@
 
 /*
 |--------------------------------------------------------------------------
-| P3 — Bankroll + martingale de session (modèle validé « A »)
+| P3 — Bankroll + martingale de session (modèle A)
 |--------------------------------------------------------------------------
 |
-| • Budget de session C = baseBet × security_coefficient (FIXE pour toutes
-|   les sessions). C'est la marge de sécurité.
-| • Target de SESSION T_s (1.05 ou 1.2) : une session joue C vers C·(1+t),
-|   t = T_s − 1.
-| • Frais prélevés UNE SEULE FOIS au début de la première session.
-| • Facteur de récupération X = (1 + t + fee) / t.
-|   (ex. target 1.05 + frais 0.5 % → X = 21.10 ; target 1.2 → X = 6.03)
-| • Bankroll B = argent total du joueur. B_init est le dépôt.
-|   Recommandation : B_init ≥ C + C·X (budget + une récupération).
-| • Objectif FINAL : doubler le bankroll (B ≥ 2 × B_init).
+| • Budget de session C = baseBet × security_coefficient (FIXE).
+| • Target de SESSION tq_s (1.05 / 1.2) : une session joue C vers C·(1+t),
+|   t = tq_s − 1.  **Les sessions sont calculées SANS frais.**
+| • Facteur de récupération X = (1 + t) / t  (sans frais).
+| • Dépôt : le joueur paie B + frais ; les frais sont prélevés à ce moment,
+|   seul B est crédité au bankroll.  frais = fee_rate × B.
+| • Target de BANKROLL : T = (B × final_multiplier) + frais.
+|   En cas de succès le joueur retire T ⇒ net = (final_multiplier − 1) × B
+|   (ex. multiplier 2 → il a doublé).
+| • Objectif final : atteindre T (doubler le bankroll, frais inclus).
 |
 | Déroulé :
-|   - Session gagnante  : profit t·C versé au bankroll ; C inchangé ; nouvelle session.
-|   - Session ruinée    : C perdu ; on puise C·X dans le bankroll pour UNE
-|                          session de rattrapage (même t). Si le rattrapage
-|                          gagne → on continue ; s'il perd → perte finale.
-|   - À CHAQUE ruine : une seule récupération (jamais X², X³…).
-|   - Arrêt : succès si B ≥ 2·B_init ; perte finale si le rattrapage perd.
-|
+|   - Session gagnante : +t·C au bankroll ; C inchangé ; nouvelle session.
+|   - Session ruinée   : −C, puis UNE récupération C·X puisée dans B
+|     (gagnée → +t·C·X ; perdue → perte finale).
+|   - À chaque ruine : une seule récupération (jamais X², X³…).
 */
 
 return [
@@ -33,12 +30,12 @@ return [
     // Multiplicateur final du bankroll (2.0 = doubler).
     'final_multiplier' => (float) env('BANKROLL_FINAL_MULTIPLIER', 2.0),
 
-    // Taux de frais, prélevé UNE FOIS au début (fraction, pas %).
+    // Taux de frais prélevé UNE FOIS au dépôt, et ajouté à la target bankroll.
     'fee_rate' => (float) env('BANKROLL_FEE_RATE', 0.005),
 
     // Coefficient de sécurité : C = baseBet × coefficient.
     'security_coefficient' => (int) env('BANKROLL_SECURITY_COEFFICIENT', 1000),
 
-    // Une récupération autorisée par ruine (jamais de récupération de récupération).
+    // Une récupération autorisée par ruine.
     'recovery_per_ruin' => true,
 ];
