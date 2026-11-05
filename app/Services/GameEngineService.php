@@ -107,8 +107,8 @@ class GameEngineService
                 /** @var User $b */
                 $b = $eligible[$i + 1];
 
-                $moveA = $this->nextMove($preMoves[$a->id] ?? null, $cursor[$a->id] ?? 0);
-                $moveB = $this->nextMove($preMoves[$b->id] ?? null, $cursor[$b->id] ?? 0);
+                $moveA = $this->nextMove($preMoves[$a->id] ?? null, $cursor, $a->id);
+                $moveB = $this->nextMove($preMoves[$b->id] ?? null, $cursor, $b->id);
                 $result = $this->pfc($moveA, $moveB);
 
                 $amount = 0.0;
@@ -212,7 +212,7 @@ class GameEngineService
         }
     }
 
-    private function nextMove(?PreMove $pm, int &$cursor): string
+    private function nextMove(?PreMove $pm, array &$cursor, int $userId): string
     {
         if (! $pm) {
             return 'rock';
@@ -221,8 +221,8 @@ class GameEngineService
         if (! is_array($moves) || empty($moves)) {
             return 'rock';
         }
-        $idx = $cursor % count($moves);
-        $cursor = ($idx + 1) % count($moves);
+        $idx = ($cursor[$userId] ?? 0) % count($moves);
+        $cursor[$userId] = ($idx + 1) % count($moves);
 
         return $moves[$idx];
     }
