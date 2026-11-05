@@ -442,45 +442,38 @@ Aucune erreur `GameEngine` dans les logs après correctifs.
 
 ---
 
-## 14. P3 — Bankroll unique + sessions (démarrage 2026-11-05)
+## 14. P3 — Bankroll + martingale de session (modèle A, 2026-11-05)
 
-**Décision** : P3 démarre **en parallèle** ; P2.1 (events humains + f_hists/IPFS + consumer
-schedulé) reste **dette avant prod réelle**.
+**Décision** : P3 en parallèle ; P2.1 (events humains + f_hists/IPFS + consumer schedulé) = dette
+avant prod réelle.
 
-**Modèle validé (deux targets distincts)** :
-- **Target de session** `tq_s` = 1.05 (ou 1.2) → gain `t = tq_s − 1` sur le **capital de session**.
-  Aucun frais de session.
-- **Target de bankroll** `tq_b` = 1.5 / 2 / 2.5 → objectif final. Montant cible
-  `T = B × (tq_b + φ)`, frais `φ·B` **ajoutés à la cible** (φ = 0.5 %).
-  À T atteint : joueur encaisse `B × tq_b` net, plateforme garde `φ·B`.
-- **Dépôt unique** : `B = C + C·X`, `X = (1 + t)/t = 1/t + 1`, sans frais ajoutés au dépôt.
-- **Capital de session FIXE** `C = baseBet × security_coefficient`, prélevé du bankroll à chaque
-  session. Session gagnante : `+t·C` ; perdue : `−C`. On relance tant que `C ≤ bankroll < T`.
-  Succès quand `bankroll ≥ T` ; ruine quand `bankroll < C`.
-  `P(succès) ≈ (B − C)/(T − C)`.
+**Modèle validé (A)** :
+- Budget de session **fixe** `C = baseBet × security_coefficient` (marge de sécurité).
+- Target de **session** `tq_s` = 1.05 / 1.2 → gain `t = tq_s − 1` sur `C`.
+- Frais prélevés **une seule fois** au début (paramètre).
+- Facteur de récupération `X = (1 + t + fee) / t` (fee=0 → `(1+t)/t`).
+  Ex. `tq_s=1.05, fee=0.5% → X=21.10` ; `tq_s=1.2 → X=6.03` (conforme au simulateur).
+- `B` = bankroll du joueur ; recommandé `B_init = C + C·X` (budget + une récupération).
+- **Objectif final : doubler le bankroll** `B ≥ 2 × B_init`.
 
-**Socle posé (backend, sans toucher au flux live)** :
-- `config/bankroll.php` : `session_target_q=1.05`, `bankroll_target=2.0`, `fee_rate=0.005`,
-  `security_coefficient=1000`.
-- Migrations `2026_11_05_000000_add_bankroll_fields_to_users.php` +
-  `2026_11_05_000001_add_bankroll_target_to_users.php` : `bankroll_total`, `bankroll_remaining`,
-  `bankroll_fee`, `bankroll_recovery_reserve`, `recovery_factor`, `session_capital`,
-  `session_attempt`, `recovery_used`, `bankroll_target`, `bankroll_target_amount`,
-  `sessions_played`.
-- `app/Services/BankrollService.php` : `breakdown(C)` → X, réserve, B, frais, T, payout net,
-  `P(succès)` ; helpers `sessionWinAmount`, `reachedTarget`, `isRuin`.
+**Déroulé** :
+- Session **gagnante** : `+t·C` au bankroll, `C` inchangé, nouvelle session.
+- Session **ruinée** : `−C`, puis UNE session de rattrapage `C·X` puisée dans `B`
+  (gagnée → `+t·C·X`, on continue ; perdue → **perte finale**).
+- **À chaque ruine** : une seule récupération (jamais `X²`, `X³`…).
 
-**Chiffres (C = 0.4, tq_s = 1.05 → X = 21, B = 8.8, φ = 0.5 %)** :
-| tq_b | T = B·(tq_b+φ) | P(succès) ≈ | Net joueur à T |
-|---|---|---|---|
-| 1.5 | 13.244 | ~65 % | 13.20 |
-| 2.0 | 17.644 | ~49 % | 17.60 |
-| 2.5 | 22.044 | ~39 % | 22.00 |
+**Socle posé** : `config/bankroll.php`, `app/Services/BankrollService.php`
+(`recoveryFactor`, `feeAmount`, `sessionWinAmount`, `recoveryCapital`, `recommendedBankroll`,
+`finalTarget`, `isSuccess`, `canFundRecovery`, `isRuin`, `breakdown`), migrations
+`2026_11_05_000000_*` + `2026_11_05_000001_*`, `User::$fillable`.
 
-Le `tq_b` pilote le taux de gagnants ; `tq_s` règle surtout la durée/variance du chemin.
+**Chiffres (C = 0.4)** :
+| tq_s | fee | X | Récup C·X | B recommandé | Cible finale (2×B) | Gain/session | Gain rattrapage |
+|---|---|---|---|---|---|---|---|
+| 1.05 | 0.5 % | 21.100 | 8.440 | 8.840 | 17.680 | +0.020 | +0.422 |
+| 1.20 | 0.5 % | 6.025 | 2.410 | 2.810 | 5.620 | +0.080 | +0.482 |
 
-**Prochaine étape P3** :
-1. State machine dans `SessionManager` : à chaque fin de session, `bankroll_remaining` ajusté de
-   `±` puis re-session si `C ≤ bankroll < T` ; succès → payout `B×tq_b` ; ruine → perte finale.
-2. Endpoint preview bankroll (B, X, réserve, T, frais, P succès) + dépôt unique V2 + UI.
-   Retrait = `bankroll_remaining` ; frais `φ·B` au règlement (jamais au dépôt ni par session).
+Vérifié : `t·(C·X) = C + t·C + fee·C` (résidu 0).
+
+**Prochaine étape** : state machine `SessionManager` (session→bankroll, rattrapage par ruine,
+succès à `B ≥ 2·B_init`), puis dépôt unique V2 + endpoint preview + UI.

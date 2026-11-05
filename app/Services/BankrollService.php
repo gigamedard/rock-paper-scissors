@@ -3,15 +3,20 @@
 namespace App\Services;
 
 /**
- * Modèle « bankroll + sessions » (P3) — voir config/bankroll.php.
+ * P3 — Bankroll + martingale de session (modèle « A »).
  *
- * DEUX targets distincts :
- *   - session_target_q : gain par session (1.05, 1.2…), appliqué au capital C.
- *   - bankroll_target  : objectif final du bankroll (1.5, 2, 2.5…).
+ * C   = budget de session FIXE = baseBet × security_coefficient (marge de sécurité).
+ * t   = session_target_q − 1  (ex. 0.05 pour 1.05, 0.20 pour 1.2)
+ * fee = taux de frais (ex. 0.005), prélevé UNE SEULE FOIS au début.
+ * X   = (1 + t + fee) / t   (facteur de récupération ; fee = 0 → (1+t)/t)
+ * B   = bankroll du joueur. Une ruine puise C·X dans B pour UNE récupération.
+ * Objectif final : B ≥ 2 × B_init (doubler le bankroll).
  *
- * Dépôt unique : B = C + C·X, avec X = (1 + t_s) / t_s, t_s = session_target_q − 1.
- * Cible bankroll : T = B × (bankroll_target + φ), frais = φ·B ajoutés à la cible.
- * Aucun frais de session. Capital de session FIXE = C.
+ * Session gagnante : +t·C au bankroll, C inchangé, nouvelle session.
+ * Session ruinée    : −C puis, si B ≥ C·X, une session de rattrapage (C·X).
+ *   - rattrapage gagné : +t·C·X, on continue ;
+ *   - rattrapage perdu : perte finale.
+ * À chaque ruine : une seule récupération (jamais X², X³…).
  */
 class BankrollService
 {
@@ -20,15 +25,14 @@ class BankrollService
         return (float) config('bankroll.session_target_q', 1.05);
     }
 
-    /** Gain relatif d'une session (t_s = session_target_q − 1). */
     public function sessionGain(): float
     {
         return $this->sessionTargetQ() - 1.0;
     }
 
-    public function bankrollTarget(): float
+    public function finalMultiplier(): float
     {
-        return (float) config('bankroll.bankroll_target', 2.0);
+        return (float) config('bankroll.final_multiplier', 2.0);
     }
 
     public function feeRate(): float
@@ -41,85 +45,94 @@ class BankrollService
         return (int) config('bankroll.security_coefficient', 1000);
     }
 
-    /**
-     * Multiplicateur de réserve X = (1 + t_s) / t_s.
-     */
-    public function reserveMultiplier(?float $sessionTargetQ = null): float
+    /** Facteur de récupération X = (1 + t + fee) / t. */
+    public function recoveryFactor(?float $sessionTargetQ = null, ?float $feeRate = null): float
     {
         $t = ($sessionTargetQ ?? $this->sessionTargetQ()) - 1.0;
+        $fee = $feeRate ?? $this->feeRate();
 
         if ($t <= 0.0) {
             throw new \InvalidArgumentException('session_target_q doit être > 1.');
         }
 
-        return (1.0 + $t) / $t;
+        return (1.0 + $t + $fee) / $t;
     }
 
-    /**
-     * Détail du bankroll pour un capital de session C.
-     *
-     * @return array{
-     *   capital: float, session_target_q: float, session_gain: float,
-     *   reserve_multiplier: float, reserve: float, bankroll: float,
-     *   bankroll_target: float, fee_rate: float, fee: float,
-     *   target_amount: float, payout_net: float, success_probability: float
-     * }
-     */
-    public function breakdown(float $capital): array
+    /** Frais prélevés une seule fois au début. */
+    public function feeAmount(float $capital): float
     {
-        $t = $this->sessionGain();
-        $x = $this->reserveMultiplier();
-        $reserve = $capital * $x;
-        $bankroll = $capital + $reserve;
-        $fee = $this->feeRate() * $bankroll;
-        $target = $bankroll * ($this->bankrollTarget() + $this->feeRate());
-
-        // Ruine quand bankroll < C ; succès quand bankroll ≥ T.
-        $successProbability = ($bankroll - $capital) > 0.0
-            ? max(0.0, min(1.0, ($bankroll - $capital) / ($target - $capital)))
-            : 0.0;
-
-        return [
-            'capital' => $capital,
-            'session_target_q' => $this->sessionTargetQ(),
-            'session_gain' => $t,
-            'reserve_multiplier' => $x,
-            'reserve' => $reserve,
-            'bankroll' => $bankroll,
-            'bankroll_target' => $this->bankrollTarget(),
-            'fee_rate' => $this->feeRate(),
-            'fee' => $fee,
-            // Montant à atteindre (inclut les frais).
-            'target_amount' => $target,
-            // Net encaissé par le joueur quand T est atteint.
-            'payout_net' => $bankroll * $this->bankrollTarget(),
-            'success_probability' => $successProbability,
-        ];
+        return $this->feeRate() * $capital;
     }
 
-    /** Capital de session (fixe). */
-    public function sessionCapital(float $capital): float
-    {
-        return $capital;
-    }
-
-    /** Gain d'une session gagnante (t·C). */
+    /** Gain d'une session normale gagnante. */
     public function sessionWinAmount(float $capital): float
     {
         return $this->sessionGain() * $capital;
     }
 
-    /** Succès : le bankroll a atteint la cible. */
-    public function reachedTarget(float $bankroll, float $initialBankroll): bool
+    /** Capital d'une session de rattrapage. */
+    public function recoveryCapital(float $capital): float
     {
-        $target = $initialBankroll * ($this->bankrollTarget() + $this->feeRate());
-
-        return $bankroll >= $target - 1e-9;
+        return $capital * $this->recoveryFactor();
     }
 
-    /** Ruine : plus assez de capital pour financer une session. */
+    /** Gain d'un rattrapage gagnant (couvre capital perdu + cible + frais). */
+    public function recoveryWinAmount(float $capital): float
+    {
+        return $this->sessionGain() * $this->recoveryCapital($capital);
+    }
+
+    /** Bankroll recommandé : budget + une récupération. */
+    public function recommendedBankroll(float $capital): float
+    {
+        return $capital + $this->recoveryCapital($capital);
+    }
+
+    /** Cible finale (doubler le bankroll initial). */
+    public function finalTarget(float $initialBankroll): float
+    {
+        return $this->finalMultiplier() * $initialBankroll;
+    }
+
+    public function isSuccess(float $bankroll, float $initialBankroll): bool
+    {
+        return $bankroll >= $this->finalTarget($initialBankroll) - 1e-9;
+    }
+
+    public function canFundRecovery(float $bankroll, float $capital): bool
+    {
+        return $bankroll >= $this->recoveryCapital($capital) - 1e-9;
+    }
+
     public function isRuin(float $bankroll, float $capital): bool
     {
         return $bankroll < $capital - 1e-9;
+    }
+
+    /**
+     * Résumé des paramètres/étapes pour un budget C et (optionnel) un bankroll initial.
+     *
+     * @return array<string, float|bool>
+     */
+    public function breakdown(float $capital, ?float $initialBankroll = null): array
+    {
+        $t = $this->sessionGain();
+        $x = $this->recoveryFactor();
+        $initial = $initialBankroll ?? $this->recommendedBankroll($capital);
+
+        return [
+            'capital' => $capital,
+            'session_target_q' => $this->sessionTargetQ(),
+            'session_gain' => $t,
+            'fee_rate' => $this->feeRate(),
+            'fee_once' => $this->feeAmount($capital),
+            'recovery_factor' => $x,
+            'recovery_capital' => $capital * $x,
+            'recovery_win' => $t * $capital * $x,
+            'bankroll_initial' => $initial,
+            'final_multiplier' => $this->finalMultiplier(),
+            'final_target' => $this->finalTarget($initial),
+            'recommended_min_bankroll' => $this->recommendedBankroll($capital),
+        ];
     }
 }
