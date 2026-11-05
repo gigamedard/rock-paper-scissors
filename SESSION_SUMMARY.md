@@ -446,32 +446,33 @@ Aucune erreur `GameEngine` dans les logs après correctifs.
 
 **Décision** : P3 démarre **en parallèle** ; P2.1 (events humains + f_hists/IPFS + consumer schedulé) reste **dette avant prod réelle**.
 
+**Règle frais (précisée par le produit)** : les frais **ne sont déduits ni du capital ni
+d'aucune session** ; ils sont **AJOUTÉS À LA CIBLE** (au montant à récupérer). Ils entrent
+donc dans le numérateur de la récupération : `fee = φ·(1+t)`.
+
 **Socle posé (backend, sans toucher au flux live)** :
-- `config/bankroll.php` : `target_q=1.05`, `fee_rate=0.005` (une fois sur le bankroll),
+- `config/bankroll.php` : `target_q=1.05`, `fee_rate=0.005` (ajouté à la cible),
   `max_sessions=2`, `security_coefficient=1000`, `loss_is_total=true`.
 - Migration `2026_11_05_000000_add_bankroll_fields_to_users.php` : `bankroll_total`,
   `bankroll_remaining`, `bankroll_fee`, `bankroll_recovery_reserve`, `recovery_factor`,
   `session_capital`, `session_attempt`, `recovery_used`.
-- `app/Services/BankrollService.php` : formule cohérente (frais une fois sur le total) :
-  `X = ((1+t) − φ·t) / (t − φ·(1+t))`, `B = C·(1+X)/(1−φ)`, vérifié `recovery_gain == C(1+t)+frais`.
+- `app/Services/BankrollService.php` : `fee = φ·(1+t)`, `X = (1+t+fee)/t`, `B = C + C·X`
+  (dépôt sans frais), `feeInTarget = C·fee`. Vérifié `t·(C·X) = C + t·C + fee·C` (résidu = 0).
 - `User::$fillable` complété.
 
-**Chiffres (C = 0.4)** :
-| target_q | frais (sur bankroll) | X | Bankroll B | Cible récup (abs.) |
+**Chiffres (C = 0.4, φ = 0.5 %)** :
+| target_q | fee (relatif) | X | Réserve C·X | Bankroll B |
 |---|---|---|---|---|
-| 1.05 | 0.5 % | **23.46** | **9.83** | +5 % de 9.38 |
-| 1.05 | 0 % | 21.00 | 8.80 | +5 % de 8.40 |
-| 1.02 | 0.5 % | 68.45 | 27.92 | +2 % de 27.38 |
-| 1.20 | 2.5 % | 7.03 | 3.29 | +20 % de 2.81 |
+| 1.05 | 0.525 % | **21.105** | 8.442 | **8.842** |
+| 1.02 | 0.510 % | 51.255 | 20.502 | 20.902 |
+| 1.20 | 0.600 % | 6.030 | 2.412 | 2.812 |
 
-Note : la cible **relative** reste `target_q` ; c'est la cible **absolue** qui est ×X
-(capital ×X, mise ×X). Max 2 sessions ; rattrapage perdu = perte finale.
+Note : la cible **relative** reste `target_q` ; la cible **absolue** est ×X (capital ×X, mise ×X).
+Max 2 sessions ; rattrapage perdu = perte finale.
 
 **Prochaine étape P3 (à confirmer)** :
-1. `target_q` P3 = **1.05** ?
-2. Frais = **0.5 % une fois sur le bankroll** (→ X≈23.5) ou conserver **2.5 %** contractuel (→ X≈44.2) ?
-   Impact : si 0.5 %, il faut baisser `feeBasisPoints` du contrat V2 (ou gérer la différence off-chain).
-3. Perte de session = **capital de session entier** (ruine) ? Max **2 sessions** ?
-4. Ensuite : state machine dans `SessionManager` (loss → rattrapage avec `session_capital=C·X`,
-   `bet_amount = bet×X`, même `target_q` ; si rattrapage perdu → `stopped`/payout), endpoint
-   de preview bankroll, dépôt unique V2 + UI, retrait = `bankroll_remaining`.
+1. `target_q` P3 = **1.05** ? Max **2 sessions** ? Perte = capital de session entier ?
+2. State machine `SessionManager` : loss → rattrapage (`session_capital=C·X`, `bet_amount=bet×X`,
+   même `target_q`) ; rattrapage perdu → `stopped`/payout final.
+3. Endpoint preview bankroll + dépôt unique V2 + UI ; retrait = `bankroll_remaining` ;
+   frais `φ·(1+t)` ajoutés à la cible (pas de frais au dépôt ni par session).

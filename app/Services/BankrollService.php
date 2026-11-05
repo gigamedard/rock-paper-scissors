@@ -6,14 +6,14 @@ namespace App\Services;
  * Calcul du bankroll unique et du facteur de récupération de session (P3).
  *
  * Modèle (voir config/bankroll.php) :
- *   t = target_q − 1 (gain relatif par session)
- *   φ = taux de frais prélevé une fois sur le bankroll total
+ *   t   = target_q − 1 (gain relatif par session)
+ *   φ   = taux de frais, ajouté à la cible :  fee = φ·(1 + t)
+ *   X   = (1 + t + fee) / t = (1 + t)·(1 + φ) / t
+ *   B   = C + C·X            (dépôt, sans frais ajoutés)
  *
- *   X = ((1 + t) − φ·t) / (t − φ·(1 + t))
- *   B = C·(1 + X) / (1 − φ)
- *
- * La session de rattrapage vise le MÊME pourcentage t, sur un capital C·X
- * (donc une cible absolue × X) : son gain t·C·X couvre C + t·C + frais.
+ * Les frais ne sont JAMAIS déduits du capital ni d'une session : ils sont
+ * ajoutés à la cible (au montant à récupérer). Le gain du rattrapage
+ * t·(C·X) couvre C + t·C + fee·C.
  */
 class BankrollService
 {
@@ -44,25 +44,35 @@ class BankrollService
     }
 
     /**
-     * Facteur de récupération X.
+     * Frais relatifs au capital, ajoutés à la cible : fee = φ·(1 + t).
      */
-    public function recoveryFactor(?float $targetQ = null, ?float $feeRate = null): float
+    public function feeFraction(?float $targetQ = null): float
     {
         $t = ($targetQ ?? $this->targetQ()) - 1.0;
-        $phi = $feeRate ?? $this->feeRate();
+
+        return $this->feeRate() * (1.0 + $t);
+    }
+
+    /**
+     * Facteur de récupération X = (1 + t + fee) / t.
+     */
+    public function recoveryFactor(?float $targetQ = null): float
+    {
+        $t = ($targetQ ?? $this->targetQ()) - 1.0;
 
         if ($t <= 0.0) {
             throw new \InvalidArgumentException('target_q doit être > 1.');
         }
 
-        $num = (1.0 + $t) - $phi * $t;
-        $den = $t - $phi * (1.0 + $t);
+        return (1.0 + $t + $this->feeFraction($targetQ)) / $t;
+    }
 
-        if ($den <= 0.0) {
-            throw new \InvalidArgumentException('Combinaison target_q/frais invalide (dénominateur <= 0).');
-        }
-
-        return $num / $den;
+    /**
+     * Frais (en montant) ajoutés à la cible pour un capital de session donné.
+     */
+    public function feeInTarget(float $capital, ?float $targetQ = null): float
+    {
+        return $capital * $this->feeFraction($targetQ);
     }
 
     /**
@@ -70,34 +80,36 @@ class BankrollService
      *
      * @return array{
      *   capital: float, target_q: float, target_gain: float, fee_rate: float,
-     *   recovery_factor: float, recovery_capital: float, recovery_target_absolute: float,
-     *   recovery_gain: float, fee: float, total: float
+     *   fee_fraction: float, fee_in_target: float, recovery_factor: float,
+     *   recovery_capital: float, recovery_target_absolute: float, recovery_gain: float,
+     *   fee_at_deposit: float, total: float, recovery_covers: float
      * }
      */
-    public function breakdown(float $capital, ?float $targetQ = null, ?float $feeRate = null): array
+    public function breakdown(float $capital, ?float $targetQ = null): array
     {
         $targetQ = $targetQ ?? $this->targetQ();
-        $phi = $feeRate ?? $this->feeRate();
         $t = $targetQ - 1.0;
-        $x = $this->recoveryFactor($targetQ, $phi);
-
+        $x = $this->recoveryFactor($targetQ);
+        $feeFraction = $this->feeFraction($targetQ);
+        $feeInTarget = $capital * $feeFraction;
         $recoveryCapital = $capital * $x;
-        $total = $capital * (1.0 + $x) / (1.0 - $phi);
-        $fee = $total * $phi;
 
         return [
             'capital' => $capital,
             'target_q' => $targetQ,
             'target_gain' => $t,
-            'fee_rate' => $phi,
+            'fee_rate' => $this->feeRate(),
+            'fee_fraction' => $feeFraction,
+            'fee_in_target' => $feeInTarget,
             'recovery_factor' => $x,
             'recovery_capital' => $recoveryCapital,
             'recovery_target_absolute' => $recoveryCapital * (1.0 + $t),
             'recovery_gain' => $t * $recoveryCapital,
-            'fee' => $fee,
-            'total' => $total,
-            // Vérification : le gain de la récupération couvre C + cible + frais.
-            'recovery_covers' => $t * $recoveryCapital - ($capital * (1.0 + $t) + $fee),
+            // Aucun frais au dépôt : ils sont ajoutés à la cible.
+            'fee_at_deposit' => 0.0,
+            'total' => $capital + $recoveryCapital,
+            // Vérification : gain du rattrapage == C + cible + frais.
+            'recovery_covers' => $t * $recoveryCapital - ($capital * (1.0 + $t) + $feeInTarget),
         ];
     }
 
