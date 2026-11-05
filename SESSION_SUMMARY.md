@@ -396,3 +396,46 @@ après : 1 XADD/combat + 1 bulk insert fights + 13 saves + saves premoves + fin 
 2. Le front doit gérer l'event **`GameEventsBatch`** (rejouer `events[]` séquentiellement).
 3. Émettre aussi `MatchFound`/`BATTLE_STARTED` pour les humains (non couvert par le prototype).
 4. Lancer le consumer d'audit (job planifié ou `queue-worker`).
+
+---
+
+## 13. Déploiement engine sur VPS + simulation 300 bots (2026-11-05)
+
+**Image déployée** : `battlepool-app:engine3` (commit `d03f75f`, branche `feat/session-recovery`)
+sur `app`, `queue-worker`, `queue-worker-limits`, `scheduler` (`GIT_SHA=engine3 docker compose
+-f docker-compose.prod.yml up -d --no-deps --force-recreate ...`). `bridge`/`reverb` inchangés.
+
+**Activation** : `.env.staging` → `GAME_ENGINE_ENABLED=true`, `GAME_ENGINE_BATCH_POOLS=20`,
+`GAME_ENGINE_TICK=1.5`. Vérifié : `config('game_engine.enabled')=true`, commande `game:engine`
+présente. `Pool::match()` route désormais vers `GameEngineService` (engine mémoire).
+
+**Bugs corrigés pendant le déploiement** :
+- `nextMove()` passait un tableau par référence (`$cursor[$id] ?? 0`) → `Error` runtime.
+  Fix : paramètre `array &$cursor` + `int $userId` (`c1903bb`).
+- Consumer d'audit : phpredis renvoie la clé de stream **préfixée** (`laravel_database_...`),
+  donc `$messages[$stream]` ne matchait jamais (aucun ack/archive). Fix : `reset($messages)`
+  + `XTRIM ~100000` (`d03f75f`).
+
+**Simulation lancée** :
+- Reset cohorte : users `1..300` → `balance=0.4`, `bet_amount=initial_base_bet=0.0004`,
+  `target_q=2.0`, `available`, session/claim/cooldown remis à zéro ; bots réappro `id>300`
+  désactivés (`autoplay_active=0`). Pools supprimées.
+- `run_batch_processor.js` démarré dans `bridge` avec `BATCH_PROCESSOR_INTERVAL=1500`.
+- `replenish_10.sh` (host, `setsid`) : **+10 bots / 10 stopped** (check 10 min).
+- `monitor_initial_300.sh` (host) : bilan horaire cohorte `id<=300`.
+- Consumer d'audit : boucle `ArchiveFightStream` dans `app` (tinker, 1 s) ; Redis Stream
+  `laravel_database_battlepool:fights` consommé, `pending=0`, archive JSONL
+  `storage/app/fights-archive/YYYYMMDD.jsonl`.
+
+**Mesures initiales (~15 min)** : ~35 pools/min, ~510 fights/min (cohérent avec 300 bots ;
+le débit est borné par le nombre de pools/cohorte et l'intervalle 1,5 s, pas par l'engine).
+0 stopped à ce stade (target 2.0 → premiers succès/ruines attendus plus tard). Load ~3 sur 2 cœurs.
+Aucune erreur `GameEngine` dans les logs après correctifs.
+
+**Limites connues / à faire** :
+- Le consumer d'audit tourne via un `tinker` détaché (meurt au restart du conteneur) et écrit
+  dans le storage éphémère du conteneur → à planifier en commande/`scheduler` pour la prod.
+- Les events UI groupés (`GameEventsBatch`) ne concernent que les humains ; le front doit
+  gérer cet event + `MatchFound`/`BATTLE_STARTED` (non émis par l'engine).
+- La logique de **récupération de session** (X=(1+T+fee)/T, 1 seule recovery) reste côté
+  simulateur ; pas encore implémentée dans le backend.
