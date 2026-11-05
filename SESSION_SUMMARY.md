@@ -356,3 +356,43 @@ Les 9 bots bloqués ont été réactivés.
 
 **État live** : `battlepool-app:round7` sur `app`, `queue-workers`, `scheduler` ; bridge inchangé
 (`6628503`, `GAME_CURRENCY=avaxe`) ; DB avec `--skip-log-bin`. Branche `feat/round-rules` (`c33e2ab`).
+
+---
+
+## 12. P2 — Engine mémoire + Redis Stream + events batch (2026-11-05)
+
+**Branche** : `feat/session-recovery` (from `feat/round-rules`/`383ef41`, puis P1 `e3fc6eb`).
+
+**Objectif** : supprimer les écritures DB par combat pour que le live atteigne le débit du
+simulateur, tout en gardant l'historique des fights (audit/équitabilité).
+
+**Décisions actées** :
+- Humains et bots **dans les mêmes pools**.
+- Events UI **regroupés** : flush toutes les **20 pools** (`GAME_ENGINE_BATCH_POOLS=20`), le front
+  rejoue le lot séquentiellement (léger décalage acceptable).
+- Audit via **Redis Stream** consommé par un **job Laravel** (pas de service Node).
+- `Pool::match()` route vers le moteur **uniquement si `GAME_ENGINE_ENABLED=true`** (défaut false :
+  prod inchangée tant que non validé).
+
+**Nouveaux fichiers** :
+- `app/Services/GameEngineService.php` : `processPoolInMemory()` — 13 joueurs, 5 rounds, PFC,
+  appariement **déterministe salé** (identique au `MatchmakingEngine`), transferts par round en
+  mémoire, **1 bulk `Fight::insert`**, **1 save/joueur**, save des `pre_moves`, puis
+  `SessionManager::evaluatePoolEnd()`. `tick()` traite un lot de pools et flush les events.
+- `app/Services/FightStreamWriter.php` : `XADD battlepool:fights` par combat (audit brut).
+- `app/Services/GameEventBuffer.php` : accumule les events **par utilisateur (humains seulement)**.
+- `app/Events/GameEventsBatch.php` : event `ShouldBroadcast` (canal privé user) avec le lot ordonné.
+- `app/Jobs/ArchiveFightStream.php` : consumer group `battlepool-archive` (XREADGROUP → archive
+  JSONL `storage/app/fights-archive/YYYYMMDD.jsonl` → XACK).
+- `app/Console/Commands/RunGameEngine.php` : boucle `game:engine` (`--once`, `--sleep`), lock
+  `game_engine_tick`.
+- `config/game_engine.php` : `enabled`, `batch_pools`, `tick_seconds`, stream/consumer, archive.
+
+**Gains attendus par pool** : avant ~120 écritures (Fight + 2 users + f_hist + queue + notifs) ;
+après : 1 XADD/combat + 1 bulk insert fights + 13 saves + saves premoves + fin de pool.
+
+**À valider sur VPS** :
+1. `GAME_ENGINE_ENABLED=true` (ou lancer `php artisan game:engine` avec le batch processor stoppé).
+2. Le front doit gérer l'event **`GameEventsBatch`** (rejouer `events[]` séquentiellement).
+3. Émettre aussi `MatchFound`/`BATTLE_STARTED` pour les humains (non couvert par le prototype).
+4. Lancer le consumer d'audit (job planifié ou `queue-worker`).

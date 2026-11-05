@@ -32,6 +32,11 @@ class Pool extends Model
 
     public function match(): void
     {
+        if (config('game_engine.enabled')) {
+            app(\App\Services\GameEngineService::class)->processPoolInMemory($this);
+            return;
+        }
+
         app(\App\Services\MatchmakingEngine::class)->process($this->id);
     }
 }
