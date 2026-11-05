@@ -2,47 +2,44 @@
 
 /*
 |--------------------------------------------------------------------------
-| Modèle « bankroll + récupération de session » (P3)
+| Modèle « bankroll + sessions » (P3)
 |--------------------------------------------------------------------------
 |
-| Le joueur dépose UNE SEULE FOIS un bankroll :
+| DEUX targets distincts :
 |
-|     B = C + C·X      (budget session 1 + réserve de rattrapage)
+|   • target de SESSION (tq_s, ex. 1.05) : chaque session vise +(tq_s − 1)
+|     de SON capital de session. Aucun frais de session.
 |
-| Aucun frais n'est ajouté au dépôt, ni déduit du capital, ni prélevé par
-| session. Les frais sont AJOUTÉS À LA CIBLE (au montant à récupérer).
+|   • target de BANKROLL (tq_b, ex. 1.5 / 2 / 2.5) : objectif final du
+|     bankroll (ex. 2 = doubler). Montant cible :
 |
-| t   = target_q − 1  (gain relatif visé par session, ex. 0.05 pour 1.05)
-| φ   = taux de frais (ex. 0.005 = 0.5 %), appliqué à (1 + t) → frais relatifs
-|       au capital : fee = φ·(1 + t)
+|         T = B × (tq_b + φ)        avec φ = fee_rate
 |
-| Une session de rattrapage gagnante doit rembourser :
+|     dont frais = φ × B (appliqués au bankroll, ajoutés à la cible).
+|     À T atteint : le joueur encaisse B × tq_b (net), la plateforme garde φ×B.
 |
-|     capital perdu (C) + cible session 1 (t·C) + frais (fee·C)
+| Dépôt UNIQUE : B = C + C·X, sans frais ajoutés au dépôt, avec
 |
-| avec un gain t·(C·X), d'où :
+|     t = tq_s − 1,  X = (1 + t) / t = 1/t + 1
 |
-|     X = (1 + t + fee) / t = (1 + t)·(1 + φ) / t
+| Le capital d'une session est FIXE : C = baseBet × security_coefficient,
+| prélevé du bankroll à chaque session. Gain d'une session gagnante : t·C
+| ajouté au bankroll ; perte : −C. On relance tant que bankroll ≥ C et < T.
 |
-| La session de rattrapage vise le MÊME pourcentage t, sur un capital C×X et
-| une mise de base × X (cible absolue × X). Max 2 sessions (1 + 1 rattrapage).
-| Si le rattrapage perd → perte finale.
+| Success ≈ (B − C) / (T − C) ; ruin quand bankroll < C.
 |
 */
 
 return [
-    // Cible de session (multiplicateur). Gain relatif t = target_q − 1.
-    'target_q' => (float) env('BANKROLL_TARGET_Q', 1.05),
+    // Target de SESSION (gain par session). t = tq_s − 1.
+    'session_target_q' => (float) env('BANKROLL_SESSION_TARGET_Q', 1.05),
 
-    // Taux de frais ajouté à la cible (fraction, pas %). Jamais déduit du capital.
+    // Target de BANKROLL (objectif final : 1.5, 2, 2.5…).
+    'bankroll_target' => (float) env('BANKROLL_TARGET', 2.0),
+
+    // Frais (fraction) appliqués au bankroll et ajoutés à la cible.
     'fee_rate' => (float) env('BANKROLL_FEE_RATE', 0.005),
 
-    // Nombre total de sessions autorisées (1 + récupération).
-    'max_sessions' => (int) env('BANKROLL_MAX_SESSIONS', 2),
-
-    // Coefficient de sécurité : budget de session C = baseBet × coefficient.
+    // Coefficient de sécurité : C = baseBet × coefficient.
     'security_coefficient' => (int) env('BANKROLL_SECURITY_COEFFICIENT', 1000),
-
-    // Une session « perdue » = la totalité du capital de session est perdue (ruine).
-    'loss_is_total' => (bool) env('BANKROLL_LOSS_IS_TOTAL', true),
 ];
