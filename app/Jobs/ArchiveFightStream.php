@@ -43,11 +43,18 @@ class ArchiveFightStream implements ShouldQueue
             1000
         );
 
-        if (empty($messages) || empty($messages[$stream])) {
+        if (empty($messages) || ! is_array($messages)) {
             return;
         }
 
-        $entries = $messages[$stream];
+        // phpredis renvoie les clés de stream AVEC le préfixe Laravel
+        // (laravel_database_...), donc on ne peut pas indexer par $stream.
+        // On prend le premier stream du résultat.
+        $entries = reset($messages);
+        if (empty($entries) || ! is_array($entries)) {
+            return;
+        }
+
         $this->appendArchive($dir, $entries);
 
         $ids = [];
@@ -57,6 +64,13 @@ class ArchiveFightStream implements ShouldQueue
 
         if (! empty($ids)) {
             Redis::xack($stream, $group, $ids);
+        }
+
+        // Borne la mémoire Redis (les entrées ackées n'ont plus besoin d'être gardées).
+        try {
+            Redis::xtrim($stream, 100000, true);
+        } catch (\Throwable $e) {
+            // non bloquant
         }
 
         Log::info('[ARCHIVE] ' . count($ids) . ' fights archived from stream.');
