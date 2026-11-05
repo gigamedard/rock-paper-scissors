@@ -63,7 +63,11 @@ class FightService
         $fight->result = $result;
         $fight->round = $round;
 
-        $fHist = $this->historicalFightService->archiveFight($fight->id);
+        // Perf : pas d'archive f_hists pour les combats bot-vs-bot (audit via Redis Stream).
+        $fHist = null;
+        if (!$bothBots) {
+            $fHist = $this->historicalFightService->archiveFight($fight->id);
+        }
 
         $amount = 0.0;
 
@@ -117,14 +121,16 @@ class FightService
                 UserTracker::info("[FIGHT_ELIMINATION] ⚠️ R{$round} — Player {$loserWallet} eliminated from current pool matching (battle_balance < baseBet). Will wait for SessionManager to evaluate session.", ['wallet' => $loserWallet, 'battle_balance' => $loserUser->battle_balance, 'round' => $round]);
             }
 
-            // Add loser to queue_table (legacy compatibility)
-            try {
-                DB::table('queue_table')->insert([
-                    'user_id' => $loserId,
-                    'created_at' => now(),
-                ]);
-            } catch (\Exception $e) {
-                Log::error("Queue table insert failed: " . $e->getMessage());
+            // Add loser to queue_table (legacy compatibility) — skip pour les bots
+            if (!$bothBots) {
+                try {
+                    DB::table('queue_table')->insert([
+                        'user_id' => $loserId,
+                        'created_at' => now(),
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error("Queue table insert failed: " . $e->getMessage());
+                }
             }
         }
 
@@ -132,7 +138,9 @@ class FightService
         $fight->status = 'completed';
         $fight->save();
 
-        $this->historicalFightService->archiveFight($fight->id, $fHist);
+        if (!$bothBots) {
+            $this->historicalFightService->archiveFight($fight->id, $fHist);
+        }
     }
 
     /**
