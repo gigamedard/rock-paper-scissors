@@ -14,7 +14,7 @@
       <div class="bg-emerald-600 p-2 rounded-xl text-white font-bold text-xl">🛡️</div>
       <div>
         <h1 class="text-lg font-bold">Fonds de recouvrement — rembourse le capital (sans frais)</h1>
-        <p class="text-xs text-gray-400">Stratégie : 1 session + 1 rattrapage. Si les 2 échouent, le fonds rembourse B (les frais restent acquis). Alimenté par les frais de dépôt.</p>
+        <p class="text-xs text-gray-400">Stratégie : 1 session + 1 rattrapage. Les frais sont AJOUTÉS au target de session (target_eff = tq×(1+frais)). Si les 2 échouent, le fonds rembourse B (ou B+frais). Alimenté par les frais de dépôt.</p>
       </div>
     </div>
     <button onclick="run()" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg cursor-pointer">⚡ Analyser</button>
@@ -70,7 +70,7 @@
       <h3 class="text-sm font-semibold mb-3">📊 Sensibilité aux frais (même N)</h3>
       <table class="w-full text-sm">
         <thead><tr class="text-gray-400 text-xs uppercase border-b border-dark-700">
-          <th class="text-left py-2">Frais</th><th class="text-right">Caisse</th><th class="text-right">Rembours.</th>
+          <th class="text-left py-2">Frais</th><th class="text-right">q (2 échecs)</th><th class="text-right">Caisse</th><th class="text-right">Rembours.</th>
           <th class="text-right">Net</th><th class="text-right">Net/user</th><th class="text-right">P(déficit)</th><th class="text-right">Verdict</th>
         </tr></thead>
         <tbody id="sens"></tbody>
@@ -92,6 +92,15 @@ function autoB(){
   const C=val('capital'), tq=val('target'); const t=tq-1, X=(1+t)/t;
   document.getElementById('bankroll').value=(C+C*X).toFixed(4);
 }
+// Le frais est AJOUTÉ AU TARGET : target_effectif = tq × (1 + frais).
+function pAt(p, feeRate){
+  const targetRel = p.tq*(1+feeRate);
+  const denom = p.C*targetRel - p.lo;
+  if(denom<=0) return 0;
+  return Math.max(0,Math.min(1,(p.C - p.lo)/denom));
+}
+function qAt(p, feeRate){ const prob=pAt(p,feeRate); return (1-prob)*(1-prob); }
+
 function params(){
   const C=val('capital'), tq=val('target'), feePct=val('fee'), maxD=intval('maxDoublings'), N=Math.max(100,intval('users'));
   const t=tq-1, X=(1+t)/t;
@@ -99,58 +108,77 @@ function params(){
   const feeRate=feePct/100, fee=feeRate*B;
   const ruin=val('baseBet')*Math.pow(2,maxD);
   const lo=Math.min(C*0.999999,ruin);
-  const p=Math.max(0,Math.min(1,(C-lo)/(C*(1+t)-lo)));
-  const q=(1-p)*(1-p);
   const mode=document.getElementById('refundMode').value;
-  return {C,tq,t,X,B,feeRate,fee,N,p,q,ruin,lo,mode};
+  const p={C,tq,t,X,B,feeRate,fee,N,ruin,lo,mode};
+  p.prob=pAt(p,feeRate);
+  p.q=qAt(p,feeRate);
+  return p;
 }
 function refundPerFail(p, feeRate){
-  // capital : B ; capital_fee : B + frais = B(1+feeRate)
   return p.mode==='capital_fee' ? p.B*(1+feeRate) : p.B;
 }
 function fund(p, feeRate){
+  const q=qAt(p,feeRate);
   const rpf=refundPerFail(p,feeRate);
   const rev=p.N*feeRate*p.B;
-  const ref=p.N*p.q*rpf;
-  const sd=rpf*Math.sqrt(p.N*p.q*(1-p.q));
+  const ref=p.N*q*rpf;
+  const sd=rpf*Math.sqrt(p.N*q*(1-q));
   const net=rev-ref;
   const z=sd>0?net/sd:0;
   const pdef=ncdf(-z);
   const z99=2.3263;
   const buffer99=Math.max(0, ref + z99*sd - rev);
-  let phi0=p.q + z99*Math.sqrt(p.q*(1-p.q)/p.N);
-  let phiReq = p.mode==='capital_fee' ? phi0/(1-phi0) : phi0;
-  const breakEven = p.mode==='capital_fee' ? p.q/(1-p.q) : p.q;
-  return {rev,ref,sd,net,pdef,buffer99,phiReq,breakEven,rpf};
+  return {rev,ref,sd,net,pdef,buffer99,q,rpf};
+}
+// Seuil d'équilibre : plus petit frais tel que net >= 0 (q dépend du frais).
+function breakEven(p){
+  const netf=(f)=> p.N*f*p.B - p.N*qAt(p,f)*(p.mode==='capital_fee'?p.B*(1+f):p.B);
+  for(let f=0; f<=1; f+=0.0002){ if(netf(f)>=0) return f; }
+  return NaN;
 }
 function run(){
   const p=params();
   const withFee = p.mode==='capital_fee';
+  const targetRel=p.tq*(1+p.feeRate);
+  const be=breakEven(p);
+  const f=fund(p,p.feeRate);
+  const grossWin=(targetRel-1)*p.C;
+  const netWin=grossWin - p.fee;
+  const grossRec=(targetRel-1)*p.C*p.X;
+  const netRec=grossRec - p.C - p.fee;
+  // frais pour 99 % de sécurité : plus petit frais avec net >= z99*sd
+  let phi99=NaN; { const z99=2.3263;
+    for(let fr=0; fr<=1; fr+=0.0002){ const g=fund(p,fr); if(g.net>=z99*g.sd){ phi99=fr; break; } } }
   document.getElementById('info').innerHTML =
     `C=${fmt(p.C,4)} · t=${fmt(p.t,4)} · X=${fmt(p.X,3)} · B=${fmt(p.B,4)}<br>`+
     `frais/joueur=${fmt(p.fee,5)} · rembourse ${withFee?'B + frais':'B (sans frais)'}`;
-  const f=fund(p,p.feeRate);
-  document.getElementById('kpi-p').textContent=(p.p*100).toFixed(2)+'%';
+  document.getElementById('kpi-p').textContent=(p.prob*100).toFixed(2)+'%';
   document.getElementById('kpi-q').textContent=(p.q*100).toFixed(3)+'%';
-  document.getElementById('kpi-be').textContent=(f.breakEven*100).toFixed(3)+'%';
+  document.getElementById('kpi-be').textContent=isNaN(be)?'>100 %':(be*100).toFixed(3)+'%';
   document.getElementById('kpi-maxloss').textContent=withFee?'0 (tout remboursé)':fmt(p.fee,5);
   document.getElementById('kpi-rev').textContent=fmt(f.rev,1);
   document.getElementById('kpi-ref').textContent=fmt(f.ref,1);
   document.getElementById('kpi-net').textContent=(f.net>=0?'+':'')+fmt(f.net,1);
   document.getElementById('kpi-pdef').textContent=(100*f.pdef).toFixed(2)+'%';
   document.getElementById('formula').innerText =
-`p(session) = (C − seuil)/(C·(1+t) − seuil) = ${fmt(p.p,5)}   (seuil=${fmt(p.lo,5)})
-q = (1 − p)² = ${fmt(p.q,6)}  → ${ (p.q*100).toFixed(3) } % de joueurs perdent les 2 sessions
-Remboursement par échec = ${withFee?'B + frais = '+fmt(f.rpf,5)+' (capital ET frais rendus)':'B = '+fmt(f.rpf,5)+' (frais NON rendus)'}
-frais = ${ (p.feeRate*100).toFixed(2) } % × B = ${fmt(p.fee,5)} par joueur
+`target effectif = tq × (1 + frais) = ${fmt(targetRel,5)}   (frais AJOUTÉS au target)
+p(session) = (C − seuil) / (C × target_eff − seuil) = ${fmt(p.prob,5)}   (seuil=${fmt(p.lo,5)})
+q = (1 − p)² = ${fmt(p.q,6)}  → ${ (p.q*100).toFixed(3) } % perdent les 2 sessions
+Remboursement par échec = ${withFee?'B + frais = '+fmt(f.rpf,5):'B = '+fmt(f.rpf,5)}
+frais = ${(p.feeRate*100).toFixed(2)} % × B = ${fmt(p.fee,5)} par joueur
 Caisse = N × frais = ${fmt(f.rev,1)}
 Remboursements = N × q × remboursement = ${fmt(f.ref,1)}
 Net = ${fmt(f.net,1)}  (${(100*(f.net/(p.N*p.B))).toFixed(3)} % / joueur)
-Seuil d'équilibre = ${(f.breakEven*100).toFixed(3)} %${withFee?'   (= q/(1−q))':'   (= q)'}
-Frais pour 99 % de sécurité (N=${p.N}) ≈ ${(100*f.phiReq).toFixed(3)} %
-Buffer initial conseillé (99 %) ≈ ${fmt(f.buffer99,1)}`;
+Seuil d'équilibre (numérique, avec frais→target) = ${isNaN(be)?'>100 %':(be*100).toFixed(3)+' %'}
+Frais pour 99 % de sécurité (N=${p.N}) ≈ ${isNaN(phi99)?'>100 %':(100*phi99).toFixed(3)+' %'}
+Buffer initial conseillé (99 %) ≈ ${fmt(f.buffer99,1)}
+
+NET JOUEUR (après frais) :
+  gagnant session 1   = ${fmt(netWin,5)}  ${netWin>=0?'(gagne)':'(PERD)'}
+  gagnant rattrapage  = ${fmt(netRec,5)}  ${netRec>=0?'(gagne)':'(PERD)'}
+  échec (remboursé)   = ${withFee?'0.00000 (intégral)':fmt(-p.fee,5)}`;
   // sensitivity table
-  const rates=[0.5,0.6,0.8,1.0,1.5,2.0,2.5,3.0];
+  const rates=[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,5.0,6.0];
   const tb=document.getElementById('sens'); tb.innerHTML='';
   for(const r of rates){
     const fr=r/100; const g=fund(p,fr);
@@ -158,6 +186,7 @@ Buffer initial conseillé (99 %) ≈ ${fmt(f.buffer99,1)}`;
     const netPct=100*(g.net/(p.N*p.B));
     const tr=document.createElement('tr'); tr.className='border-b border-dark-700/50';
     tr.innerHTML=`<td class="py-2">${r.toFixed(1)} %</td>`+
+      `<td class="text-right">${(g.q*100).toFixed(3)} %</td>`+
       `<td class="text-right">${fmt(g.rev,1)}</td>`+
       `<td class="text-right">${fmt(g.ref,1)}</td>`+
       `<td class="text-right ${ok?'text-emerald-400':'text-rose-400'}">${(g.net>=0?'+':'')+fmt(g.net,1)}</td>`+
