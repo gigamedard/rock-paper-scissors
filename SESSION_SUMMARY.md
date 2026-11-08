@@ -520,3 +520,30 @@ solde négatif.
 **Reste à faire** : brancher `credit()` au prélèvement des frais et `enqueue()` à la détection
 des 2 échecs (`SessionManager`) en laissant l'utilisateur `available`, planifier
 `refund:process`, puis déployer (migration).
+
+---
+
+## 16. Fonds de recouvrement — branchement + déploiement + test E2E VPS (2026-11-08)
+
+**Branchement (derrière `REFUND_ENABLED`, défaut false)** :
+- `PoolReconstructionService` : chaque frais d'entrée (`InfluencerFee`) crédite le fonds (`credit`).
+- `SessionManager` (vraie ruine) : `enqueue` d'une dette distincte (montant = `refund_pct × B`),
+  sans bloquer le joueur (il peut rejouer ; remboursement crédité plus tard).
+- `bootstrap/app.php` : `refund:process --once` planifié chaque minute **si activé**.
+- `config/refund.php` : `enabled`, `refund_pct` (0.25), `trigger_pct` (0.10), `batch_pct` (0.05).
+
+**Déploiement** : image `battlepool-app:engine9` sur app/queue/scheduler. Migrations P3 appliquées :
+`2026_11_05_000000` (bankroll), `000001` (bankroll_target), `000002` (refund_queue/ledger/fund_state).
+Tables créées ; commande `refund:process` présente.
+
+**Test E2E réel (transactionnel, rollback)** :
+`credit(1.0)` + `enqueue(uid, 0.01)` + `processBatch()` →
+`status=paid`, solde utilisateur `0.824 → 0.834` (+0.01 crédité), fonds `1.00 → 0.99`.
+Après rollback : `refund_queue=0`, `refund_ledger=0`, `fund=0` → **aucun résidu**.
+
+**État live (engine9)** : flag refund **off** → `refund_queue`/`ledger` restent vides.
+Simulation 300 bots (~3 jours) : cohorte **290 stopped** / 9 in_pool / 1 available ;
+réappro **620 bots** ajoutés (id>300). App healthy.
+
+**Pour activer** : finir la state machine P3 (C/R/T/X, 1 récupération) et calibrer
+`refund_pct ≤ couverture` avant de passer `REFUND_ENABLED=true`.
