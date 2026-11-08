@@ -189,6 +189,22 @@ class PoolReconstructionService
 
             // C. Session initialization — first pool of a new session only
             if (!$user->session_started) {
+
+                // P3 (gardé) : si le joueur a déposé B = C+R, on découpe son
+                // bankroll (C en solde de jeu, R en réserve) et on initialise
+                // la state machine bankroll. Sinon, modèle classique inchangé.
+                if (config('bankroll.enabled') && $user->bankroll_total === null) {
+                    try {
+                        $bs = app(\App\Services\BankrollSessionService::class);
+                        $params = $bs->params($baseBetEther);
+                        if (\App\Services\BankrollSessionService::canActivate((float) $user->balance, $params)) {
+                            $bs->initialize($user, $baseBetEther);
+                            UserTracker::info("[P3] Bankroll activé pour {$user->wallet_address}: C={$params['C']} R={$params['R']} B={$params['B']} X={$params['X']}.");
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('[P3] initialize failed for user ' . $user->id . ': ' . $e->getMessage());
+                    }
+                }
                 // Fix race condition where balance sync from smart contract hasn't arrived yet.
                 // If they are in the pool, they must have at least the baseBetEther in their contract balance.
                 $user->session_start_balance        = max((float)$user->balance, $baseBetEther);

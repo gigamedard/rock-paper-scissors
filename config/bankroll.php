@@ -24,6 +24,10 @@
 */
 
 return [
+    // Active la state machine bankroll (sessions C/R + récupération) en live.
+    // Nécessite un dépôt B = C+R (activation gardée par canActivate()).
+    'enabled' => (bool) env('BANKROLL_ENABLED', false),
+
     // Target de session (1.05 ou 1.2).
     'session_target_q' => (float) env('BANKROLL_SESSION_TARGET_Q', 1.05),
 

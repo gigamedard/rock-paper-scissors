@@ -547,3 +547,33 @@ réappro **620 bots** ajoutés (id>300). App healthy.
 
 **Pour activer** : finir la state machine P3 (C/R/T/X, 1 récupération) et calibrer
 `refund_pct ≤ couverture` avant de passer `REFUND_ENABLED=true`.
+
+---
+
+## 17. State machine P3 — implémentée, testée, branchée (2026-11-08)
+
+**Service** : `app/Services/BankrollSessionService.php`
+- `computeParams()` (pur) : C, T, t, φ, φ_used, `X=(1+t+φ_used)/t`, `R=C·X`, `B=C+R`,
+  `F_C`, `F_R`, `refund_amount`, `threshold_1=C·T·(1+φ)`, `threshold_2=R·T·(1+φ)`.
+- `canActivate()` : activation **gardée** — le joueur doit avoir déposé `B = C+R`.
+- `nextAction()` (pur) : `win` / `recovery` / `double_failure` / `continue`.
+- `initialize()` : découpe le dépôt (`C` en solde de jeu, `R` en réserve) + champs bankroll.
+- `startRecovery()` : libère `R` comme solde de jeu, `session_attempt=1`.
+- `enqueueRefund()` : dette distincte en file FIFO (si `REFUND_ENABLED`).
+
+**Branchement (derrière `BANKROLL_ENABLED`, défaut false)** :
+- `PoolReconstructionService` : à la 1ʳᵉ session, si `canActivate(balance, params)` → `initialize`
+  (sinon modèle classique inchangé).
+- `SessionManager` : succès → restitue la réserve non utilisée au solde puis payout ;
+  vraie ruine → `startRecovery` (1 rattrapage) ; rattrapage perdu → `enqueueRefund` + stop.
+- Détection de succès réutilise `target_q = T` et `fee_percent = φ×100` ⇒ `multiplier = T(1+φ)`.
+
+**Tests** : `tests/bankroll_state_machine_test.php` → **24/24 OK** (formules, activation gardée,
+transitions, Monte Carlo : q≈(1−P)², gain gagnant +C·t, remboursement = refund%·B).
+
+**Déploiement** : image `battlepool-app:engine10` ; flags `BANKROLL_ENABLED=false` et
+`REFUND_ENABLED=false` → comportement live **inchangé** (les bots n'ont pas déposé B, donc
+`canActivate=false`).
+
+**Pour activer en live** : (1) dépôt `B = C+R` côté front/contrat, (2)
+`BANKROLL_ENABLED=true`, (3) `REFUND_ENABLED=true` + `REFUND_PCT ≤ couverture`.

@@ -244,6 +244,15 @@ class SessionManager
         if ($q >= $multiplier) {
             // CASE 1: Session Goal Reached (PAYOUT)
             Log::info("[SESSION_PAYOUT] 🏆 User {$user->id} (Wallet: {$user->wallet_address}) reached multiplier ($q >= $multiplier). Processing withdrawal!");
+
+            // P3 : session gagnée -> on restitue au solde la réserve non utilisée.
+            if (config('bankroll.enabled') && $user->bankroll_total !== null) {
+                $user->balance += (float) $user->bankroll_remaining;
+                $user->bankroll_remaining = 0;
+                $user->bankroll_total = null;
+                $user->session_attempt = 0;
+                $user->save();
+            }
             
             // Calculate cooldown data first while the cards are still marked 'available'
             $cooldownData = $this->calculateCooldownData($user);
@@ -306,10 +315,31 @@ class SessionManager
                 // Vraie ruine : arrêt + payout (bots) / signature (humains).
                 UserTracker::info("[SESSION_{$type}] ⚠️ User {$user->wallet_address} (q=$q) cannot cover next bet ({$user->balance} < {$user->bet_amount}). Session ended.", ['wallet' => $user->wallet_address, 'q' => $q]);
 
-                // Fonds de recouvrement : échec -> dette distincte en file FIFO.
-                // Le joueur peut rejouer indépendamment ; le remboursement sera
-                // crédité à son solde quand le fonds le permettra.
-                if (config('refund.enabled')) {
+                // P3 : ruine réelle -> 1 rattrapage, puis double échec -> file FIFO.
+                $p3 = config('bankroll.enabled') && $user->bankroll_total !== null;
+                if ($p3) {
+                    $bs = app(\App\Services\BankrollSessionService::class);
+                    if ((int) $user->session_attempt === 0 && (float) $user->bankroll_recovery_reserve > 0) {
+                        $bs->startRecovery($user, $sessionBaseBet);
+                        UserTracker::info("[P3] {$user->wallet_address} passe au rattrapage (R={$user->bankroll_recovery_reserve}).");
+                        return; // la session reste ouverte : le joueur rejoue le rattrapage
+                    }
+
+                    // Rattrapage perdu = double échec -> dette distincte en file.
+                    if (config('refund.enabled')) {
+                        try {
+                            $bs->enqueueRefund($user);
+                        } catch (\Throwable $e) {
+                            Log::warning('[REFUND] enqueue p3 failed for user ' . $user->id . ': ' . $e->getMessage());
+                        }
+                    }
+                    $user->bankroll_total = null;
+                    $user->session_attempt = 0;
+                    $user->save();
+                }
+
+                // Modèle classique (non P3) : un échec = dette en file si activé.
+                if (! $p3 && config('refund.enabled')) {
                     try {
                         $baseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min()));
                         $security = (float) \App\Models\GameSetting::getValue('security_coefficient', config('game_settings.security_coefficient', 1000));
