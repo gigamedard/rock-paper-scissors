@@ -54,6 +54,25 @@ $queue3 = [['id' => 1, 'amount' => 100.0], ['id' => 2, 'amount' => 1.0]];
 $r = RefundQueueService::planPayouts(50.0, $queue3, 0.10, 0.50);
 check('ne saute pas la tête de file si fonds insuffisant', $r['payouts'] === [] && abs($r['remaining'] - 50.0) < 1e-9);
 
+echo "\n=== Multi-remboursement : plusieurs entrées distinctes par joueur ===\n";
+// Ordre FIFO global : user1(A=id1), user2(id2), user1(B=id3)
+$queueMulti = [
+    ['id' => 1, 'user' => 1, 'amount' => 1.0],
+    ['id' => 2, 'user' => 2, 'amount' => 1.0],
+    ['id' => 3, 'user' => 1, 'amount' => 1.0],
+];
+$hasTwoForUser1 = count(array_filter($queueMulti, fn ($x) => $x['user'] === 1)) === 2;
+check('le même joueur peut avoir 2 remboursements distincts', $hasTwoForUser1 && $queueMulti[0]['id'] !== $queueMulti[2]['id']);
+
+$r = RefundQueueService::planPayouts(10.0, $queueMulti, 0.10, 0.34); // batch = ceil(0.34×3)=2
+check('paiement FIFO global (id 1 puis 2)', array_column($r['payouts'], 'id') === [1, 2], json_encode(array_column($r['payouts'], 'id')));
+
+$paidIds = array_column($r['payouts'], 'id');
+$remaining = array_values(array_filter($queueMulti, fn ($x) => ! in_array($x['id'], $paidIds, true)));
+$r2 = RefundQueueService::planPayouts(10.0, $remaining, 0.10, 0.50);
+check('le 2e remboursement (id 3) est payé à son tour', array_column($r2['payouts'], 'id') === [3]);
+check('chaque entrée est payée une seule fois (ordre distinct)', count($r2['payouts']) === 1);
+
 echo "\n=== Simulation de cohortes (1000 joueurs/jour, 365 jours) ===\n";
 
 function simulate(float $T, float $feeRate, float $refundPct, int $N = 1000, int $days = 365, float $trigger = 0.10, float $batch = 0.05): array

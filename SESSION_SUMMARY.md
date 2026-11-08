@@ -508,5 +508,15 @@ solde négatif.
 **Règle validée** : `remboursement % ≤ couverture` (frais / (q·B)) ⇒ file stable ; au-delà
 ⇒ file qui grossit. La file est une **liquidité**, pas une source de financement.
 
+**Multi-remboursements & rejeu (ajouté)** :
+- Un joueur peut avoir **plusieurs remboursements distincts** (une ligne `refund_queue` par échec,
+  ordre FIFO global indépendant). `pendingForUser()` / `pendingTotalForUser()` pour l'UI.
+- La file est une **dette indépendante** : le joueur **peut rejouer** pendant l'attente
+  (re-dépôt / nouveau bankroll) sans être bloqué.
+- Au paiement, `credit_balance_on_payout=true` → le remboursement est **crédité au solde**
+  du joueur (`users.balance`) et `max_balance` mis à jour.
+- Tests : **27/27 OK** (multi-entrées même joueur, FIFO global, paiement unique par entrée).
+
 **Reste à faire** : brancher `credit()` au prélèvement des frais et `enqueue()` à la détection
-des 2 échecs (`SessionManager`), planifier `refund:process`, puis déployer (migration).
+des 2 échecs (`SessionManager`) en laissant l'utilisateur `available`, planifier
+`refund:process`, puis déployer (migration).

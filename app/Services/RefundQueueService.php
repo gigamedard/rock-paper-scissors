@@ -104,6 +104,25 @@ class RefundQueueService
         ]);
     }
 
+    /** Remboursements en attente pour un joueur (chacun distinct, dans l'ordre). */
+    public function pendingForUser(int $userId): array
+    {
+        return DB::table('refund_queue')
+            ->where('user_id', $userId)
+            ->where('status', 'waiting')
+            ->orderBy('id')
+            ->get(['id', 'amount_owed', 'created_at'])
+            ->all();
+    }
+
+    public function pendingTotalForUser(int $userId): float
+    {
+        return (float) DB::table('refund_queue')
+            ->where('user_id', $userId)
+            ->where('status', 'waiting')
+            ->sum('amount_owed');
+    }
+
     /**
      * Exécute un batch FIFO si le fonds atteint le seuil.
      *
@@ -118,8 +137,10 @@ class RefundQueueService
             $rows = DB::table('refund_queue')
                 ->where('status', 'waiting')
                 ->orderBy('id')
-                ->get(['id', 'amount_owed']);
+                ->get(['id', 'user_id', 'amount_owed']);
 
+            // Chaque ligne est une dette DISTINCTE (un joueur peut en avoir plusieurs).
+            $userIdById = $rows->pluck('user_id', 'id')->all();
             $queue = $rows->map(fn ($r) => ['id' => $r->id, 'amount' => (float) $r->amount_owed])->all();
             $total = array_sum(array_map(fn ($r) => $r['amount'], $queue));
             $fund = $this->balance();
@@ -144,6 +165,21 @@ class RefundQueueService
                 'status' => 'paid',
                 'paid_at' => now(),
             ]);
+
+            // Crédite le solde du joueur (il peut rejouer indépendamment).
+            if ((bool) config('refund.credit_balance_on_payout', true)) {
+                foreach ($plan['payouts'] as $payout) {
+                    $userId = $userIdById[$payout['id']] ?? null;
+                    if (! $userId) {
+                        continue;
+                    }
+                    DB::table('users')->where('id', $userId)->increment('balance', (float) $payout['amount']);
+                    $newBalance = (float) DB::table('users')->where('id', $userId)->value('balance');
+                    DB::table('users')->where('id', $userId)->update([
+                        'max_balance' => DB::raw('GREATEST(COALESCE(max_balance, 0), ' . sprintf('%.8F', $newBalance) . ')'),
+                    ]);
+                }
+            }
 
             $this->ensureState();
             DB::table('refund_fund_state')->where('id', 1)->decrement('balance', $plan['paid'], ['updated_at' => now()]);

@@ -24,4 +24,8 @@ return [
 
     // Marge de sûreté appliquée au taux de remboursement proposé.
     'safety_margin' => (float) env('REFUND_SAFETY_MARGIN', 0.90),
+
+    // Au paiement, créditer le solde du joueur (il peut rejouer sans attendre
+    // et sans nouveau dépôt). Le joueur peut jouer pendant qu'il attend.
+    'credit_balance_on_payout' => (bool) env('REFUND_CREDIT_BALANCE', true),
 ];
