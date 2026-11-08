@@ -16,6 +16,13 @@
 */
 
 return [
+    // Active le fonds de recouvrement (crédit des frais, file, paiement).
+    // Laisser false tant que le modèle P3 n'est pas validé en live.
+    'enabled' => (bool) env('REFUND_ENABLED', false),
+
+    // Fraction du bankroll remboursée en cas de double échec (<= couverture).
+    'refund_pct' => (float) env('REFUND_PCT', 0.25),
+
     // Seuil de déclenchement : le fonds doit couvrir X % de la dette totale.
     'trigger_pct' => (float) env('REFUND_TRIGGER_PCT', 0.10),
 

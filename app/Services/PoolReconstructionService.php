@@ -231,6 +231,19 @@ class PoolReconstructionService
                 'language_code' => 'system'
             ]);
 
+            // Fonds de recouvrement : chaque frais encaissé crédite le fonds.
+            if (config('refund.enabled')) {
+                try {
+                    app(\App\Services\RefundQueueService::class)->credit(
+                        (float) $feeAmount,
+                        'upfront_fee',
+                        'pool:' . $pool->id . ' user:' . $user->id
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning('[REFUND] credit failed: ' . $e->getMessage());
+                }
+            }
+
             UserTracker::info(
                 "Audit Zéro Mock: Upfront Fee applied: {$feeAmount} ETH ({$feePercent}%) for Player {$user->wallet_address} joining Pool #{$pool->id}",
                 ['wallet' => $user->wallet_address]

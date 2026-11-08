@@ -19,6 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('cards:sync-expired-limits')->everyFiveMinutes();
         // Purge finished pools older than 3 minutes (keeps pools + f_hists tables capped)
         $schedule->command('battle:cleanup')->everyMinute();
+
+        // Fonds de recouvrement : paie un batch FIFO chaque minute (si activé).
+        if (config('refund.enabled')) {
+            $schedule->command('refund:process --once')->everyMinute()->withoutOverlapping();
+        }
     })
 
     ->withMiddleware(function (Middleware $middleware) {

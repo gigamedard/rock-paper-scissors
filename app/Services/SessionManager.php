@@ -306,6 +306,27 @@ class SessionManager
                 // Vraie ruine : arrêt + payout (bots) / signature (humains).
                 UserTracker::info("[SESSION_{$type}] ⚠️ User {$user->wallet_address} (q=$q) cannot cover next bet ({$user->balance} < {$user->bet_amount}). Session ended.", ['wallet' => $user->wallet_address, 'q' => $q]);
 
+                // Fonds de recouvrement : échec -> dette distincte en file FIFO.
+                // Le joueur peut rejouer indépendamment ; le remboursement sera
+                // crédité à son solde quand le fonds le permettra.
+                if (config('refund.enabled')) {
+                    try {
+                        $baseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min()));
+                        $security = (float) \App\Models\GameSetting::getValue('security_coefficient', config('game_settings.security_coefficient', 1000));
+                        $capital = $baseBet * $security;
+                        $bankroll = app(\App\Services\BankrollService::class)->recommendedBankroll($capital);
+                        $refundPct = (float) config('refund.refund_pct', 0.25);
+                        app(\App\Services\RefundQueueService::class)->enqueue($user->id, $refundPct * $bankroll, [
+                            'refund_pct' => $refundPct,
+                            'target_multiplier' => config('bankroll.session_target_q'),
+                            'fee_rate' => config('bankroll.fee_rate'),
+                            'type' => $type,
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::warning('[REFUND] enqueue failed for user ' . $user->id . ': ' . $e->getMessage());
+                    }
+                }
+
                 $this->closeSession($user, 'stopped');
                 $this->historyService->archiveSessionHistory($user);
 
