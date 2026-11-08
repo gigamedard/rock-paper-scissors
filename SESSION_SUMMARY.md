@@ -577,3 +577,32 @@ transitions, Monte Carlo : q≈(1−P)², gain gagnant +C·t, remboursement = re
 
 **Pour activer en live** : (1) dépôt `B = C+R` côté front/contrat, (2)
 `BANKROLL_ENABLED=true`, (3) `REFUND_ENABLED=true` + `REFUND_PCT ≤ couverture`.
+
+---
+
+## 18. Dépôt B=C+R + test contrôlé state machine (2026-11-08)
+
+**Constat** : le contrat V2 expose déjà `deposit(uint256 amount)` → **aucun changement de contrat**.
+Il suffit de déposer `B=C+R` en une fois ; le backend découpe (`initialize`).
+
+**Front** (`resources/js/modules/game.js`, gardé par `bankroll_enabled`) :
+- `updateFeeDisplay` : `C=bet×coeff`, `R=C·X`, dépôt affiché = `B=C+R` + frais.
+- `startSession` : `stakeWei = C + C·X` (BigInt, X mis à l'échelle 1e6), `fee` sur B, `deposit(B+fee)`.
+**API** `/api/artefacts` expose : `bankroll_enabled`, `bankroll_session_target_q`,
+`bankroll_fee_rate`, `bankroll_recovery_factor`, `bankroll_refund_pct`.
+
+**Test contrôlé VPS (transactionnel, rollback)** — user id 1, dépôt simulé `B` :
+```
+params: C=0.4 R=8.442 B=8.842 X=21.105 (T=1.05, φ=0.5%)
+canActivate(dépôt=B) = OUI
+INIT: balance=0.4  reserve=8.442  B=8.842  start=0.4  attempt=0   ✅ découpe C/R
+RUINE S1 -> balance=8.442 (R), attempt=1, start=8.442               ✅ rattrapage
+DOUBLE ÉCHEC -> file: pending=1, amount=2.2105 (=25%×B)            ✅ dette distincte
+rollback -> refund_queue=0, refund_ledger=0                        ✅ aucun résidu
+```
+
+**Déploiement** : image `battlepool-app:engine11`. Flags `bankroll_enabled=false`,
+`refund_enabled=false` → live inchangé.
+
+**Activation** : `BANKROLL_ENABLED=true`, `BANKROLL_SESSION_TARGET_Q` (1.05/1.2),
+`REFUND_ENABLED=true`, `REFUND_PCT ≤ couverture`. Le front déposera alors `B=C+R`.
