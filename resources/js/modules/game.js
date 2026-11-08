@@ -428,6 +428,10 @@ async function fetchConfig() {
             const data = await res.json();
             gameState.config.security_coefficient = data.security_coefficient;
             gameState.config.smart_contract_fee_percentage = data.smart_contract_fee_percentage;
+            // P3 : modèle bankroll (dépôt unique B = C + R).
+            gameState.config.bankroll_enabled = !!data.bankroll_enabled;
+            gameState.config.bankroll_recovery_factor = Number(data.bankroll_recovery_factor || 0);
+            gameState.config.bankroll_session_target_q = Number(data.bankroll_session_target_q || 1.05);
             gameState.contractAddress = data.address || gameState.contractAddress;
             // Chantier feat/avaxe-bridge (P3) : contrats V2 + jeton AVAXe exposés par le bridge.
             gameState.v2Address = data.gameV2?.address || null;
@@ -464,8 +468,13 @@ function updateFeeDisplay() {
     const bet = parseFloat(betInput.value) || 0;
     const coeff = gameState.config.security_coefficient || 1;
     const feePct = gameState.config.smart_contract_fee_percentage || 0;
-    
-    const stake = bet * coeff;
+
+    // P3 : dépôt unique B = C + R (R = C·X, réserve de rattrapage).
+    const bankrollOn = !!gameState.config.bankroll_enabled;
+    const X = bankrollOn ? (Number(gameState.config.bankroll_recovery_factor) || 0) : 0;
+    const sessionCapital = bet * coeff;              // C
+    const reserve = sessionCapital * X;              // R
+    const stake = bankrollOn ? (sessionCapital + reserve) : sessionCapital; // B
     const fee = stake * (feePct / 100);
     const total = stake + fee;
 
@@ -571,9 +580,16 @@ async function startSession() {
         
         const securityCoefficient = gameState.config.security_coefficient; 
         const feePercentage = gameState.config.smart_contract_fee_percentage;
+        const bankrollOn = !!gameState.config.bankroll_enabled;
         
         const baseBetWei = parseUnits(bet, 18);
-        const stakeWei = baseBetWei * BigInt(securityCoefficient);
+        let stakeWei = baseBetWei * BigInt(securityCoefficient); // C
+        if (bankrollOn) {
+            // B = C + C·X : dépôt unique du bankroll (réserve de rattrapage incluse).
+            const xScale = BigInt(1000000);
+            const xScaled = BigInt(Math.round((Number(gameState.config.bankroll_recovery_factor) || 0) * 1e6));
+            stakeWei = stakeWei + (stakeWei * xScaled) / xScale;
+        }
         const feeWei = (stakeWei * BigInt(Math.round(feePercentage * 100))) / BigInt(10000);
         const amountToSendWei = stakeWei + feeWei;
 

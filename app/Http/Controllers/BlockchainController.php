@@ -181,6 +181,12 @@ class BlockchainController extends Controller
                 'game_fee_percentage' => \App\Models\GameSetting::getValue('game_fee_percentage', 5.0),
                 'smart_contract_fee_percentage' => \App\Models\GameSetting::getValue('smart_contract_fee_percentage', 2.5), // Default 2.5% Smart Contract Fee
                 'min_bet_eth' => \App\Models\GameSetting::getValue('min_bet_eth', 0.01),
+                // P3 : modèle bankroll (dépôt unique B = C + R).
+                'bankroll_enabled' => (bool) config('bankroll.enabled', false),
+                'bankroll_session_target_q' => (float) config('bankroll.session_target_q', 1.05),
+                'bankroll_fee_rate' => (float) config('bankroll.fee_rate', 0.005),
+                'bankroll_recovery_factor' => app(\App\Services\BankrollService::class)->recoveryFactor(),
+                'bankroll_refund_pct' => (float) config('refund.refund_pct', 0.25),
             ];
 
             // Fusionner les tableaux (les params DB écrasent ceux du Node si conflit, sauf si on inverse)
