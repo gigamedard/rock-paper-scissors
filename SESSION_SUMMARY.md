@@ -477,3 +477,36 @@ Vérifié : `payout − dépôt = B` (doublement exact).
 
 **Prochaine étape** : state machine `SessionManager` (session→bankroll, rattrapage par ruine,
 succès à `B ≥ T`), puis dépôt unique V2 (`B + frais`) + endpoint preview + UI.
+
+---
+
+## 15. Fonds de recouvrement + file FIFO — module codé & testé (2026-11-05)
+
+**Modèle retenu** : (b) frais par session (`F_C` tous, `F_R` seulement si rattrapage) ;
+gagnants nets `+C·t`. File FIFO des joueurs à rembourser, fonds alimenté par les frais,
+paiement par lots quand le fonds atteint 10 % de la dette totale (batch 5 %), jamais de
+solde négatif.
+
+**Fichiers** :
+- `database/migrations/2026_11_05_000002_create_refund_queue_tables.php` :
+  `refund_queue` (FIFO waiting/paid, montant, snapshot), `refund_ledger` (crédits/débits),
+  `refund_fund_state` (solde).
+- `app/Services/RefundQueueService.php` : `planPayouts()` (pur, testable), `credit()`,
+  `enqueue()`, `processBatch()` (transaction, FIFO strict).
+- `app/Console/Commands/ProcessRefundQueue.php` : `refund:process {--once} {--sleep=30}`.
+- `config/refund.php` : `trigger_pct=0.10`, `batch_pct=0.05`, `safety_margin=0.90`.
+- `tests/refund_queue_simulation.php` : tests unitaires + simulation de cohortes.
+
+**Tests (23/23 OK)** :
+- unitaires : file vide, sous-seuil, batch=ceil(5 %), FIFO, pas de saut de tête, solde jamais négatif ;
+- cohortes (1000/j, 365 j) :
+  - T=1.2 / φ=20 % / remb 100 % (couverture 100.3 %) → file **bornée** (≈1767), fonds +6151 ;
+  - T=1.2 / φ=2.5 % / remb 100 % (couverture 25.8 %) → file **grossit** (5047 → 10414) ;
+  - T=1.2 / φ=2.5 % / remb 26 % → file **stable** (≈646), fonds +408 ;
+  - T=1.05 / φ=2.5 % / remb 58 % → file **stable** (≈83), fonds +537.
+
+**Règle validée** : `remboursement % ≤ couverture` (frais / (q·B)) ⇒ file stable ; au-delà
+⇒ file qui grossit. La file est une **liquidité**, pas une source de financement.
+
+**Reste à faire** : brancher `credit()` au prélèvement des frais et `enqueue()` à la détection
+des 2 échecs (`SessionManager`), planifier `refund:process`, puis déployer (migration).
