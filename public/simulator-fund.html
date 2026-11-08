@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="fr" class="dark">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulateur — S1 sur C, rattrapage sur B (frais par base)</title>
+<title>Simulateur — Fonds de recouvrement (modèle b : frais par session)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{dark:{900:'#0b0f19',800:'#111827',700:'#1f2937',600:'#374151'}}}}}</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -11,10 +11,10 @@
 <header class="border-b border-dark-700 bg-dark-800/60 backdrop-blur sticky top-0 z-50">
   <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
     <div class="flex items-center space-x-3">
-      <div class="bg-emerald-600 p-2 rounded-xl text-white font-bold text-xl">🎯</div>
+      <div class="bg-emerald-600 p-2 rounded-xl text-white font-bold text-xl">🛡️</div>
       <div>
-        <h1 class="text-lg font-bold">S1 sur C · rattrapage sur B · frais par base</h1>
-        <p class="text-xs text-gray-400">Amt1 = C + frais(C) ; Amt2 = B + frais(B). Chaque session est jugée sur sa propre base (p ≈ capital / cible).</p>
+        <h1 class="text-lg font-bold">Fonds de recouvrement — modèle (b) : frais par session</h1>
+        <p class="text-xs text-gray-400">S1 + 1 rattrapage. F_C payé par tous, F_R seulement si rattrapage. Target = T + frais. Le fonds rembourse X % de B si les 2 échouent.</p>
       </div>
     </div>
     <button onclick="run()" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg cursor-pointer">⚡ Analyser</button>
@@ -24,18 +24,16 @@
 <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
   <aside class="lg:col-span-1 bg-dark-800 border border-dark-700 rounded-2xl p-5 flex flex-col gap-3 h-fit">
     <h2 class="text-sm font-semibold uppercase tracking-wider text-emerald-400 border-b border-dark-700 pb-2">⚙️ Paramètres</h2>
-    <label class="text-xs text-gray-300">C — capital session 1 (T1)
-      <input id="C" type="number" value="0.4" step="0.01" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
-    <label class="text-xs text-gray-300">B — capital rattrapage (T2)
-      <input id="B" type="number" value="8.8" step="0.01" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
-    <label class="text-xs text-gray-300">Target visé (%) — profit (ex. 20)
-      <input id="target" type="number" value="20" step="0.1" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
-    <label class="text-xs text-gray-300">Frais (%) — ajoutés à chaque base
-      <input id="fee" type="number" value="5" step="0.1" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
-    <label class="text-xs text-gray-300">Mise de base (seuil de ruine)
+    <label class="text-xs text-gray-300">Capital session C
+      <input id="capital" type="number" value="0.4" step="0.01" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Mise de base (seuil ruine)
       <input id="baseBet" type="number" value="0.0004" step="0.0001" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
-    <label class="text-xs text-gray-300">Max doublements (martingale de pool)
-      <input id="maxDoublings" type="number" value="4" min="0" max="10" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Target T (ex. 1.05 / 1.2)
+      <input id="target" type="number" value="1.05" step="0.01" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Frais φ (%)
+      <input id="fee" type="number" value="2" step="0.1" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
+    <label class="text-xs text-gray-300">Remboursement en cas d'échec (% de B)
+      <input id="refundPct" type="number" value="50" step="5" min="0" max="100" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
     <label class="text-xs text-gray-300">Nombre de joueurs (N)
       <input id="users" type="number" value="100000" min="100" step="1000" class="w-full bg-dark-900 border border-dark-700 rounded-xl px-3 py-2 text-sm mt-1"></label>
     <div id="info" class="text-[11px] text-gray-400 mt-1 leading-relaxed"></div>
@@ -43,27 +41,28 @@
 
   <section class="lg:col-span-3 flex flex-col gap-6">
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">p1 (S1 sur C)</p><h3 id="kpi-p1" class="text-2xl font-bold text-sky-400">—</h3></div>
-      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">p2 (rattrapage sur B)</p><h3 id="kpi-p2" class="text-2xl font-bold text-sky-400">—</h3></div>
-      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">q = perdre les 2</p><h3 id="kpi-q" class="text-2xl font-bold text-rose-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">P(session)</p><h3 id="kpi-p" class="text-2xl font-bold text-sky-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">q (2 échecs)</p><h3 id="kpi-q" class="text-2xl font-bold text-rose-400">—</h3></div>
       <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Seuil frais d'équilibre</p><h3 id="kpi-be" class="text-2xl font-bold text-amber-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">X (réserve)</p><h3 id="kpi-x" class="text-2xl font-bold text-gray-300">—</h3></div>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Caisse (frais)</p><h3 id="kpi-rev" class="text-2xl font-bold text-emerald-400">—</h3></div>
       <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Remboursements</p><h3 id="kpi-ref" class="text-2xl font-bold text-rose-300">—</h3></div>
       <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Net du fonds</p><h3 id="kpi-net" class="text-2xl font-bold text-violet-400">—</h3></div>
-      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">P(fonds négatif)</p><h3 id="kpi-pdef" class="text-2xl font-bold text-rose-400">—</h3></div>
+      <div class="bg-dark-800 border border-dark-700 rounded-2xl p-4"><p class="text-xs text-gray-400">Gain gagnant (net)</p><h3 id="kpi-win" class="text-2xl font-bold text-emerald-400">—</h3></div>
     </div>
     <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5">
       <h3 class="text-sm font-semibold mb-2">🧮 Détail</h3>
       <pre id="formula" class="text-xs text-gray-300 font-mono whitespace-pre-wrap">—</pre>
     </div>
     <div class="bg-dark-800 border border-dark-700 rounded-2xl p-5 overflow-x-auto">
-      <h3 class="text-sm font-semibold mb-3">📊 Sensibilité aux frais (%)</h3>
+      <h3 class="text-sm font-semibold mb-3">📊 Sensibilité aux frais (même N, même remboursement)</h3>
       <table class="w-full text-sm">
         <thead><tr class="text-gray-400 text-xs uppercase border-b border-dark-700">
-          <th class="text-left py-2">Frais</th><th class="text-right">p1</th><th class="text-right">p2</th><th class="text-right">q</th>
-          <th class="text-right">Caisse</th><th class="text-right">Remb.</th><th class="text-right">Net</th><th class="text-right">Verdict</th>
+          <th class="text-left py-2">Frais</th><th class="text-right">P</th><th class="text-right">q</th>
+          <th class="text-right">Caisse</th><th class="text-right">Rembours.</th>
+          <th class="text-right">Net</th><th class="text-right">Verdict</th>
         </tr></thead>
         <tbody id="sens"></tbody>
       </table>
@@ -74,81 +73,78 @@
 <script>
 function val(id){return parseFloat(document.getElementById(id).value);}
 function intval(id){return parseInt(document.getElementById(id).value);}
-function fmt(x,d=3){return Number(x).toFixed(d);}
-function ncdf(z){const t=1/(1+0.2316419*Math.abs(z)),d=0.3989423*Math.exp(-z*z/2);
-  const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
+function fmt(x,d=4){return Number(x).toFixed(d);}
+function ncdf(z){ const t=1/(1+0.2316419*Math.abs(z)), d=0.3989423*Math.exp(-z*z/2);
+  const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))); return z>0?1-p:p; }
 
+function calcAt(p, feeRate){
+  const r=p.baseBet, C=p.C, T=p.T, t=T-1;
+  const phi=feeRate*T;                       // frais appliqués au target
+  const P=(C-r)/(C*(T+phi)-r);               // = 1/(T+phi) si r≈0
+  const q=(1-P)*(1-P);
+  const X=(1+t+phi)/t;  const R=C*X;  const B=C+R;
+  const revPer = phi*C + (1-P)*phi*R;        // F_C (tous) + F_R (ceux qui font le rattrapage)
+  const refundPF = (p.refundPct/100)*B;
+  const payPer = q*refundPF;
+  const netPer = revPer-payPer;
+  return {phi,P,q,X,R,B,revPer,payPer,netPer,refundPF};
+}
 function params(){
-  const C=val('C'), B=val('B'), tq=val('target')/100, feePct=val('fee')/100;
-  const maxD=intval('maxDoublings'), N=Math.max(100,intval('users'));
-  const ruin=val('baseBet')*Math.pow(2,maxD);
-  return {C,B,tq,feePct,maxD,N,ruin};
-}
-// Amt1 = C + frais(C) ; Amt2 = B + frais(B)  (frais = feePct × base)
-// + target visé (tq) si renseigné : Amt = base·(1 + tq + fee)
-function calc(p, feePct){
-  const Amt1=p.C*(1+p.tq+feePct);
-  const Amt2=p.B*(1+p.tq+feePct);
-  const loC=Math.min(p.C*0.999999,p.ruin);
-  const loB=Math.min(p.B*0.999999,p.ruin);
-  const p1=Math.max(0,Math.min(1,(p.C-loC)/(Amt1-loC)));
-  const p2=Math.max(0,Math.min(1,(p.B-loB)/(Amt2-loB)));
-  const q=(1-p1)*(1-p2);
-  return {Amt1,Amt2,p1,p2,q};
-}
-function fundAt(p, feePct){
-  const c=calc(p,feePct);
-  const base=p.C+p.B;
-  const rev=p.N*feePct*base;
-  const ref=p.N*c.q*base;
-  const sd=base*Math.sqrt(p.N*c.q*(1-c.q));
-  const net=rev-ref;
-  const z=sd>0?net/sd:0;
-  const pdef=ncdf(-z);
-  return {...c,rev,ref,sd,net,pdef};
+  return {C:val('capital'),baseBet:val('baseBet'),T:val('target'),
+    feeRate:val('fee')/100,refundPct:val('refundPct'),N:Math.max(100,intval('users'))};
 }
 function breakEven(p){
-  for(let f=0; f<=1; f+=0.0002){ const g=fundAt(p,f); if(g.net>=0) return f; }
+  for(let f=0.002; f<=1.0; f+=0.002){ const c=calcAt(p,f); if(c.netPer>=0) return f; }
   return NaN;
 }
 function run(){
   const p=params();
-  const f=fundAt(p,p.feePct);
+  const c=calcAt(p,p.feeRate);
+  const N=p.N;
+  const rev=N*c.revPer, pay=N*c.payPer, net=rev-pay;
+  const sd=c.refundPF*Math.sqrt(N*c.q*(1-c.q));
+  const pdef = sd>0 ? ncdf(-net/sd) : (net>=0?0:1);
   const be=breakEven(p);
-  const g1=p.C*(p.tq+p.feePct);   // gain brut S1 (avant frais)
-  const g2=p.B*(p.tq+p.feePct);   // gain brut rattrapage
+  const winNet = p.C*(p.T-1);
+  const lossNet = -c.refundPF; // ce que perd le joueur échoué (part non remboursée)
   document.getElementById('info').innerHTML =
-    `C=${fmt(p.C,4)} · B=${fmt(p.B,4)} · target=${(p.tq*100).toFixed(1)}% · frais=${(p.feePct*100).toFixed(1)}%`;
-  document.getElementById('kpi-p1').textContent=(f.p1*100).toFixed(2)+'%';
-  document.getElementById('kpi-p2').textContent=(f.p2*100).toFixed(2)+'%';
-  document.getElementById('kpi-q').textContent=(f.q*100).toFixed(3)+'%';
-  document.getElementById('kpi-be').textContent=isNaN(be)?'>100 %':(be*100).toFixed(3)+'%';
-  document.getElementById('kpi-rev').textContent=fmt(f.rev,1);
-  document.getElementById('kpi-ref').textContent=fmt(f.ref,1);
-  document.getElementById('kpi-net').textContent=(f.net>=0?'+':'')+fmt(f.net,1);
-  document.getElementById('kpi-pdef').textContent=(100*f.pdef).toFixed(2)+'%';
+    `C=${fmt(p.C,3)} · T=${p.T} · φ=${(p.feeRate*100).toFixed(2)}% · refund=${p.refundPct}% de B<br>`+
+    `R=${fmt(c.R,3)} · B=${fmt(c.B,3)} · B(1+φ)=${fmt(c.B*(1+c.phi),3)}`;
+  document.getElementById('kpi-p').textContent=(c.P*100).toFixed(2)+'%';
+  document.getElementById('kpi-q').textContent=(c.q*100).toFixed(3)+'%';
+  document.getElementById('kpi-be').textContent=isNaN(be)?'>100 %':(be*100).toFixed(2)+'%';
+  document.getElementById('kpi-x').textContent=fmt(c.X,3);
+  document.getElementById('kpi-rev').textContent=fmt(rev,1);
+  document.getElementById('kpi-ref').textContent=fmt(pay,1);
+  document.getElementById('kpi-net').textContent=(net>=0?'+':'')+fmt(net,1);
+  document.getElementById('kpi-win').textContent='+'+fmt(winNet,4);
   document.getElementById('formula').innerText =
-`Amt1 = C·(1 + target + frais) = ${fmt(p.C,4)}·${fmt(1+p.tq+p.feePct,4)} = ${fmt(f.Amt1,5)}   (gain brut S1 = ${fmt(g1,5)})
-Amt2 = B·(1 + target + frais) = ${fmt(p.B,4)}·${fmt(1+p.tq+p.feePct,4)} = ${fmt(f.Amt2,5)}   (gain brut rattrapage = ${fmt(g2,5)})
-p1 = C / Amt1 ≈ ${fmt(f.p1,5)}      p2 = B / Amt2 ≈ ${fmt(f.p2,5)}
-q = (1 − p1)(1 − p2) = ${fmt(f.q,6)}  → ${(f.q*100).toFixed(3)} % perdent les 2
-Base frais = C + B = ${fmt(p.C+p.B,4)}
-Caisse = N × frais × (C+B) = ${fmt(f.rev,1)}
-Remboursements = N × q × (C+B) = ${fmt(f.ref,1)}
-Net = ${fmt(f.net,1)}  (${(100*(f.net/(p.N*(p.C+p.B)))).toFixed(3)} % / joueur)
-Seuil d'équilibre ≈ ${isNaN(be)?'>100 %':(be*100).toFixed(3)+' %'}`;
-  const rates=[1,2,3,4,5,6,8,10,15,20];
+`t = T−1 = ${fmt(p.T-1,4)} ; φ_used = φ×T = ${fmt(c.phi,5)}
+P(session) = (C−r)/(C·(T+φ_used)−r) = ${fmt(c.P,5)}   (≈ 1/(T+φ_used) = ${fmt(1/(p.T+c.phi),5)})
+q = (1−P)² = ${fmt(c.q,6)}  → ${(100*c.q).toFixed(3)} % perdent les 2
+X = (1+t+φ_used)/t = ${fmt(c.X,4)} ; R = C·X = ${fmt(c.R,4)} ; B = C+R = ${fmt(c.B,4)}
+Frais (b) : F_C = φ_used·C = ${fmt(c.phi*p.C,5)} (tous) + F_R = φ_used·R = ${fmt(c.phi*c.R,5)} (rattrapage seulement)
+Caisse = N × [F_C + (1−P)·F_R] = ${fmt(rev,1)}
+Remboursements = N × q × (${p.refundPct}%×B) = ${fmt(pay,1)}
+Net fonds = ${fmt(net,1)}
+Seuil d'équilibre (numérique) = ${isNaN(be)?'>100 %':(be*100).toFixed(2)+' %'}
+P(fonds négatif) ≈ ${(100*pdef).toFixed(2)} %
+
+NET JOUEUR :
+  gagnant S1        = +${fmt(winNet,5)}  (C·t)
+  gagnant rattrapage= +${fmt(winNet,5)}  (C·t)
+  échec (2 pertes)  = ${fmt(lossNet,5)}  (part non remboursée de B)`;
+  const rates=[0.5,1,1.5,2,3,4,5,6,8,10,12];
   const tb=document.getElementById('sens'); tb.innerHTML='';
   for(const r of rates){
-    const fr=r/100; const g=fundAt(p,fr); const ok=g.rev>=g.ref;
+    const cc=calcAt(p,r/100); const ok=cc.netPer>=0;
     const tr=document.createElement('tr'); tr.className='border-b border-dark-700/50';
     tr.innerHTML=`<td class="py-2">${r.toFixed(1)} %</td>`+
-      `<td class="text-right">${(g.p1*100).toFixed(2)} %</td>`+
-      `<td class="text-right">${(g.p2*100).toFixed(2)} %</td>`+
-      `<td class="text-right">${(g.q*100).toFixed(3)} %</td>`+
-      `<td class="text-right">${fmt(g.rev,1)}</td>`+
-      `<td class="text-right">${fmt(g.ref,1)}</td>`+
-      `<td class="text-right ${ok?'text-emerald-400':'text-rose-400'}">${(g.net>=0?'+':'')+fmt(g.net,1)}</td>`+
+      `<td class="text-right">${(cc.P*100).toFixed(2)} %</td>`+
+      `<td class="text-right">${(cc.q*100).toFixed(3)} %</td>`+
+      `<td class="text-right">${fmt(N*cc.revPer,1)}</td>`+
+      `<td class="text-right">${fmt(N*cc.payPer,1)}</td>`+
+      `<td class="text-right ${ok?'text-emerald-400':'text-rose-400'}">${(N*cc.netPer>=0?'+':'')+fmt(N*cc.netPer,1)}</td>`+
       `<td class="text-right font-semibold ${ok?'text-emerald-400':'text-rose-400'}">${ok?'OK':'DÉFICIT'}</td>`;
     tb.appendChild(tr);
   }
