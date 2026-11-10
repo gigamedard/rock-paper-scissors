@@ -883,3 +883,14 @@ en temps réel.
 (X=23). À T=1.2, X=6.6 ⇒ rattrapage ~44× la session (encore plusieurs heures). Le fonds de
 remboursement (pour les ~13,4 % d'échecs) est le mécanisme pratique ; le rattrapage doit être
 redimensionné ou abandonné.
+
+---
+
+## 31. État consolidé & HANDOVER (2026-11-10)
+
+**→ Voir `MEMORY_BACKUP.md`** (document de reprise complet, à lire en priorité).
+
+Résumé : branche `feat/session-recovery` @ `946eee8`, tout en **engine28** (app/queue/scheduler/
+sim-memory). Moteur DB + batch **arrêtés** ; **sim-memory actif** (1000 bots, T=1.05, security=300).
+Contrat V2 frais 10 % ; `REFUND_PCT=0.68` ; `DEFER_SIDE_EFFECTS=true` ; `SIM_NO_PAYOUT=true`.
+Réel : session gagnée ~8,7 min ; pertes rares/lentes (~90 min, non observées). **Prochaine étape : UI.**

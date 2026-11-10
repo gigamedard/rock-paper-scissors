@@ -154,3 +154,11 @@ Fichiers : `BankrollService`, `BankrollSessionService`, `RefundQueueService`,
   service `outbox:process --loop` (débit supérieur) ou queue dédiée.
 - Idempotence des payouts : à renforcer (clé d'idempotence par session).
 - P2.1 (events humains live, `f_hists`/IPFS) reste à finaliser pour la prod.
+
+---
+
+## 9. Note critique — rattrapage (mise ×X)
+La session de rattrapage doit garder le **même ratio capital/mise** que la session 1 :
+capital `R = C·X` **ET** mise `= baseBet·X` (même `target`). Sinon la durée de résolution
+∝ (capital/mise)² explose en `X²` (ex. X=23 → ~530× plus long). Les pools se forment **par
+palier de mise** : le rattrapage a son propre palier (`baseBet·X`).
