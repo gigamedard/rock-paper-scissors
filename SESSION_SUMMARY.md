@@ -838,3 +838,27 @@ L'échec est plus rare (~13 %) mais prend un temps comparable.
 **Note** : le frais 10 % gonfle la cible effective (1.05→1.155), ce qui **baisse P(win) à ~86.6 %**
 (au lieu de ~95 % sans frais) et **allonge** les sessions. `security_coefficient` est le levier clé
 (temps ∝ security²).
+
+---
+
+## 29. Distribution du temps de session (T=1.05) — 2026-11-10
+
+Test rapide `security=100` (13 min, 1 227 sessions gagnées loggées en CSV), puis scaling ×100
+sur les pools (temps/pools ∝ U², U ∝ security) vers `security=1000`.
+
+**Mesuré (security=100)** — pools par session gagnée :
+moy=257 · p10=42 · **p50=151** · p90=653 · max=1489.
+Aucun double-échec capturé (rare, <2 %).
+
+**Extrapolé (security=1000, config réelle), à ~2 pools/s/bot** :
+| Percentile | Pools | Temps |
+|---|---|---|
+| p10 | 4 200 | **~35 min** |
+| **p50 (médiane)** | 15 100 | **~2 h** |
+| p90 | 65 300 | **~9 h** |
+
+→ Distribution **très étalée** (queue lourde) : sessions **beaucoup trop longues** pour de vrais joueurs.
+
+**Insight clé** : `P(win) = 1/cible_effective` est **indépendant de `security_coefficient`** ; ce
+coefficient ne fait que **scaler la durée** (∝ security²). Donc **baisser security rend les sessions
+plus courtes sans changer P(win)**. Ex. security=100 → médiane ~1,4 min (mesuré) au lieu de ~2 h.
