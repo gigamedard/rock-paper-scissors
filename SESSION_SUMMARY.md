@@ -862,3 +862,24 @@ Aucun double-échec capturé (rare, <2 %).
 **Insight clé** : `P(win) = 1/cible_effective` est **indépendant de `security_coefficient`** ; ce
 coefficient ne fait que **scaler la durée** (∝ security²). Donc **baisser security rend les sessions
 plus courtes sans changer P(win)**. Ex. security=100 → médiane ~1,4 min (mesuré) au lieu de ~2 h.
+
+---
+
+## 30. Test RÉEL security=300 (T=1.05) — temps de session (2026-11-10)
+
+Mesure réelle en mémoire (aucune extrapolation pour les wins), ~45 min, `security=300`.
+
+**WIN (730 sessions réelles)** :
+- **Moyenne : 11,5 min** · médiane **8,1 min** · p90 **27,1 min**.
+- (la moyenne est montée de 8,3 → 11,5 min à mesure que les sessions longues se terminent : censure).
+
+**LOSS (double-échec) : 0 observée.**
+Raison : la session de rattrapage utilise `R = C·X`, avec `X=(1+t+φ_used)/t = 23,1` à T=1.05
+⇒ `X² ≈ 534`. Le temps de résolution ∝ capital² ⇒ le rattrapage dure **~534× la session 1**,
+soit **~100 heures** (dérivé du temps réel mesuré). Donc les double-échecs sont **inobservables**
+en temps réel.
+
+**Implication majeure** : la « 1 session de rattrapage » n'est **pas viable** à T=1.05
+(X=23). À T=1.2, X=6.6 ⇒ rattrapage ~44× la session (encore plusieurs heures). Le fonds de
+remboursement (pour les ~13,4 % d'échecs) est le mécanisme pratique ; le rattrapage doit être
+redimensionné ou abandonné.
