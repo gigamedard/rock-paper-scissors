@@ -338,8 +338,9 @@ class SessionManager
                     $user->save();
                 }
 
-                // Modèle classique (non P3) : un échec = dette en file si activé.
-                if (! $p3 && config('refund.enabled')) {
+                // Modèle classique (non P3) : enqueue legacy désactivé par défaut
+                // (évite de remplir la file avec des bots hors-P3 non finançables).
+                if (! $p3 && config('refund.legacy_enqueue', false)) {
                     try {
                         $baseBet = (float) ($user->initial_base_bet ?? \App\Models\GameSetting::getValue('min_bet_eth', collect(config('pool.base_bet', [0.01]))->min()));
                         $security = (float) \App\Models\GameSetting::getValue('security_coefficient', config('game_settings.security_coefficient', 1000));

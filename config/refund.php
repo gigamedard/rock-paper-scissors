@@ -35,4 +35,8 @@ return [
     // Au paiement, créditer le solde du joueur (il peut rejouer sans attendre
     // et sans nouveau dépôt). Le joueur peut jouer pendant qu'il attend.
     'credit_balance_on_payout' => (bool) env('REFUND_CREDIT_BALANCE', true),
+
+    // Fallback : enfiler aussi les ruines du modèle classique (hors P3).
+    // Désactivé par défaut : seuls les comptes P3 (dépôt B) génèrent une dette.
+    'legacy_enqueue' => (bool) env('REFUND_LEGACY_ENQUEUE', false),
 ];
