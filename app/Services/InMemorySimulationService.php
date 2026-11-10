@@ -109,25 +109,33 @@ class InMemorySimulationService
         $failTime = 0.0;
 
         while ($pools < $maxPools) {
-            $available = [];
+            // Grouper par palier de mise (= bet_amount, comme le vrai matchmaking).
+            // Un rattrapage a bet = baseBet×X -> son propre palier.
+            $byTier = [];
             foreach ($this->users as $id => $u) {
-                if ($u['status'] === 'available' && $u['balance'] >= $u['base_bet']) {
-                    $available[] = $id;
+                if ($u['status'] === 'available' && $u['balance'] >= $u['bet'] - 1e-12) {
+                    $byTier[(string) $u['bet']][] = $id;
                 }
             }
-
-            if (count($available) < 13) {
-                break;
+            $baseBet = null;
+            $tierIds = [];
+            foreach ($byTier as $tierBet => $ids) {
+                if (count($ids) >= 13) {
+                    $baseBet = (float) $tierBet;
+                    $tierIds = $ids;
+                    break;
+                }
+            }
+            if ($baseBet === null) {
+                break; // aucun palier avec assez de bots
             }
 
-            // Mélange (simulation) puis pools de 13.
-            shuffle($available);
-            $chunk = array_slice($available, 0, 13);
+            shuffle($tierIds);
+            $chunk = array_slice($tierIds, 0, 13);
             $this->poolSeq++;
 
-            $baseBet = $this->users[$chunk[0]]['base_bet'];
             foreach ($chunk as $id) {
-                // Mise du pool = baseBet (comme le vrai battle_balance), PAS le solde total.
+                // Mise du pool = palier ($baseBet) ; battle_balance, PAS le solde total.
                 $this->users[$id]['battle'] = $baseBet;
                 $this->users[$id]['balance'] -= $baseBet;
                 $this->users[$id]['status'] = 'in_pool';
@@ -235,11 +243,12 @@ class InMemorySimulationService
 
         if ($u['balance'] < $u['bet'] - 1e-12) {
             if ((int) $u['attempt'] === 0) {
-                // Rattrapage : on libère R (en mémoire).
+                // Rattrapage : capital R ET mise × X (même % de capital => même durée).
+                $x = $u['C'] > 0 ? ($u['R'] / $u['C']) : 1.0;
                 $u['balance'] = $u['R'];
                 $u['attempt'] = 1;
                 $u['cap'] = $u['R'];
-                $u['bet'] = $u['base_bet'];
+                $u['bet'] = $u['base_bet'] * $x;
                 $u['status'] = 'available';
 
                 return 'recovery';

@@ -164,7 +164,9 @@ class BankrollSessionService
         $user->session_attempt = 1;
         $user->recovery_used = true;
         $user->session_start_balance = $R;
-        $user->bet_amount = $baseBet;
+        // La mise est multipliée par X (la cible reste le même % de capital)
+        // -> la session de rattrapage dure ~le même temps qu'une session normale.
+        $user->bet_amount = $baseBet * (float) ($user->recovery_factor ?: 1.0);
         $user->status = 'available';
         $user->pool_id = null;
         if ($user->preMove) {
