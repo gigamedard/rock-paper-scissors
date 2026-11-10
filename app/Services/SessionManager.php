@@ -106,6 +106,12 @@ class SessionManager
             return;
         }
 
+        // Fast-path simulation bots : pas de cartes / logs / broadcasts / GameSetting DB.
+        if ($user->autoplay_active && config('game_engine.simulation_no_payout', false)) {
+            $this->processFoughtUserSim($user, $pool);
+            return;
+        }
+
         // NOTE: la validation de parrainage se fait désormais à la PREMIÈRE SESSION
         // (voir PoolReconstructionService::initializeUsersForPool) et non plus au premier combat.
 
@@ -176,6 +182,34 @@ class SessionManager
         $this->evaluateUserSession($user, $q);
     }
 
+    /**
+     * Fast-path bots (simulation) : évite les requêtes cartes/GameSetting, les logs
+     * et les broadcasts. Conserve la logique de session P3 (rattrapage/refund).
+     */
+    private function processFoughtUserSim(User $user, Pool $pool): void
+    {
+        $baseBet = (float) ($user->initial_base_bet ?? 0.0004);
+
+        if ($user->battle_balance < $pool->base_bet) {
+            $maxLevel = (int) config('pool.max_martingale_level', 4);
+            $maxAmount = $baseBet * (2 ** $maxLevel);
+            $next = (float) $user->bet_amount * 2;
+            $user->bet_amount = ($next > $maxAmount) ? $baseBet : $next;
+        } elseif ($user->battle_balance > $pool->base_bet) {
+            $user->bet_amount = $baseBet;
+        }
+
+        $q = $this->calculateQValue($user);
+
+        $user->balance += $user->battle_balance;
+        $user->battle_balance = 0;
+        $user->pool_id = null;
+        $user->max_balance = max((float) ($user->max_balance ?? 0), (float) $user->balance);
+        $user->min_balance = $user->min_balance === null ? (float) $user->balance : min((float) $user->min_balance, (float) $user->balance);
+
+        $this->evaluateUserSession($user, $q);
+    }
+
 
     private function calculateQValue(User $user): float
     {
@@ -220,28 +254,30 @@ class SessionManager
 
         if ($user->target_q && $user->target_q > 1.0) {
             // Seuil effectif compensé des frais : le joueur doit réellement
-            // gagner target_q x sa mise (frais inclus). Les frais de réseau
-            // ne sont PAS inclus. Les multiplicateurs de niveau restent bruts.
-            $feeFactor = 1 + ($this->feePercent() / 100);
-            $multiplier = $user->target_q * $feeFactor;
+            // gagner target_q x sa mise (frais inclus). Sim bots : fee depuis la
+            // config (évite une requête GameSetting par joueur).
+            $feePercent = $sim ? ((float) config('bankroll.fee_rate', 0.025) * 100) : $this->feePercent();
+            $multiplier = $user->target_q * (1 + ($feePercent / 100));
         } else {
             $multiplier = config("game_levels.multiplier.{$multiplierLevel}", 2.0);
         }
 
-        // --- CARD EFFECT: CEILING INCREASE ---
-        $activeCeilingCards = \App\Models\UserCard::with('card')
-            ->where('user_id', $user->id)
-            ->where('status', 'available')
-            ->where(function($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            })
-            ->whereHas('card', function ($q) {
-                $q->where('effect_type', 'ceiling_increase');
-            })
-            ->get();
+        // --- CARD EFFECT: CEILING INCREASE --- (humains uniquement)
+        if (! $sim) {
+            $activeCeilingCards = \App\Models\UserCard::with('card')
+                ->where('user_id', $user->id)
+                ->where('status', 'available')
+                ->where(function($q) {
+                    $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                })
+                ->whereHas('card', function ($q) {
+                    $q->where('effect_type', 'ceiling_increase');
+                })
+                ->get();
 
-        foreach ($activeCeilingCards as $userCard) {
-            $multiplier += $userCard->card->effect_value; // ex: +0.5 au plafond
+            foreach ($activeCeilingCards as $userCard) {
+                $multiplier += $userCard->card->effect_value; // ex: +0.5 au plafond
+            }
         }
 
         if ($q >= $multiplier) {
