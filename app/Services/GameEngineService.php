@@ -76,6 +76,7 @@ class GameEngineService
         }
 
         $fights = [];
+        $hasHuman = false;
         $rounds = (int) config('pool.rounds', 5);
         $now = now();
 
@@ -152,30 +153,25 @@ class GameEngineService
                     'user2_move' => $moveB,
                 ]);
 
-                // Events (humains uniquement), accumulés pour un envoi groupé.
+                // Effets humains : P2.1 -> outbox asynchrone (durable) si activé,
+                // sinon buffer mémoire groupé (ancien comportement).
                 if (! $a->isBot()) {
-                    $this->eventBuffer->add($a->id, [
-                        'type' => 'fight',
-                        'round' => $round,
-                        'result' => $result === 'user1_win' ? 'win' : ($result === 'user2_win' ? 'loss' : 'draw'),
-                        'delta' => $result === 'user1_win' ? $amount : ($result === 'user2_win' ? -$amount : 0),
-                        'opponent' => $b->wallet_address,
-                        'my_move' => $moveA,
-                        'opponent_move' => $moveB,
-                        'balance' => (float) $a->balance,
-                    ]);
+                    $hasHuman = true;
+                    $this->emitHumanFight(
+                        $a, $round,
+                        $result === 'user1_win' ? 'win' : ($result === 'user2_win' ? 'loss' : 'draw'),
+                        $result === 'user1_win' ? $amount : ($result === 'user2_win' ? -$amount : 0),
+                        $b, $moveA, $moveB
+                    );
                 }
                 if (! $b->isBot()) {
-                    $this->eventBuffer->add($b->id, [
-                        'type' => 'fight',
-                        'round' => $round,
-                        'result' => $result === 'user2_win' ? 'win' : ($result === 'user1_win' ? 'loss' : 'draw'),
-                        'delta' => $result === 'user2_win' ? $amount : ($result === 'user1_win' ? -$amount : 0),
-                        'opponent' => $a->wallet_address,
-                        'my_move' => $moveB,
-                        'opponent_move' => $moveA,
-                        'balance' => (float) $b->balance,
-                    ]);
+                    $hasHuman = true;
+                    $this->emitHumanFight(
+                        $b, $round,
+                        $result === 'user2_win' ? 'win' : ($result === 'user1_win' ? 'loss' : 'draw'),
+                        $result === 'user2_win' ? $amount : ($result === 'user1_win' ? -$amount : 0),
+                        $a, $moveB, $moveA
+                    );
                 }
             }
         }
@@ -183,6 +179,15 @@ class GameEngineService
         // 1 seule écriture batch pour tous les combats de la pool
         if (! empty($fights)) {
             Fight::insert($fights);
+        }
+
+        // P2.1 : pool avec humains -> archiver f_hists hors boucle (outbox async).
+        if ($hasHuman && config('game_engine.defer_side_effects', false)) {
+            try {
+                app(\App\Services\SideEffectOutbox::class)->push(null, 'archive_pool', ['pool_id' => $pool->id]);
+            } catch (\Throwable $e) {
+                // non bloquant
+            }
         }
 
         // 1 seule sauvegarde par joueur (soldes de bataille finaux)
@@ -212,6 +217,32 @@ class GameEngineService
             $this->eventBuffer->flush();
             $this->sinceFlush = 0;
         }
+    }
+
+    /** Émet un combat humain : outbox async (durable) si activé, sinon buffer mémoire. */
+    private function emitHumanFight(User $user, int $round, string $result, float $delta, User $opponent, string $myMove, string $opponentMove): void
+    {
+        $payload = [
+            'result' => $result,
+            'delta' => (string) $delta,
+            'balance' => (string) (float) $user->balance,
+            'my_move' => $myMove,
+            'opponent_move' => $opponentMove,
+            'round' => $round,
+            'opponent' => $opponent->wallet_address,
+        ];
+
+        if (config('game_engine.defer_side_effects', false)) {
+            try {
+                app(\App\Services\SideEffectOutbox::class)->push($user->id, 'fight_result', $payload);
+
+                return;
+            } catch (\Throwable $e) {
+                // fallback vers le buffer mémoire
+            }
+        }
+
+        $this->eventBuffer->add($user->id, ['type' => 'fight'] + $payload);
     }
 
     private function nextMove(?PreMove $pm, array &$cursor, int $userId): string

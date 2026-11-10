@@ -146,6 +146,13 @@ class SideEffectOutbox
                 }
                 break;
 
+            case 'archive_pool':
+                $poolId = (int) ($payload['pool_id'] ?? 0);
+                if ($poolId > 0) {
+                    app(\App\Services\HistoricalFightService::class)->archivePoolFights($poolId);
+                }
+                break;
+
             default:
                 Log::warning("[OUTBOX] type inconnu: {$row->type}");
         }
