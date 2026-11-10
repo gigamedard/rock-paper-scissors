@@ -797,3 +797,26 @@ Balayage de charge (VPS 2 cœurs, full in-memory, `--pools=400`) :
 - **Saturation ≈ 1000–1200 bots** sur 2 cœurs (à 1400 : throughput chute, cycle explose, load 4,3).
 - Pour 2000–4000 bots : **plus de CPU** (~linéaire : 2000→~4 cœurs, 4000→~8 cœurs) ou
   optimiser (`persistDirty` en bulk upsert, réduire `XADD`, etc.).
+
+---
+
+## 27. CORRECTION mesure session (2026-11-10) — engine24
+
+**Bug** : `InMemorySimulationService` utilisait le **solde total** comme mise de pool au lieu
+du `battle_balance` du pool (`baseBet`). Les transferts étaient ~1000× trop gros → sessions
+gagnées en ~2 pools (faux). **Corrigé** : mise de pool = `baseBet`, consolidation en fin de pool.
+
+**Vraie mesure** : target effectif = `T×(1+fee)` = **1.32** ; gain à viser = `+0.128` = **320×baseBet**.
+Marche aléatoire → ordre de grandeur `320² ≈ 102 000` combats nets ≈ **~7 900 pools / session**.
+Le sim ne montre **aucune session terminée** (ni win ni fail) → confirmé : sessions **très longues**
+(heures par bot), ce qui colle à l'observation live historique (~44 h).
+
+**Cause** : `security_coefficient = 1000` → la mise (`0.0004`) est **1/1000** du capital de session
+(`0.4`). Atteindre +32 % demande un drift énorme.
+
+**Leviers pour des sessions raisonnables** :
+- Baisser `security_coefficient` (mise plus grande vs C), ex. ×50–×100 → sessions ~100× plus courtes.
+- Baisser la cible de session (1.02 → +2.2 % → ~480 pools).
+- Ou définir une session = nombre fixe de pools (plutôt qu'un % de capital).
+- NB : le sim ne modélise pas la martingale de pool (le moteur réel double la mise après une
+  perte de pool, jusqu'à ×16) → sessions un peu plus courtes en réel, mais toujours longues.
