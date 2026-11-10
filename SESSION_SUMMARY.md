@@ -777,3 +777,23 @@ arrivent avec un léger différé (asynchrone), sans compromettre la vitesse.
 
 **Vitesse (option a, sans dette fonds en DB)** : pics **~5 000–11 000 fights/s par cycle**
 (~300k–670k fights/min), load ~2,5.
+
+---
+
+## 26. Mesures — temps de session & scalabilité (2026-11-10)
+
+Instrumentation `InMemorySimulationService` : `avgPoolsWin`, `avgWinTime`, `avgPoolsFail`.
+Balayage de charge (VPS 2 cœurs, full in-memory, `--pools=400`) :
+
+| Bots | Débit (fights/s) | Cycle | Load (1 min) | avgPoolsWin | avgPoolsFail |
+|---|---|---|---|---|---|
+| 500 | 3 800–5 800 | ~1–3 s | 2,5 | ~2,0 | ~4,0 |
+| 1000 | 5 300–10 400 (pics) | ~1–2 s | 3,5 | ~2,3 | ~4,3 |
+| 1400 | 1 300–3 400 (**chute**) | 3–8,7 s | **4,3** | ~2,0 | ~3,8 |
+
+**Conclusions** :
+- **Session gagnante ≈ 2,2 pools** (échec double ≈ 4,2 pools). En temps réel, à une cadence
+  de 1 pool / 1,5–3 s par joueur : **session ≈ 3–7 s**.
+- **Saturation ≈ 1000–1200 bots** sur 2 cœurs (à 1400 : throughput chute, cycle explose, load 4,3).
+- Pour 2000–4000 bots : **plus de CPU** (~linéaire : 2000→~4 cœurs, 4000→~8 cœurs) ou
+  optimiser (`persistDirty` en bulk upsert, réduire `XADD`, etc.).
