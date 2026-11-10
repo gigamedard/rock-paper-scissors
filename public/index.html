@@ -193,8 +193,15 @@
                                     + <span id="display-fee-amount" class="fee-accent">0.0000 TST</span>
                                 </span>
                             </div>
+                            <!-- P3 : bankroll = budget de session (C) + réserve de rattrapage (R=C·X) -->
+                            <div id="p3-breakdown" style="display:none;">
+                                <div class="fee-row"><span>Budget session (C)</span><span id="display-session-capital">—</span></div>
+                                <div class="fee-row"><span>Réserve rattrapage (R = C·X)</span><span id="display-recovery-reserve">—</span></div>
+                                <div class="fee-row"><span>Bankroll (B = C+R)</span><span id="display-bankroll">—</span></div>
+                                <div class="fee-row"><span>Remboursement double échec</span><span id="display-refund-policy">—</span></div>
+                            </div>
                             <div class="fee-row fee-total">
-                                <span data-i18n="setup.total_deposit">TOTAL DEPOSIT:</span>
+                                <span data-i18n="setup.total_deposit">TOTAL DEPOSIT (une fois):</span>
                                 <span id="display-total-deposit">0.0000 TST</span>
                             </div>
                         </div>

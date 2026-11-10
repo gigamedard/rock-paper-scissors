@@ -432,6 +432,7 @@ async function fetchConfig() {
             gameState.config.bankroll_enabled = !!data.bankroll_enabled;
             gameState.config.bankroll_recovery_factor = Number(data.bankroll_recovery_factor || 0);
             gameState.config.bankroll_session_target_q = Number(data.bankroll_session_target_q || 1.05);
+            gameState.config.bankroll_refund_pct = Number(data.bankroll_refund_pct || 0);
             gameState.contractAddress = data.address || gameState.contractAddress;
             // Chantier feat/avaxe-bridge (P3) : contrats V2 + jeton AVAXe exposés par le bridge.
             gameState.v2Address = data.gameV2?.address || null;
@@ -498,6 +499,21 @@ function updateFeeDisplay() {
     if (elFeePct) elFeePct.innerText = feePct;
     if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " " + currencySymbol();
     if (elTotal) elTotal.innerText = total.toFixed(4) + " " + currencySymbol();
+
+    // P3 : décomposition C / R / B + règle de remboursement.
+    const p3 = document.getElementById('p3-breakdown');
+    if (p3) {
+        p3.style.display = bankrollOn ? '' : 'none';
+        if (bankrollOn) {
+            const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.innerText = v; };
+            const sym = currencySymbol();
+            setTxt('display-session-capital', sessionCapital.toFixed(4) + " " + sym);
+            setTxt('display-recovery-reserve', reserve.toFixed(4) + " " + sym);
+            setTxt('display-bankroll', stake.toFixed(4) + " " + sym);
+            const rp = Number(gameState.config.bankroll_refund_pct || 0) * 100;
+            setTxt('display-refund-policy', rp.toFixed(0) + '% de B si double échec');
+        }
+    }
 }
 
 function getIcon(move) {
