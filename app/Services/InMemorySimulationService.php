@@ -215,6 +215,7 @@ class InMemorySimulationService
             'avgTimeWin' => $wins > 0 ? $winTime / $wins : 0.0,
             'avgPoolsFail' => $fails > 0 ? $failPools / $fails : 0.0,
             'avgTimeFail' => $fails > 0 ? $failTime / $fails : 0.0,
+            'recoveries' => count(array_filter($this->users, fn ($u) => ((int) $u['attempt']) === 1)),
         ];
     }
 
