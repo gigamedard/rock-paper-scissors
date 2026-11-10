@@ -117,18 +117,20 @@ class InMemorySimulationService
                     $byTier[(string) $u['bet']][] = $id;
                 }
             }
-            $baseBet = null;
-            $tierIds = [];
+            // Tous les paliers ayant ≥13 bots ; on en choisit UN AU HASARD pour
+            // que les paliers de rattrapage (mise ×X) soient joués aussi.
+            $eligibleTiers = [];
             foreach ($byTier as $tierBet => $ids) {
                 if (count($ids) >= 13) {
-                    $baseBet = (float) $tierBet;
-                    $tierIds = $ids;
-                    break;
+                    $eligibleTiers[] = [(float) $tierBet, $ids];
                 }
             }
-            if ($baseBet === null) {
+            if (empty($eligibleTiers)) {
                 break; // aucun palier avec assez de bots
             }
+            $pick = $eligibleTiers[array_rand($eligibleTiers)];
+            $baseBet = $pick[0];
+            $tierIds = $pick[1];
 
             shuffle($tierIds);
             $chunk = array_slice($tierIds, 0, 13);
