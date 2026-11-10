@@ -27,6 +27,8 @@ class InMemorySimulationService
     private array $dirty = [];
 
     private int $poolSeq = 0;
+    private float $pendingCreditC = 0.0;
+    private float $pendingCreditR = 0.0;
     private string $stream;
 
     public function __construct(private BankrollSessionService $bankroll, private RefundQueueService $refunds)
@@ -173,6 +175,7 @@ class InMemorySimulationService
         }
 
         $this->persistDirty();
+        $this->flushCredits();
 
         return [
             'pools' => $pools,
@@ -199,6 +202,8 @@ class InMemorySimulationService
             $u['bet'] = $u['base_bet'];
             $u['status'] = 'available';
             $this->dirty[$id] = true;
+            // Nouvelle session -> frais F_C = φ_used·C.
+            $this->pendingCreditC += $u['phi'] * $u['T'] * $u['C'];
 
             return 'win';
         }
@@ -211,6 +216,8 @@ class InMemorySimulationService
                 $u['cap'] = $u['R'];
                 $u['bet'] = $u['base_bet'];
                 $u['status'] = 'available';
+                // Rattrapage -> frais F_R = φ_used·R.
+                $this->pendingCreditR += $u['phi'] * $u['T'] * $u['R'];
 
                 return 'recovery';
             }
@@ -234,6 +241,8 @@ class InMemorySimulationService
             $u['bet'] = $u['base_bet'];
             $u['status'] = 'available';
             $this->dirty[$id] = true;
+            // Nouvelle session simulée -> frais F_C.
+            $this->pendingCreditC += $u['phi'] * $u['T'] * $u['C'];
 
             return 'fail';
         }
@@ -274,6 +283,23 @@ class InMemorySimulationService
         }
 
         $this->dirty = [];
+    }
+
+    /** Crédite le fonds en un seul lot par cycle (F_C session + F_R rattrapage). */
+    private function flushCredits(): void
+    {
+        try {
+            if ($this->pendingCreditC > 0) {
+                $this->refunds->credit($this->pendingCreditC, 'sim_session_fee_C');
+                $this->pendingCreditC = 0.0;
+            }
+            if ($this->pendingCreditR > 0) {
+                $this->refunds->credit($this->pendingCreditR, 'sim_recovery_fee_R');
+                $this->pendingCreditR = 0.0;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[SIM] credit flush failed: ' . $e->getMessage());
+        }
     }
 
     private function nextMove(int $id): string
