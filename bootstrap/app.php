@@ -24,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
         if (config('refund.enabled')) {
             $schedule->command('refund:process --once')->everyMinute()->withoutOverlapping();
         }
+
+        // Outbox : exécute les effets de bord humains (payouts/notifs) hors boucle de jeu.
+        if (config('game_engine.defer_side_effects')) {
+            $schedule->command('outbox:process --once')->everyMinute()->withoutOverlapping();
+        }
     })
 
     ->withMiddleware(function (Middleware $middleware) {

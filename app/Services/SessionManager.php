@@ -309,23 +309,27 @@ class SessionManager
             $this->closeSession($user, 'stopped');
             $this->historyService->archiveSessionHistory($user);
 
-            // Sync limits synchronously (not via queue to avoid serialization issues)
-            try {
-                $user->syncLimitsToBlockchain();
-            } catch (\Exception $e) {
-                Log::error("[SESSION_PAYOUT] Failed to sync limits for user {$user->id}: " . $e->getMessage());
+            // Sync limits (délégué à l'outbox si activé, sinon synchrone).
+            if (! $this->deferSideEffect('sync_limits', $user->id)) {
+                try {
+                    $user->syncLimitsToBlockchain();
+                } catch (\Exception $e) {
+                    Log::error("[SESSION_PAYOUT] Failed to sync limits for user {$user->id}: " . $e->getMessage());
+                }
             }
 
-            // Then dispatch SetCooldownJob immediately (syncLimits already done synchronously above)
-            \App\Jobs\SetCooldownJob::dispatch($cooldownData['wallet'], $cooldownData['nextTime']);
+            // Cooldown (délégué à l'outbox si activé).
+            if (! $this->deferSideEffect('cooldown', $user->id, ['wallet' => $cooldownData['wallet'], 'next_time' => $cooldownData['nextTime']])) {
+                \App\Jobs\SetCooldownJob::dispatch($cooldownData['wallet'], $cooldownData['nextTime']);
+            }
 
             $signature = null;
             $payoutTriggered = false;
             $isBot = $this->isBotUser($user);
 
             if ($user->autoplay_active && $isBot) { 
-                // ALL BOTS (Autoplay) get Automatic Payout
-                $this->sendPayment($user);
+                // ALL BOTS (Autoplay) get Automatic Payout (outbox si activé)
+                $this->deferPayout($user);
                 $payoutTriggered = true;
             } else {
                 // HUMANS (including human autoplay) or Manual Players: Always generate Signature for MetaMask
@@ -336,7 +340,9 @@ class SessionManager
                 $user->save();
             }
             
-            \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} SUCCESS");
+            if (! $this->deferSideEffect('session_finished', $user->id, ['status' => 'SUCCESS', 'q' => (string) $q, 'payout_triggered' => $payoutTriggered, 'signature' => $signature])) {
+                \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, "SUCCESS", (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} SUCCESS");
+            }
             
         } elseif ($user->balance < $user->bet_amount) {
             // CASE 2: Ruin or Strategic Limit (Insufficient funds for next bet)
@@ -415,12 +421,12 @@ class SessionManager
 
                 if ($user->autoplay_active && $isBot) {
                     UserTracker::info("[BOT_AUTO_WITHDRAW] 🤖 Bot {$user->wallet_address} ruined. Forcing payout to clear balance for next run.", ['wallet' => $user->wallet_address]);
-                    $this->sendPayment($user); // Forces sending whatever is left (e.g. 0.45 ETH)
+                    $this->deferPayout($user); // Forces sending whatever is left (outbox si activé)
                     $payoutTriggered = true;
                 } else {
                     if ($user->balance <= 0.0001) {
                         UserTracker::info("[AUTO_EJECT] 🛑 Human player {$user->wallet_address} ruined with 0 ETH. Server pays gas to eject them from contract.", ['wallet' => $user->wallet_address]);
-                        $this->sendPayment($user); // Forces payout from server, clears isUserInAnyPool
+                        $this->deferPayout($user); // Forces payout from server (outbox si activé)
                         $payoutTriggered = true;
                     } else {
                         UserTracker::info("[MANUAL_WITHDRAWAL_REQUIRED] 🛑 Human player {$user->wallet_address} ruined. Funds ({$user->balance} ETH) kept in DB. Manual withdraw required.", ['wallet' => $user->wallet_address]);
@@ -434,7 +440,9 @@ class SessionManager
                     }
                 }
 
-                    \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} {$type}");
+                    if (! $this->deferSideEffect('session_finished', $user->id, ['status' => $type, 'q' => (string) $q, 'payout_triggered' => $payoutTriggered, 'signature' => $signature])) {
+                        \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} {$type}");
+                    }
                 }
             }
 
@@ -450,7 +458,37 @@ class SessionManager
         // in the PAYOUT case (CASE 1) to ensure on-chain limits are fresh.
         // For CASE 2 (ruin) and CASE 3 (continue), sync limits here.
         if ($q < $multiplier && ! $sim) {
-            \App\Jobs\SyncUserLimitsJob::dispatch($user)->onQueue('limits');
+            if (! $this->deferSideEffect('sync_limits', $user->id)) {
+                \App\Jobs\SyncUserLimitsJob::dispatch($user)->onQueue('limits');
+            }
+        }
+    }
+
+    /** Pousse un effet de bord dans l'outbox si activé. true = délégué (ne pas exécuter inline). */
+    private function deferSideEffect(string $type, ?int $userId, array $payload = [], int $delay = 0): bool
+    {
+        if (! config('game_engine.defer_side_effects', false)) {
+            return false;
+        }
+        try {
+            app(\App\Services\SideEffectOutbox::class)->push($userId, $type, $payload, $delay);
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('[OUTBOX] push failed: ' . $e->getMessage());
+
+            return false;
+        }
+    }
+
+    /** Déclenche le payout (immédiat, ou délégué à l'outbox). */
+    private function deferPayout(User $user): void
+    {
+        if (! $this->deferSideEffect('payout', $user->id, [
+            'wallet' => $user->wallet_address,
+            'amount' => (float) $user->balance,
+        ])) {
+            $this->sendPayment($user);
         }
     }
 

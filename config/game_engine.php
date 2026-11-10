@@ -13,6 +13,11 @@ return [
     // Recommandé pour les runs de test (évite de solliciter l'operator on-chain).
     'simulation_no_payout' => (bool) env('GAME_ENGINE_SIM_NO_PAYOUT', false),
 
+    // Décaler les effets de bord des HUMAINS dans l'outbox asynchrone (payout,
+    // notifications, syncLimits, cooldown, broadcast fin de session). La boucle
+    // de jeu ne les exécute plus → vitesse identique bots/humains.
+    'defer_side_effects' => (bool) env('GAME_ENGINE_DEFER_SIDE_EFFECTS', false),
+
     // Nombre de pools traitées entre deux flush d'événements (vers le front).
     'batch_pools' => (int) env('GAME_ENGINE_BATCH_POOLS', 20),
 
