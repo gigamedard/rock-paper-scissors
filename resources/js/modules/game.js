@@ -433,6 +433,7 @@ async function fetchConfig() {
             gameState.config.bankroll_recovery_factor = Number(data.bankroll_recovery_factor || 0);
             gameState.config.bankroll_session_target_q = Number(data.bankroll_session_target_q || 1.05);
             gameState.config.bankroll_refund_pct = Number(data.bankroll_refund_pct || 0);
+            gameState.config.bankroll_security_coefficient = Number(data.bankroll_security_coefficient || data.security_coefficient || 0);
             gameState.contractAddress = data.address || gameState.contractAddress;
             // Chantier feat/avaxe-bridge (P3) : contrats V2 + jeton AVAXe exposés par le bridge.
             gameState.v2Address = data.gameV2?.address || null;
@@ -467,11 +468,13 @@ function updateFeeDisplay() {
     if (!betInput) return;
 
     const bet = parseFloat(betInput.value) || 0;
-    const coeff = gameState.config.security_coefficient || 1;
+    const bankrollOn = !!gameState.config.bankroll_enabled;
+    const coeff = (bankrollOn
+        ? (Number(gameState.config.bankroll_security_coefficient) || gameState.config.security_coefficient)
+        : gameState.config.security_coefficient) || 1;
     const feePct = gameState.config.smart_contract_fee_percentage || 0;
 
     // P3 : dépôt unique B = C + R (R = C·X, réserve de rattrapage).
-    const bankrollOn = !!gameState.config.bankroll_enabled;
     const X = bankrollOn ? (Number(gameState.config.bankroll_recovery_factor) || 0) : 0;
     const sessionCapital = bet * coeff;              // C
     const reserve = sessionCapital * X;              // R
@@ -594,9 +597,11 @@ async function startSession() {
         const provider = await getProvider();
         const signer = await provider.getSigner();
         
-        const securityCoefficient = gameState.config.security_coefficient; 
-        const feePercentage = gameState.config.smart_contract_fee_percentage;
         const bankrollOn = !!gameState.config.bankroll_enabled;
+        const securityCoefficient = (bankrollOn
+            ? (Number(gameState.config.bankroll_security_coefficient) || gameState.config.security_coefficient)
+            : gameState.config.security_coefficient);
+        const feePercentage = gameState.config.smart_contract_fee_percentage;
         
         const baseBetWei = parseUnits(bet, 18);
         let stakeWei = baseBetWei * BigInt(securityCoefficient); // C
