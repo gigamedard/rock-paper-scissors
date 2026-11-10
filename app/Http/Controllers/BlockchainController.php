@@ -185,7 +185,10 @@ class BlockchainController extends Controller
                 'bankroll_enabled' => (bool) config('bankroll.enabled', false),
                 'bankroll_session_target_q' => (float) config('bankroll.session_target_q', 1.05),
                 'bankroll_fee_rate' => (float) config('bankroll.fee_rate', 0.005),
-                'bankroll_recovery_factor' => app(\App\Services\BankrollService::class)->recoveryFactor(),
+                'bankroll_recovery_factor' => \App\Services\BankrollSessionService::recoveryFactor(
+                    (float) config('bankroll.session_target_q', 1.05),
+                    (float) config('bankroll.fee_rate', 0.005)
+                ),
                 'bankroll_refund_pct' => (float) config('refund.refund_pct', 0.25),
             ];
 

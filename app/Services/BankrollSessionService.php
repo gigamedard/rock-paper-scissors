@@ -82,6 +82,17 @@ class BankrollSessionService
         );
     }
 
+    /** Facteur de récupération X = (1+t+φ_used)/t (avec frais). */
+    public static function recoveryFactor(float $targetMultiplier, float $feeRate): float
+    {
+        $t = $targetMultiplier - 1.0;
+        if ($t <= 0.0) {
+            return 1.0;
+        }
+
+        return (1.0 + $t + $feeRate * $targetMultiplier) / $t;
+    }
+
     /** Activation gardée : le joueur doit avoir déposé au moins B = C + R. */
     public static function canActivate(float $onChainBalance, array $params): bool
     {
