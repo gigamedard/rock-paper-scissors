@@ -683,3 +683,24 @@ Pour la prod : en faire un **service compose dédié** (ou supervisor).
 
 **P3 cohorte** : 127 init, 67 available / 47 in_pool / 16 stopped ; 0 rattrapage encore ;
 fonds **6.24**, file vide.
+
+---
+
+## 22. Engine en compose + cohorte 500 + réappro P3 (2026-11-10)
+
+- **Service compose `engine`** ajouté (`docker-compose.prod.yml`, non git) :
+  `battlepool-engine` (image app, `php artisan game:engine`, restart unless-stopped, healthcheck).
+- **`batch-processor`** relancé en **service compose** (`battlepool-batch-processor`, image bridge
+  6628503) ; les workers `docker exec` manuels supprimés (pas de doublon).
+- **Cohorte P3 = 500 bots** (`balance=B=3.05`, `target_q=1.2`), 493 comptes P3 initialisés.
+- **`replenish_p3.sh`** : +10 bots / 10 stopped, avec dépôt `B` (nouveaux ids > max → P3).
+
+**Mesures (worker persistant, 500 bots, sim no-payout)** :
+- **Débit : ~5 080 fights/min** (vs ~1 100 à 130 bots, ~1 500-1 700 ancien turbo) → **~3×**.
+- Worker **à capacité 20 pools/tick** (tick 5–9 s) → **le pool-end devient le goulot**.
+- Load ~4,8 / 2 cœurs ; Stream audit borné (~20 k).
+- P3 : 493 init, 0 rattrapage encore ; **fonds 29.57**, file vide.
+- Aucune erreur.
+
+**Pour aller plus loin** : optimiser le pool-end (batch des writes `SessionManager`), ou
+augmenter `GAME_ENGINE_BATCH_POOLS` (attention charge).
