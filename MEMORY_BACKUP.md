@@ -131,4 +131,4 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
   Remboursement en attente), bankroll, réserve, next session.
 - ✅ **Étape 3 (faite)** : Remboursements — endpoint `/api/refund/pending` (via `RefundQueueService::pendingForUser`)
   + panneau file d'attente (« vous pouvez rejouer »).
-- ⏳ **Étape 4** : Claim — distinguer payout de session vs remboursement crédité.
+- ✅ **Étape 4 (faite)** : Claim — distinguer payout de session vs remboursement crédité.

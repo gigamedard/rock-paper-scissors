@@ -958,3 +958,18 @@ expose **`bankroll_security_coefficient`**, et `game.js` l'utilise pour C (setup
 - **Tests** : headless 22/22 ; navigateur Playwright 17/17 (dont `#p3-panel` + C/R/B rendus).
 
 **Reste étape 4** : claim — distinguer payout de session vs remboursement crédité.
+
+---
+
+## 36. UI — étape 4 (Claim : payout vs remboursement) 2026-11-10 — UI 1→4 terminée
+
+- **Backend** `/user/status` p3 : ajout `refund_paid_count`, `refund_paid_total` (lignes `refund_queue`
+  status=paid du joueur).
+- **Front** :
+  - panneau P3 : ligne « Remboursements reçus (count + total) » (`#p3-refund-paid`) ;
+  - section Claim : ligne « dont remboursement crédité : X » (`#claim-refund-line` / `#claim-refund-amount`),
+    affichée si `refund_paid_total > 0` → distingue **gains de session** vs **remboursement**.
+- **Tests** : headless **22/22** ; navigateur **19/19** (nouveaux sélecteurs + C/R/B rendus).
+
+**UI P3 (1→4) terminée** : Setup (C/R/B + frais + remboursement), Dashboard (état session/rattrapage +
+fonds/file), Claim (payout vs remboursement).
