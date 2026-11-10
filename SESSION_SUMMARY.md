@@ -820,3 +820,21 @@ Le sim ne montre **aucune session terminée** (ni win ni fail) → confirmé : s
 - Ou définir une session = nombre fixe de pools (plutôt qu'un % de capital).
 - NB : le sim ne modélise pas la martingale de pool (le moteur réel double la mise après une
   perte de pool, jusqu'à ×16) → sessions un peu plus courtes en réel, mais toujours longues.
+
+---
+
+## 28. Mesure du temps de session (T=1.05) — 2026-11-10
+
+Test rapide à `security=100` (temps ∝ security²) puis extrapolation à `security=1000`.
+
+**Mesuré (security=100, T=1.05, fee 10% ⇒ cible effective 1.155)** :
+- Session GAGNÉE : **~90 pools**, **~50 s** (sim, 1000 bots), P(win)≈86.6%.
+- Échec (double) : rare dans la fenêtre (0), même ordre de temps.
+
+**Extrapolé (security=1000, config réelle)** : `U = (1.155−1)×1000 = 155` → pools ∝ U² ×100
+⇒ **~9 000 pools**, **~80 min** par session gagnée (par bot, à ~1,9 pool/s/bot).
+L'échec est plus rare (~13 %) mais prend un temps comparable.
+
+**Note** : le frais 10 % gonfle la cible effective (1.05→1.155), ce qui **baisse P(win) à ~86.6 %**
+(au lieu de ~95 % sans frais) et **allonge** les sessions. `security_coefficient` est le levier clé
+(temps ∝ security²).
