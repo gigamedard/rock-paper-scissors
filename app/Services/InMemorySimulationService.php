@@ -71,6 +71,7 @@ class InMemorySimulationService
                 'attempt' => $attempt,
                 'cap' => $attempt === 1 ? $R : $C,
                 'balance' => $attempt === 1 ? $R : $C,
+                'battle' => 0.0,
                 'status' => 'available',
                 'wins' => 0,
                 'fails' => 0,
@@ -124,17 +125,19 @@ class InMemorySimulationService
             $chunk = array_slice($available, 0, 13);
             $this->poolSeq++;
 
+            $baseBet = $this->users[$chunk[0]]['base_bet'];
             foreach ($chunk as $id) {
+                // Mise du pool = baseBet (comme le vrai battle_balance), PAS le solde total.
+                $this->users[$id]['battle'] = $baseBet;
+                $this->users[$id]['balance'] -= $baseBet;
                 $this->users[$id]['status'] = 'in_pool';
                 $this->users[$id]['sessionPools']++;
             }
 
-            $baseBet = $this->users[$chunk[0]]['base_bet'];
-
             for ($round = 1; $round <= 5; $round++) {
                 $eligible = [];
                 foreach ($chunk as $id) {
-                    if ($this->users[$id]['balance'] >= $baseBet - 1e-12) {
+                    if ($this->users[$id]['battle'] >= $baseBet - 1e-12) {
                         $eligible[] = $id;
                     }
                 }
@@ -156,13 +159,13 @@ class InMemorySimulationService
 
                     $amount = 0.0;
                     if ($result === 'user1_win') {
-                        $amount = $this->transfer($round, $this->users[$b]['balance'], $baseBet);
-                        $this->users[$b]['balance'] -= $amount;
-                        $this->users[$a]['balance'] += $amount;
+                        $amount = $this->transfer($round, $this->users[$b]['battle'], $baseBet);
+                        $this->users[$b]['battle'] -= $amount;
+                        $this->users[$a]['battle'] += $amount;
                     } elseif ($result === 'user2_win') {
-                        $amount = $this->transfer($round, $this->users[$a]['balance'], $baseBet);
-                        $this->users[$a]['balance'] -= $amount;
-                        $this->users[$b]['balance'] += $amount;
+                        $amount = $this->transfer($round, $this->users[$a]['battle'], $baseBet);
+                        $this->users[$a]['battle'] -= $amount;
+                        $this->users[$b]['battle'] += $amount;
                     }
 
                     $fights++;
@@ -170,8 +173,10 @@ class InMemorySimulationService
                 }
             }
 
-            // Fin de pool : évaluation de session par bot.
+            // Fin de pool : consolidation battle -> balance, puis évaluation.
             foreach ($chunk as $id) {
+                $this->users[$id]['balance'] += $this->users[$id]['battle'];
+                $this->users[$id]['battle'] = 0.0;
                 $outcome = $this->evaluateSession($id);
                 if ($outcome === 'win') {
                     $wins++;
