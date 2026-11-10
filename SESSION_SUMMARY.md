@@ -606,3 +606,37 @@ rollback -> refund_queue=0, refund_ledger=0                        ✅ aucun ré
 
 **Activation** : `BANKROLL_ENABLED=true`, `BANKROLL_SESSION_TARGET_Q` (1.05/1.2),
 `REFUND_ENABLED=true`, `REFUND_PCT ≤ couverture`. Le front déposera alors `B=C+R`.
+
+---
+
+## 19. Activation P3 en live (2026-11-08) — T=1.2 / frais 10 % / remboursement 70 %
+
+**L1 rétablie** (cotisation P-Chain payée par un autre agent) → RPC 200, chain 99999.
+
+**Contrainte découverte** : `setFeeBasisPoints(2050)` **revert** (`Fee cannot exceed 10%`).
+Plafond contrat = **10 %**. Options calculées : T=1.02→100 %, T=1.05→99 %, **T=1.2→70 %** (choisi).
+
+**Activation effectuée** :
+- Contrat V2 : `feeBasisPoints` **250 → 1000** (tx `0x0af904ef…`, bloc 6862).
+- `GameSetting smart_contract_fee_percentage = 10`.
+- `.env.staging` : `BANKROLL_ENABLED=true`, `BANKROLL_SESSION_TARGET_Q=1.2`,
+  `BANKROLL_FEE_RATE=0.10`, `REFUND_ENABLED=true`, `REFUND_PCT=0.70`.
+- Image `battlepool-app:engine12` (fix X **avec frais** exposé au front : `bankroll_recovery_factor=6.6`).
+- **Sim 300 bots arrêtée** (batch processor + boucles host).
+
+**Test contrôlé (transactionnel, rollback)** avec la config active :
+```
+C=0.4  R=2.64  B=3.04  X=6.60  seuil1=0.528  seuil2=3.485
+canActivate = OUI
+INIT: balance=0.4 (C), reserve=2.64 (R), B=3.04, attempt=0
+RUINE S1 -> balance=2.64 (R), attempt=1
+DOUBLE ÉCHEC -> file: pending=1, amount=2.128 (=70 %×B)
+rollback -> refund_queue=0, ledger=0, fund=0   ✅
+```
+
+**⚠️ Couverture** : à T=1.2/10 %, couverture ≈ **69.9 %** ; un remboursement à **70 %** est
+**très légèrement déficitaire** (~−0.0003/joueur). Recommandation : passer à **68 %** pour
+une marge de sûreté, ou accepter 70 % (quasi break-even).
+
+**Reste** : test avec un **vrai compte déposant B** (on-chain), puis redémarrer l'engine pour
+un run P3. La sim actuelle est arrêtée (aucune pool ne tourne).
