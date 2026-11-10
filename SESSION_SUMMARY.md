@@ -704,3 +704,25 @@ fonds **6.24**, file vide.
 
 **Pour aller plus loin** : optimiser le pool-end (batch des writes `SessionManager`), ou
 augmenter `GAME_ENGINE_BATCH_POOLS` (attention charge).
+
+---
+
+## 23. Perf pool-end + batch 40 (engine18, 2026-11-10)
+
+- **Fast-path bots sim** dans `SessionManager::processFoughtUser` : pour les bots en mode
+  simulation, on saute cartes (`UserCard`), `GameSetting` DB, logs `UserTracker`, broadcasts
+  `MartingaleUpdated`, payouts/on-chain. Conserve martingale simple + state machine P3.
+- `evaluateUserSession` : sim → fee depuis `config('bankroll.fee_rate')` (zéro requête GameSetting)
+  et pas de cartes de plafond.
+- `GAME_ENGINE_BATCH_POOLS=40`.
+
+**Mesures (engine18, 500 bots, sim)** :
+- Worker : **~35 pools/tick** (capacité 40) en ~5 s/tick (contre 20/tick avant).
+- Débit mesuré : **~4 000 fights/min** ; load ~4,4 / 2 cœurs.
+- Stream audit borné (~100k, XTRIM) ; aucune erreur.
+- P3 : 493 init, 0 rattrapage ; **fonds 29.57**, file vide.
+
+**Constat** : le pool-end n'est plus le goulot principal ; c'est désormais le **coût DB par pool**
+(bulk fights + 13 saves + requêtes evaluatePoolEnd) et la charge CPU. Pour aller nettement plus
+vite : **supprimer la persistance DB par pool en mode simulation** (garder tout en mémoire et ne
+persister que les fins de session), ou augmenter le CPU.
