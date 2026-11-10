@@ -50,11 +50,15 @@ class RunGameEngine extends Command
                     ));
                 }
 
-                // Consumer d'audit (léger, non bloquant pour le jeu)
-                try {
-                    (new ArchiveFightStream())->handle();
-                } catch (\Throwable $e) {
-                    $this->warn('[ARCHIVE] ' . $e->getMessage());
+                // Consumer d'audit (plusieurs batches/tick pour rattraper le Stream)
+                $batches = max(1, (int) config('game_engine.archive_batches_per_tick', 4));
+                for ($i = 0; $i < $batches; $i++) {
+                    try {
+                        (new ArchiveFightStream())->handle();
+                    } catch (\Throwable $e) {
+                        $this->warn('[ARCHIVE] ' . $e->getMessage());
+                        break;
+                    }
                 }
 
                 if ($once) {

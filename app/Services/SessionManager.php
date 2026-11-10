@@ -213,6 +213,9 @@ class SessionManager
 
     private function evaluateUserSession(User $user, float $q): void
     {
+        // Mode simulation : bots sans payout on-chain / cooldown / notif.
+        $sim = $user->autoplay_active && config('game_engine.simulation_no_payout', false);
+
         $multiplierLevel = $user->multiplier_level ?? 0;
 
         if ($user->target_q && $user->target_q > 1.0) {
@@ -252,6 +255,12 @@ class SessionManager
                 $user->bankroll_total = null;
                 $user->session_attempt = 0;
                 $user->save();
+            }
+
+            // Mode simulation : pas de cooldown/payout/signature/on-chain.
+            if ($sim) {
+                $this->closeSession($user, 'stopped');
+                return;
             }
             
             // Calculate cooldown data first while the cards are still marked 'available'
@@ -359,12 +368,14 @@ class SessionManager
                 }
 
                 $this->closeSession($user, 'stopped');
-                $this->historyService->archiveSessionHistory($user);
 
-                // DIVERGENCE: Bots get auto-payout for tests, Humans must manually withdraw
-                $payoutTriggered = false;
-                $signature = null;
-                $isBot = $this->isBotUser($user);
+                if (! $sim) {
+                    $this->historyService->archiveSessionHistory($user);
+
+                    // DIVERGENCE: Bots get auto-payout for tests, Humans must manually withdraw
+                    $payoutTriggered = false;
+                    $signature = null;
+                    $isBot = $this->isBotUser($user);
 
                 if ($user->autoplay_active && $isBot) {
                     UserTracker::info("[BOT_AUTO_WITHDRAW] 🤖 Bot {$user->wallet_address} ruined. Forcing payout to clear balance for next run.", ['wallet' => $user->wallet_address]);
@@ -387,7 +398,8 @@ class SessionManager
                     }
                 }
 
-                \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} {$type}");
+                    \App\Helpers\BroadcastHelper::safe(fn() => event(new \App\Events\SessionFinished($user, $type, (string)$q, $payoutTriggered, $signature)), "SessionFinished user {$user->id} {$type}");
+                }
             }
 
         } else {
@@ -401,7 +413,7 @@ class SessionManager
         // Note: syncLimitsToBlockchain() is now called before setNextSessionCooldown()
         // in the PAYOUT case (CASE 1) to ensure on-chain limits are fresh.
         // For CASE 2 (ruin) and CASE 3 (continue), sync limits here.
-        if ($q < $multiplier) {
+        if ($q < $multiplier && ! $sim) {
             \App\Jobs\SyncUserLimitsJob::dispatch($user)->onQueue('limits');
         }
     }

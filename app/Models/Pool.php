@@ -32,6 +32,11 @@ class Pool extends Model
 
     public function match(): void
     {
+        // Worker persistant : c'est lui qui consomme les pools (évite le double traitement).
+        if (config('game_engine.worker')) {
+            return;
+        }
+
         if (config('game_engine.enabled')) {
             app(\App\Services\GameEngineService::class)->processPoolInMemory($this);
             return;
