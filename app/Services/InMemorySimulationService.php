@@ -202,8 +202,6 @@ class InMemorySimulationService
             $u['bet'] = $u['base_bet'];
             $u['status'] = 'available';
             $this->dirty[$id] = true;
-            // Nouvelle session -> frais F_C = φ_used·C.
-            $this->pendingCreditC += $u['phi'] * $u['T'] * $u['C'];
 
             return 'win';
         }
@@ -216,24 +214,12 @@ class InMemorySimulationService
                 $u['cap'] = $u['R'];
                 $u['bet'] = $u['base_bet'];
                 $u['status'] = 'available';
-                // Rattrapage -> frais F_R = φ_used·R.
-                $this->pendingCreditR += $u['phi'] * $u['T'] * $u['R'];
 
                 return 'recovery';
             }
 
-            // Double échec -> dette distincte en file FIFO (DB), puis reset simulé.
-            try {
-                $this->refunds->enqueue($u['id'], (float) config('refund.refund_pct', 0.70) * $u['B'], [
-                    'refund_pct' => (float) config('refund.refund_pct', 0.70),
-                    'target_multiplier' => $u['T'],
-                    'fee_rate' => $u['phi'],
-                    'mode' => 'in_memory_sim',
-                ]);
-            } catch (\Throwable $e) {
-                Log::warning('[SIM] enqueue refund failed: ' . $e->getMessage());
-            }
-
+            // Double échec : compté en mémoire uniquement (option a — pas d'enfile DB
+            // ni de crédit fonds dans le sim ; le fonds reste sur le moteur DB/réel).
             $u['fails']++;
             $u['balance'] = $u['C'];
             $u['attempt'] = 0;
@@ -241,8 +227,6 @@ class InMemorySimulationService
             $u['bet'] = $u['base_bet'];
             $u['status'] = 'available';
             $this->dirty[$id] = true;
-            // Nouvelle session simulée -> frais F_C.
-            $this->pendingCreditC += $u['phi'] * $u['T'] * $u['C'];
 
             return 'fail';
         }
