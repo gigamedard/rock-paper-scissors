@@ -143,6 +143,13 @@ class BankrollSessionService
         $user->session_start_balance = $p['C'];
         $user->save();
 
+        // Fonds de recouvrement : frais de session 1 (F_C) = φ_used·C.
+        try {
+            app(RefundQueueService::class)->credit($p['F_C'], 'session_fee_C', 'user:' . $user->id);
+        } catch (\Throwable $e) {
+            // non bloquant
+        }
+
         return $p;
     }
 
@@ -165,6 +172,14 @@ class BankrollSessionService
             $user->preMove->save();
         }
         $user->save();
+
+        // Fonds de recouvrement : frais de rattrapage (F_R) = φ_used·R.
+        try {
+            $phiUsed = (float) config('bankroll.fee_rate', 0.005) * (float) config('bankroll.session_target_q', 1.05);
+            app(RefundQueueService::class)->credit($phiUsed * $R, 'recovery_fee_R', 'user:' . $user->id);
+        } catch (\Throwable $e) {
+            // non bloquant
+        }
     }
 
     /** Double échec : enfile un remboursement distinct (dette indépendante). */
