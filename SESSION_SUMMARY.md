@@ -907,3 +907,20 @@ remboursement + `TOTAL DEPOSIT (une fois)`. `game.js` lit `bankroll_*` via `/api
 
 **Écart restant** : dashboard sans panneau P3 (session/rattrapage/remboursement), pas d'endpoint
 `/api/refund/pending`, claim mono-session. → étapes 2-4 (voir MEMORY_BACKUP §11).
+
+---
+
+## 33. Headless E2E — 22/22 OK (2026-11-10)
+
+Script `tests/headless_e2e.sh` (sur le VPS) — vérifie sans navigateur :
+1. `/api/health` OK.
+2. `/api/artefacts` : `bankroll_enabled=true`, T=1.05, fee=0.1, refund=0.68, contract_fee=10, X≈23.1.
+3. Front : `index.html` contient `p3-breakdown` + `Budget session (C)` ; le bundle `app.js` contient
+   la logique P3 et lit `bankroll_recovery_factor`.
+4. Tables DB : `side_effect_outbox`, `refund_queue`, `refund_ledger`, `refund_fund_state`.
+5. Commandes : `outbox:process`, `refund:process`, `sim:memory`, `game:engine`.
+6. Outbox E2E (transactionnel) : push → processBatch → `status=done`, rollback propre.
+7. Tests unitaires dans l'image : `bankroll_state_machine_test` + `refund_queue_simulation` → OK.
+
+**Résultat : 22 OK / 0 échec.** (Pas de navigateur headless type Playwright installé ; couverture
+via HTTP + DOM servi + bundle + DB + commandes + outbox + tests unitaires.)
