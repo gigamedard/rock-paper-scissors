@@ -726,3 +726,25 @@ augmenter `GAME_ENGINE_BATCH_POOLS` (attention charge).
 (bulk fights + 13 saves + requêtes evaluatePoolEnd) et la charge CPU. Pour aller nettement plus
 vite : **supprimer la persistance DB par pool en mode simulation** (garder tout en mémoire et ne
 persister que les fins de session), ou augmenter le CPU.
+
+---
+
+## 24. Full in-memory + crédit frais + FIFO (engine20, 2026-11-10)
+
+- **`InMemorySimulationService`** : cohorte P3 en mémoire, pools jouées sans écriture DB,
+  audit Redis Stream, persistance uniquement aux fins de session + snapshot.
+- **Crédit frais** : `F_C = φ_used·C` à chaque nouvelle session, `F_R = φ_used·R` à chaque
+  rattrapage — **agrégés par cycle** (1 écriture/cycle) pour rester rapide.
+- Commandes : `sim:memory {--once --pools --limit --sleep}`.
+- Worker DB (`battlepool-engine`) et batch **stoppés** pendant le run mémoire.
+
+**Mesures (500 bots)** :
+- **~19 800 fights/min** soutenu (pics 1 200–1 900 fights/s), load **2,2**.
+- vs ~4 000/min (engine DB) et ~1 500–1 700 (turbo) → **~6× / ~12×**.
+- Fonds crédité (F_C 145.92 + F_R 505.61 = **651.53**).
+- FIFO : `refund:process --once` → **48 payés (102.14)**, puis **99 payés (210.67)** au total.
+- File : ~905 en attente (1 925) car **remboursement 70 % > couverture 69.9 %** → croissance lente.
+  Recommandation : `REFUND_PCT=0.68` pour stabiliser.
+
+**Reste** : le run mémoire tourne via `docker exec` (pas un service compose). Pour la prod,
+l'ajouter au compose (comme `engine`).
