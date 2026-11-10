@@ -748,3 +748,32 @@ persister que les fins de session), ou augmenter le CPU.
 
 **Reste** : le run mémoire tourne via `docker exec` (pas un service compose). Pour la prod,
 l'ajouter au compose (comme `engine`).
+
+---
+
+## 25. Innovation — Outbox des effets de bord humains (2026-11-10)
+
+**Problème** : les humains ont des effets lents (payout/signature on-chain, notifications,
+cooldown, syncLimits, broadcasts). Exécutés dans la boucle, ils ralentissent le jeu.
+
+**Solution** : la boucle calcule le résultat à la vitesse des bots (humains inclus) et
+**écrit 1 ligne** dans `side_effect_outbox` ; un consumer asynchrone exécute le vrai effet.
+
+- Migration `2026_11_05_000003_create_side_effect_outbox` (pending/processing/done/failed,
+  attempts, available_at).
+- `App\Services\SideEffectOutbox` : `push()`, `processBatch()` (retries/backoff 30→300 s).
+- Handlers : `payout`, `session_finished`, `fight_result`, `notification`, `sync_limits`, `cooldown`.
+- Commande `outbox:process {--once --limit --sleep}` + schedule **chaque minute**
+  (si `GAME_ENGINE_DEFER_SIDE_EFFECTS=true`).
+- Wiring `SessionManager` (gated `defer_side_effects`) : payouts, cooldown, syncLimits,
+  `SessionFinished` délégués → la boucle ne les attend plus.
+- **Test E2E** (transactionnel) : push notification → `processBatch` → `status=done`,
+  `done=1`, rollback sans résidu.
+
+**Doc** : `ENGINE_ARCHITECTURE.md` (schéma, moteurs DB/mémoire, outbox, P3, audit, vitesses).
+
+**Effet** : bots et humains partagent la même boucle rapide ; les payouts/notifs humains
+arrivent avec un léger différé (asynchrone), sans compromettre la vitesse.
+
+**Vitesse (option a, sans dette fonds en DB)** : pics **~5 000–11 000 fights/s par cycle**
+(~300k–670k fights/min), load ~2,5.
