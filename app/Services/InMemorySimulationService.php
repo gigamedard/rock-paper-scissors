@@ -74,6 +74,10 @@ class InMemorySimulationService
                 'status' => 'available',
                 'wins' => 0,
                 'fails' => 0,
+                'sessionPools' => 0,
+                'sessionStart' => microtime(true),
+                'lastPools' => 0,
+                'lastTime' => 0.0,
             ];
 
             $moves = $u->preMove->moves ?? ['rock', 'paper', 'scissors'];
@@ -98,6 +102,10 @@ class InMemorySimulationService
         $fights = 0;
         $wins = 0;
         $fails = 0;
+        $winPools = 0;
+        $winTime = 0.0;
+        $failPools = 0;
+        $failTime = 0.0;
 
         while ($pools < $maxPools) {
             $available = [];
@@ -118,6 +126,7 @@ class InMemorySimulationService
 
             foreach ($chunk as $id) {
                 $this->users[$id]['status'] = 'in_pool';
+                $this->users[$id]['sessionPools']++;
             }
 
             $baseBet = $this->users[$chunk[0]]['base_bet'];
@@ -166,8 +175,12 @@ class InMemorySimulationService
                 $outcome = $this->evaluateSession($id);
                 if ($outcome === 'win') {
                     $wins++;
+                    $winPools += $this->users[$id]['lastPools'];
+                    $winTime += $this->users[$id]['lastTime'];
                 } elseif ($outcome === 'fail') {
                     $fails++;
+                    $failPools += $this->users[$id]['lastPools'];
+                    $failTime += $this->users[$id]['lastTime'];
                 }
             }
 
@@ -183,6 +196,10 @@ class InMemorySimulationService
             'seconds' => microtime(true) - $start,
             'wins' => $wins,
             'fails' => $fails,
+            'avgPoolsWin' => $wins > 0 ? $winPools / $wins : 0.0,
+            'avgTimeWin' => $wins > 0 ? $winTime / $wins : 0.0,
+            'avgPoolsFail' => $fails > 0 ? $failPools / $fails : 0.0,
+            'avgTimeFail' => $fails > 0 ? $failTime / $fails : 0.0,
         ];
     }
 
@@ -195,12 +212,16 @@ class InMemorySimulationService
 
         if ($q >= $mult) {
             // Session gagnée : on repart sur une nouvelle session (re-dépôt simulé).
+            $u['lastPools'] = $u['sessionPools'];
+            $u['lastTime'] = microtime(true) - $u['sessionStart'];
             $u['wins']++;
             $u['balance'] = $u['C'];
             $u['attempt'] = 0;
             $u['cap'] = $u['C'];
             $u['bet'] = $u['base_bet'];
             $u['status'] = 'available';
+            $u['sessionPools'] = 0;
+            $u['sessionStart'] = microtime(true);
             $this->dirty[$id] = true;
 
             return 'win';
@@ -220,12 +241,16 @@ class InMemorySimulationService
 
             // Double échec : compté en mémoire uniquement (option a — pas d'enfile DB
             // ni de crédit fonds dans le sim ; le fonds reste sur le moteur DB/réel).
+            $u['lastPools'] = $u['sessionPools'];
+            $u['lastTime'] = microtime(true) - $u['sessionStart'];
             $u['fails']++;
             $u['balance'] = $u['C'];
             $u['attempt'] = 0;
             $u['cap'] = $u['C'];
             $u['bet'] = $u['base_bet'];
             $u['status'] = 'available';
+            $u['sessionPools'] = 0;
+            $u['sessionStart'] = microtime(true);
             $this->dirty[$id] = true;
 
             return 'fail';

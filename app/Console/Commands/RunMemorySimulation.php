@@ -43,8 +43,10 @@ class RunMemorySimulation extends Command
             if ($r['pools'] > 0) {
                 $fps = $r['seconds'] > 0 ? $r['fights'] / $r['seconds'] : 0;
                 $this->info(sprintf(
-                    '[SIM] pools=%d fights=%d wins=%d fails=%d %.2fs (%.0f fights/s, %.0f pools/s)',
-                    $r['pools'], $r['fights'], $r['wins'], $r['fails'], $r['seconds'], $fps,
+                    '[SIM] pools=%d fights=%d wins=%d fails=%d | avgPoolsWin=%.1f avgWinTime=%.3fs avgPoolsFail=%.1f | %.2fs (%.0f fights/s, %.0f pools/s)',
+                    $r['pools'], $r['fights'], $r['wins'], $r['fails'],
+                    $r['avgPoolsWin'], $r['avgTimeWin'], $r['avgPoolsFail'],
+                    $r['seconds'], $fps,
                     $r['seconds'] > 0 ? $r['pools'] / $r['seconds'] : 0
                 ));
             }
