@@ -924,3 +924,23 @@ Script `tests/headless_e2e.sh` (sur le VPS) — vérifie sans navigateur :
 
 **Résultat : 22 OK / 0 échec.** (Pas de navigateur headless type Playwright installé ; couverture
 via HTTP + DOM servi + bundle + DB + commandes + outbox + tests unitaires.)
+
+---
+
+## 34. Headless navigateur (Playwright/Chromium) — 16/16 OK (2026-11-10)
+
+**Fix d'alignement front/back** : le front utilisait `security_coefficient` (GameSetting=1000) alors
+que le P3 backend utilise `BANKROLL_SECURITY_COEFFICIENT=300` → C faux. Corrigé : `/api/artefacts`
+expose **`bankroll_security_coefficient`**, et `game.js` l'utilise pour C (setup + startSession).
+
+**Test navigateur** (`tests/browser/headless_ui.cjs`, image `mcr.microsoft.com/playwright`) :
+- charge la SPA (HTTP 200), titre présent, sélecteurs `#p3-breakdown/#base-bet-input/#target-q-input/
+  #start-session-btn/#claim-section` présents ;
+- API `/api/artefacts` : `bankroll_enabled=true`, T=1.05, X≈23.1 ;
+- après recalcul (`change`), valeurs **rendues** : **C=0.1200**, **R=2.7720**, **B=2.8920** AVAXe,
+  **remboursement 68 %** — ✅
+- screenshot (`tests/browser/screenshot.png`), aucune erreur JS sévère.
+- Astuce : `localStorage.user_locale='en'` avant chargement pour éviter le modal de langue (sinon
+  `initGame` n'est pas appelé).
+
+**Résultat : 16/16.** + suite headless HTTP/DB/outbox **22/22** (commit précédent).

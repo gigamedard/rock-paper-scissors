@@ -14,6 +14,9 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 
+  // Évite le modal de sélection de langue au 1er chargement (sinon initGame ne démarre pas).
+  await page.addInitScript(() => { try { localStorage.setItem('user_locale', 'en'); } catch (e) {} });
+
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -46,9 +49,12 @@ const { chromium } = require('playwright');
     ck('X≈23.1', Math.abs(Number(art.bankroll_recovery_factor) - 23.1) < 0.2, 'X=' + art.bankroll_recovery_factor);
   }
 
-  // Déclenche le recalcul (onchange -> updateFeeDisplay) puis vérifie les valeurs C/R/B.
-  await page.selectOption('#base-bet-input', '0.0004').catch(() => {});
-  await page.waitForTimeout(600);
+  // Déclenche le recalcul (onchange -> updateFeeDisplay) même si le panneau est masqué.
+  await page.evaluate(() => {
+    const el = document.getElementById('base-bet-input');
+    if (el) { el.value = '0.0004'; el.dispatchEvent(new Event('change', { bubbles: true })); }
+  }).catch(() => {});
+  await page.waitForTimeout(800);
   const p3 = await page.evaluate(() => {
     const g = (id) => document.getElementById(id)?.innerText || null;
     return { C: g('display-session-capital'), R: g('display-recovery-reserve'), B: g('display-bankroll'), pol: g('display-refund-policy') };
