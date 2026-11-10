@@ -915,6 +915,19 @@ export function updateUI() {
                 set('p3-reserve', (Number(p3.recovery_reserve) || 0).toFixed(4) + ' ' + currencySymbol());
                 set('p3-refund-count', String(Number(p3.refund_pending_count) || 0));
                 set('p3-refund-total', (Number(p3.refund_pending_total) || 0).toFixed(4) + ' ' + currencySymbol());
+                set('p3-refund-paid', (Number(p3.refund_paid_count) || 0) + ' (' + (Number(p3.refund_paid_total) || 0).toFixed(4) + ' ' + currencySymbol() + ')');
+                // Claim : distinguer le remboursement crédité dans le montant retirable.
+                const paidTotal = Number(p3.refund_paid_total) || 0;
+                const claimRefundLine = document.getElementById('claim-refund-line');
+                if (claimRefundLine) {
+                    if (paidTotal > 0) {
+                        claimRefundLine.style.display = 'block';
+                        const e = document.getElementById('claim-refund-amount');
+                        if (e) e.innerText = paidTotal.toFixed(4);
+                    } else {
+                        claimRefundLine.style.display = 'none';
+                    }
+                }
                 const list = document.getElementById('p3-refund-list');
                 if (list) {
                     list.innerHTML = (p3.refund_items || [])

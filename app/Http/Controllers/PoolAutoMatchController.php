@@ -155,6 +155,10 @@ class PoolAutoMatchController extends Controller
                     'refund_pending_count' => count($pending),
                     'refund_pending_total' => $svc->pendingTotalForUser($user->id),
                     'refund_items' => array_map(fn ($r) => ['id' => $r->id, 'amount' => (float) $r->amount_owed], $pending),
+                    'refund_paid_count' => (int) \Illuminate\Support\Facades\DB::table('refund_queue')
+                        ->where('user_id', $user->id)->where('status', 'paid')->count(),
+                    'refund_paid_total' => (float) \Illuminate\Support\Facades\DB::table('refund_queue')
+                        ->where('user_id', $user->id)->where('status', 'paid')->sum('amount_owed'),
                 ];
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('[P3_STATUS] ' . $e->getMessage());

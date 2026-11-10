@@ -34,7 +34,7 @@ const { chromium } = require('playwright');
   const title = await page.title();
   ck('titre présent', !!title, 'title=' + title);
 
-  for (const sel of ['#p3-breakdown', '#p3-panel', '#base-bet-input', '#target-q-input', '#start-session-btn', '#claim-section']) {
+  for (const sel of ['#p3-breakdown', '#p3-panel', '#p3-refund-paid', '#claim-refund-line', '#base-bet-input', '#target-q-input', '#start-session-btn', '#claim-section']) {
     const n = await page.locator(sel).count();
     ck('sélecteur présent ' + sel, n >= 1, 'count=' + n);
   }

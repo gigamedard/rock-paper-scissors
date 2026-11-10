@@ -249,6 +249,7 @@
                             (<span id="p3-refund-total">0.0000</span>)
                         </div>
                         <div id="p3-refund-list" style="font-size:0.78rem; color:var(--text-dim); margin-top:2px;"></div>
+                        <div class="fee-row" style="margin-top:4px;"><span>Remboursements reçus</span><span id="p3-refund-paid">0 (0.0000)</span></div>
                         <div id="p3-refund-note" style="display:none; font-size:0.75rem; color:var(--gold-primary); margin-top:2px;">
                             Vous pouvez continuer à jouer pendant l'attente.
                         </div>
@@ -274,6 +275,9 @@
                         <div id="claim-section" class="claim-panel fade-in" style="display: none;">
                             <h3 data-i18n="claim.title">SESSION COMPLETE - REWARDS READY</h3>
                             <div class="claim-amount"><span id="claim-amount-display">0.0000</span> AVAXe</div>
+                            <div id="claim-refund-line" style="display:none; font-size:0.78rem; color:var(--gold-primary); margin-top:2px;">
+                                dont remboursement crédité : <b id="claim-refund-amount">0.0000</b> AVAXe
+                            </div>
                             <button class="btn-claim" id="claim-btn" data-i18n="claim.btn">CLAIM & WITHDRAW TO WALLET</button>
                         </div>
                     </div>
