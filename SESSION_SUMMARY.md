@@ -655,3 +655,31 @@ un run P3. La sim actuelle est arrêtée (aucune pool ne tourne).
 - **À surveiller** : rattrapages/refund_queue au fil des sessions ; le `bet_amount` (martingale)
   scinde les paliers → garder assez de bots/tier (130 OK). Payouts bots : solde off-chain `B`
   non adossé on-chain → préférer une simulation sans payout pour un run long.
+
+---
+
+## 21. Perf engine — worker persistant + sim no-payout + audit (2026-11-10)
+
+**Implémenté (validé 1/2/4/5)** :
+- **Worker persistant** : `php artisan game:engine` tourne en boucle (dans le conteneur app,
+  `DB_PASSWORD`/`APP_KEY` passés). `Pool::match()` = **no-op** quand `GAME_ENGINE_WORKER=true`
+  (pas de double traitement). Le worker consomme `from_server_waitting` **et** `batched`
+  (`GameEngineService::tick`).
+- **Mode simulation bots** : `GAME_ENGINE_SIM_NO_PAYOUT=true` → `SessionManager` saute
+  payouts on-chain, signatures, cooldown, `syncLimits`, notifs, `SessionFinished` pour les bots.
+  La state machine P3 (rattrapage/refund) reste active.
+- **Audit** : le worker lit **4 batches de 5000/tick** + `XTRIM` → Stream rattrapé
+  (**932 000 → ~2 900** entrées), borné.
+
+**Mesures** :
+- Charge VPS : **5,2 → 2,17** (moins de travail on-chain/notifs).
+- Worker : **6-7 pools/tick** (~1,1-2,4 s/tick), capacité 20/tick.
+- Débit : **~1 136 fights/min** avec 130 bots (**limité par la taille du cohorte/paliers**, pas
+  par l'engine).
+- Stream : ~2 900 (bounded), aucune erreur payout/on-chain.
+
+**À noter** : le worker est un process `docker exec` (meurt si le conteneur app redémarre).
+Pour la prod : en faire un **service compose dédié** (ou supervisor).
+
+**P3 cohorte** : 127 init, 67 available / 47 in_pool / 16 stopped ; 0 rattrapage encore ;
+fonds **6.24**, file vide.
