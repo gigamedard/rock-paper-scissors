@@ -132,3 +132,9 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
 - ✅ **Étape 3 (faite)** : Remboursements — endpoint `/api/refund/pending` (via `RefundQueueService::pendingForUser`)
   + panneau file d'attente (« vous pouvez rejouer »).
 - ✅ **Étape 4 (faite)** : Claim — distinguer payout de session vs remboursement crédité.
+
+## 12. P2.1 — avancement
+- ✅ Combats humains → `fight_result` via outbox async ; pools avec humains → `archive_pool`
+  (f_hists via `HistoricalFightService`, hors boucle).
+- ⏳ Restant : IPFS (`UploadSessionHistoryJob`), events live en in-memory si humains inclus,
+  test navigateur d'une vraie session (wallet), choix moteur DB vs sim en prod.

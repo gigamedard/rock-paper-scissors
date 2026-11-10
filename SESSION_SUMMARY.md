@@ -973,3 +973,19 @@ expose **`bankroll_security_coefficient`**, et `game.js` l'utilise pour C (setup
 
 **UI P3 (1→4) terminée** : Setup (C/R/B + frais + remboursement), Dashboard (état session/rattrapage +
 fonds/file), Claim (payout vs remboursement).
+
+---
+
+## 37. P2.1 (slice) — events humains + f_hists via outbox (2026-11-10)
+
+- `GameEngineService` : pour les combats **humains**, émet `fight_result` via **outbox async**
+  (`emitHumanFight`) au lieu du buffer mémoire (durable, non bloquant). Repli buffer si outbox off.
+- Une pool contenant des humains pousse un event **`archive_pool`** → `SideEffectOutbox` exécute
+  `HistoricalFightService::archivePoolFights($poolId)` en asynchrone (**f_hists** hors boucle).
+- **Tests** : headless 22/22 ; navigateur 19/19 ; test connecté 9/9 (fait avant).
+- Engine33 déployé (app/scheduler). Note : ce chemin concerne le **moteur DB** (humains) ; le
+  sim-memory reste bots-only.
+
+**P2.1 restant** : hook IPFS (`UploadSessionHistoryJob`) pour humains ; events live dans le moteur
+in-memory si humains inclus ; test navigateur d'une **vraie session** (wallet requis) ; choix
+`game:engine` (DB, humains) vs `sim:memory` (bots) en prod.
