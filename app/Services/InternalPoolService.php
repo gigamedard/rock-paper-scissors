@@ -177,6 +177,20 @@ class InternalPoolService
                 foreach ($chunk as $user) {
                     // INITIALIZE SESSION FOR NEW ENTRANTS
                     if (!$user->session_started) {
+                        // P3 : si le joueur a déposé B=C+R, découpe C/R et initialise la state machine.
+                        if (config('bankroll.enabled') && $user->bankroll_total === null) {
+                            try {
+                                $bs = app(\App\Services\BankrollSessionService::class);
+                                $baseForP3 = (float) ($user->initial_base_bet ?? $tierBet);
+                                $params = $bs->params($baseForP3);
+                                if (\App\Services\BankrollSessionService::canActivate((float) $user->balance, $params)) {
+                                    $bs->initialize($user, $baseForP3);
+                                }
+                            } catch (\Throwable $e) {
+                                \Illuminate\Support\Facades\Log::warning('[P3] internal initialize failed for user ' . $user->id . ': ' . $e->getMessage());
+                            }
+                        }
+
                         $user->session_start_balance = max((float)$user->balance, $tierBet);
                         $user->session_start_battle_balance = 0;
                         $user->bet_amount = $tierBet; // Set Martingale baseline
