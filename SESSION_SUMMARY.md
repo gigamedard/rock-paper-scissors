@@ -640,3 +640,18 @@ une marge de sûreté, ou accepter 70 % (quasi break-even).
 
 **Reste** : test avec un **vrai compte déposant B** (on-chain), puis redémarrer l'engine pour
 un run P3. La sim actuelle est arrêtée (aucune pool ne tourne).
+
+---
+
+## 20. P3 opérationnel — crédit frais bots + cohorte 130 (2026-11-10)
+
+- **Activation live** : contrat `feeBasisPoints=1000` (10 %), `GameSetting=10`,
+  `BANKROLL_ENABLED=true`, `T=1.2`, `FEE=0.10`, `REFUND_ENABLED=true`, `REFUND_PCT=0.70` (engine15).
+- **Hook P3 flux interne** ajouté (`InternalPoolService`) : `initialize` quand `balance ≥ B`.
+- **Fonds crédité par le flux interne** : `F_C = φ_used·C` à l'init, `F_R = φ_used·R` au rattrapage.
+- **Fallback legacy** (ruines hors-P3) désactivé.
+- **Cohorte P3** : 130 bots, `balance=B=3.04` ; 143 comptes P3 initialisés, `C=0.4`, `X=6.6`,
+  `target_q=1.2`. Fonds crédité **6.24** (F_C), pools en formation sur plusieurs paliers.
+- **À surveiller** : rattrapages/refund_queue au fil des sessions ; le `bet_amount` (martingale)
+  scinde les paliers → garder assez de bots/tier (130 OK). Payouts bots : solde off-chain `B`
+  non adossé on-chain → préférer une simulation sans payout pour un run long.
