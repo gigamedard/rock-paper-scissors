@@ -33,7 +33,9 @@ class GameEngineService
     {
         $limit = $limit ?? (int) config('game_engine.batch_pools', 20);
 
-        $pools = Pool::where('status', 'from_server_waitting')
+        // Le worker persistant consomme les pools en attente ET déjà "batched"
+        // (marquées par le batch processor alors que Pool::match() est un no-op).
+        $pools = Pool::whereIn('status', ['from_server_waitting', 'batched'])
             ->orderBy('id')
             ->limit($limit)
             ->get();
