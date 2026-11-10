@@ -127,8 +127,8 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
   affichent `C` (budget session), `R=C·X` (réserve rattrapage), `B=C+R` (bankroll),
   la règle de remboursement, et `TOTAL DEPOSIT (une fois)` = `B+frais`.
   Déployé (engine29). Actif quand `/api/artefacts.bankroll_enabled=true`.
-- ⏳ **Étape 2 (à faire)** : Dashboard — panneau état P3 (Session 1 / Rattrapage / Gagné /
+- ✅ **Étape 2 (faite)** : Dashboard — panneau état P3 (Session 1 / Rattrapage / Gagné /
   Remboursement en attente), bankroll, réserve, next session.
-- ⏳ **Étape 3** : Remboursements — endpoint `/api/refund/pending` (via `RefundQueueService::pendingForUser`)
+- ✅ **Étape 3 (faite)** : Remboursements — endpoint `/api/refund/pending` (via `RefundQueueService::pendingForUser`)
   + panneau file d'attente (« vous pouvez rejouer »).
 - ⏳ **Étape 4** : Claim — distinguer payout de session vs remboursement crédité.

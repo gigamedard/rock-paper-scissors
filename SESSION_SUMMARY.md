@@ -944,3 +944,17 @@ expose **`bankroll_security_coefficient`**, et `game.js` l'utilise pour C (setup
   `initGame` n'est pas appelé).
 
 **Résultat : 16/16.** + suite headless HTTP/DB/outbox **22/22** (commit précédent).
+
+---
+
+## 35. UI — étapes 2+3 (Dashboard P3 + remboursements) 2026-11-10
+
+- **Backend** `/user/status` (PoolAutoMatchController::getPollingStatus) expose désormais `p3` :
+  `bankroll_total`, `bankroll_remaining`, `recovery_reserve`, `session_capital`, `session_attempt`,
+  `recovery_factor`, `recovery_used`, `refund_pending_count`, `refund_pending_total`, `refund_items`.
+- **Front** : panneau `#p3-panel` dans le dashboard (B, C, R, état Session 1 / Rattrapage /
+  Session terminée / remboursement en attente, liste des dettes FIFO + note « vous pouvez rejouer »).
+  `fetchUserStatus` stocke `userState.p3` ; `updateUI` remplit le panneau.
+- **Tests** : headless 22/22 ; navigateur Playwright 17/17 (dont `#p3-panel` + C/R/B rendus).
+
+**Reste étape 4** : claim — distinguer payout de session vs remboursement crédité.
