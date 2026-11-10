@@ -324,6 +324,7 @@ async function fetchUserStatus() {
             window.userState.session_start_balance = parseFloat(data.session_start_balance) || 0;
             window.userState.session_start_battle_balance = parseFloat(data.session_start_battle_balance) || 0;
             window.userState.target_q = parseFloat(data.target_q) || 0;
+            window.userState.p3 = data.p3 || null;
             // Afficher/masquer le bouton d'airdrop selon le flag serveur
             // (et le flag local anti-réaffichage après un claim réussi).
             const faucetBtn = document.getElementById('faucet-claim-btn');
@@ -895,6 +896,37 @@ export function updateUI() {
         
         const betEl = document.getElementById('bet-val');
         if(betEl) betEl.innerHTML = bet.toFixed(4) + ' <span class="unit">' + currencySymbol() + '</span>';
+
+        // Panneau P3 : bankroll / session / rattrapage / remboursements.
+        const p3 = window.userState.p3;
+        const p3Panel = document.getElementById('p3-panel');
+        if (p3Panel) {
+            const hasP3 = p3 && ((Number(p3.bankroll_total) > 0) || (Number(p3.refund_pending_count) > 0));
+            if (hasP3) {
+                p3Panel.style.display = 'block';
+                const set = (id, v) => { const e = document.getElementById(id); if (e) e.innerText = v; };
+                let stateTxt = 'Session 1';
+                if (window.userState.status === 'stopped') stateTxt = 'Session terminée';
+                else if (Number(p3.session_attempt) === 1) stateTxt = 'Rattrapage';
+                if (Number(p3.refund_pending_count) > 0) stateTxt += ' · remboursement en attente';
+                set('p3-state', stateTxt);
+                set('p3-bankroll', (Number(p3.bankroll_total) || 0).toFixed(4) + ' ' + currencySymbol());
+                set('p3-capital', (Number(p3.session_capital) || 0).toFixed(4) + ' ' + currencySymbol());
+                set('p3-reserve', (Number(p3.recovery_reserve) || 0).toFixed(4) + ' ' + currencySymbol());
+                set('p3-refund-count', String(Number(p3.refund_pending_count) || 0));
+                set('p3-refund-total', (Number(p3.refund_pending_total) || 0).toFixed(4) + ' ' + currencySymbol());
+                const list = document.getElementById('p3-refund-list');
+                if (list) {
+                    list.innerHTML = (p3.refund_items || [])
+                        .map((it) => '#' + it.id + ' — ' + Number(it.amount).toFixed(4) + ' ' + currencySymbol())
+                        .join('<br>');
+                }
+                const note = document.getElementById('p3-refund-note');
+                if (note) note.style.display = (Number(p3.refund_pending_count) > 0) ? 'block' : 'none';
+            } else {
+                p3Panel.style.display = 'none';
+            }
+        }
 
         // Graphique : évolution du solde vers l'objectif de session.
         const tgt = computeSessionTarget();

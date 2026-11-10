@@ -234,6 +234,26 @@
                         </div>
                     </div>
 
+                    <!-- P3 : état bankroll / session / rattrapage / remboursements -->
+                    <div id="p3-panel" class="card" style="display:none; margin-top:0.2rem;">
+                        <div class="card-label">SESSION BANKROLL (P3)</div>
+                        <div style="font-size:0.82rem; color:var(--text-dim); margin:4px 0;">
+                            État : <b id="p3-state" style="color:var(--cyan-spark);">—</b>
+                        </div>
+                        <div class="fee-row"><span>Bankroll (B)</span><span id="p3-bankroll">—</span></div>
+                        <div class="fee-row"><span>Budget session (C)</span><span id="p3-capital">—</span></div>
+                        <div class="fee-row"><span>Réserve rattrapage (R)</span><span id="p3-reserve">—</span></div>
+                        <div style="margin-top:6px; font-size:0.82rem; color:var(--text-dim);">
+                            Remboursements en attente :
+                            <b id="p3-refund-count">0</b>
+                            (<span id="p3-refund-total">0.0000</span>)
+                        </div>
+                        <div id="p3-refund-list" style="font-size:0.78rem; color:var(--text-dim); margin-top:2px;"></div>
+                        <div id="p3-refund-note" style="display:none; font-size:0.75rem; color:var(--gold-primary); margin-top:2px;">
+                            Vous pouvez continuer à jouer pendant l'attente.
+                        </div>
+                    </div>
+
                     <!-- Battle Controls -->
                     <div class="battle-actions">
                         <!-- Airdrop de bienvenue (une seule fois, 50 TST) -->

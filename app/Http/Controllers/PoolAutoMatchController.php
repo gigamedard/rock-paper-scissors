@@ -138,7 +138,31 @@ class PoolAutoMatchController extends Controller
             }
         }
 
+        // P3 : état bankroll/session/rattrapage + remboursements en attente (FIFO).
+        $p3 = null;
+        if (config('bankroll.enabled')) {
+            try {
+                $svc = app(\App\Services\RefundQueueService::class);
+                $pending = $svc->pendingForUser($user->id);
+                $p3 = [
+                    'bankroll_total' => (float) $user->bankroll_total,
+                    'bankroll_remaining' => (float) $user->bankroll_remaining,
+                    'recovery_reserve' => (float) $user->bankroll_recovery_reserve,
+                    'session_capital' => (float) $user->session_capital,
+                    'session_attempt' => (int) $user->session_attempt,
+                    'recovery_factor' => (float) $user->recovery_factor,
+                    'recovery_used' => (bool) $user->recovery_used,
+                    'refund_pending_count' => count($pending),
+                    'refund_pending_total' => $svc->pendingTotalForUser($user->id),
+                    'refund_items' => array_map(fn ($r) => ['id' => $r->id, 'amount' => (float) $r->amount_owed], $pending),
+                ];
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('[P3_STATUS] ' . $e->getMessage());
+            }
+        }
+
         return response()->json([
+            'p3' => $p3,
             'status' => $user->status,
             'autoplay_active' => $user->autoplay_active,
             'session_started' => $user->session_started,
