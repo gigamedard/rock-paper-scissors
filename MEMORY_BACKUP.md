@@ -121,3 +121,14 @@ cd /opt/battlepool && GIT_SHA=engineXX docker compose -f docker-compose.prod.yml
 ```
 Secrets : `/opt/battlepool/.secrets/` (db_app_password, app_key, faucet_wallet_pk=owner contrat, ...).
 DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
+
+## 11. Avancement UI (mise à jour)
+- ✅ **Étape 1 — Setup** : `public/index.html` (`#p3-breakdown`) + `game.js::updateFeeDisplay`
+  affichent `C` (budget session), `R=C·X` (réserve rattrapage), `B=C+R` (bankroll),
+  la règle de remboursement, et `TOTAL DEPOSIT (une fois)` = `B+frais`.
+  Déployé (engine29). Actif quand `/api/artefacts.bankroll_enabled=true`.
+- ⏳ **Étape 2 (à faire)** : Dashboard — panneau état P3 (Session 1 / Rattrapage / Gagné /
+  Remboursement en attente), bankroll, réserve, next session.
+- ⏳ **Étape 3** : Remboursements — endpoint `/api/refund/pending` (via `RefundQueueService::pendingForUser`)
+  + panneau file d'attente (« vous pouvez rejouer »).
+- ⏳ **Étape 4** : Claim — distinguer payout de session vs remboursement crédité.

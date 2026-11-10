@@ -894,3 +894,16 @@ Résumé : branche `feat/session-recovery` @ `946eee8`, tout en **engine28** (ap
 sim-memory). Moteur DB + batch **arrêtés** ; **sim-memory actif** (1000 bots, T=1.05, security=300).
 Contrat V2 frais 10 % ; `REFUND_PCT=0.68` ; `DEFER_SIDE_EFFECTS=true` ; `SIM_NO_PAYOUT=true`.
 Réel : session gagnée ~8,7 min ; pertes rares/lentes (~90 min, non observées). **Prochaine étape : UI.**
+
+---
+
+## 32. UI — cartographie + étape 1 (Setup P3) 2026-11-10
+
+**SPA** : `public/index.html` (route `/` = `file_get_contents`) + bundle `/build/assets/app.js`
+(`resources/js/modules/game.js`). Écrans : landing, setup, dashboard (balance/status/claim/feed), combat.
+
+**Étape 1 faite (engine29)** : dans le setup, affichage `C` / `R=C·X` / `B=C+R` + règle de
+remboursement + `TOTAL DEPOSIT (une fois)`. `game.js` lit `bankroll_*` via `/api/artefacts`.
+
+**Écart restant** : dashboard sans panneau P3 (session/rattrapage/remboursement), pas d'endpoint
+`/api/refund/pending`, claim mono-session. → étapes 2-4 (voir MEMORY_BACKUP §11).
