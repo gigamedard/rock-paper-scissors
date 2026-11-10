@@ -219,6 +219,7 @@ class InMemorySimulationService
             // Session gagnée : on repart sur une nouvelle session (re-dépôt simulé).
             $u['lastPools'] = $u['sessionPools'];
             $u['lastTime'] = microtime(true) - $u['sessionStart'];
+            $this->logSession('W', (int) $u['lastPools'], (float) $u['lastTime']);
             $u['wins']++;
             $u['balance'] = $u['C'];
             $u['attempt'] = 0;
@@ -248,6 +249,7 @@ class InMemorySimulationService
             // ni de crédit fonds dans le sim ; le fonds reste sur le moteur DB/réel).
             $u['lastPools'] = $u['sessionPools'];
             $u['lastTime'] = microtime(true) - $u['sessionStart'];
+            $this->logSession('F', (int) $u['lastPools'], (float) $u['lastTime']);
             $u['fails']++;
             $u['balance'] = $u['C'];
             $u['attempt'] = 0;
@@ -313,6 +315,19 @@ class InMemorySimulationService
             }
         } catch (\Throwable $e) {
             Log::warning('[SIM] credit flush failed: ' . $e->getMessage());
+        }
+    }
+
+    private function logSession(string $outcome, int $pools, float $seconds): void
+    {
+        try {
+            @file_put_contents(
+                storage_path('app/sessions.csv'),
+                sprintf("%s,%d,%.4f\n", $outcome, $pools, $seconds),
+                FILE_APPEND
+            );
+        } catch (\Throwable $e) {
+            // non bloquant
         }
     }
 
