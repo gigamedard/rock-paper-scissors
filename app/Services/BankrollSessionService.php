@@ -134,6 +134,18 @@ class BankrollSessionService
     {
         $p = $this->params($baseBet, $targetMultiplier);
 
+        // Si le joueur a déjà un solde on-chain > B recommandé (rejeu sans retrait,
+        // top-up antérieur…), tout le solde devient le bankroll : C fixe, R = total − C.
+        $c = (float) $p['C'];
+        $total = (float) $user->balance;
+        if ($c > 0 && $total + 1e-9 > (float) $p['B']) {
+            $reserve = $total - $c;
+            $p['B'] = $total;
+            $p['R'] = $reserve;
+            $p['X'] = $reserve / $c;
+            $p['recovery_capital'] = $reserve;
+        }
+
         $user->bankroll_total = $p['B'];
         $user->bankroll_remaining = $p['R'];
         $user->bankroll_fee = $p['F_C'] + $p['F_R'];
