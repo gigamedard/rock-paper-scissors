@@ -758,6 +758,36 @@ async function startSession() {
     }
 }
 
+/**
+ * Envoie claimAndExit avec retry si le solde on-chain n'est pas encore
+ * synchronisé (« Amount exceeds user balance »). Le bridge exécute
+ * updateUserBalance ; on laisse quelques secondes entre les tentatives.
+ */
+async function sendClaimWithRetry(contract, amountWei, deadline, signature, maxAttempts = 3) {
+    let lastError = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await Promise.race([
+                contract.claimAndExit(amountWei, deadline, signature),
+                new Promise((_, reject) => setTimeout(() => reject(new Error(
+                    "Délai dépassé : le wallet n'a pas reçu la demande de claim. Core fermé ? Réessayez."
+                )), 120000)),
+            ]);
+        } catch (e) {
+            lastError = e;
+            const msg = String((e && (e.shortMessage || e.message)) || e);
+            if (/amount exceeds user balance/i.test(msg) && attempt < maxAttempts) {
+                console.warn(`[Business] claim : solde on-chain pas encore synchronisé (tentative ${attempt}/${maxAttempts}), retry dans ${attempt * 3}s`);
+                addToFeed('Synchronisation on-chain du solde…', 'var(--primary)');
+                await new Promise((resolve) => setTimeout(resolve, attempt * 3000));
+                continue;
+            }
+            throw e;
+        }
+    }
+    throw lastError;
+}
+
 async function claim() {
     if (!gameState.pendingClaim) return;
 
@@ -796,13 +826,13 @@ async function claim() {
         const amountWei = parseEther(gameState.pendingClaim.amount.toString());
 
         ensureWalletVisibleForTx('core');
-        const sendPromise = contract.claimAndExit(amountWei, gameState.pendingClaim.deadline, gameState.pendingClaim.signature);
-        const tx = await Promise.race([
-            sendPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error(
-                'Délai dépassé : le wallet n\'a pas reçu la demande de claim. Core fermé ? Réessayez.'
-            )), 120000))
-        ]);
+        const tx = await sendClaimWithRetry(
+            contract,
+            amountWei,
+            gameState.pendingClaim.deadline,
+            gameState.pendingClaim.signature,
+            3
+        );
         console.info('[Business] claim tx envoyée', tx.hash);
         addToFeed(t('feed.tx_sent', { hash: tx.hash.substring(0,10) }), "var(--primary)");
 

@@ -545,6 +545,17 @@ class SessionManager
         $user->session_start_balance = 0;
         $user->session_start_battle_balance = 0;
         $user->save();
+
+        // Humain (non bot) en fin de session : pré-synchroniser le solde on-chain
+        // + pré-générer la signature de claim, pour éviter la course
+        // « Amount exceeds user balance » au moment du retrait.
+        if ($newStatus === 'stopped' && (float) $user->balance > 0 && ! $this->isBotUser($user)) {
+            try {
+                \App\Jobs\SyncUserBalanceJob::dispatch($user->id);
+            } catch (\Throwable $e) {
+                Log::warning('[P3] SyncUserBalanceJob dispatch failed for user ' . $user->id . ': ' . $e->getMessage());
+            }
+        }
     }
 
     private function consumeActiveSessionCards(User $user): void
@@ -756,20 +767,52 @@ class SessionManager
         return $user->payout_signature;
     }
 
+    /**
+     * Pré-synchronise le solde on-chain d'un humain en fin de session et
+     * pré-génère sa signature de claim (sans throttle). Appelé en async par
+     * SyncUserBalanceJob pour éviter la course « Amount exceeds user balance ».
+     */
+    public function preSyncHumanClaim(User $user): void
+    {
+        if ($user->status !== 'stopped' || $user->session_started) {
+            return;
+        }
+        if ((float) $user->balance <= 0) {
+            return;
+        }
+        if ($this->isBotUser($user)) {
+            return;
+        }
+
+        $sigData = $this->generateHumanSignature($user);
+        if (! empty($sigData['signature'])) {
+            $user->payout_signature = $sigData['signature'];
+            $user->payout_deadline = $sigData['deadline'] ?? null;
+            $user->save();
+            UserTracker::info("[CLAIM_PRESYNC] ✅ Solde on-chain + signature préparés pour {$user->wallet_address} (solde {$user->balance}).", ['wallet' => $user->wallet_address]);
+        }
+    }
+
+    /** @var array<string,true>|null */
+    private static ?array $botAddresses = null;
+
     private function isBotUser(User $user): bool
     {
-        $jsonPath = base_path('smart_contracts/simulation_accounts.json');
-        if (file_exists($jsonPath)) {
-            $accounts = json_decode(file_get_contents($jsonPath), true);
-            if (is_array($accounts)) {
-                $address = strtolower($user->wallet_address);
-                foreach ($accounts as $acc) {
-                    if (isset($acc['address']) && strtolower($acc['address']) === $address) {
-                        return true;
+        if (self::$botAddresses === null) {
+            self::$botAddresses = [];
+            $jsonPath = base_path('smart_contracts/simulation_accounts.json');
+            if (file_exists($jsonPath)) {
+                $accounts = json_decode(file_get_contents($jsonPath), true);
+                if (is_array($accounts)) {
+                    foreach ($accounts as $acc) {
+                        if (isset($acc['address'])) {
+                            self::$botAddresses[strtolower($acc['address'])] = true;
+                        }
                     }
                 }
             }
         }
-        return false;
+
+        return isset(self::$botAddresses[strtolower((string) $user->wallet_address)]);
     }
 }
