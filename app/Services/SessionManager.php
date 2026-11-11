@@ -307,7 +307,9 @@ class SessionManager
             $user->save();
 
             $this->closeSession($user, 'stopped');
-            $this->historyService->archiveSessionHistory($user);
+            if (! $this->deferSideEffect('session_history', $user->id)) {
+                $this->historyService->archiveSessionHistory($user);
+            }
 
             // Sync limits (délégué à l'outbox si activé, sinon synchrone).
             if (! $this->deferSideEffect('sync_limits', $user->id)) {
@@ -412,7 +414,9 @@ class SessionManager
                 $this->closeSession($user, 'stopped');
 
                 if (! $sim) {
-                    $this->historyService->archiveSessionHistory($user);
+                    if (! $this->deferSideEffect('session_history', $user->id)) {
+                        $this->historyService->archiveSessionHistory($user);
+                    }
 
                     // DIVERGENCE: Bots get auto-payout for tests, Humans must manually withdraw
                     $payoutTriggered = false;

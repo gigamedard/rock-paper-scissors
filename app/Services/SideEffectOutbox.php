@@ -146,6 +146,13 @@ class SideEffectOutbox
                 }
                 break;
 
+            case 'session_history':
+                $user = User::find($row->user_id);
+                if ($user) {
+                    app(\App\Services\SessionHistoryService::class)->archiveSessionHistory($user);
+                }
+                break;
+
             case 'archive_pool':
                 $poolId = (int) ($payload['pool_id'] ?? 0);
                 if ($poolId > 0) {
