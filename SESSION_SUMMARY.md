@@ -1058,3 +1058,39 @@ on-chain (3.1812 AVAXe).
 
 ⇒ **Chaîne complète validée depuis l'UI navigateur avec wallet** : dépôt `B=C+R` on-chain →
 sync DB → match humain → session P3. **P2.1(A) terminé.**
+
+---
+
+## 42. Test contrat 0.5 % / security=100 / T=1.2 — temps de session (2026-11-11)
+
+**Objectif** : mesurer le temps moyen de conclusion d'une session (win **et** loss) avec
+frais contrat **0.5 %**, `security_coefficient=100`, `target=1.2` (au lieu de 1.05).
+
+**Changements appliqués** :
+- Contrat `BattlepoolV2` : `setFeeBasisPoints(50)` → `feeBasisPoints=50` (tx `0x644d9229…a60bc0`).
+- `GameSetting.smart_contract_fee_percentage = 0.5`.
+- `.env.staging` : `BANKROLL_SESSION_TARGET_Q=1.2`, `BANKROLL_SECURITY_COEFFICIENT=100`,
+  `BANKROLL_FEE_RATE=0.005`, `REFUND_PCT=0.15` (calibré ≤ couverture ≈ 20.6 %).
+- Bots : `target_q=1.2`, cohorte remise à plat (`bet_amount=initial_base_bet=0.0004`).
+- Paramètres P3 : `C=0.04`, `X=6.03`, `R=0.2412`, `B=0.2812`, seuil `1.206`.
+- **Bonus** : queue-workers/limits recréés en **engine37** (plus de mismatch d'image).
+
+**Mesure** (full in-memory `sim:memory`, 1000 bots, ~66 min, **6421 sessions**) :
+
+| | n | Pools médian | Temps médian | Temps moyen | p90 |
+|---|---|---|---|---|---|
+| **Gagnée** | 6261 (97.5 %) | 338 | **3.52 min** | 7.40 min* | **20.2 min** |
+| **Perdue (double échec)** | 160 (2.49 %) | 3119 | **17.74 min** | **20.8 min** | **37.0 min** |
+
+\* moyenne censurée à droite (max observé 63.8 min ≈ durée du run ; vraie moyenne > 7.4 min).
+Théorie : `P(win/tentative)=82.9 %`, `P(double échec)=2.92 %`.
+
+**Insight majeur — écart moteur DB vs in-memory** : le moteur DB traite ~4–6 pools/s
+pour 1000 bots (~0.05–0.08 pool/s/joueur) ⇒ une session gagnée médiane (338 pools)
+y prendrait **~1.1–1.9 h**, contre ~3.5 min en in-memory. **Les humains doivent donc
+passer sur le moteur in-memory + outbox (P2.1 live)** pour la parité bots/humains.
+
+**Artefacts** : `tests/measurements/session_time_security100_T1.2_fee0.5.md` +
+CSV brut `tests/measurements/sessions_security100_T1.2_fee0.5.csv`.
+État live restauré : `engine37`, moteur DB + batch actifs, `sim-memory` arrêté,
+cohorte 1000 bots réinitialisée avec les nouveaux paramètres.

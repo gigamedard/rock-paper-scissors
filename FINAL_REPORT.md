@@ -48,12 +48,18 @@ avec un moteur **aussi rapide que le simulateur**, **bots et humains identiques*
   rembourse `refund%·B` ; paiement par lots (seuil 10%, batch 5%), jamais négatif ;
   multi-remboursements distincts par joueur ; crédit du solde au paiement ; rejeu possible pendant l'attente.
 - Viabilité : `refund% ≤ couverture = frais/(q·B)`.
-- **Contrat V2** : frais 250 → **1000** (10%, plafond contrat = 10% → 20.5% impossible).
-  `GameSetting=10`.
-- Mesures réelles (security=300, T=1.05) : **session gagnée ~8,7 min** (médiane 6,9 ; p90 18,2 ;
-  891 sessions réelles). Distribution à queue lourde. **Pertes (double échec) rares (~1,8%) et lentes
-  (~90 min)** → non observées. Insight : `P(win)=1/cible_effective` (indépendant de security) ;
-  **durée ∝ security²**.
+- **Contrat V2** : frais portés à **1000** (10%) puis **50 (0,5 %)** pour le test du 2026-11-11
+  (tx `0x644d9229…a60bc0`) ; `GameSetting` aligné (0.5).
+- **Test 2026-11-11 — frais 0.5 %, security=100, T=1.2** (in-memory, 1000 bots, 6421 sessions) :
+  - **Session gagnée** : médiane **3.52 min** · p90 20.2 min · moyenne 7.40 min (censurée) ·
+    p99 43 min ; pools médian 338.
+  - **Session perdue (double échec)** : médiane **17.74 min** · moyenne **20.8 min** · p90 37 min ;
+    pools médian 3119. Taux observé 97.5 % win / 2.49 % double échec.
+  - Détails : `tests/measurements/session_time_security100_T1.2_fee0.5.md`.
+- Mesures antérieures (security=300, T=1.05) : session gagnée ~8,7 min ; pertes très rares/lentes.
+  Insight confirmé : `P(win)=1/cible_effective` (indépendant de security) ; **durée ∝ security²**.
+- **Écart moteur** : le moteur DB (~4–6 pools/s pour 1000 bots) donnerait ~1.1–1.9 h par session ;
+  le moteur in-memory donne ~3.5 min ⇒ **les humains doivent passer sur l'in-memory + outbox**.
 
 ## 3. UI (flow P3)
 - **Setup** : `C`, `R=C·X`, `B=C+R`, règle de remboursement, **Total dépôt (une fois) = B+frais**.
@@ -80,16 +86,17 @@ avec un moteur **aussi rapide que le simulateur**, **bots et humains identiques*
 - Fonds : multi-remboursements FIFO distincts ; ack/trim du Stream.
 
 ## 6. État actuel
-- Branche `feat/session-recovery`, image **engine37** (app/queue/scheduler/engine).
-- `battlepool-engine` (moteur DB, humains) + `battlepool-batch-processor` actifs sur une cohorte
-  scoped (12 bots) ; `sim-memory` arrêté. `INTERNAL_INCLUDE_HUMANS=true`,
-  `DEFER_SIDE_EFFECTS=true`, `SIM_NO_PAYOUT=true` ; `REFUND_PCT=0.68` ; martingale pool = 4.
-- Contrat V2 frais 10% ; GameSetting 10%.
+- Branche `feat/session-recovery`, image **engine37** partout (app/queue/queue-limits/scheduler/engine).
+- `battlepool-engine` (moteur DB) + `battlepool-batch-processor` actifs ; `sim-memory` arrêté.
+  Cohorte **1000 bots** `target_q=1.2`, security 100 (`C=0.04`, `R=0.2412`, `B=0.2812`).
+- `INTERNAL_INCLUDE_HUMANS=true`, `DEFER_SIDE_EFFECTS=true`, `SIM_NO_PAYOUT=true`,
+  `REFUND_PCT=0.15` (≤ couverture ~20.6 %).
+- Contrat V2 **frais 0.5 %** ; GameSetting 0.5.
 
 ## 7. Restant / prochaines étapes
-- **Restauration** de la simulation complète (1000 bots + `sim:memory`) OU run DB pour humains.
-- **P3 paramétrage jouable** : `security_coefficient` ~30–100 (sessions minutes) ; calibrer
-  `refund% ≤ couverture` ; envisager un **stop-loss** (pertes mesurables/jouables).
-- **P2.1** : events live en in-memory si humains inclus dans le moteur rapide.
+- **P2.1 live** : traiter les humains sur le **moteur in-memory** (events `FightResult`/
+  `MatchStarted` via outbox) → parité avec les bots et sessions de quelques minutes.
+- **UI** : déjà alignée (Setup/Dashboard/Claim/remboursements).
+- Optionnel : **stop-loss** pour borner les pertes (~18 min médian aujourd'hui).
 - **Prod** : services dédiés (engine/outbox/sim), monitoring, cron P-Chain (cotisation validateur).
 - Test « vraie session complète » (win/ruin) en navigateur : long (minutes–heures).

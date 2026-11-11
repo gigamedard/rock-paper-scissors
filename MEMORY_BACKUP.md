@@ -5,12 +5,16 @@
 > déployé, les bugs corrigés, les mesures et les prochaines étapes.
 
 ## 0. Reprise express (TL;DR)
-- Branche : **`feat/session-recovery`**, dernier commit `946eee8` (engine28).
+- Branche : **`feat/session-recovery`** ; images **engine37** (app, queue, scheduler, engine).
 - VPS : `/opt/battlepool` (compose prod) ; code workspace : `/root/workspace/rock-paper-scissors`.
-- Tout tourne en **engine28** (app, queue, scheduler, sim-memory). Le **moteur DB** (`battlepool-engine`)
-  et le **batch-processor** sont **arrêtés** ; c'est **`battlepool-sim-memory`** qui fait tourner les bots.
-- Objectif immédiat : **faire refléter ce flow dans l'UI** (front). Rien n'a encore été fait côté UI.
-- Docs : `ENGINE_ARCHITECTURE.md` (architecture), `SESSION_SUMMARY.md` (journal détaillé §1→§30).
+- **Moteur actif** : DB (`battlepool-engine` + `battlepool-batch-processor`) ; `sim-memory` **arrêté**.
+  Cohorte live = **1000 bots autoplay** remis à plat avec les **nouveaux paramètres du test**
+  (T=1.2, security=100, frais 0.5 %).
+- **Dernier test (2026-11-11)** : temps de session mesuré en in-memory — win médian **3.5 min**,
+  loss (double échec) médian **17.7 min**. Détails : `tests/measurements/session_time_security100_T1.2_fee0.5.md`.
+- Objectif immédiat : **faire tourner les humains sur le moteur in-memory + outbox** (sinon
+  sessions ~1.1–1.9 h sur le moteur DB).
+- Docs : `ENGINE_ARCHITECTURE.md` (architecture), `SESSION_SUMMARY.md` (journal détaillé §1→§42).
 
 ## 1. Objectif produit
 Maximiser le **% de joueurs qui gagnent** de l'argent en **protégeant leur bankroll** :
@@ -34,16 +38,17 @@ Maximiser le **% de joueurs qui gagnent** de l'argent en **protégeant leur bank
    - session 1 (capital C) ; ruine → **rattrapage (capital R ET mise baseBet×X)** ; ruine → double échec ;
    - fonds : `F_C=φ_used·C` (session), `F_R=φ_used·R` (rattrapage), file FIFO, paiement par lots.
 
-## 3. État déployé (VPS) — engine28
+## 3. État déployé (VPS) — engine37
 | Service | Image | État | Rôle |
 |---|---|---|---|
-| battlepool-app | engine28 | healthy | API/front (Octane) |
-| battlepool-sim-memory | engine28 | healthy | **moteur full in-memory (actif)** |
-| battlepool-queue-worker(-limits) | engine28 | healthy | jobs (outbox/payout/limits) |
-| battlepool-scheduler | engine28 | up | `schedule:work` (cleanup, refund, outbox) |
+| battlepool-app | engine37 | healthy | API/front (Octane) |
+| battlepool-queue-worker(-limits) | engine37 | healthy | jobs (outbox/payout/limits) |
+| battlepool-scheduler | engine37 | up | `schedule:work` (cleanup, refund, outbox) |
+| battlepool-engine | engine37 | healthy | **moteur DB (actif, humains/bots)** |
+| battlepool-batch-processor | 6628503 | healthy | crée les pools internes |
+| battlepool-sim-memory | engine37 | **arrêté** | full in-memory (à utiliser À LA PLACE de engine+batch) |
 | battlepool-bridge | 6628503 | healthy | node chain bridge |
 | battlepool-db / redis / reverb | — | — | DB / cache-stream / WS |
-| battlepool-engine / batch-processor | — | **arrêtés** | à ne PAS lancer en même temps que sim-memory |
 
 ## 4. Paramètres actuels (env `.env.staging`)
 ```
@@ -51,14 +56,14 @@ GAME_CURRENCY=avaxe
 GAME_ENGINE_ENABLED=true   GAME_ENGINE_WORKER=true   GAME_ENGINE_BATCH_POOLS=40   GAME_ENGINE_TICK=1.5
 GAME_ENGINE_SIM_NO_PAYOUT=true   GAME_ENGINE_DEFER_SIDE_EFFECTS=true
 GAME_ENGINE_ARCHIVE_BATCH=5000   GAME_ENGINE_ARCHIVE_BATCHES=4
-BANKROLL_ENABLED=true   BANKROLL_SESSION_TARGET_Q=1.05   BANKROLL_FEE_RATE=0.10
-BANKROLL_SECURITY_COEFFICIENT=300
-REFUND_ENABLED=true     REFUND_PCT=0.68
+BANKROLL_ENABLED=true   BANKROLL_SESSION_TARGET_Q=1.2   BANKROLL_FEE_RATE=0.005
+BANKROLL_SECURITY_COEFFICIENT=100
+REFUND_ENABLED=true     REFUND_PCT=0.15
 BATCH_PROCESSOR_INTERVAL=3000
 ```
-On-chain : contrat **BattlepoolV2** `0xb628C8dE0ed6c1192dEB4C4C336fe3595370385E` — `feeBasisPoints=1000` (10%, plafond contrat = 10%). **GameSetting** `smart_contract_fee_percentage=10`.
+On-chain : contrat **BattlepoolV2** `0xb628C8dE0ed6c1192dEB4C4C336fe3595370385E` — `feeBasisPoints=50` (**0.5 %**, tx `0x644d9229…a60bc0`). **GameSetting** `smart_contract_fee_percentage=0.5`.
 AVAXe `0x9d8AA35058493Aa826be143B568BCfA8E2F537F7`. chainId 99999.
-Cohorte : **1000 bots** `autoplay=1`, `target_q=1.05`, security 300 → `C=0.12`, `X=23.1`, `R=2.772`, `B=2.892`.
+Cohorte : **1000 bots** `autoplay=1`, `target_q=1.2`, security 100 → `C=0.04`, `X=6.03`, `R=0.2412`, `B=0.2812` (seuil `1.206`).
 
 ## 5. Fichiers clés
 - Moteurs : `app/Services/GameEngineService.php`, `app/Services/InMemorySimulationService.php`,
@@ -74,12 +79,18 @@ Cohorte : **1000 bots** `autoplay=1`, `target_q=1.05`, security 300 → `C=0.12`
 - Simulateurs : `public/simulator-recovery.html`, `simulator-fund.html`, `simulator-fast.html`, `simulator-algo6.html`.
 
 ## 6. Mesures réelles (in-memory, VPS 2 cœurs)
-- Débit : ~20 000 à 300 000+ fights/min selon cohorte/charge (full memory, option a sans refund DB).
+- Débit : ~7 000–15 000 fights/s (soit ~400–800 pools/s) en full memory avec 1000 bots.
 - **Saturation** : ~1000–1200 bots sur 2 cœurs (à 1400 le débit chute).
-- **Session GAGNÉE (T=1.05, security=300)** : **~8,7 min** en moyenne (891 sessions réelles ;
-  médiane 6,9 ; p90 18,2). Distribution à queue lourde.
-- **Session PERDUE (double échec)** : rare (~1,8 %) et **lente** (~90 min) → **non observée** en test court.
+- **Session GAGNÉE (T=1.2, security=100, frais 0.5 %)** — 6261 sessions, 2026-11-11 :
+  **médiane 3.52 min** · p90 20.2 min · moyenne 7.40 min (censurée, vraie > 7.4) · p99 43 min.
+  En pools : médiane **338**, moyenne 777.
+- **Session PERDUE (double échec)** — 160 sessions : **médiane 17.74 min** ·
+  moyenne **20.8 min** · p90 37.0 min · p99 48.9 min. En pools : médiane 3119.
+- Taux observé : **97.5 % win / 2.49 % double échec** (théorie : 82.9 % par tentative ;
+  au total 97.08 % win / 2.92 % double échec). Pertes sous-représentées par censure.
 - Insight : `P(win) = 1/cible_effective` (indépendant de security) ; la **durée ∝ security²**.
+- **Moteur DB ~100× plus lent** : ~4–6 pools/s total pour 1000 bots ⇒ session médiane
+  ~1.1–1.9 h. Les humains doivent utiliser le **moteur in-memory + outbox**.
 
 ## 7. Bugs importants corrigés (ne pas réintroduire)
 1. Session « ~2 pools » → **bug** : le sim utilisait le solde total au lieu du `battle_balance` de pool.
@@ -91,19 +102,19 @@ Cohorte : **1000 bots** `autoplay=1`, `target_q=1.05`, security 300 → `C=0.12`
 6. P1 : pas de `f_hists`/`queue`/notifs pour bot-vs-bot.
 
 ## 8. Limites / risques connus
+- **Écart DB vs in-memory** : le moteur DB est ~100× plus lent (sessions ~1.1–1.9 h).
+  ⇒ les humains doivent être traités par le moteur rapide (P2.1 live events), sinon parité impossible.
 - Le **fonds** n'est **pas** alimenté par le sim-memory (option a) → file/refund restent côté moteur DB/réel.
 - **P2.1 non fini** : events humains live (`FightResult`/`MatchStarted` dans l'engine), `f_hists`/IPFS.
-- Le **rattrapage** reste lent (ruine = queue lente). Envisager un **stop-loss** pour des sessions
-  jouables et des pertes mesurables.
 - `sim:memory` charge la cohorte **au démarrage** (pas de nouveaux bots à chaud sans restart).
 - Payouts on-chain non testés de bout en bout (RPC L1 a eu une coupure ; cotisation P-Chain ~2 mois).
 
 ## 9. Prochaines étapes
-1. **UI** : faire refléter le flow (dépôt B=C+R, session/rattrapage, statut, fonds/remboursements,
-   file d'attente, gains). Le front lit `/api/artefacts` (`bankroll_*`).
-2. **P2.1** : émettre les events humains (outbox déjà prêt) + `f_hists`/IPFS.
-3. Décider **stop-loss** vs mesurer les pertes sur run long (~2 h+).
-4. Aligner `REFUND_PCT` ≤ couverture ; `security_coefficient` pour des sessions jouables.
+1. **P2.1 live** : émettre `FightResult`/`MatchStarted` pour les humains dans le moteur **in-memory**
+   (outbox déjà prêt) → parité de vitesse et sessions de quelques minutes.
+2. **UI** : refléter le flow (déjà fait : Setup/Dashboard/Claim/remboursements).
+3. Optionnel : **stop-loss** si on veut borner les pertes (aujourd'hui ~18 min médian).
+4. Surveiller `REFUND_PCT` ≤ couverture (0.15 ≤ ~0.20) ; `security=100` = sessions jouables.
 
 ## 10. Opérations utiles
 ```sh
