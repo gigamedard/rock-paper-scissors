@@ -64,6 +64,9 @@ avec un moteur **aussi rapide que le simulateur**, **bots et humains identiques*
 ## 3. UI (flow P3)
 - **Setup** : `C`, `R=C·X`, `B=C+R`, règle de remboursement, **Total dépôt (une fois) = B+frais**.
   (alignement front/back via `bankroll_security_coefficient`).
+- **Cible de session** : sélecteur **1.05x / 1.2x** (+ options débloquées par cartes).
+  En P3, la cible choisie pilote **X, R et B** côté UI et backend (`users.target_q`) :
+  1.05 → `X=21.105, R=0.8442, B=0.8842` ; 1.2 → `X=6.03, R=0.2412, B=0.2812` (C=0.04).
 - **Dashboard** : panneau P3 = état **Session 1 / Rattrapage / terminée**, B/C/R,
   **remboursements en attente (liste FIFO)** + « vous pouvez rejouer », **remboursements reçus**.
 - **Claim** : montant retirable + **« dont remboursement crédité »**.
@@ -74,7 +77,7 @@ avec un moteur **aussi rapide que le simulateur**, **bots et humains identiques*
 | `bankroll_state_machine_test` | 24/24 |
 | `refund_queue_simulation` | 27/27 |
 | Headless E2E (HTTP/DB/commandes/outbox/unit) | 22/22 |
-| Navigateur Playwright (SPA/Setup P3) | 19/19 |
+| Navigateur Playwright (SPA/Setup P3, cibles 1.05/1.2) | 23/23 |
 | Navigateur connecté (session restaurée) | 9/9 |
 | Navigateur **wallet EIP-1193** (dépôt UI) | 6/6 |
 
@@ -86,7 +89,7 @@ avec un moteur **aussi rapide que le simulateur**, **bots et humains identiques*
 - Fonds : multi-remboursements FIFO distincts ; ack/trim du Stream.
 
 ## 6. État actuel
-- Branche `feat/session-recovery`, image **engine37** partout (app/queue/queue-limits/scheduler/engine).
+- Branche `feat/session-recovery`, image **engine38** partout (app/queue/queue-limits/scheduler/engine).
 - `battlepool-engine` (moteur DB) + `battlepool-batch-processor` actifs ; `sim-memory` arrêté.
   Cohorte **1000 bots** `target_q=1.2`, security 100 (`C=0.04`, `R=0.2412`, `B=0.2812`).
 - `INTERNAL_INCLUDE_HUMANS=true`, `DEFER_SIDE_EFFECTS=true`, `SIM_NO_PAYOUT=true`,

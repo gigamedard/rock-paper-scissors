@@ -101,7 +101,9 @@ jeu ──(1 INSERT rapide)──► side_effect_outbox ──(consumer)──�
 ## 4. Modèle P3 — bankroll + rattrapage + fonds
 
 - `C = baseBet × security_coefficient` (capital session 1, fixe).
-- `T` cible de session (ex. 1.2) ; `t = T−1`.
+- `T` cible de session **choisie par le joueur** (UI : 1.05 / 1.2, puis options cartes) ;
+  `t = T−1`. La cible est stockée dans `users.target_q` et pilote `X`, `R`, `B`
+  (backend : `BankrollSessionService::params($baseBet, $T)`).
 - `φ` frais ; `φ_used = φ·T`.
 - `X = (1 + t + φ_used)/t` ; `R = C·X` (réserve) ; `B = C+R` (bankroll).
 - **Session 1** : joue `C` vers `C·T·(1+φ)`.

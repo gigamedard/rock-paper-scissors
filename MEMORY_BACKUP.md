@@ -5,7 +5,7 @@
 > déployé, les bugs corrigés, les mesures et les prochaines étapes.
 
 ## 0. Reprise express (TL;DR)
-- Branche : **`feat/session-recovery`** ; images **engine37** (app, queue, scheduler, engine).
+- Branche : **`feat/session-recovery`** ; images **engine38** (app, queue, scheduler, engine).
 - VPS : `/opt/battlepool` (compose prod) ; code workspace : `/root/workspace/rock-paper-scissors`.
 - **Moteur actif** : DB (`battlepool-engine` + `battlepool-batch-processor`) ; `sim-memory` **arrêté**.
   Cohorte live = **1000 bots autoplay** remis à plat avec les **nouveaux paramètres du test**
@@ -38,15 +38,15 @@ Maximiser le **% de joueurs qui gagnent** de l'argent en **protégeant leur bank
    - session 1 (capital C) ; ruine → **rattrapage (capital R ET mise baseBet×X)** ; ruine → double échec ;
    - fonds : `F_C=φ_used·C` (session), `F_R=φ_used·R` (rattrapage), file FIFO, paiement par lots.
 
-## 3. État déployé (VPS) — engine37
+## 3. État déployé (VPS) — engine38
 | Service | Image | État | Rôle |
 |---|---|---|---|
-| battlepool-app | engine37 | healthy | API/front (Octane) |
-| battlepool-queue-worker(-limits) | engine37 | healthy | jobs (outbox/payout/limits) |
-| battlepool-scheduler | engine37 | up | `schedule:work` (cleanup, refund, outbox) |
-| battlepool-engine | engine37 | healthy | **moteur DB (actif, humains/bots)** |
+| battlepool-app | engine38 | healthy | API/front (Octane) |
+| battlepool-queue-worker(-limits) | engine38 | healthy | jobs (outbox/payout/limits) |
+| battlepool-scheduler | engine38 | up | `schedule:work` (cleanup, refund, outbox) |
+| battlepool-engine | engine38 | healthy | **moteur DB (actif, humains/bots)** |
 | battlepool-batch-processor | 6628503 | healthy | crée les pools internes |
-| battlepool-sim-memory | engine37 | **arrêté** | full in-memory (à utiliser À LA PLACE de engine+batch) |
+| battlepool-sim-memory | engine38 | **arrêté** | full in-memory (à utiliser À LA PLACE de engine+batch) |
 | battlepool-bridge | 6628503 | healthy | node chain bridge |
 | battlepool-db / redis / reverb | — | — | DB / cache-stream / WS |
 
@@ -143,6 +143,9 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
 - ✅ **Étape 3 (faite)** : Remboursements — endpoint `/api/refund/pending` (via `RefundQueueService::pendingForUser`)
   + panneau file d'attente (« vous pouvez rejouer »).
 - ✅ **Étape 4 (faite)** : Claim — distinguer payout de session vs remboursement crédité.
+- ✅ **Étape 5 (engine38)** : sélecteur de cible **1.05 / 1.2** (+ options cartes). En P3,
+  la cible choisie pilote **X, R et B** (côté UI et backend : `users.target_q`).
+  1.05 → `X=21.105, R=0.8442, B=0.8842` ; 1.2 → `X=6.03, R=0.2412, B=0.2812` (C=0.04).
 
 ## 12. P2.1 — avancement
 - ✅ Combats humains → `fight_result` via outbox async ; pools avec humains → `archive_pool`

@@ -1094,3 +1094,33 @@ passer sur le moteur in-memory + outbox (P2.1 live)** pour la parité bots/humai
 CSV brut `tests/measurements/sessions_security100_T1.2_fee0.5.csv`.
 État live restauré : `engine37`, moteur DB + batch actifs, `sim-memory` arrêté,
 cohorte 1000 bots réinitialisée avec les nouveaux paramètres.
+
+---
+
+## 43. UI — cibles P3 1.05 / 1.2 + cible par joueur (engine38, 2026-11-11)
+
+**Demande** : le sélecteur « MULTIPLICATEUR CIBLE (Q) » n'exposait pas 1.05/1.2 de façon
+cohérente avec le modèle P3.
+
+**Modifs** :
+- `public/index.html` : options `1.05x` et `1.2x` (remplace `1.001x`), `1.2` sélectionné par défaut.
+- `config/economy.php` : `target_q_options = [1.05, 1.2, 1.3, 1.5, 2, 3, 4]`.
+- `game.js` :
+  - `fetchConfig` aligne le sélecteur sur `BANKROLL_SESSION_TARGET_Q` et lit `bankroll_fee_rate`.
+  - `updateFeeDisplay` / `startSession` calculent **X, R, B** à partir de la **cible choisie** :
+    `X = (1 + t + φ·T)/t`, `R=C·X`, `B=C+R`, frais `φ·B` (identique au backend).
+  - sélectionner **1.05** affiche **R=0.8442 / B=0.8842** (C=0.04) ; **1.2** → **R=0.2412 / B=0.2812**.
+- Backend `BankrollSessionService::params($baseBet, ?T)` / `initialize(..., ?T)` :
+  la cible du joueur (`users.target_q`, posée par `/user/pre-moves`) pilote X/R/B.
+  `InternalPoolService` + `PoolReconstructionService` passent la cible du joueur.
+- `startRecovery` crédite le fonds avec le T réel du joueur (`bankroll_target`).
+
+**Tests** :
+- `bankroll_state_machine_test` : **24/24**.
+- Navigateur `headless_ui.cjs` (engine38 live) : **23/23** — options 1.05/1.2 présentes,
+  C/R/B corrects pour 1.2, bascule 1.05 → R/B recalculés, aucune erreur JS.
+- API vérifiée : `target=1.2`, `fee_rate=0.005`, `refund=0.15`, `contract_fee=0.5`, `X=6.03`.
+- Tinker : `params(0.0004, 1.05)` → `X=21.105, B=0.8842` ; `(…, 1.2)` → `X=6.03, B=0.2812`.
+
+**Déploiement** : image **`battlepool-app:engine38`** (app/queue/queue-limits/scheduler/engine).
+Commit `1017c44`.
