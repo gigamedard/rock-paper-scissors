@@ -5,7 +5,7 @@
 > déployé, les bugs corrigés, les mesures et les prochaines étapes.
 
 ## 0. Reprise express (TL;DR)
-- Branche : **`feat/session-recovery`** ; images **engine39** (app, queue, scheduler, engine).
+- Branche : **`feat/session-recovery`** ; images **engine40** (app, queue, scheduler, engine).
 - VPS : `/opt/battlepool` (compose prod) ; code workspace : `/root/workspace/rock-paper-scissors`.
 - **Moteur actif** : DB (`battlepool-engine` + `battlepool-batch-processor`) ; `sim-memory` **arrêté**.
   Cohorte live = **1000 bots autoplay** remis à plat avec les **nouveaux paramètres du test**
@@ -38,15 +38,15 @@ Maximiser le **% de joueurs qui gagnent** de l'argent en **protégeant leur bank
    - session 1 (capital C) ; ruine → **rattrapage (capital R ET mise baseBet×X)** ; ruine → double échec ;
    - fonds : `F_C=φ_used·C` (session), `F_R=φ_used·R` (rattrapage), file FIFO, paiement par lots.
 
-## 3. État déployé (VPS) — engine39
+## 3. État déployé (VPS) — engine40
 | Service | Image | État | Rôle |
 |---|---|---|---|
-| battlepool-app | engine39 | healthy | API/front (Octane) |
-| battlepool-queue-worker(-limits) | engine39 | healthy | jobs (outbox/payout/limits) |
-| battlepool-scheduler | engine39 | up | `schedule:work` (cleanup, refund, outbox) |
-| battlepool-engine | engine39 | healthy | **moteur DB (actif, humains/bots)** |
+| battlepool-app | engine40 | healthy | API/front (Octane) |
+| battlepool-queue-worker(-limits) | engine40 | healthy | jobs (outbox/payout/limits) |
+| battlepool-scheduler | engine40 | up | `schedule:work` (cleanup, refund, outbox) |
+| battlepool-engine | engine40 | healthy | **moteur DB (actif, humains/bots)** |
 | battlepool-batch-processor | 6628503 | healthy | crée les pools internes |
-| battlepool-sim-memory | engine39 | **arrêté** | full in-memory (à utiliser À LA PLACE de engine+batch) |
+| battlepool-sim-memory | engine40 | **arrêté** | full in-memory (à utiliser À LA PLACE de engine+batch) |
 | battlepool-bridge | 6628503 | healthy | node chain bridge |
 | battlepool-db / redis / reverb | — | — | DB / cache-stream / WS |
 
@@ -102,7 +102,7 @@ Cohorte : **1000 bots** `autoplay=1`, `target_q=1.2`, security 100 → `C=0.04`,
 6. P1 : pas de `f_hists`/`queue`/notifs pour bot-vs-bot.
 7. **Top-up P3** : `/internal/update-balance` recevait le **total crédité cumulé** et écrasait
    `users.balance` sans réinitialiser P3 (`bankroll_total` déjà défini) → balance de jeu trop
-   grande et `bankroll_remaining` ajouté au gain = sur-crédit. Fix engine39 :
+   grande et `bankroll_remaining` ajouté au gain = sur-crédit. Fix engine40 :
    `pending_bankroll_total` + `BankrollSessionService::reinitializeFromTotal/applyPending`
    (recalcul C/R/B avec la cible ; pending appliqué en fin de pool / avant matchmaking).
 
@@ -151,7 +151,7 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
 - ✅ **Étape 3 (faite)** : Remboursements — endpoint `/api/refund/pending` (via `RefundQueueService::pendingForUser`)
   + panneau file d'attente (« vous pouvez rejouer »).
 - ✅ **Étape 4 (faite)** : Claim — distinguer payout de session vs remboursement crédité.
-- ✅ **Étape 5 (engine39)** : sélecteur de cible **1.05 / 1.2** (+ options cartes). En P3,
+- ✅ **Étape 5 (engine40)** : sélecteur de cible **1.05 / 1.2** (+ options cartes). En P3,
   la cible choisie pilote **X, R et B** (côté UI et backend : `users.target_q`).
   1.05 → `X=21.105, R=0.8442, B=0.8842` ; 1.2 → `X=6.03, R=0.2412, B=0.2812` (C=0.04).
 

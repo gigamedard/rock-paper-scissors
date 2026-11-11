@@ -1162,3 +1162,21 @@ ajouté → sur-crédit / payout risqué.
 **Déploiement** : image **`battlepool-app:engine39`** + migration. Tests : bankroll **24/24**,
 `reinitializeFromTotal` vérifié (0.8842→C=0.04/R=0.8442/X=21.105 ; 4.2154→R=4.1754/X=104.385),
 `applyPending` (bloqué en pool, appliqué hors pool). Commit `7a41518`.
+
+## 45. P3 — `initialize` utilise le total on-chain réel (engine40, 2026-11-11)
+
+Complément du fix top-up : à l'initialisation d'une **nouvelle** session P3, si le joueur a
+déjà un solde on-chain **supérieur** au B recommandé (rejeu sans retrait, top-up antérieur,
+gain non retiré), `initialize` utilise désormais ce total comme bankroll :
+`B = total`, `R = total − C`, `X = R/C`, `balance = C`. Sinon (dépôt standard = B), comportement
+inchangé.
+
+Vérifié (tinker, transaction rollback) :
+- `balance=4.2222` → `B=4.2222, R=4.1822, X=104.555, C=0.04, balance=0.04`
+- `balance=0.8842` → `B=0.8842, R=0.8442, X=21.105, C=0.04, balance=0.04`
+
+**Live (wallet 0x70FE…fC2f)** : après le fix top-up (20:18:58), la session a **gagné** à
+20:20:45 → `balance=4.2222`, `bankroll_total=null`, `status=stopped` (pas de sur-crédit ;
+le gain est ~+0.0068 vs total crédité 4.2154). Le watcher a capté l'événement.
+
+**Déploiement** : **`battlepool-app:engine40`**. Commit `7ac3b71`.
