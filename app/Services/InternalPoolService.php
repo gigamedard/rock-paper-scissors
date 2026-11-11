@@ -37,7 +37,8 @@ class InternalPoolService
                             ->orWhere(function ($q3) {
                                 $q3->where('autoplay_active', false)
                                     ->whereNotNull('initial_base_bet')
-                                    ->whereNotNull('target_q');
+                                    ->whereNotNull('target_q')
+                                    ->where('email', 'not like', 'bot_%'); // vrais humains, pas les bots désactivés
                             });
                     });
                 } else {
