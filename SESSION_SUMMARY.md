@@ -1043,3 +1043,18 @@ in-memory si humains inclus ; test navigateur d'une **vraie session** (wallet re
 ⇒ **La chaîne complète fonctionne** : dépôt on-chain → sync DB → humain matché → session P3.
 Il ne reste que l'**injection wallet headless** (harness navigateur) pour rejouer la même chose
 depuis l'UI (même appel `approve`+`deposit`).
+
+---
+
+## 41. Test navigateur WALLET (injection EIP-1193) — 6/6 OK (2026-11-10)
+
+`tests/browser/wallet_ui.cjs` : wallet de test financé (faucet), injecté comme `window.ethereum`
+(ethers UMD + clé), IPFS court-circuité (route mock), session restaurée (token).
+Flux UI réel : dashboard → setup → 10 premoves → **Start Session** → `approve` AVAXe + `deposit`
+on-chain (3.1812 AVAXe).
+- **Résultat** : dépôt on-chain accepté → **indexeur** → `/internal/update-balance` →
+  **balance DB = 2.8920** → humain **matché** → **P3 initialisé** (`bankroll_total=2.892`,
+  `session_capital=0.12`). Aucune erreur JS sévère. Screenshot `tests/browser/screenshot-wallet.png`.
+
+⇒ **Chaîne complète validée depuis l'UI navigateur avec wallet** : dépôt `B=C+R` on-chain →
+sync DB → match humain → session P3. **P2.1(A) terminé.**

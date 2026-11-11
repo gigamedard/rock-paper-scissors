@@ -140,4 +140,4 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
 - Choix moteur : **humains => `game:engine` + batch-processor** ; **bots => `sim:memory`** (pas les deux).
 - ✅ Humains inclus dans les pools internes (`INTERNAL_INCLUDE_HUMANS`) + P3 init (engine36).
 - ✅ E2E validé : dépôt on-chain -> indexeur -> balance DB -> humain matché -> P3 init (fix reactivation humains).
-- ⏳ Restant : injection wallet headless EIP-1193 (harness navigateur) pour rejouer via l'UI.
+- ✅ Test navigateur wallet (EIP-1193 injecté) : dépôt on-chain via UI -> sync DB -> match humain -> P3 init. P2.1(A) TERMINÉ.
