@@ -1180,3 +1180,22 @@ Vérifié (tinker, transaction rollback) :
 le gain est ~+0.0068 vs total crédité 4.2154). Le watcher a capté l'événement.
 
 **Déploiement** : **`battlepool-app:engine40`**. Commit `7ac3b71`.
+
+## 46. Retrait refusé — opérateur bridge sans gas TST (2026-11-11)
+
+**Symptôme** : `claim` du wallet `0x70FE…fC2f` → `execution reverted: "Amount exceeds user balance"`
+(amount demandé 4.2222, `userBalances` on-chain 4.2154).
+
+**Cause** : le wallet **hot** du bridge (`payout_operator` `0x9A60…6663`) n'avait plus de **TST**
+(0.000835 TST). La synchro `updateUserBalance` faite avant `/generate-signature` échouait donc
+(`insufficient funds for intrinsic transaction cost`), et le contrat restait à 4.2154 — le gain
+off-chain de 0.0068 n'était pas encore crédité on-chain.
+
+**Fix** :
+- Remplissage de l'opérateur : **+20 TST** depuis le owner/faucet (tx `0xda6b…dfb56`).
+- Synchro manuelle `updateUserBalance(user, 4.2222)` par l'opérateur (tx `0x7a18…3fc80`)
+  → `userBalances(user)=4.2222` ; la signature existante (deadline future) est réutilisable.
+- **Auto-refill gas** : `battlepool-gas-refill.timer` (toutes les 10 min) ; si opérateur < **5 TST**,
+  envoie **20 TST** depuis le owner. Log `/root/logs/gas_refill.log`.
+
+Le bridge peut désormais envoyer les `setUserLimits`/payouts (plus d'erreurs `INSUFFICIENT_FUNDS`).
