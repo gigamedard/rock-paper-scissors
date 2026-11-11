@@ -1199,3 +1199,24 @@ off-chain de 0.0068 n'était pas encore crédité on-chain.
   envoie **20 TST** depuis le owner. Log `/root/logs/gas_refill.log`.
 
 Le bridge peut désormais envoyer les `setUserLimits`/payouts (plus d'erreurs `INSUFFICIENT_FUNDS`).
+
+## 47. Claim — pré-synchro en fin de session + retry front (engine42, 2026-11-11)
+
+**Problème** : la synchro `updateUserBalance` est faite par le bridge au moment du
+`/generate-signature` (clic claim). Si la tx de synchro est encore en file (queue bridge
+chargée), le claim part avec l'ancien `userBalances` → `Amount exceeds user balance`.
+
+**Fix (les deux)** :
+1. **Pré-synchro en fin de session** : `SessionManager::closeSession` dispatche
+   `SyncUserBalanceJob` pour tout **humain non-bot** avec solde > 0. Le job appelle
+   `SessionManager::preSyncHumanClaim` → bridge `/generate-signature` (qui exécute
+   `updateUserBalance` **et** pré-génère la signature). Le solde on-chain est donc aligné
+   avant que le joueur ne clique.
+   - `isBotUser()` mémoïsé (lecture unique de `simulation_accounts.json`).
+2. **Retry front** : `sendClaimWithRetry()` dans `game.js` ; sur
+   `Amount exceeds user balance`, attend 3s/6s et retente (3 tentatives) avant d'afficher
+   l'erreur.
+
+**Validé live** : le claim de **0.8882 AVAXe** du wallet `0x70FE…fC2f` a réussi à
+**20:48:45** (tx `0x3a10…8793`), DB remise à 0. Déploiement **`battlepool-app:engine42`**.
+Commit `378ff91`.
