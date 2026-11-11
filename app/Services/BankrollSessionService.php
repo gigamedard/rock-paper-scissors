@@ -161,6 +161,104 @@ class BankrollSessionService
         return $p;
     }
 
+    /**
+     * Réinitialise une session P3 à partir du total crédité on-chain (top-up).
+     *
+     * Le total est cumulatif (dépôts − payouts). On garde
+     *   C = baseBet × security_coefficient
+     *   R = total − C   (réserve réelle, éventuellement > C·X recommandé)
+     *   X = R / C       (même ratio capital/mise ⇒ même durée de rattrapage)
+     * et on repart sur une session 1 propre.
+     *
+     * @return array{params:array,reserve:float,factor:float,total:float}|null
+     */
+    public function reinitializeFromTotal(\App\Models\User $user, float $total, ?float $targetMultiplier = null): ?array
+    {
+        $baseBet = (float) ($user->initial_base_bet ?: $user->bet_amount ?: 0);
+        if ($baseBet <= 0) {
+            $baseBet = (float) collect(config('pool.base_bet', [0.0004]))->min();
+        }
+
+        $target = $targetMultiplier !== null && $targetMultiplier > 1.0
+            ? $targetMultiplier
+            : (float) ($user->target_q ?: config('bankroll.session_target_q', 1.05));
+
+        $p = $this->params($baseBet, $target);
+        $C = (float) $p['C'];
+
+        // Pas assez pour financer une session P3 : on laisse le solde brut.
+        if ($total + 1e-9 < $C) {
+            $user->pending_bankroll_total = null;
+            $user->bankroll_total = null;
+            $user->bankroll_remaining = null;
+            $user->bankroll_recovery_reserve = null;
+            $user->recovery_factor = null;
+            $user->session_capital = null;
+            $user->session_attempt = 0;
+            $user->recovery_used = false;
+            $user->balance = $total;
+            $user->battle_balance = 0;
+            $user->session_start_balance = $total;
+            $user->session_start_battle_balance = 0;
+            $user->session_started = false;
+            $user->status = 'available';
+            $user->bet_amount = $baseBet;
+            $user->save();
+
+            return null;
+        }
+
+        $reserve = $total - $C;
+        $factor = $C > 0 ? $reserve / $C : 1.0;
+
+        $user->pending_bankroll_total = null;
+        $user->bankroll_total = $total;
+        $user->bankroll_remaining = $reserve;
+        $user->bankroll_recovery_reserve = $reserve;
+        $user->recovery_factor = $factor;
+        $user->session_capital = $C;
+        $user->session_attempt = 0;
+        $user->recovery_used = false;
+        $user->bankroll_target = $p['T'];
+        $user->bankroll_target_amount = $total * $p['T'];
+        $user->target_q = $p['target_q'];
+        $user->balance = $C;
+        $user->battle_balance = 0;
+        $user->session_start_balance = $C;
+        $user->session_start_battle_balance = 0;
+        $user->session_started = false;
+        $user->status = 'available';
+        $user->bet_amount = $baseBet;
+        $user->save();
+
+        return ['params' => $p, 'reserve' => $reserve, 'factor' => $factor, 'total' => $total];
+    }
+
+    /**
+     * Applique un top-up en attente si le joueur n'est plus dans un pool.
+     * À appeler en fin de pool et avant le matchmaking.
+     */
+    public function applyPending(\App\Models\User $user): bool
+    {
+        if ($user->pending_bankroll_total === null) {
+            return false;
+        }
+        if ((float) $user->battle_balance > 0 || $user->pool_id !== null) {
+            return false;
+        }
+        if ($user->payout_signature !== null) {
+            return false;
+        }
+        if ($user->cooldown_until && $user->cooldown_until->isFuture()) {
+            return false;
+        }
+
+        $target = (float) ($user->target_q ?? 0);
+        $this->reinitializeFromTotal($user, (float) $user->pending_bankroll_total, $target > 1.0 ? $target : null);
+
+        return true;
+    }
+
     /** Démarre la session de rattrapage : libère R comme solde de jeu. */
     public function startRecovery(\App\Models\User $user, float $baseBet): void
     {

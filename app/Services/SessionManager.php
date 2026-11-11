@@ -90,6 +90,16 @@ class SessionManager
         $user->pool_id = null;
         $user->max_balance = max((float) ($user->max_balance ?? 0), (float) $user->balance);
         $user->min_balance = $user->min_balance === null ? (float) $user->balance : min((float) $user->min_balance, (float) $user->balance);
+
+        // P3 : dépôt reçu pendant le pool → réinitialiser depuis le total on-chain.
+        if ($user->pending_bankroll_total !== null) {
+            try {
+                app(\App\Services\BankrollSessionService::class)->applyPending($user);
+            } catch (\Throwable $e) {
+                Log::warning('[P3] pending reinit failed for user ' . $user->id . ': ' . $e->getMessage());
+            }
+        }
+
         $user->save();
 
         UserTracker::info("[POOL_FINISH] 🔄 Player {$user->wallet_address} had no fight. Refunded {$refunded} ETH. Balance restored to: {$user->balance}.", ['wallet' => $user->wallet_address]);
@@ -179,6 +189,17 @@ class SessionManager
         $user->max_balance = max((float) ($user->max_balance ?? 0), (float) $user->balance);
         $user->min_balance = $user->min_balance === null ? (float) $user->balance : min((float) $user->min_balance, (float) $user->balance);
 
+        // P3 : dépôt reçu pendant le pool → nouvelle session depuis le total on-chain.
+        if ($user->pending_bankroll_total !== null) {
+            try {
+                if (app(\App\Services\BankrollSessionService::class)->applyPending($user)) {
+                    $q = 1.0;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[P3] pending reinit failed for user ' . $user->id . ': ' . $e->getMessage());
+            }
+        }
+
         $this->evaluateUserSession($user, $q);
     }
 
@@ -206,6 +227,17 @@ class SessionManager
         $user->pool_id = null;
         $user->max_balance = max((float) ($user->max_balance ?? 0), (float) $user->balance);
         $user->min_balance = $user->min_balance === null ? (float) $user->balance : min((float) $user->min_balance, (float) $user->balance);
+
+        // P3 : dépôt reçu pendant le pool → nouvelle session depuis le total on-chain.
+        if ($user->pending_bankroll_total !== null) {
+            try {
+                if (app(\App\Services\BankrollSessionService::class)->applyPending($user)) {
+                    $q = 1.0;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[P3] pending reinit failed for user ' . $user->id . ': ' . $e->getMessage());
+            }
+        }
 
         $this->evaluateUserSession($user, $q);
     }

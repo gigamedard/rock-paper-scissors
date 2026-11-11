@@ -46,6 +46,26 @@ class InternalPoolService
                 }
             };
 
+            // P3 : appliquer les top-ups reçus pendant une session (dépôt on-chain)
+            // AVANT de choisir les paliers, pour repartir sur la mise de base et C/R/B recalculés.
+            if (config('bankroll.enabled')) {
+                $pending = User::whereNotNull('pending_bankroll_total')
+                    ->where('status', '!=', 'in_pool')
+                    ->whereNull('pool_id')
+                    ->where('battle_balance', 0)
+                    ->get();
+                if ($pending->isNotEmpty()) {
+                    $bs = app(\App\Services\BankrollSessionService::class);
+                    foreach ($pending as $pu) {
+                        try {
+                            $bs->applyPending($pu);
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning('[P3] applyPending failed for user ' . $pu->id . ': ' . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
             $betTiers = User::where('status', 'available')
                 ->where($eligible)
                 ->where('bet_amount', '>=', $baseBet)

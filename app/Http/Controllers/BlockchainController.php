@@ -31,38 +31,92 @@ class BlockchainController extends Controller
             $user = User::where('wallet_address', $walletAddress)->first();
             Log::info("User search result", ['found' => $user ? true : false, 'id' => $user->id ?? null]);
 
+            $p3Reinit = false;
+
             if ($user) {
                 // Check if balance dropped to 0 (Bankruptcy risk)
                 $oldBalance = $user->balance;
                 Log::info("Updating existing user balance", ['old' => $oldBalance, 'new' => $balanceEth]);
-                
-                $updateData = ['balance' => $balanceEth];
-                // GUARD (fix perte de gains) : ne PAS ré-enrôler en autoplay un joueur
-                // en statut 'stopped' qui a un claim en attente (payout_signature) ou un
-                // cooldown actif (session target atteint). Sinon l'indexeur bridge
-                // (UserBalanceUpdated émis par /generate-signature) le repasse
-                // 'available' avant qu'il n'ait retiré ses gains → gains irrécupérables.
-                $cooldownActive = $user->cooldown_until && $user->cooldown_until->isFuture();
-                // Réactivation après un crédit/dépôt : bots (autoplay) ET humains.
-                // (guards : pas de claim en attente, pas de cooldown actif).
-                if (in_array($user->status, ['awaiting_onchain', 'stopped'])
-                    && $balanceEth >= $user->bet_amount
-                    && $user->payout_signature === null
-                    && !$cooldownActive
-                ) {
-                    $updateData['status'] = 'available';
-                    Log::info("User {$user->id} status updated to available because of positive balance and active autoplay");
+
+                $bankrollEnabled = (bool) config('bankroll.enabled', false);
+                $p3Active = $bankrollEnabled && $user->bankroll_total !== null;
+                $inPool = ($user->status === 'in_pool')
+                    || ((float) $user->battle_balance > 0)
+                    || ($user->pool_id !== null);
+                $hasClaimOrCooldown = $user->payout_signature !== null
+                    || ($user->cooldown_until && $user->cooldown_until->isFuture());
+
+                // P3 — dépôt pendant un pool / claim / cooldown : le total on-chain
+                // est cumulatif. On le mémorise sans toucher à la balance de jeu ;
+                // il sera appliqué en fin de pool (recalcul C/R/B avec la cible choisie).
+                if ($p3Active && ($inPool || $hasClaimOrCooldown)) {
+                    $user->pending_bankroll_total = $balanceEth;
+                    $user->save();
+                    Log::info("P3 top-up deferred (in pool)", [
+                        'user' => $user->id,
+                        'onchain_total' => $balanceEth,
+                        'pool_id' => $user->pool_id,
+                    ]);
+
+                    return response()->json([
+                        'message' => 'Deposit recorded; P3 bankroll reinitialization deferred until the pool ends.',
+                        'address' => $walletAddress,
+                        'balance_eth' => (float) $user->balance,
+                        'balance_wei' => $balanceWei,
+                        'pending_bankroll_total' => $balanceEth,
+                    ], 200);
                 }
-                
-                $updated = $user->update($updateData);
-                Log::info("Update result", ['success' => $updated]);
-                
-                if ($oldBalance > 0 && $balanceEth <= 0.0001) { // Near zero
-                     \App\Models\GameNotification::create([
-                        'user_id' => $user->id,
-                        'type' => 'BANKRUPTCY',
-                        'data' => ['balance' => $balanceEth]
-                     ]);
+
+                // P3 — dépôt hors pool sur un bankroll actif : recalcul C/R/B
+                // à partir du nouveau total on-chain et de la cible du joueur.
+                if ($p3Active) {
+                    try {
+                        $bs = app(\App\Services\BankrollSessionService::class);
+                        $target = (float) ($user->target_q ?? 0);
+                        $bs->reinitializeFromTotal($user, (float) $balanceEth, $target > 1.0 ? $target : null);
+                        $p3Reinit = true;
+                        Log::info("P3 bankroll reinitialized from on-chain total", [
+                            'user' => $user->id,
+                            'total' => $balanceEth,
+                            'C' => $user->session_capital,
+                            'R' => $user->bankroll_recovery_reserve,
+                            'X' => $user->recovery_factor,
+                            'T' => $user->bankroll_target,
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::warning('P3 reinitialize failed for user ' . $user->id . ': ' . $e->getMessage());
+                    }
+                }
+
+                if (! $p3Active) {
+                    $updateData = ['balance' => $balanceEth];
+                    // GUARD (fix perte de gains) : ne PAS ré-enrôler en autoplay un joueur
+                    // en statut 'stopped' qui a un claim en attente (payout_signature) ou un
+                    // cooldown actif (session target atteint). Sinon l'indexeur bridge
+                    // (UserBalanceUpdated émis par /generate-signature) le repasse
+                    // 'available' avant qu'il n'ait retiré ses gains → gains irrécupérables.
+                    $cooldownActive = $user->cooldown_until && $user->cooldown_until->isFuture();
+                    // Réactivation après un crédit/dépôt : bots (autoplay) ET humains.
+                    // (guards : pas de claim en attente, pas de cooldown actif).
+                    if (in_array($user->status, ['awaiting_onchain', 'stopped'])
+                        && $balanceEth >= $user->bet_amount
+                        && $user->payout_signature === null
+                        && !$cooldownActive
+                    ) {
+                        $updateData['status'] = 'available';
+                        Log::info("User {$user->id} status updated to available because of positive balance and active autoplay");
+                    }
+
+                    $updated = $user->update($updateData);
+                    Log::info("Update result", ['success' => $updated]);
+
+                    if ($oldBalance > 0 && $balanceEth <= 0.0001) { // Near zero
+                        \App\Models\GameNotification::create([
+                            'user_id' => $user->id,
+                            'type' => 'BANKRUPTCY',
+                            'data' => ['balance' => $balanceEth]
+                        ]);
+                    }
                 }
             } else {
                 Log::info("Creating new user", ['wallet' => $walletAddress, 'balance' => $balanceEth]);
@@ -70,10 +124,11 @@ class BlockchainController extends Controller
                 Log::info("New user created", ['id' => $user->id]);
             }
 
-            Log::info("User balance updated: Address: {$walletAddress}, Balance: {$balanceEth} ETH (from {$balanceWei} wei)");
+            $effectiveBalance = $p3Reinit ? (float) $user->balance : (float) $balanceEth;
+            Log::info("User balance updated: Address: {$walletAddress}, Balance: {$effectiveBalance} (onchain {$balanceEth}) (from {$balanceWei} wei)");
 
             try {
-              event(new BalanceUpdated($user->id, $balanceEth));
+              event(new BalanceUpdated($user->id, $effectiveBalance));
             } catch (\Throwable $e) {
                 Log::error("Error emit event: {$e->getMessage()}");
             }
@@ -92,7 +147,8 @@ class BlockchainController extends Controller
             return response()->json([
                 'message' => 'User balance updated successfully.',
                 'address' => $walletAddress,
-                'balance_eth' => $balanceEth,
+                'balance_eth' => $effectiveBalance,
+                'onchain_balance_eth' => (float) $balanceEth,
                 'balance_wei' => $balanceWei,
             ], 200);
 
