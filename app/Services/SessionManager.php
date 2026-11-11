@@ -772,7 +772,7 @@ class SessionManager
      * pré-génère sa signature de claim (sans throttle). Appelé en async par
      * SyncUserBalanceJob pour éviter la course « Amount exceeds user balance ».
      */
-    public function preSyncHumanClaim(User $user): void
+    public function preSyncHumanClaim(User $user, bool $force = false): void
     {
         if ($user->status !== 'stopped' || $user->session_started) {
             return;
@@ -781,6 +781,11 @@ class SessionManager
             return;
         }
         if ($this->isBotUser($user)) {
+            return;
+        }
+        // Évite de marteler le bridge si plusieurs jobs sont dispatchés pour la
+        // même fin de session. $force=true pour la synchro à la demande (claim).
+        if (! $force && ! \Illuminate\Support\Facades\Cache::add("presync_claim:{$user->id}", 1, 30)) {
             return;
         }
 

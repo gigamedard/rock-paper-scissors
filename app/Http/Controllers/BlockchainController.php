@@ -175,7 +175,7 @@ class BlockchainController extends Controller
         }
 
         try {
-            app(\App\Services\SessionManager::class)->preSyncHumanClaim($user);
+            app(\App\Services\SessionManager::class)->preSyncHumanClaim($user, true);
             $user->refresh();
 
             return response()->json([
