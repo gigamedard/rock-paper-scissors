@@ -43,8 +43,9 @@ class BlockchainController extends Controller
                 // (UserBalanceUpdated émis par /generate-signature) le repasse
                 // 'available' avant qu'il n'ait retiré ses gains → gains irrécupérables.
                 $cooldownActive = $user->cooldown_until && $user->cooldown_until->isFuture();
-                if ($user->autoplay_active
-                    && in_array($user->status, ['awaiting_onchain', 'stopped'])
+                // Réactivation après un crédit/dépôt : bots (autoplay) ET humains.
+                // (guards : pas de claim en attente, pas de cooldown actif).
+                if (in_array($user->status, ['awaiting_onchain', 'stopped'])
                     && $balanceEth >= $user->bet_amount
                     && $user->payout_signature === null
                     && !$cooldownActive
