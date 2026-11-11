@@ -162,6 +162,34 @@ class BlockchainController extends Controller
         }
     }
 
+    /**
+     * Pré-synchro on-chain + régénération de la signature avant un claim.
+     * Appelé par le front lorsqu'il reçoit « Amount exceeds user balance »
+     * (la tx updateUserBalance du bridge n'était pas encore minée).
+     */
+    public function syncClaim(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['error' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            app(\App\Services\SessionManager::class)->preSyncHumanClaim($user);
+            $user->refresh();
+
+            return response()->json([
+                'success' => true,
+                'balance' => (float) $user->balance,
+                'payout_signature' => $user->payout_signature,
+                'payout_deadline' => $user->payout_deadline,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[CLAIM_SYNC] failed for user ' . $user->id . ': ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function handleClaim(Request $request)
     {
         $validated = $request->validate([

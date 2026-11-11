@@ -759,16 +759,42 @@ async function startSession() {
 }
 
 /**
- * Envoie claimAndExit avec retry si le solde on-chain n'est pas encore
- * synchronisé (« Amount exceeds user balance »). Le bridge exécute
- * updateUserBalance ; on laisse quelques secondes entre les tentatives.
+ * Demande au backend de pré-synchroniser le solde on-chain et de régénérer
+ * la signature (utile quand le bridge n'a pas encore miné updateUserBalance).
  */
-async function sendClaimWithRetry(contract, amountWei, deadline, signature, maxAttempts = 3) {
+async function syncClaimSignature() {
+    try {
+        const res = await secureFetch('/claim/sync', { method: 'POST', body: JSON.stringify({}) });
+        if (!res.ok) return false;
+        const d = await res.json();
+        if (d && d.payout_signature) {
+            gameState.pendingClaim = {
+                amount: Number(d.balance) || (gameState.pendingClaim && gameState.pendingClaim.amount),
+                signature: d.payout_signature,
+                deadline: d.payout_deadline,
+            };
+            return true;
+        }
+    } catch (e) {
+        console.warn('[Business] claim sync failed', e);
+    }
+    return false;
+}
+
+/**
+ * Envoie claimAndExit avec retry si le solde on-chain n'est pas encore
+ * synchronisé (« Amount exceeds user balance »). À chaque échec, on demande
+ * une synchro + nouvelle signature au backend, puis on retente.
+ */
+async function sendClaimWithRetry(contract, maxAttempts = 3) {
     let lastError = null;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const claim = gameState.pendingClaim;
+        if (!claim) throw new Error('Aucun claim en attente.');
+        const amountWei = parseEther(claim.amount.toString());
         try {
             return await Promise.race([
-                contract.claimAndExit(amountWei, deadline, signature),
+                contract.claimAndExit(amountWei, claim.deadline, claim.signature),
                 new Promise((_, reject) => setTimeout(() => reject(new Error(
                     "Délai dépassé : le wallet n'a pas reçu la demande de claim. Core fermé ? Réessayez."
                 )), 120000)),
@@ -777,8 +803,9 @@ async function sendClaimWithRetry(contract, amountWei, deadline, signature, maxA
             lastError = e;
             const msg = String((e && (e.shortMessage || e.message)) || e);
             if (/amount exceeds user balance/i.test(msg) && attempt < maxAttempts) {
-                console.warn(`[Business] claim : solde on-chain pas encore synchronisé (tentative ${attempt}/${maxAttempts}), retry dans ${attempt * 3}s`);
+                console.warn(`[Business] claim : solde on-chain pas encore synchronisé (tentative ${attempt}/${maxAttempts}), sync + retry...`);
                 addToFeed('Synchronisation on-chain du solde…', 'var(--primary)');
+                await syncClaimSignature();
                 await new Promise((resolve) => setTimeout(resolve, attempt * 3000));
                 continue;
             }
@@ -823,16 +850,8 @@ async function claim() {
         const abi = ["function claimAndExit(uint256 amount, uint256 deadline, bytes signature) external"];
         const contract = new Contract(activeGameAddress(), abi, signer);
 
-        const amountWei = parseEther(gameState.pendingClaim.amount.toString());
-
         ensureWalletVisibleForTx('core');
-        const tx = await sendClaimWithRetry(
-            contract,
-            amountWei,
-            gameState.pendingClaim.deadline,
-            gameState.pendingClaim.signature,
-            3
-        );
+        const tx = await sendClaimWithRetry(contract, 3);
         console.info('[Business] claim tx envoyée', tx.hash);
         addToFeed(t('feed.tx_sent', { hash: tx.hash.substring(0,10) }), "var(--primary)");
 

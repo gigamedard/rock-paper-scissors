@@ -73,6 +73,7 @@ Route::middleware('token.auth')->group(function () {
     Route::post('/user/pre-moves', [PoolAutoMatchController::class, 'storePremoves']);
     Route::post('/pre-moves', [PoolAutoMatchController::class, 'storePremoves']);       // Alias for debug-test.html
     Route::get('/user/status', [PoolAutoMatchController::class, 'getPollingStatus']);  // Alias for debug-test.html
+    Route::post('/claim/sync', [BlockchainController::class, 'syncClaim']); // pré-synchro on-chain + signature avant claim
     Route::post('/ipfs/upload', [\App\Http\Controllers\IpfsController::class, 'upload']);
     Route::post('/user/leave-pool', [\App\Http\Controllers\LeavePoolController::class, 'leave']);
     Route::post('/user/faucet-claim', [\App\Http\Controllers\FaucetController::class, 'claim']);
