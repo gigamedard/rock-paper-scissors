@@ -28,8 +28,25 @@ class InternalPoolService
         $limit = 1000;
 
         return DB::transaction(function () use ($baseBet, $targetPoolSize, $limit, $forcedTier) {
+            // Inclure les humains (autoplay=0, base bet configurée) dans les pools
+            // internes si activé (bots et humains dans les mêmes pools).
+            $eligible = function ($q) {
+                if (config('pool.internal_include_humans', false)) {
+                    $q->where(function ($qq) {
+                        $qq->where('autoplay_active', true)
+                            ->orWhere(function ($q3) {
+                                $q3->where('autoplay_active', false)
+                                    ->whereNotNull('initial_base_bet')
+                                    ->whereNotNull('target_q');
+                            });
+                    });
+                } else {
+                    $q->where('autoplay_active', true);
+                }
+            };
+
             $betTiers = User::where('status', 'available')
-                ->where('autoplay_active', true)
+                ->where($eligible)
                 ->where('bet_amount', '>=', $baseBet)
                 ->distinct()
                 ->pluck('bet_amount')
@@ -67,7 +84,7 @@ class InternalPoolService
             $usersQuery = User::with('preMove')
                 ->where('status', 'available')
                 ->where('bet_amount', $tierBet)
-                ->where('autoplay_active', true)
+                ->where($eligible)
                 ->whereNull('payout_signature') // GUARD: jamais auto-matcher un joueur avec un claim en attente
                 ->where(function ($q) {
                     $q->whereNull('cooldown_until')->orWhere('cooldown_until', '<=', now());
@@ -86,7 +103,7 @@ class InternalPoolService
             if ($scanCount < $targetPoolSize) {
                 $excludedQuery = User::where('status', 'available')
                     ->where('bet_amount', $tierBet)
-                    ->where('autoplay_active', true)
+                    ->where($eligible)
                     ->where('balance', '<', $tierBet);
 
                 $excludedIds = $excludedQuery->pluck('id')->toArray();
@@ -123,7 +140,7 @@ class InternalPoolService
                     $fallbackUsers = User::with('preMove')
                         ->where('status', 'available')
                         ->where('bet_amount', $fallbackTier)
-                        ->where('autoplay_active', true)
+                        ->where($eligible)
                         ->whereNull('payout_signature') // GUARD: idem fallback
                         ->where(function ($q) {
                             $q->whereNull('cooldown_until')->orWhere('cooldown_until', '<=', now());

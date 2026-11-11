@@ -3,6 +3,10 @@ return [
     'base_bet' => [0.0004, 0.15], // Palier 1 ≈ 2000 XOF | Palier 2 ≈ 760 000 XOF (1 AVAX = 4900 XOF)
     'size' => [13], // Pools à 13 joueurs (test Algo 6) — maxSize du contrat = 16
     'rounds' => 5, // Nombre de rounds joués par pool (R1..R5), indépendant de la taille
+
+    // Inclure les humains (autoplay=0, base bet configurée) dans les pools internes
+    // → bots et humains partagent le même moteur/flux.
+    'internal_include_humans' => (bool) env('INTERNAL_INCLUDE_HUMANS', false),
     //[100, 500, 1000, 5000], // Example size 
     'bach_size'=>3,
     'number_of_base_bet'=>2,
