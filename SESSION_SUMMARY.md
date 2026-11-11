@@ -1007,3 +1007,20 @@ in-memory si humains inclus ; test navigateur d'une **vraie session** (wallet re
 - **Humains / vrais joueurs** → moteur **DB** : `battlepool-engine` (`game:engine`) + `batch-processor`
   (écrit pools/fights, SessionManager + outbox). `GAME_ENGINE_WORKER=true` ⇒ `Pool::match()` no-op.
 - **Simulations de bots** → `sim:memory` (full in-memory, 0 écriture DB/pool). **Ne pas lancer les deux**.
+
+---
+
+## 39. P2.1 (A) — humains dans les pools internes (engine36) 2026-11-10
+
+- `InternalPoolService` : config `pool.internal_include_humans` (env `INTERNAL_INCLUDE_HUMANS`) →
+  inclut les humains (`autoplay_active=false`, `initial_base_bet`/`target_q` définis, email **non** `bot_%`).
+- **Vérifié** : humain de test id 1404 (balance=B=2.892, autoplay=0) **matché** dans un pool interne,
+  **P3 initialisé** (`bankroll_total=2.892`, `session_capital=0.12`, balance → 0.12), puis rejoué.
+- Le moteur DB (`battlepool-engine` engine36) + `batch-processor` traitent le pool (bots + humain).
+
+**Blocages restants pour une VRAIE session wallet (test navigateur)** :
+1. **Wallet headless** : injecter un provider EIP-1193 signé (ethers + clé de test) — faisable (faucet owner
+   AVAXe `mint` + TST natif), mais non trivial.
+2. **Sync dépôt on-chain → balance DB** : l'engine interne lit `users.balance` (DB). Le dépôt `B` crédite
+   le **contrat**, pas la DB. Il manque la synchro (bridge/indexer ou `/update-balance`) pour que
+   `canActivate`/P3 s'active après un vrai dépôt. **C'est le point critique restant.**

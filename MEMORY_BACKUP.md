@@ -138,4 +138,5 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
   (f_hists via `HistoricalFightService`, hors boucle).
 - ✅ IPFS (`session_history` outbox -> `UploadSessionHistoryJob`).
 - Choix moteur : **humains => `game:engine` + batch-processor** ; **bots => `sim:memory`** (pas les deux).
-- ⏳ Restant : events live en in-memory si humains inclus ; test navigateur d'une vraie session (wallet).
+- ✅ Humains inclus dans les pools internes (`INTERNAL_INCLUDE_HUMANS`) + P3 init (engine36).
+- ⏳ Restant pour session wallet réelle : (1) wallet headless EIP-1193, (2) **sync dépôt on-chain -> DB balance** (critique).
