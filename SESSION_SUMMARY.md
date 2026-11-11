@@ -989,3 +989,21 @@ fonds/file), Claim (payout vs remboursement).
 **P2.1 restant** : hook IPFS (`UploadSessionHistoryJob`) pour humains ; events live dans le moteur
 in-memory si humains inclus ; test navigateur d'une **vraie session** (wallet requis) ; choix
 `game:engine` (DB, humains) vs `sim:memory` (bots) en prod.
+
+---
+
+## 38. P2.1 — IPFS + events humains déportés (engine34) 2026-11-10
+
+- `SessionManager` : `archiveSessionHistory` (f_hists + `UploadSessionHistoryJob` → **IPFS** →
+  CID on-chain) est **déporté dans l'outbox** (`session_history`) pour les humains (succès et
+  ruine), quand `GAME_ENGINE_DEFER_SIDE_EFFECTS=true`.
+- `SideEffectOutbox` : handlers `fight_result`, `archive_pool` (f_hists), `session_history`
+  (IPFS), `payout`, `notification`, `sync_limits`, `cooldown`.
+- **Boucle de jeu humaine non bloquée** : tout l'I/O lourd passe par l'outbox (`outbox:process`
+  schedulé chaque minute + queue workers).
+- Tests : headless 22/22 ; navigateur 19/19.
+
+**Choix moteur (prod)** :
+- **Humains / vrais joueurs** → moteur **DB** : `battlepool-engine` (`game:engine`) + `batch-processor`
+  (écrit pools/fights, SessionManager + outbox). `GAME_ENGINE_WORKER=true` ⇒ `Pool::match()` no-op.
+- **Simulations de bots** → `sim:memory` (full in-memory, 0 écriture DB/pool). **Ne pas lancer les deux**.

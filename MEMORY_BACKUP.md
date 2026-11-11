@@ -136,5 +136,6 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
 ## 12. P2.1 — avancement
 - ✅ Combats humains → `fight_result` via outbox async ; pools avec humains → `archive_pool`
   (f_hists via `HistoricalFightService`, hors boucle).
-- ⏳ Restant : IPFS (`UploadSessionHistoryJob`), events live en in-memory si humains inclus,
-  test navigateur d'une vraie session (wallet), choix moteur DB vs sim en prod.
+- ✅ IPFS (`session_history` outbox -> `UploadSessionHistoryJob`).
+- Choix moteur : **humains => `game:engine` + batch-processor** ; **bots => `sim:memory`** (pas les deux).
+- ⏳ Restant : events live en in-memory si humains inclus ; test navigateur d'une vraie session (wallet).
