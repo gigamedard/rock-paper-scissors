@@ -16,16 +16,18 @@ if curl -sf "$BASE/api/health" | grep -q '"status":"OK"'; then ok "health OK"; e
 echo "=== 2. Artefacts (bankroll/P3) ==="
 A=$(curl -s "$BASE/api/artefacts")
 ck "bankroll_enabled"        "$(echo "$A" | JSON "str(d.get('bankroll_enabled')).lower()")" "true"
-ck "session_target_q=1.05"   "$(echo "$A" | JSON "d.get('bankroll_session_target_q')")" "1.05"
-ck "fee_rate=0.1"            "$(echo "$A" | JSON "d.get('bankroll_fee_rate')")" "0.1"
-ck "refund_pct=0.68"         "$(echo "$A" | JSON "d.get('bankroll_refund_pct')")" "0.68"
-ck "contract_fee=10"         "$(echo "$A" | JSON "d.get('smart_contract_fee_percentage')")" "10"
+ck "session_target_q=1.2"    "$(echo "$A" | JSON "d.get('bankroll_session_target_q')")" "1.2"
+ck "fee_rate=0.005"          "$(echo "$A" | JSON "d.get('bankroll_fee_rate')")" "0.005"
+ck "refund_pct=0.15"         "$(echo "$A" | JSON "d.get('bankroll_refund_pct')")" "0.15"
+ck "contract_fee=0.5"        "$(echo "$A" | JSON "d.get('smart_contract_fee_percentage')")" "0.5"
 X=$(echo "$A" | JSON "round(float(d.get('bankroll_recovery_factor',0)),2)")
-ck "recovery_factor~23.1"    "$X" "23.1"
+ck "recovery_factor~6.03"    "$X" "6.03"
 
 echo "=== 3. Front (index + bundle P3) ==="
 if curl -s "$BASE/" | grep -q "p3-breakdown"; then ok "index contient p3-breakdown"; else ko "index p3-breakdown"; fi
 if curl -s "$BASE/" | grep -q "Budget session (C)"; then ok "index contient 'Budget session (C)'"; else ko "index label C"; fi
+if curl -s "$BASE/" | grep -q 'value="1.05"'; then ok "index propose target 1.05"; else ko "index target 1.05"; fi
+if curl -s "$BASE/" | grep -q 'value="1.2"'; then ok "index propose target 1.2"; else ko "index target 1.2"; fi
 JS=$(curl -s "$BASE/build/assets/app.js")
 if echo "$JS" | grep -q "p3-breakdown"; then ok "bundle contient la logique P3"; else ko "bundle P3"; fi
 if echo "$JS" | grep -q "bankroll_recovery_factor"; then ok "bundle lit bankroll_recovery_factor"; else ko "bundle factor"; fi

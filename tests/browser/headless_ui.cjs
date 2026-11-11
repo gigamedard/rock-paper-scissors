@@ -45,14 +45,25 @@ const { chromium } = require('playwright');
   ck('API artefacts joignable', !!art);
   if (art) {
     ck('bankroll_enabled=true', art.bankroll_enabled === true);
-    ck('target=1.05', Number(art.bankroll_session_target_q) === 1.05);
-    ck('X≈23.1', Math.abs(Number(art.bankroll_recovery_factor) - 23.1) < 0.2, 'X=' + art.bankroll_recovery_factor);
+    ck('target=1.2', Number(art.bankroll_session_target_q) === 1.2);
+    ck('X≈6.03', Math.abs(Number(art.bankroll_recovery_factor) - 6.03) < 0.05, 'X=' + art.bankroll_recovery_factor);
   }
 
+  // La cible P3 doit être sélectionnable dans l'UI (1.05 et 1.2).
+  const opts = await page.evaluate(() => {
+    const q = document.getElementById('target-q-input');
+    return q ? Array.from(q.options).map((o) => o.value) : [];
+  });
+  ck('option target 1.05', opts.includes('1.05'), 'opts=' + opts.join(','));
+  ck('option target 1.2', opts.includes('1.2'), 'opts=' + opts.join(','));
+
   // Déclenche le recalcul (onchange -> updateFeeDisplay) même si le panneau est masqué.
+  // Cible active = BANKROLL_SESSION_TARGET_Q (1.2).
   await page.evaluate(() => {
-    const el = document.getElementById('base-bet-input');
-    if (el) { el.value = '0.0004'; el.dispatchEvent(new Event('change', { bubbles: true })); }
+    const b = document.getElementById('base-bet-input');
+    if (b) { b.value = '0.0004'; b.dispatchEvent(new Event('change', { bubbles: true })); }
+    const q = document.getElementById('target-q-input');
+    if (q) { q.value = '1.2'; q.dispatchEvent(new Event('change', { bubbles: true })); }
   }).catch(() => {});
   await page.waitForTimeout(800);
   const p3 = await page.evaluate(() => {
@@ -60,9 +71,22 @@ const { chromium } = require('playwright');
     return { C: g('display-session-capital'), R: g('display-recovery-reserve'), B: g('display-bankroll'), pol: g('display-refund-policy') };
   });
   console.log('  [info] C/R/B/refund =', JSON.stringify(p3));
-  ck('C ≈ 0.12 rendu', Math.abs(parseFloat(p3.C) - 0.12) < 0.002, 'C=' + p3.C);
-  ck('R ≈ 2.772 rendu', Math.abs(parseFloat(p3.R) - 2.772) < 0.02, 'R=' + p3.R);
-  ck('B ≈ 2.892 rendu', Math.abs(parseFloat(p3.B) - 2.892) < 0.02, 'B=' + p3.B);
+  ck('C ≈ 0.04 rendu', Math.abs(parseFloat(p3.C) - 0.04) < 0.002, 'C=' + p3.C);
+  ck('R ≈ 0.2412 rendu', Math.abs(parseFloat(p3.R) - 0.2412) < 0.002, 'R=' + p3.R);
+  ck('B ≈ 0.2812 rendu', Math.abs(parseFloat(p3.B) - 0.2812) < 0.002, 'B=' + p3.B);
+
+  // Bascule sur la cible 1.05 -> X plus grand, donc R/B plus grands.
+  await page.evaluate(() => {
+    const q = document.getElementById('target-q-input');
+    if (q) { q.value = '1.05'; q.dispatchEvent(new Event('change', { bubbles: true })); }
+  }).catch(() => {});
+  await page.waitForTimeout(500);
+  const p3b = await page.evaluate(() => {
+    const g = (id) => document.getElementById(id)?.innerText || null;
+    return { R: g('display-recovery-reserve'), B: g('display-bankroll') };
+  });
+  ck('cible 1.05 -> R ≈ 0.8442', Math.abs(parseFloat(p3b.R) - 0.8442) < 0.003, 'R=' + p3b.R);
+  ck('cible 1.05 -> B ≈ 0.8842', Math.abs(parseFloat(p3b.B) - 0.8842) < 0.003, 'B=' + p3b.B);
 
   try {
     await page.screenshot({ path: '/tests/screenshot.png', fullPage: false });

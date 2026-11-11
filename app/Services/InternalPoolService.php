@@ -200,9 +200,12 @@ class InternalPoolService
                             try {
                                 $bs = app(\App\Services\BankrollSessionService::class);
                                 $baseForP3 = (float) ($user->initial_base_bet ?? $tierBet);
-                                $params = $bs->params($baseForP3);
+                                // Cible choisie par le joueur (1.05 / 1.2) → X, R et B.
+                                $p3Target = (float) ($user->target_q ?? 0);
+                                $p3Target = $p3Target > 1.0 ? $p3Target : null;
+                                $params = $bs->params($baseForP3, $p3Target);
                                 if (\App\Services\BankrollSessionService::canActivate((float) $user->balance, $params)) {
-                                    $bs->initialize($user, $baseForP3);
+                                    $bs->initialize($user, $baseForP3, $p3Target);
                                 }
                             } catch (\Throwable $e) {
                                 \Illuminate\Support\Facades\Log::warning('[P3] internal initialize failed for user ' . $user->id . ': ' . $e->getMessage());

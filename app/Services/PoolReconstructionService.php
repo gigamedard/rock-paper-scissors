@@ -196,9 +196,12 @@ class PoolReconstructionService
                 if (config('bankroll.enabled') && $user->bankroll_total === null) {
                     try {
                         $bs = app(\App\Services\BankrollSessionService::class);
-                        $params = $bs->params($baseBetEther);
+                        // Cible choisie par le joueur (1.05 / 1.2) → X, R et B.
+                        $p3Target = (float) ($user->target_q ?? 0);
+                        $p3Target = $p3Target > 1.0 ? $p3Target : null;
+                        $params = $bs->params($baseBetEther, $p3Target);
                         if (\App\Services\BankrollSessionService::canActivate((float) $user->balance, $params)) {
-                            $bs->initialize($user, $baseBetEther);
+                            $bs->initialize($user, $baseBetEther, $p3Target);
                             UserTracker::info("[P3] Bankroll activé pour {$user->wallet_address}: C={$params['C']} R={$params['R']} B={$params['B']} X={$params['X']}.");
                         }
                     } catch (\Throwable $e) {

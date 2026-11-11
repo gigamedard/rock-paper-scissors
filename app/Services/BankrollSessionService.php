@@ -70,12 +70,20 @@ class BankrollSessionService
         ];
     }
 
-    /** Paramètres depuis la config. */
-    public function params(float $baseBet): array
+    /**
+     * Paramètres depuis la config, avec cible de session optionnelle.
+     * En P3 la cible choisie par le joueur (1.05 / 1.2 / ...) pilote X et donc
+     * la réserve R et le dépôt B = C + R.
+     */
+    public function params(float $baseBet, ?float $targetMultiplier = null): array
     {
+        $target = $targetMultiplier !== null && $targetMultiplier > 1.0
+            ? $targetMultiplier
+            : (float) config('bankroll.session_target_q', 1.05);
+
         return self::computeParams(
             $baseBet,
-            (float) config('bankroll.session_target_q', 1.05),
+            $target,
             (float) config('bankroll.fee_rate', 0.005),
             (int) config('bankroll.security_coefficient', 1000),
             (float) config('refund.refund_pct', 0.25)
@@ -122,9 +130,9 @@ class BankrollSessionService
      * Initialise le bankroll d'un joueur et "découpe" le dépôt :
      *   reserve R -> bankroll_remaining ; balance de jeu -> C.
      */
-    public function initialize(\App\Models\User $user, float $baseBet): array
+    public function initialize(\App\Models\User $user, float $baseBet, ?float $targetMultiplier = null): array
     {
-        $p = $this->params($baseBet);
+        $p = $this->params($baseBet, $targetMultiplier);
 
         $user->bankroll_total = $p['B'];
         $user->bankroll_remaining = $p['R'];
@@ -177,7 +185,8 @@ class BankrollSessionService
 
         // Fonds de recouvrement : frais de rattrapage (F_R) = φ_used·R.
         try {
-            $phiUsed = (float) config('bankroll.fee_rate', 0.005) * (float) config('bankroll.session_target_q', 1.05);
+            $phiUsed = (float) config('bankroll.fee_rate', 0.005)
+                * (float) ($user->bankroll_target ?: config('bankroll.session_target_q', 1.05));
             app(RefundQueueService::class)->credit($phiUsed * $R, 'recovery_fee_R', 'user:' . $user->id);
         } catch (\Throwable $e) {
             // non bloquant

@@ -50,7 +50,8 @@ return [
         'default_target_q' => 1.2,
 
         // Valeurs target_q proposées à l'UI (déblocage par cartes / statut joueur).
-        'target_q_options' => [1.001, 1.2, 1.3, 1.5, 2, 3, 4],
+        // 1.05 et 1.2 = cibles P3 recommandées (sessions courtes / jouables).
+        'target_q_options' => [1.05, 1.2, 1.3, 1.5, 2, 3, 4],
     ],
 
     // Liste exhaustive des mises de base (point 4).

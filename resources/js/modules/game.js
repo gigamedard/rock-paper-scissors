@@ -38,6 +38,18 @@ function isAvaxe() { return gameState.currency === 'avaxe'; }
 function activeGameAddress() { return isAvaxe() ? gameState.v2Address : gameState.contractAddress; }
 function currencySymbol() { return isAvaxe() ? 'AVAXe' : 'TST'; }
 
+/**
+ * Facteur de rattrapage P3 pour la cible (T) et le taux de frais (φ) choisis.
+ * Doit rester identique à BankrollSessionService::computeParams :
+ *   t = T-1 ; φ_used = φ·T ; X = (1 + t + φ_used) / t
+ */
+function p3RecoveryFactor(targetQ, feeRate) {
+    const t = Number(targetQ) - 1;
+    if (!(t > 0)) return 0;
+    const phi = Math.max(0, Number(feeRate) || 0);
+    return (1 + t + phi * Number(targetQ)) / t;
+}
+
 export function initGame() {
     console.log("[Game] Initialisation du module Game");
     
@@ -433,8 +445,18 @@ async function fetchConfig() {
             gameState.config.bankroll_enabled = !!data.bankroll_enabled;
             gameState.config.bankroll_recovery_factor = Number(data.bankroll_recovery_factor || 0);
             gameState.config.bankroll_session_target_q = Number(data.bankroll_session_target_q || 1.05);
+            gameState.config.bankroll_fee_rate = Number(data.bankroll_fee_rate || 0);
             gameState.config.bankroll_refund_pct = Number(data.bankroll_refund_pct || 0);
             gameState.config.bankroll_security_coefficient = Number(data.bankroll_security_coefficient || data.security_coefficient || 0);
+            // Aligner le sélecteur de cible sur la cible P3 active (1.05 / 1.2).
+            if (gameState.config.bankroll_enabled) {
+                const qEl = document.getElementById('target-q-input');
+                const activeTarget = Number(gameState.config.bankroll_session_target_q || 1.2);
+                if (qEl) {
+                    const match = Array.from(qEl.options).find(o => Math.abs(parseFloat(o.value) - activeTarget) < 1e-9);
+                    if (match) qEl.value = match.value;
+                }
+            }
             gameState.contractAddress = data.address || gameState.contractAddress;
             // Chantier feat/avaxe-bridge (P3) : contrats V2 + jeton AVAXe exposés par le bridge.
             gameState.v2Address = data.gameV2?.address || null;
@@ -475,12 +497,21 @@ function updateFeeDisplay() {
         : gameState.config.security_coefficient) || 1;
     const feePct = gameState.config.smart_contract_fee_percentage || 0;
 
+    // Cible de session P3 (1.05 / 1.2 / ...). En P3, la cible choisie pilote
+    // aussi la réserve de rattrapage X (donc le dépôt B = C + R).
+    const qEl = document.getElementById('target-q-input');
+    const targetQ = qEl ? (parseFloat(qEl.value) || 1.2) : 1.2;
+    const feeRate = bankrollOn
+        ? (Number(gameState.config.bankroll_fee_rate) || (feePct / 100))
+        : (feePct / 100);
+    const feePctUsed = feeRate * 100;
+
     // P3 : dépôt unique B = C + R (R = C·X, réserve de rattrapage).
-    const X = bankrollOn ? (Number(gameState.config.bankroll_recovery_factor) || 0) : 0;
+    const X = bankrollOn ? p3RecoveryFactor(targetQ, feeRate) : 0;
     const sessionCapital = bet * coeff;              // C
     const reserve = sessionCapital * X;              // R
     const stake = bankrollOn ? (sessionCapital + reserve) : sessionCapital; // B
-    const fee = stake * (feePct / 100);
+    const fee = stake * feeRate;
     const total = stake + fee;
 
     const elCoeff = document.getElementById('display-coeff');
@@ -492,15 +523,13 @@ function updateFeeDisplay() {
     // Objectif RÉEL = target_q × (1 + frais) : le seuil de gain inclut les frais
     // contrat. Afficher le pourcentage réel évite la confusion « +0.1% » alors
     // qu'il faut en réalité ~+2.6% (frais 2.5%).
-    const qEl = document.getElementById('target-q-input');
-    const targetQ = qEl ? (parseFloat(qEl.value) || 1.2) : 1.2;
-    const effective = targetQ * (1 + feePct / 100);
+    const effective = targetQ * (1 + feeRate);
     const elEff = document.getElementById('effective-target');
     if (elEff) elEff.innerText = 'x' + effective.toFixed(4) + ' (+' + ((effective - 1) * 100).toFixed(2) + '%)';
 
     if (elCoeff) elCoeff.innerText = coeff;
     if (elStake) elStake.innerText = stake.toFixed(4) + " " + currencySymbol();
-    if (elFeePct) elFeePct.innerText = feePct;
+    if (elFeePct) elFeePct.innerText = feePctUsed;
     if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " " + currencySymbol();
     if (elTotal) elTotal.innerText = total.toFixed(4) + " " + currencySymbol();
 
@@ -605,14 +634,18 @@ async function startSession() {
         const feePercentage = gameState.config.smart_contract_fee_percentage;
         
         const baseBetWei = parseUnits(bet, 18);
+        const feeRate = bankrollOn
+            ? (Number(gameState.config.bankroll_fee_rate) || (feePercentage / 100))
+            : (feePercentage / 100);
         let stakeWei = baseBetWei * BigInt(securityCoefficient); // C
         if (bankrollOn) {
             // B = C + C·X : dépôt unique du bankroll (réserve de rattrapage incluse).
+            // X dépend de la cible choisie (1.05 → réserve plus grande que 1.2).
             const xScale = BigInt(1000000);
-            const xScaled = BigInt(Math.round((Number(gameState.config.bankroll_recovery_factor) || 0) * 1e6));
+            const xScaled = BigInt(Math.round(p3RecoveryFactor(targetQ, feeRate) * 1e6));
             stakeWei = stakeWei + (stakeWei * xScaled) / xScale;
         }
-        const feeWei = (stakeWei * BigInt(Math.round(feePercentage * 100))) / BigInt(10000);
+        const feeWei = (stakeWei * BigInt(Math.round((feeRate * 100) * 100))) / BigInt(10000);
         const amountToSendWei = stakeWei + feeWei;
 
         console.info('[Business] 2/4 valeurs tx', {
