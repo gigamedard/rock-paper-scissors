@@ -87,9 +87,12 @@ avec un moteur **aussi rapide que le simulateur**, **bots et humains identiques*
 - Sim : solde total au lieu de `battle_balance` (temps de session faux) ; **mise ×X au rattrapage** ;
   sélection de palier (famine) ; **inclusion/ réactivation des humains**.
 - Fonds : multi-remboursements FIFO distincts ; ack/trim du Stream.
+- **P3 top-up** : dépôt pendant une session active → réinitialisation C/R/B depuis le total
+  on-chain cumulé avec la cible choisie (`pending_bankroll_total` + `reinitializeFromTotal`),
+  appliquée en fin de pool ; évite le sur-crédit de `bankroll_remaining` au gain.
 
 ## 6. État actuel
-- Branche `feat/session-recovery`, image **engine38** partout (app/queue/queue-limits/scheduler/engine).
+- Branche `feat/session-recovery`, image **engine39** partout (app/queue/queue-limits/scheduler/engine).
 - `battlepool-engine` (moteur DB) + `battlepool-batch-processor` actifs ; `sim-memory` arrêté.
   Cohorte **1000 bots** `target_q=1.2`, security 100 (`C=0.04`, `R=0.2412`, `B=0.2812`).
 - `INTERNAL_INCLUDE_HUMANS=true`, `DEFER_SIDE_EFFECTS=true`, `SIM_NO_PAYOUT=true`,

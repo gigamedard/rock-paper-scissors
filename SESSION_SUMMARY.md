@@ -1124,3 +1124,41 @@ cohérente avec le modèle P3.
 
 **Déploiement** : image **`battlepool-app:engine38`** (app/queue/queue-limits/scheduler/engine).
 Commit `1017c44`.
+
+---
+
+## 44. Fix P3 — dépôt pendant une session active (engine39, 2026-11-11)
+
+**Constat (wallet `0x70FE…fC2f`, user 1407)** : 2e dépôt `0.888621` AVAXe (total crédité
+on-chain **4.2154**). L'indexeur `/internal/update-balance` a écrasé `users.balance` avec le
+total cumulé **sans** réinitialiser P3 (`bankroll_total=2.892` déjà défini) ⇒ le joueur jouait
+avec 4.21 alors que P3 croyait `C=0.12, R=2.772` ; au gain, `bankroll_remaining` aurait été
+ajouté → sur-crédit / payout risqué.
+
+**Fix** :
+- Migration `2026_11_11_000000_add_pending_bankroll_total_to_users` (`pending_bankroll_total`).
+- `BankrollSessionService::reinitializeFromTotal(User, total, ?T)` : recalcul **C/R/B** depuis
+  le total on-chain cumulé avec la **cible choisie** : `C = baseBet×security`, `R = total−C`,
+  `X = R/C` (même ratio capital/mise), `balance=C`, `session_started=false`, `bet=baseBet`.
+- `applyPending(User)` : applique le top-up quand le joueur n'est plus en pool (et sans
+  claim/cooldown actif).
+- `BlockchainController::updateUserBalance` :
+  - joueur P3 **en pool** (ou claim/cooldown) → mémorise `pending_bankroll_total`, **ne touche pas**
+    à la balance de jeu ;
+  - joueur P3 **hors pool** → réinitialise immédiatement C/R/B.
+- `SessionManager` (sim + non-sim + no-fight) : applique le pending en fin de pool avant
+  l'évaluation de session (q remis à 1.0).
+- `InternalPoolService` : applique les pending en attente **avant** le choix des paliers
+  (remet la mise de base, évite un mismatch de tier).
+
+**Réparation live** : user 1407 réinitialisé au passage de pool (20:18:58) →
+`balance=0.0396`, `bankroll_total=4.2154`, `bankroll_remaining=4.1754`, `C=0.04`,
+`X=104.385`, `pending=null`, target 1.05. Plus de sur-crédit au gain.
+
+**Surveillance** : service `watch-0x70fe` (`/root/watch_0x70FE.cjs`, log
+`/root/logs/watch_0x70FE.log`) — dépôts/payouts/cooldowns/transferts AVAXe + état DB
+(balance, P3, pool) toutes les 15 s.
+
+**Déploiement** : image **`battlepool-app:engine39`** + migration. Tests : bankroll **24/24**,
+`reinitializeFromTotal` vérifié (0.8842→C=0.04/R=0.8442/X=21.105 ; 4.2154→R=4.1754/X=104.385),
+`applyPending` (bloqué en pool, appliqué hors pool). Commit `7a41518`.

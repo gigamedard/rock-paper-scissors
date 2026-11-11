@@ -114,6 +114,13 @@ jeu ──(1 INSERT rapide)──► side_effect_outbox ──(consumer)──�
   (rattrapage). Paiement par lots (seuil 10 %, batch 5 %), jamais négatif.
 - **Viabilité** : `refund% ≤ couverture = frais / (q·B)`.
   À `T=1.2, φ=10%` : couverture ≈ **69.9 %** → `refund=68 %` recommandé.
+- **Top-up / dépôt en session** : l'indexeur renvoie le **total crédité cumulé**
+  (`DepositReceived.amount`). Si le joueur est en pool, il est stocké dans
+  `users.pending_bankroll_total` sans toucher à la balance de jeu ; en fin de pool
+  (`SessionManager`) ou avant matchmaking (`InternalPoolService`), on recalcule
+  `C = baseBet×security`, `R = total−C`, `X = R/C`, `B = total`, `balance=C`
+  (`BankrollSessionService::reinitializeFromTotal/applyPending`). Évite le sur-crédit
+  de `bankroll_remaining` au gain.
 
 Fichiers : `BankrollService`, `BankrollSessionService`, `RefundQueueService`,
 `refund:process`, migrations `2026_11_05_000000..000002`.
