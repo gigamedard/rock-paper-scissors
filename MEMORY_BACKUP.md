@@ -5,7 +5,7 @@
 > déployé, les bugs corrigés, les mesures et les prochaines étapes.
 
 ## 0. Reprise express (TL;DR)
-- Branche : **`feat/session-recovery`** ; images **engine42** (app, queue, scheduler, engine).
+- Branche : **`feat/session-recovery`** ; images **engine44** (app, queue, scheduler, engine).
 - VPS : `/opt/battlepool` (compose prod) ; code workspace : `/root/workspace/rock-paper-scissors`.
 - **Moteur actif** : DB (`battlepool-engine` + `battlepool-batch-processor`) ; `sim-memory` **arrêté**.
   Cohorte live = **1000 bots autoplay** remis à plat avec les **nouveaux paramètres du test**
@@ -38,15 +38,15 @@ Maximiser le **% de joueurs qui gagnent** de l'argent en **protégeant leur bank
    - session 1 (capital C) ; ruine → **rattrapage (capital R ET mise baseBet×X)** ; ruine → double échec ;
    - fonds : `F_C=φ_used·C` (session), `F_R=φ_used·R` (rattrapage), file FIFO, paiement par lots.
 
-## 3. État déployé (VPS) — engine42
+## 3. État déployé (VPS) — engine44
 | Service | Image | État | Rôle |
 |---|---|---|---|
-| battlepool-app | engine42 | healthy | API/front (Octane) |
-| battlepool-queue-worker(-limits) | engine42 | healthy | jobs (outbox/payout/limits) |
-| battlepool-scheduler | engine42 | up | `schedule:work` (cleanup, refund, outbox) |
-| battlepool-engine | engine42 | healthy | **moteur DB (actif, humains/bots)** |
+| battlepool-app | engine44 | healthy | API/front (Octane) |
+| battlepool-queue-worker(-limits) | engine44 | healthy | jobs (outbox/payout/limits) |
+| battlepool-scheduler | engine44 | up | `schedule:work` (cleanup, refund, outbox) |
+| battlepool-engine | engine44 | healthy | **moteur DB (actif, humains/bots)** |
 | battlepool-batch-processor | 6628503 | healthy | crée les pools internes |
-| battlepool-sim-memory | engine42 | **arrêté** | full in-memory (à utiliser À LA PLACE de engine+batch) |
+| battlepool-sim-memory | engine44 | **arrêté** | full in-memory (à utiliser À LA PLACE de engine+batch) |
 | battlepool-bridge | 6628503 | healthy | node chain bridge |
 | battlepool-db / redis / reverb | — | — | DB / cache-stream / WS |
 
@@ -102,7 +102,7 @@ Cohorte : **1000 bots** `autoplay=1`, `target_q=1.2`, security 100 → `C=0.04`,
 6. P1 : pas de `f_hists`/`queue`/notifs pour bot-vs-bot.
 7. **Top-up P3** : `/internal/update-balance` recevait le **total crédité cumulé** et écrasait
    `users.balance` sans réinitialiser P3 (`bankroll_total` déjà défini) → balance de jeu trop
-   grande et `bankroll_remaining` ajouté au gain = sur-crédit. Fix engine42 :
+   grande et `bankroll_remaining` ajouté au gain = sur-crédit. Fix engine44 :
    `pending_bankroll_total` + `BankrollSessionService::reinitializeFromTotal/applyPending`
    (recalcul C/R/B avec la cible ; pending appliqué en fin de pool / avant matchmaking).
 
@@ -151,7 +151,7 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
 - ✅ **Étape 3 (faite)** : Remboursements — endpoint `/api/refund/pending` (via `RefundQueueService::pendingForUser`)
   + panneau file d'attente (« vous pouvez rejouer »).
 - ✅ **Étape 4 (faite)** : Claim — distinguer payout de session vs remboursement crédité.
-- ✅ **Étape 5 (engine42)** : sélecteur de cible **1.05 / 1.2** (+ options cartes). En P3,
+- ✅ **Étape 5 (engine44)** : sélecteur de cible **1.05 / 1.2** (+ options cartes). En P3,
   la cible choisie pilote **X, R et B** (côté UI et backend : `users.target_q`).
   1.05 → `X=21.105, R=0.8442, B=0.8842` ; 1.2 → `X=6.03, R=0.2412, B=0.2812` (C=0.04).
 
@@ -164,9 +164,15 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
 - ✅ E2E validé : dépôt on-chain -> indexeur -> balance DB -> humain matché -> P3 init (fix reactivation humains).
 - ✅ Test navigateur wallet (EIP-1193 injecté) : dépôt on-chain via UI -> sync DB -> match humain -> P3 init. P2.1(A) TERMINÉ.
 
-## 13. Claim — pré-synchro + retry (engine42)
+## 13. Claim — pré-synchro + retry (engine44)
 - Fin de session humaine non-bot → `SyncUserBalanceJob` (async) → `preSyncHumanClaim`
   → bridge `/generate-signature` : `updateUserBalance` + signature pré-générée.
 - Front : `sendClaimWithRetry()` retente 3× (3s/6s) sur `Amount exceeds user balance`.
 - Cause historique : bridge hot wallet sans TST → synchro impossible ; auto-refill gas
   `battlepool-gas-refill.timer` (seuil 5 TST, +20 TST/10 min).
+
+## 14. Claim — bridge tx queue + /api/claim/sync (engine44)
+- Si `Amount exceeds user balance` persiste : redémarrer `battlepool-bridge` (file `txQueue`
+  en mémoire bloquée), puis `updateUserBalance` manuel si besoin.
+- Endpoint **`POST /api/claim/sync`** (auth) : force synchro + nouvelle signature.
+- Front : sync à la demande + retry 3×. Jobs `SyncUserBalanceJob` throttlés 30 s/user.

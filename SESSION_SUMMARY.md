@@ -1220,3 +1220,25 @@ chargée), le claim part avec l'ancien `userBalances` → `Amount exceeds user b
 **Validé live** : le claim de **0.8882 AVAXe** du wallet `0x70FE…fC2f` a réussi à
 **20:48:45** (tx `0x3a10…8793`), DB remise à 0. Déploiement **`battlepool-app:engine42`**.
 Commit `378ff91`.
+
+## 48. Claim — file de tx bridge bloquée + sync à la demande (engine43/44, 2026-11-11)
+
+**Symptôme** : après un gain (balance DB 0.8866, `userBalances` on-chain 0.8842), le claim
+échoue encore `Amount exceeds user balance`, même avec le retry 3×.
+
+**Cause** : la **file de tx en mémoire** du bridge (`txQueue`/`manageNonce`) était restée
+bloquée (reliquat de la panne de gas) : les `updateUserBalance` de `/generate-signature`
+n'étaient plus minés, le endpoint rendait la signature après son timeout 8 s. `latest`/`pending`
+nonces étaient pourtant égaux → blocage interne, pas un gap on-chain.
+
+**Fix** :
+- **Redémarrage du bridge** (file en mémoire vidée, nonce resynchronisé).
+- Synchro manuelle `updateUserBalance(0x70FE…, 0.8866)` (tx `0x3902…8ff5f`).
+- **`POST /api/claim/sync`** (auth token) : force `preSyncHumanClaim($user, true)` →
+  `updateUserBalance` + nouvelle signature, retourne `{balance, payout_signature, payout_deadline}`.
+- **Front** : `sendClaimWithRetry` appelle `/api/claim/sync` à chaque échec
+  `Amount exceeds user balance`, met à jour `pendingClaim` et retente (3×).
+- **Throttle** des `SyncUserBalanceJob` (cache 30 s par user) pour éviter de marteler le
+  bridge ; `force=true` réservé au endpoint de claim.
+
+**Déploiement** : `battlepool-app:engine43` puis `engine44`. Commits `e196ffd`, `375444c`.

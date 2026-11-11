@@ -92,7 +92,7 @@ avec un moteur **aussi rapide que le simulateur**, **bots et humains identiques*
   appliquée en fin de pool ; évite le sur-crédit de `bankroll_remaining` au gain.
 
 ## 6. État actuel
-- Branche `feat/session-recovery`, image **engine42** partout (app/queue/queue-limits/scheduler/engine).
+- Branche `feat/session-recovery`, image **engine44** partout (app/queue/queue-limits/scheduler/engine).
 - `battlepool-engine` (moteur DB) + `battlepool-batch-processor` actifs ; `sim-memory` arrêté.
   Cohorte **1000 bots** `target_q=1.2`, security 100 (`C=0.04`, `R=0.2412`, `B=0.2812`).
 - `INTERNAL_INCLUDE_HUMANS=true`, `DEFER_SIDE_EFFECTS=true`, `SIM_NO_PAYOUT=true`,
