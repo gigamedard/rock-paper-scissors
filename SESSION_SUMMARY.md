@@ -1024,3 +1024,22 @@ in-memory si humains inclus ; test navigateur d'une **vraie session** (wallet re
 2. **Sync dépôt on-chain → balance DB** : l'engine interne lit `users.balance` (DB). Le dépôt `B` crédite
    le **contrat**, pas la DB. Il manque la synchro (bridge/indexer ou `/update-balance`) pour que
    `canActivate`/P3 s'active après un vrai dépôt. **C'est le point critique restant.**
+
+---
+
+## 40. P2.1(A) — E2E humain validé : dépôt on-chain -> sync DB -> match -> P3 (2026-11-10)
+
+**Fix** : `/update-balance` (BlockchainController) réactive désormais **aussi les humains**
+(status stopped/awaiting_onchain, balance>=bet, sans claim ni cooldown), pas seulement les autoplay.
+
+**Test E2E réel (server-side, wallet de test financé par le faucet)** :
+1. Wallet de test généré + financé (0.5 TST gas + **5 AVAXe mint** par l'owner/faucet).
+2. Humain créé en DB avec ce wallet (autoplay=0, email non-bot).
+3. **Dépôt on-chain** 4 AVAXe (approve+deposit) → tx `0x8eeb4f98…` bloc 7124.
+4. **Indexeur bridge** `DepositReceived` → `/internal/update-balance` → **balance DB = 3.636364** ✅
+5. Humain `available` avec balance ≥ B → **matché dans un pool interne** (13 joueurs, bots+humain)
+   → **P3 initialisé** : `bankroll_total=2.892`, `session_capital=0.12`, balance → 0.1196, pool joué.
+
+⇒ **La chaîne complète fonctionne** : dépôt on-chain → sync DB → humain matché → session P3.
+Il ne reste que l'**injection wallet headless** (harness navigateur) pour rejouer la même chose
+depuis l'UI (même appel `approve`+`deposit`).
