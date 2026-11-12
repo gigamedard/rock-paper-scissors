@@ -29,6 +29,11 @@ return Application::configure(basePath: dirname(__DIR__))
         if (config('game_engine.defer_side_effects')) {
             $schedule->command('outbox:process --once')->everyMinute()->withoutOverlapping();
         }
+
+        // Audit : consumer Redis Stream autonome (même si aucun moteur ne tourne).
+        if (config('game_engine.enabled')) {
+            $schedule->command('fights:archive --once')->everyMinute()->withoutOverlapping();
+        }
     })
 
     ->withMiddleware(function (Middleware $middleware) {

@@ -146,6 +146,28 @@ class SideEffectOutbox
                 }
                 break;
 
+            case 'match_found':
+                $user = User::find($row->user_id);
+                if ($user) {
+                    \App\Helpers\BroadcastHelper::safe(
+                        fn () => event(new \App\Events\MatchFound($user, (int) ($payload['fight_id'] ?? 0), (string) ($payload['opponent'] ?? ''))),
+                        "outbox MatchFound user {$row->user_id}"
+                    );
+                }
+                break;
+
+            case 'battle_started':
+                \App\Models\GameNotification::create([
+                    'user_id' => $row->user_id,
+                    'type' => 'BATTLE_STARTED',
+                    'data' => [
+                        'fight_id' => (int) ($payload['fight_id'] ?? 0),
+                        'opponent_id' => (int) ($payload['opponent_id'] ?? 0),
+                        'pool_id' => (int) ($payload['pool_id'] ?? 0),
+                    ],
+                ]);
+                break;
+
             case 'session_history':
                 $user = User::find($row->user_id);
                 if ($user) {

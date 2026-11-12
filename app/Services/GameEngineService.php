@@ -125,7 +125,7 @@ class GameEngineService
                     $b->battle_balance = (float) $b->battle_balance + $amount;
                 }
 
-                $fights[] = [
+                $fd = [
                     'user1_id' => $a->id,
                     'user2_id' => $b->id,
                     'pool_id' => $pool->id,
@@ -141,6 +141,19 @@ class GameEngineService
                     'updated_at' => $now,
                 ];
 
+                $aHuman = ! $a->isBot();
+                $bHuman = ! $b->isBot();
+
+                // Combat avec humain -> insert individuel (pour obtenir l'id, utile à
+                // MatchFound/battle_started) ; sinon bulk (rapide).
+                $fightId = 0;
+                if ($aHuman || $bHuman) {
+                    $hasHuman = true;
+                    $fightId = (int) \Illuminate\Support\Facades\DB::table('fights')->insertGetId($fd);
+                } else {
+                    $fights[] = $fd;
+                }
+
                 $this->streamWriter->push([
                     'pool_id' => $pool->id,
                     'round' => $round,
@@ -153,10 +166,21 @@ class GameEngineService
                     'user2_move' => $moveB,
                 ]);
 
-                // Effets humains : P2.1 -> outbox asynchrone (durable) si activé,
-                // sinon buffer mémoire groupé (ancien comportement).
-                if (! $a->isBot()) {
-                    $hasHuman = true;
+                // MatchFound + BATTLE_STARTED (humains uniquement) via outbox async.
+                if (($aHuman || $bHuman) && config('game_engine.defer_side_effects', false)) {
+                    $outbox = app(\App\Services\SideEffectOutbox::class);
+                    if ($aHuman) {
+                        $outbox->push($a->id, 'match_found', ['fight_id' => $fightId, 'opponent' => $b->wallet_address]);
+                        $outbox->push($a->id, 'battle_started', ['fight_id' => $fightId, 'opponent_id' => $b->id, 'pool_id' => $pool->id]);
+                    }
+                    if ($bHuman) {
+                        $outbox->push($b->id, 'match_found', ['fight_id' => $fightId, 'opponent' => $a->wallet_address]);
+                        $outbox->push($b->id, 'battle_started', ['fight_id' => $fightId, 'opponent_id' => $a->id, 'pool_id' => $pool->id]);
+                    }
+                }
+
+                // Effets humains (résultat) : outbox async (durable) si activé.
+                if ($aHuman) {
                     $this->emitHumanFight(
                         $a, $round,
                         $result === 'user1_win' ? 'win' : ($result === 'user2_win' ? 'loss' : 'draw'),
@@ -164,8 +188,7 @@ class GameEngineService
                         $b, $moveA, $moveB
                     );
                 }
-                if (! $b->isBot()) {
-                    $hasHuman = true;
+                if ($bHuman) {
                     $this->emitHumanFight(
                         $b, $round,
                         $result === 'user2_win' ? 'win' : ($result === 'user1_win' ? 'loss' : 'draw'),

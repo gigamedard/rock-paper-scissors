@@ -15,7 +15,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Moteur + buffer d'events en singletons (accumulation/flush fiable
+        // entre les appels, notamment via Pool::match dans Octane).
+        $this->app->singleton(\App\Services\GameEventBuffer::class);
+        $this->app->singleton(\App\Services\FightStreamWriter::class);
+        $this->app->singleton(\App\Services\GameEngineService::class);
     }
 
 
