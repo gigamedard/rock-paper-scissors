@@ -12,25 +12,37 @@ function ensureToastContainer() {
     if (container) return container;
     container = document.createElement('div');
     container.id = 'bp-toast-container';
+    // Popover top-layer : les toasts restent au-dessus des modales/overlays et
+    // de tout stacking context (backdrop-filter, transforms, z-index élevés).
+    try { container.setAttribute('popover', 'manual'); } catch (e) { /* noop */ }
     container.style.cssText = [
         'position:fixed',
+        'inset:auto',
         // P4.2 : respecte l'encoche (safe-area) ; la pile est plafonnée en
         // hauteur — un toast ne descend jamais jusqu'à un bouton en cours de
         // signature (les barres d'action de la modale marketplace sont en bas).
         'top:max(16px, env(safe-area-inset-top))',
         'left:50%',
         'transform:translateX(-50%)',
-        'z-index:99999',
+        'z-index:2147483647',
         'display:flex',
         'flex-direction:column',
         'align-items:center',
         'gap:8px',
         'pointer-events:none',
+        'width:max-content',
+        'height:auto',
         'max-width:92vw',
         'max-height:60dvh',
-        'overflow-y:auto'
+        'overflow-y:auto',
+        'margin:0',
+        'border:0',
+        'padding:0',
+        'background:transparent'
     ].join(';');
-    document.body.appendChild(container);
+    // HTML racine : au-dessus de body, même si body/#app crée un stacking context.
+    document.documentElement.appendChild(container);
+    try { if (typeof container.showPopover === 'function') container.showPopover(); } catch (e) { /* déjà ouvert */ }
     return container;
 }
 

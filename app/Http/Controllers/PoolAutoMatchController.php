@@ -181,6 +181,8 @@ class PoolAutoMatchController extends Controller
             'cooldown_until' => $user->cooldown_until ? $user->cooldown_until->toIso8601String() : null,
             'client_batch_interval' => (int) (\App\Models\GameSetting::where('key', 'client_batch_interval')->value('value') ?? 5000),
             'has_received_airdrop' => $user->has_received_airdrop,
+            'has_received_avaxe_airdrop' => (bool) $user->has_received_avaxe_airdrop,
+            'avaxe_airdrop_tx_hash' => $user->avaxe_airdrop_tx_hash,
             'target_q' => $user->target_q,
         ]);
     }

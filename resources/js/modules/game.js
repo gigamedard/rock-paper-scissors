@@ -344,6 +344,24 @@ async function fetchUserStatus() {
                 const claimed = data.has_received_airdrop || window.__bpFaucetClaimed;
                 faucetBtn.style.display = claimed ? 'none' : 'block';
             }
+            // Airdrop AVAXe : masquer le bouton dès que le flag serveur est vrai.
+            if (data.has_received_avaxe_airdrop !== undefined) {
+                const avaxeBtn = document.getElementById('avaxe-faucet-btn');
+                if (avaxeBtn) {
+                    const claimedAvaxe = data.has_received_avaxe_airdrop || window.__bpAvaxeFaucetClaimed;
+                    avaxeBtn.style.display = claimedAvaxe ? 'none' : 'block';
+                }
+                if (data.has_received_avaxe_airdrop && window.userState.userObject) {
+                    window.userState.userObject.has_received_avaxe_airdrop = true;
+                    try {
+                        const stored = JSON.parse(localStorage.getItem('user') || 'null');
+                        if (stored) {
+                            stored.has_received_avaxe_airdrop = true;
+                            localStorage.setItem('user', JSON.stringify(stored));
+                        }
+                    } catch (e) { /* noop */ }
+                }
+            }
             // Ne pas écraser les états actifs locaux (in_pool, in_fight, waiting)
             // si le serveur dit 'available' (désynchronisation DB/blockchain possible)
             const activeLocalStatuses = ['in_pool', 'in_fight', 'waiting', 'setup'];

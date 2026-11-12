@@ -285,7 +285,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 showToast(data.message || (window.t ? window.t('avaxe.claim_ok') : 'Airdrop AVAXe demandé — 5 AVAXe arrivent !'), 'success', 5000);
+                // Masquage immédiat + confirmation serveur (le flag DB est posé par le job).
+                window.__bpAvaxeFaucetClaimed = true;
+                avaxeFaucetBtn.style.display = 'none';
                 window.dispatchEvent(new CustomEvent('app:refresh'));
+                setTimeout(() => window.dispatchEvent(new CustomEvent('app:refresh')), 7000);
             } catch (e) {
                 showToast('Erreur : ' + (e.message || e), 'error');
             } finally {
