@@ -23,6 +23,10 @@ class InternalPoolService
      */
     public function processInternalPools(float $baseBet, ?float $forcedTier = null): array
     {
+        if (config('game_engine.sim_memory_active', false)) {
+            return ['message' => 'sim-memory active (DB matchmaking disabled)', 'created_pools' => 0, 'users_processed' => 0];
+        }
+
         $poolSizes = config('pool.size', [13]);
         $targetPoolSize = $poolSizes[0] ?? 13;
         $limit = 1000;

@@ -43,6 +43,10 @@ class BatchProcessingService
 
     public function processBatch(float $baseBet): array
     {
+        if (config('game_engine.sim_memory_active', false)) {
+            return ['status' => 'no_work', 'message' => 'sim-memory active', 'http_code' => 200];
+        }
+
         $criteriaResult = $this->batchCriteriaService->getTargetPoolSize();
         if ($criteriaResult['error']) {
             return ['status' => 'error', 'message' => $criteriaResult['error'], 'http_code' => 500];
@@ -201,6 +205,10 @@ class BatchProcessingService
      */
     public function processAllBetTiers(): array
     {
+        if (config('game_engine.sim_memory_active', false)) {
+            return ['status' => 'no_work', 'message' => 'sim-memory active', 'http_code' => 200, 'processed' => 0];
+        }
+
         $this->recoverFinishedPools();
 
         $criteriaResult = $this->batchCriteriaService->getTargetPoolSize();

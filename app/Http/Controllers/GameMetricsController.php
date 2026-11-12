@@ -22,6 +22,11 @@ class GameMetricsController extends Controller
 
     public function collect(Request $request)
     {
+        // Moteur in-memory actif : ne PAS créer/processer de pools DB en parallèle.
+        if (config('game_engine.sim_memory_active', false)) {
+            return response()->json(['status' => 'sim_memory_active']);
+        }
+
         // SECURITY/DoS fix: serialize concurrent ticks with a distributed lock.
         // Multiple connected clients each fire /metrics/collect every 5s; without
         // a lock, processInternalPools (locks `users`) and processAllBetTiers
