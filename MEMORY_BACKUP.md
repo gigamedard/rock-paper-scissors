@@ -56,14 +56,14 @@ GAME_CURRENCY=avaxe
 GAME_ENGINE_ENABLED=true   GAME_ENGINE_WORKER=true   GAME_ENGINE_BATCH_POOLS=40   GAME_ENGINE_TICK=1.5
 GAME_ENGINE_SIM_NO_PAYOUT=true   GAME_ENGINE_DEFER_SIDE_EFFECTS=true
 GAME_ENGINE_ARCHIVE_BATCH=5000   GAME_ENGINE_ARCHIVE_BATCHES=4
-BANKROLL_ENABLED=true   BANKROLL_SESSION_TARGET_Q=1.2   BANKROLL_FEE_RATE=0.005
+BANKROLL_ENABLED=true   BANKROLL_SESSION_TARGET_Q=1.2   BANKROLL_FEE_RATE=0.04
 BANKROLL_SECURITY_COEFFICIENT=100
-REFUND_ENABLED=true     REFUND_PCT=0.15
+REFUND_ENABLED=true     REFUND_PCT=1.0
 BATCH_PROCESSOR_INTERVAL=3000
 ```
-On-chain : contrat **BattlepoolV2** `0xb628C8dE0ed6c1192dEB4C4C336fe3595370385E` — `feeBasisPoints=50` (**0.5 %**, tx `0x644d9229…a60bc0`). **GameSetting** `smart_contract_fee_percentage=0.5`.
+On-chain : contrat **BattlepoolV2** `0xb628C8dE0ed6c1192dEB4C4C336fe3595370385E` — `feeBasisPoints=400` (**4 %**, tx `0xa25fef37…a3350f`). **GameSetting** `smart_contract_fee_percentage=4`.
 AVAXe `0x9d8AA35058493Aa826be143B568BCfA8E2F537F7`. chainId 99999.
-Cohorte : **1000 bots** `autoplay=1`, `target_q=1.2`, security 100 → `C=0.04`, `X=6.03`, `R=0.2412`, `B=0.2812` (seuil `1.206`).
+Cohorte : **1000 bots** `autoplay=1`, `target_q=1.2`, security 100, frais 4 % → `C=0.04`, `X=6.24`, `R=0.2496`, `B=0.2896` (dépôt 0.301184 ; seuil `1.248`).
 
 ## 5. Fichiers clés
 - Moteurs : `app/Services/GameEngineService.php`, `app/Services/InMemorySimulationService.php`,
@@ -194,3 +194,10 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
   `SyncUserBalanceJob`, refund sur double échec, famine → reset mise de base.
 - Pour revenir au moteur DB : retirer `GAME_ENGINE_SIM_MEMORY`, arrêter `sim-memory`,
   démarrer `engine` + `batch-processor`.
+
+## 17. Remboursement 100 % de B — frais 4 % (2026-11-12)
+- Contrat V2 `feeBasisPoints=400` (4 %) ; GameSetting 4 ; `BANKROLL_FEE_RATE=0.04` ;
+  `REFUND_PCT=1.0`.
+- P3 T=1.2 : `X=6.24`, `C=0.04`, `R=0.2496`, `B=0.2896`, dépôt `0.301184`.
+- Couverture `φ·T/q ≈ 121 %` (viable) ; fonds ≈1.9986 AVAXe ; remboursement 100 % = 0.2896.
+- Le cas de ruine précédent (15 %) reste payé ; 100 % pour les prochains.

@@ -96,7 +96,7 @@ avec un moteur **aussi rapide que le simulateur**, **bots et humains identiques*
 - `battlepool-engine` (moteur DB) + `battlepool-batch-processor` actifs ; `sim-memory` arrêté.
   Cohorte **1000 bots** `target_q=1.2`, security 100 (`C=0.04`, `R=0.2412`, `B=0.2812`).
 - `INTERNAL_INCLUDE_HUMANS=true`, `DEFER_SIDE_EFFECTS=true`, `SIM_NO_PAYOUT=true`,
-  `REFUND_PCT=0.15` (≤ couverture ~20.6 %).
+  `REFUND_PCT=1.0` (couverture ~121 % avec frais 4 %).
 - Contrat V2 **frais 0.5 %** ; GameSetting 0.5.
 
 ## 7. Restant / prochaines étapes

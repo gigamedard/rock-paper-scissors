@@ -46,7 +46,7 @@ const { chromium } = require('playwright');
   if (art) {
     ck('bankroll_enabled=true', art.bankroll_enabled === true);
     ck('target=1.2', Number(art.bankroll_session_target_q) === 1.2);
-    ck('X≈6.03', Math.abs(Number(art.bankroll_recovery_factor) - 6.03) < 0.05, 'X=' + art.bankroll_recovery_factor);
+    ck('X≈6.24', Math.abs(Number(art.bankroll_recovery_factor) - 6.24) < 0.05, 'X=' + art.bankroll_recovery_factor);
   }
 
   // La cible P3 doit être sélectionnable dans l'UI (1.05 et 1.2).
@@ -72,8 +72,8 @@ const { chromium } = require('playwright');
   });
   console.log('  [info] C/R/B/refund =', JSON.stringify(p3));
   ck('C ≈ 0.04 rendu', Math.abs(parseFloat(p3.C) - 0.04) < 0.002, 'C=' + p3.C);
-  ck('R ≈ 0.2412 rendu', Math.abs(parseFloat(p3.R) - 0.2412) < 0.002, 'R=' + p3.R);
-  ck('B ≈ 0.2812 rendu', Math.abs(parseFloat(p3.B) - 0.2812) < 0.002, 'B=' + p3.B);
+  ck('R ≈ 0.2496 rendu', Math.abs(parseFloat(p3.R) - 0.2496) < 0.002, 'R=' + p3.R);
+  ck('B ≈ 0.2896 rendu', Math.abs(parseFloat(p3.B) - 0.2896) < 0.002, 'B=' + p3.B);
 
   // Bascule sur la cible 1.05 -> X plus grand, donc R/B plus grands.
   await page.evaluate(() => {
@@ -85,8 +85,8 @@ const { chromium } = require('playwright');
     const g = (id) => document.getElementById(id)?.innerText || null;
     return { R: g('display-recovery-reserve'), B: g('display-bankroll') };
   });
-  ck('cible 1.05 -> R ≈ 0.8442', Math.abs(parseFloat(p3b.R) - 0.8442) < 0.003, 'R=' + p3b.R);
-  ck('cible 1.05 -> B ≈ 0.8842', Math.abs(parseFloat(p3b.B) - 0.8842) < 0.003, 'B=' + p3b.B);
+  ck('cible 1.05 -> R ≈ 0.8736', Math.abs(parseFloat(p3b.R) - 0.8736) < 0.003, 'R=' + p3b.R);
+  ck('cible 1.05 -> B ≈ 0.9136', Math.abs(parseFloat(p3b.B) - 0.9136) < 0.003, 'B=' + p3b.B);
 
   try {
     await page.screenshot({ path: '/tests/screenshot.png', fullPage: false });

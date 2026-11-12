@@ -17,11 +17,11 @@ echo "=== 2. Artefacts (bankroll/P3) ==="
 A=$(curl -s "$BASE/api/artefacts")
 ck "bankroll_enabled"        "$(echo "$A" | JSON "str(d.get('bankroll_enabled')).lower()")" "true"
 ck "session_target_q=1.2"    "$(echo "$A" | JSON "d.get('bankroll_session_target_q')")" "1.2"
-ck "fee_rate=0.005"          "$(echo "$A" | JSON "d.get('bankroll_fee_rate')")" "0.005"
-ck "refund_pct=0.15"         "$(echo "$A" | JSON "d.get('bankroll_refund_pct')")" "0.15"
-ck "contract_fee=0.5"        "$(echo "$A" | JSON "d.get('smart_contract_fee_percentage')")" "0.5"
+ck "fee_rate=0.04"           "$(echo "$A" | JSON "d.get('bankroll_fee_rate')")" "0.04"
+ck "refund_pct=1"            "$(echo "$A" | JSON "d.get('bankroll_refund_pct')")" "1"
+ck "contract_fee=4"          "$(echo "$A" | JSON "d.get('smart_contract_fee_percentage')")" "4"
 X=$(echo "$A" | JSON "round(float(d.get('bankroll_recovery_factor',0)),2)")
-ck "recovery_factor~6.03"    "$X" "6.03"
+ck "recovery_factor~6.24"    "$X" "6.24"
 
 echo "=== 3. Front (index + bundle P3) ==="
 if curl -s "$BASE/" | grep -q "p3-breakdown"; then ok "index contient p3-breakdown"; else ko "index p3-breakdown"; fi

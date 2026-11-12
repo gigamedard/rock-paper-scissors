@@ -1320,3 +1320,25 @@ Commits `289df3a`, `33ab4c6`, `bfa3d73`.
 **Fix** : `InMemorySimulationService::buildHumanPool()` priorise un pool humain par cycle et,
 si son palier a <13 joueurs, emprunte des bots (priorité base, sans casser un rattrapage) en
 conservant la mise de martingale. Fallback au palier base seulement si le remplissage échoue.
+
+## 52. Fonds de remboursement 100 % de B — frais contrat 4 % (2026-11-12)
+
+**Décision produit** : rembourser **100 % de B** en cas de double échec, avec des frais relevés
+pour financer le fonds.
+
+**Math** : `q=(1−1/(T(1+φ)))²` ; frais fonds `=φ·T·B` ; couverture `=φ·T/q`.
+À T=1.2, φ=0.04 : `q≈3.95 %`, couverture **≈121 %** (viable). À φ=0.5 %, couverture ≈20 %
+(100 % impossible → d'où le changement).
+
+**Changements** :
+- Contrat V2 : `setFeeBasisPoints(400)` → **4 %** (tx `0xa25f…350f`).
+- `GameSetting smart_contract_fee_percentage=4`.
+- `.env.staging` : `BANKROLL_FEE_RATE=0.04`, `REFUND_PCT=1.0`.
+- P3 recalculé : `C=0.04`, `X=6.24`, `R=0.2496`, `B=0.2896`, dépôt `B+frais = 0.301184`
+  (pour base 0.0004 / T=1.2). Cible 1.05 → `X=21.84`, `R=0.8736`, `B=0.9136`.
+- `/api/artefacts` vérifié : fee=0.04, refund=1, contract_fee=4, X=6.24.
+- Tests : headless **24/24**, navigateur **23/23** (attendus mis à jour).
+
+**Cas de ruine précédent** : remboursé à 15 % (0.04218) avant le changement ; le nouveau taux
+100 % s'applique aux **prochains** double-échecs. Fonds actuel ≈ **1.9986 AVAXe** ; un
+remboursement 100 % = 0.2896. Le fonds est alimenté par `F_C+F_R=φ_used·B≈0.0139` par cycle.
