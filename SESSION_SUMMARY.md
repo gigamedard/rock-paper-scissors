@@ -1308,3 +1308,15 @@ les events live et le flux claim humain), tout en gardant les **bots en autoplay
 
 **Déploiement** : `battlepool-app:engine48` (sim) + `engine49` (app/queue/scheduler).
 Commits `289df3a`, `33ab4c6`, `bfa3d73`.
+
+## 51. Test in-memory humain — priorité pools + remplissage martingale (engine50, 2026-11-12)
+
+**Résultat live (wallet 0x70FE…)** :
+- Dépôt/P3 init **12:04:12**, win **12:04:39** → **27 secondes** de session (vs 25 min avant le fix, 8 min moteur DB).
+- **49 combats** répartis sur les paliers **0.0004 (17), 0.0008 (18), 0.0016 (10), 0.0032 (4)** → la martingale est **réellement jouée** (paliers remplis par des bots).
+- Payout **0.2904 AVAXe**, claim on-chain tx `0xc00a…9b85` à **12:05:34** ; wallet **10.704632 AVAXe** ; DB remise à 0.
+- Cooldown 3 jours (jusqu'au 15/11 12:04:39) ; à effacer pour un nouveau test.
+
+**Fix** : `InMemorySimulationService::buildHumanPool()` priorise un pool humain par cycle et,
+si son palier a <13 joueurs, emprunte des bots (priorité base, sans casser un rattrapage) en
+conservant la mise de martingale. Fallback au palier base seulement si le remplissage échoue.
