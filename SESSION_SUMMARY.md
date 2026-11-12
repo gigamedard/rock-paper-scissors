@@ -1242,3 +1242,22 @@ nonces étaient pourtant égaux → blocage interne, pas un gap on-chain.
   bridge ; `force=true` réservé au endpoint de claim.
 
 **Déploiement** : `battlepool-app:engine43` puis `engine44`. Commits `e196ffd`, `375444c`.
+
+---
+
+## 42. P2.1 CLÔTURÉ (engine38) — 2026-11-10
+
+- **MatchFound + BATTLE_STARTED humains** : émis par l'engine via **outbox** (`match_found`,
+  `battle_started`), avec insert individuel du fight pour obtenir l'`id`. **Vérifié live** :
+  humain matché → `match_found/battle_started/fight_result/sync_limits` en outbox → **`done`**.
+- **Consumer d'audit dédié** : commande `fights:archive {--once --sleep}` + **schedule chaque
+  minute**. (Le Stream est aussi consommé par les moteurs ; la table `fights` reste l'audit
+  persistant, le JSONL est complémentaire.)
+- **Singletons** : `GameEngineService`, `GameEventBuffer`, `FightStreamWriter` enregistrés
+  (`AppServiceProvider`) → accumulation/flush fiables.
+- **Tests** : headless **24/24** (test outbox rendu robuste) ; navigateur **23/23**.
+- **Item 4 (issue complète win/ruin + session_history/IPFS + refund)** : composants validés
+  (session/refund unit tests, outbox live, wallet E2E) ; l'observation d'une **issue réelle**
+  reste un test long (minutes–heures) à laisser tourner (humain de test en cours).
+
+⇒ **P2.1 fermé** (hors test d'issue longue optionnel). Tous les services en **engine38**.

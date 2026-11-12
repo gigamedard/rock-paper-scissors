@@ -162,7 +162,7 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
 - Choix moteur : **humains => `game:engine` + batch-processor** ; **bots => `sim:memory`** (pas les deux).
 - ✅ Humains inclus dans les pools internes (`INTERNAL_INCLUDE_HUMANS`) + P3 init (engine36).
 - ✅ E2E validé : dépôt on-chain -> indexeur -> balance DB -> humain matché -> P3 init (fix reactivation humains).
-- ✅ Test navigateur wallet (EIP-1193 injecté) : dépôt on-chain via UI -> sync DB -> match humain -> P3 init. P2.1(A) TERMINÉ.
+- ✅ P2.1 CLÔTURÉ : MatchFound/BATTLE_STARTED via outbox (vérifié live), `fights:archive` schedulé, singletons. Reste optionnel : test d'issue de session longue (win/ruin).
 
 ## 13. Claim — pré-synchro + retry (engine44)
 - Fin de session humaine non-bot → `SyncUserBalanceJob` (async) → `preSyncHumanClaim`

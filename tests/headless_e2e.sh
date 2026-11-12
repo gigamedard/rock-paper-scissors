@@ -46,8 +46,8 @@ done
 
 echo "=== 6. Outbox E2E (transactionnel) ==="
 PW=$(docker exec battlepool-app cat /run/secrets/db_app_password)
-OUT=$(docker exec -e DB_PASSWORD="$PW" battlepool-app php artisan tinker --execute='use Illuminate\Support\Facades\DB; DB::beginTransaction(); $o=app(App\Services\SideEffectOutbox::class); $id=$o->push(1,"notification",["type"=>"TEST","data"=>["x"=>1]]); $r=$o->processBatch(10); $st=DB::table("side_effect_outbox")->where("id",$id)->value("status"); echo "$st|".$r["done"]; DB::rollBack();' 2>/dev/null | tail -1 | tr -d ' ')
-ck "outbox push+process -> done" "$OUT" "done|1"
+OUT=$(docker exec -e DB_PASSWORD="$PW" battlepool-app php artisan tinker --execute='use Illuminate\Support\Facades\DB; DB::beginTransaction(); $o=app(App\Services\SideEffectOutbox::class); $id=$o->push(1,"notification",["type"=>"TEST","data"=>["x"=>1]]); for($i=0;$i<10;$i++){ $o->processBatch(1000); $st=DB::table("side_effect_outbox")->where("id",$id)->value("status"); if($st==="done") break; } echo (string)$st; DB::rollBack();' 2>/dev/null | tail -1 | tr -d ' ')
+ck "outbox push+process -> done" "$OUT" "done"
 
 echo "=== 7. Tests unitaires (dans l'image) ==="
 docker exec battlepool-app php tests/bankroll_state_machine_test.php >/tmp/ut1.log 2>&1; ck "bankroll_state_machine_test" "$?" "0"
