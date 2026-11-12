@@ -66,6 +66,7 @@ class PoolAutoMatchController extends Controller
             'cid' => 'required|string',
             'target_q' => 'nullable|numeric|min:1.0',
             'cooldown_time' => 'nullable|integer|min:0',
+            'autoplay' => 'nullable|boolean',
         ]);
 
         // SECURITY (IDOR fix): the authenticated user must be the one submitting

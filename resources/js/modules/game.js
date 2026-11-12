@@ -726,7 +726,9 @@ async function startSession() {
                 bet_amount: bet,
                 cid: cid,
                 target_q: targetQ,
-                cooldown_time: cooldownTime
+                cooldown_time: cooldownTime,
+                // UI = humain non-autoplay par défaut (events live, signature/claim humain).
+                autoplay: false
             })
         });
 

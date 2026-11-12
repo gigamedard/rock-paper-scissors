@@ -6,14 +6,14 @@ use App\Models\User;
 
 class UserDataService
 {
-    public function registerForAutoplay(int $userId, $bet_amount, $target_q = 2.0, $cooldown_time = 1440)
+    public function registerForAutoplay(int $userId, $bet_amount, $target_q = 2.0, $cooldown_time = 1440, bool $autoplay = true)
     {
         $user = User::find($userId);
         if (!$user) {
             throw new \Exception('User not found');
         }
         $user->update([
-            'autoplay_active' => true,
+            'autoplay_active' => $autoplay,
             'bet_amount' => $bet_amount,
             'initial_base_bet' => $bet_amount,
             'status' => 'available',

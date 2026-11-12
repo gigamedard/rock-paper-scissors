@@ -64,8 +64,10 @@ class PreMoveService
             ]
         );
 
-        // Register user for autoplay and (stub) store on blockchain.
-        $this->userDataService->registerForAutoplay($data['user_id'], $bet_amount, $target_q, $cooldown_time);
+        // Register user and (stub) store on blockchain.
+        // UI = non-autoplay par défaut (events live + claim humain) ; bots = autoplay.
+        $autoplay = array_key_exists('autoplay', $data) ? (bool) $data['autoplay'] : true;
+        $this->userDataService->registerForAutoplay($data['user_id'], $bet_amount, $target_q, $cooldown_time, $autoplay);
         
         // Clear previous payout signature as a new session is starting
         $user->update(['payout_signature' => null]);
