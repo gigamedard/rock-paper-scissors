@@ -340,6 +340,11 @@ class InMemorySimulationService
         ];
         $this->premoves[$u->id] = $this->premovesFor($u);
 
+        // Si le palier de mise de l'humain n'a pas assez de bots dans la cohorte
+        // in-memory, on le ramène au palier de base (sinon il resterait bloqué).
+        $this->ensureHumanPlayableBet($u->id);
+        $bet = (float) $this->users[$u->id]['bet'];
+
         try {
             DB::table('users')->where('id', $u->id)->update([
                 'status' => 'available',
@@ -459,6 +464,31 @@ class InMemorySimulationService
             $u['bet'] = $next > $max ? (float) $u['base_bet'] : $next;
         } elseif ($endBattle > $baseBet + 1e-9) {
             $u['bet'] = (float) $u['base_bet'];
+        }
+        $u['status'] = 'available';
+        $this->ensureHumanPlayableBet($id);
+    }
+
+    /**
+     * Évite la famine : si le palier de mise de l'humain a moins de 13 joueurs
+     * dans la cohorte in-memory, on le ramène au palier de base.
+     */
+    private function ensureHumanPlayableBet(int $id): void
+    {
+        if (! isset($this->users[$id]) || (float) $this->users[$id]['bet'] <= 0) {
+            return;
+        }
+        $bet = (float) $this->users[$id]['bet'];
+        $count = 0;
+        foreach ($this->users as $other) {
+            if ($other['status'] === 'available' && abs((float) $other['bet'] - $bet) < 1e-9) {
+                $count++;
+            }
+        }
+        $base = (float) $this->users[$id]['base_bet'];
+        if ($count < 13 && abs($bet - $base) > 1e-12) {
+            $this->users[$id]['bet'] = $base;
+            Log::info("[SIM-HUMAN] tier {$bet} underfilled ({$count}), reset to base {$base} for user {$id}");
         }
     }
 
@@ -626,6 +656,7 @@ class InMemorySimulationService
                 $u['status'] = 'available';
 
                 if ($isHuman) {
+                    $this->ensureHumanPlayableBet($id);
                     $this->persistHuman($id, 'recovery');
                 }
 
