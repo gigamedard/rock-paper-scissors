@@ -137,3 +137,20 @@ sh tests/headless_e2e.sh
 
 Le backend est figé. Prochains sujets frontend : cohérence frais 4 %/remboursement 100 %,
 affichage P3 (C/R/B/dépôt), events live, claim/sync, cache/hard-refresh, UX mobile.
+
+## 12. Faucet AVAXe/TST — correctif post-freeze (2026-11-12)
+
+**Symptôme** : les airdrops UI échouaient (`ProcessAvaxeFaucetJob` → HTTP 503
+« Faucet wallet not configured (FAUCET_WALLET_PK missing) »).
+
+**Cause** : le conteneur **bridge** n'avait pas le secret `faucet_wallet_pk`.
+
+**Correctif** :
+- `docker-compose.prod.yml` : secret `faucet_wallet_pk` ajouté au service **bridge** (et au bloc
+  `secrets:` global) ; bridge recréé en `battlepool-bridge:engine51`.
+- Bridge configure `faucetWallet = 0xD629…63Ee` (owner) ; AVAXe/TST disponibles.
+- Job `ProcessAvaxeFaucetJob(1407, 5)` rejoué avec succès :
+  **5 AVAXe** envoyés, tx `0x4baeec16…b5fb316` ; `has_received_avaxe_airdrop=1`.
+- Le faucet TST (`/faucet`) est également débloqué par le même secret.
+
+Sauvegarde compose : `docker-compose.prod.yml.bak.faucet.*`.
