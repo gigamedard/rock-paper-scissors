@@ -41,7 +41,39 @@ export function parseRpcError(error) {
     return gt('errors.generic_error');
 }
 
+let _authInProgress = false;
+
+async function authFetch(url, options = {}, timeoutMs = 20000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } catch (e) {
+        if (e && e.name === 'AbortError') {
+            throw new Error('Délai serveur dépassé. Vérifiez le réseau puis réessayez.');
+        }
+        throw e;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 export async function connectWallet(providerType = 'injected') {
+    // Empêche les doubles clics / connexions concurrentes (très fréquent au
+    // premier login : un 2e clic réinitialisait le provider en pleine signature).
+    if (_authInProgress) {
+        console.warn('[Auth] connexion déjà en cours — clic ignoré');
+        return false;
+    }
+    _authInProgress = true;
+    try {
+        return await _connectWalletImpl(providerType);
+    } finally {
+        _authInProgress = false;
+    }
+}
+
+async function _connectWalletImpl(providerType = 'injected') {
     // SESSION WC DÉJÀ ACTIVE (preuve journal 2026-10-06) : après approbation
     // dans Core, l'utilisateur re-clique Connect Wallet (croyant ne pas être
     // connecté) → resetProvider() tuait la session fraîchement approuvée →
@@ -70,7 +102,7 @@ export async function connectWallet(providerType = 'injected') {
             try {
                 showToast(t('errors.wallet_app_required'), 'info');
             } catch (e) { /* toast non bloquant */ }
-            const ok = await connectWallet('walletconnect');
+            const ok = await _connectWalletImpl('walletconnect');
             return ok;
         }
         showToast(t('errors.wallet_required'), 'error');
@@ -141,22 +173,26 @@ async function _authenticateWithAddress(walletAddress, providerType) {
                 });
                 let accounts = [];
                 try {
-                    accounts = await injectedProvider.send('eth_requestAccounts', []);
-                } catch (reqErr) {
-                    console.warn('[Auth] eth_requestAccounts échoué → fallback eth_accounts :', reqErr?.message || reqErr);
+                    // eth_accounts ne déclenche AUCUNE popup si la permission existe
+                    // déjà ; on ne demande la permission qu'au premier login.
                     accounts = await injectedProvider.send('eth_accounts', []);
+                    if (!Array.isArray(accounts) || accounts.length === 0) {
+                        accounts = await injectedProvider.send('eth_requestAccounts', []);
+                    }
+                } catch (reqErr) {
+                    console.warn('[Auth] lecture des comptes échouée :', reqErr?.message || reqErr);
+                    accounts = await injectedProvider.send('eth_requestAccounts', []).catch(() => []);
                 }
                 console.info('[Auth] comptes du wallet :', accounts);
                 const active = Array.isArray(accounts) && accounts[0] ? accounts[0] : null;
-                if (active) {
-                    effectiveAddress = active;
-                    if (String(active).toLowerCase() !== String(walletAddress).toLowerCase()) {
-                        console.warn('[Auth] compte actif ≠ adresse demandée → recalcul', {
-                            requested: walletAddress, active
-                        });
-                    }
-                } else {
-                    console.warn('[Auth] aucun compte actif retourné par le wallet');
+                if (!active) {
+                    throw new Error('Aucun compte wallet. Déverrouillez votre wallet puis réessayez.');
+                }
+                effectiveAddress = active;
+                if (walletAddress && String(active).toLowerCase() !== String(walletAddress).toLowerCase()) {
+                    console.warn('[Auth] compte actif ≠ adresse demandée → recalcul', {
+                        requested: walletAddress, active
+                    });
                 }
             } catch (e) {
                 console.warn('[Auth] synchronisation du compte actif échouée :', e?.message || e);
@@ -165,11 +201,11 @@ async function _authenticateWithAddress(walletAddress, providerType) {
 
         // Helper : demande un challenge pour une adresse donnée.
         const fetchChallenge = async (addr) => {
-            const challengeRes = await fetch('/api/wallet/generate-message', {
+            const challengeRes = await authFetch('/api/wallet/generate-message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ wallet_address: addr })
-            });
+            }, 20000);
             const challengeData = await challengeRes.json();
             if (!challengeRes.ok) {
                 throw new Error("Erreur de connexion au serveur. Veuillez réessayer.");
@@ -190,7 +226,10 @@ async function _authenticateWithAddress(walletAddress, providerType) {
                 : null;
             if (!eth) throw new Error('Aucun provider wallet.');
             let accts = [];
-            try { accts = await eth.request({ method: 'eth_requestAccounts' }); } catch (e) { accts = []; }
+            try { accts = await eth.request({ method: 'eth_accounts' }); } catch (e) { accts = []; }
+            if (!accts || !accts.length) {
+                try { accts = await eth.request({ method: 'eth_requestAccounts' }); } catch (e) { accts = []; }
+            }
             if (!accts || !accts.length) throw new Error('Aucun compte wallet.');
             let active = accts[0];
             try { active = getAddress(active); } catch (e) { /* garde tel quel */ }
@@ -274,18 +313,28 @@ async function _authenticateWithAddress(walletAddress, providerType) {
             signature = await signChallenge(effectiveAddress, message);
         }
 
-        // 3. Verify Signature
-        const verifyRes = await fetch('/api/wallet/verify-signature', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({
-                wallet_address: effectiveAddress,
-                signature: signature,
-                locale: localStorage.getItem('user_locale') || 'en'
-            })
+        // 3. Verify Signature (timeout 20 s)
+        const verifyBody = () => JSON.stringify({
+            wallet_address: effectiveAddress,
+            signature: signature,
+            locale: localStorage.getItem('user_locale') || 'en'
         });
+        const verifyHeaders = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+        let verifyRes = await authFetch('/api/wallet/verify-signature', {
+            method: 'POST', headers: verifyHeaders, body: verifyBody()
+        }, 20000);
+        let data = await verifyRes.json();
 
-        const data = await verifyRes.json();
+        // Nonce expiré (wallet resté ouvert > TTL) : nouveau challenge + nouvelle signature.
+        if (!verifyRes.ok && verifyRes.status === 400 && /nonce/i.test(String(data?.message || ''))) {
+            console.warn('[Auth] nonce expiré → nouveau challenge + signature');
+            message = await fetchChallenge(effectiveAddress);
+            signature = await signChallenge(effectiveAddress, message);
+            verifyRes = await authFetch('/api/wallet/verify-signature', {
+                method: 'POST', headers: verifyHeaders, body: verifyBody()
+            }, 20000);
+            data = await verifyRes.json();
+        }
 
         if (!verifyRes.ok) throw new Error(data.message || "Erreur serveur.");
 

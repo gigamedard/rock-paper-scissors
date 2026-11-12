@@ -36,7 +36,7 @@ class WalletAuthController extends Controller
             $message = "Sign this message to verify your wallet: {$nonce}";
             $address = strtolower($validated['wallet_address']);
 
-            Cache::put("login_challenge:$address", $message, 300);
+            Cache::put("login_challenge:$address", $message, 900);
             if (!empty($validated['locale'])) {
             Cache::put("login_locale:$address", $validated['locale'], 300);
             }

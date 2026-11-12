@@ -73,21 +73,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 4bis. Stats publiques (polling léger + ticker) — si le DOM les porte
     initStats();
 
-    // 5. Bouton de connexion
+    // 5. Boutons de connexion (état « CONNEXION… » + anti double-clic).
+    const handleConnect = (type, btn) => {
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+            if (btn.disabled) return;
+            const orig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'CONNEXION…';
+            try {
+                await connectWallet(type);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = orig;
+            }
+        });
+    };
     const connectBtn = document.getElementById('connect-btn');
-    if (connectBtn) {
-        connectBtn.addEventListener('click', () => connectWallet('injected'));
-    }
-
+    handleConnect('injected', connectBtn);
     const enterArenaBtn = document.getElementById('enter-arena-btn');
-    if (enterArenaBtn) {
-        enterArenaBtn.addEventListener('click', () => connectWallet('injected'));
-    }
-
+    handleConnect('injected', enterArenaBtn);
     const connectWcBtn = document.getElementById('connect-wc-btn');
-    if (connectWcBtn) {
-        connectWcBtn.addEventListener('click', () => connectWallet('walletconnect'));
-    }
+    handleConnect('walletconnect', connectWcBtn);
 
     // ===== P0 — Option B : CTA de connexion dupliqués dans la landing =====
     // Ids DISTINCTS (#connect-btn-landing / #connect-wc-btn-landing) avec les
@@ -96,14 +103,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // La visibilité suit l'état global : #view-disconnected (qui les porte)
     // est masqué/affiché par game.js updateUI() via auth:success/auth:expired.
     const connectBtnLanding = document.getElementById('connect-btn-landing');
-    if (connectBtnLanding) {
-        connectBtnLanding.addEventListener('click', () => connectWallet('injected'));
-    }
-
+    handleConnect('injected', connectBtnLanding);
     const connectWcBtnLanding = document.getElementById('connect-wc-btn-landing');
-    if (connectWcBtnLanding) {
-        connectWcBtnLanding.addEventListener('click', () => connectWallet('walletconnect'));
-    }
+    handleConnect('walletconnect', connectWcBtnLanding);
 
     // ===== P2 — Modale « Créer une offre » (#mp-offer-modal) =====
     // Ouverture/fermeture purement par classList : aucun listener marketplace

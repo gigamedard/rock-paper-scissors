@@ -33,8 +33,12 @@ export async function initI18n() {
     }
 
     if (!savedLang || !SUPPORTED_LOCALES.includes(savedLang)) {
-        savedLang = await promptLanguageSelection();
+        // Ne bloque plus le premier chargement : auto-détection navigateur
+        // (fallback français). Le choix reste modifiable via ?lang= / réglages.
+        const navLang = String(navigator.language || 'en').slice(0, 2).toLowerCase();
+        savedLang = SUPPORTED_LOCALES.includes(navLang) ? navLang : 'fr';
         localStorage.setItem('user_locale', savedLang);
+        console.info(`[i18n] langue auto-détectée : ${savedLang}`);
     }
 
     currentLocale = savedLang;
