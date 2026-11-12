@@ -120,30 +120,42 @@ class InMemorySimulationService
         $failTime = 0.0;
 
         $this->refreshHumans();
+        $humanPoolBuilt = false;
 
         while ($pools < $maxPools) {
-            // Grouper par palier de mise (= bet_amount, comme le vrai matchmaking).
-            $byTier = [];
-            foreach ($this->users as $id => $u) {
-                if ($u['status'] === 'available' && $u['balance'] >= $u['bet'] - 1e-12) {
-                    $byTier[(string) $u['bet']][] = $id;
-                }
-            }
-            $eligibleTiers = [];
-            foreach ($byTier as $tierBet => $ids) {
-                if (count($ids) >= 13) {
-                    $eligibleTiers[] = [(float) $tierBet, $ids];
-                }
-            }
-            if (empty($eligibleTiers)) {
-                break;
-            }
-            $pick = $eligibleTiers[array_rand($eligibleTiers)];
-            $baseBet = $pick[0];
-            $tierIds = $pick[1];
+            $borrowed = [];
+            $humanPool = $humanPoolBuilt ? null : $this->buildHumanPool();
 
-            shuffle($tierIds);
-            $chunk = array_slice($tierIds, 0, 13);
+            if ($humanPool !== null) {
+                $baseBet = $humanPool['bet'];
+                $chunk = $humanPool['chunk'];
+                $borrowed = $humanPool['borrowed'];
+                $humanPoolBuilt = true;
+            } else {
+                // Grouper par palier de mise (= bet_amount, comme le vrai matchmaking).
+                $byTier = [];
+                foreach ($this->users as $id => $u) {
+                    if ($u['status'] === 'available' && $u['balance'] >= $u['bet'] - 1e-12) {
+                        $byTier[(string) $u['bet']][] = $id;
+                    }
+                }
+                $eligibleTiers = [];
+                foreach ($byTier as $tierBet => $ids) {
+                    if (count($ids) >= 13) {
+                        $eligibleTiers[] = [(float) $tierBet, $ids];
+                    }
+                }
+                if (empty($eligibleTiers)) {
+                    break;
+                }
+                $pick = $eligibleTiers[array_rand($eligibleTiers)];
+                $baseBet = $pick[0];
+                $tierIds = $pick[1];
+
+                shuffle($tierIds);
+                $chunk = array_slice($tierIds, 0, 13);
+            }
+
             $this->poolSeq++;
 
             foreach ($chunk as $id) {
@@ -212,6 +224,13 @@ class InMemorySimulationService
                     $fails++;
                     $failPools += $this->users[$id]['lastPools'] ?? 0;
                     $failTime += $this->users[$id]['lastTime'] ?? 0.0;
+                }
+            }
+
+            // Restaure la mise d'origine des bots empruntés pour remplir le palier humain.
+            foreach ($borrowed as $id => $oldBet) {
+                if (isset($this->users[$id]) && abs((float) $this->users[$id]['bet'] - $baseBet) < 1e-12) {
+                    $this->users[$id]['bet'] = $oldBet;
                 }
             }
 
@@ -340,11 +359,6 @@ class InMemorySimulationService
         ];
         $this->premoves[$u->id] = $this->premovesFor($u);
 
-        // Si le palier de mise de l'humain n'a pas assez de bots dans la cohorte
-        // in-memory, on le ramène au palier de base (sinon il resterait bloqué).
-        $this->ensureHumanPlayableBet($u->id);
-        $bet = (float) $this->users[$u->id]['bet'];
-
         try {
             DB::table('users')->where('id', $u->id)->update([
                 'status' => 'available',
@@ -466,30 +480,90 @@ class InMemorySimulationService
             $u['bet'] = (float) $u['base_bet'];
         }
         $u['status'] = 'available';
-        $this->ensureHumanPlayableBet($id);
     }
 
     /**
-     * Évite la famine : si le palier de mise de l'humain a moins de 13 joueurs
-     * dans la cohorte in-memory, on le ramène au palier de base.
+     * Construit un pool prioritaire autour d'un humain, en remplissant son palier
+     * avec des bots d'autres paliers si nécessaire (préserve la martingale).
+     *
+     * @return array{bet:float,chunk:array<int,int>,borrowed:array<int,float>}|null
      */
-    private function ensureHumanPlayableBet(int $id): void
+    private function buildHumanPool(): ?array
     {
-        if (! isset($this->users[$id]) || (float) $this->users[$id]['bet'] <= 0) {
-            return;
-        }
-        $bet = (float) $this->users[$id]['bet'];
-        $count = 0;
-        foreach ($this->users as $other) {
-            if ($other['status'] === 'available' && abs((float) $other['bet'] - $bet) < 1e-9) {
-                $count++;
+        foreach ($this->users as $humanId => $h) {
+            if (empty($h['is_human']) || $h['status'] !== 'available') {
+                continue;
             }
+            $bet = (float) $h['bet'];
+            if ($bet <= 0 || (float) $h['balance'] + 1e-12 < $bet) {
+                continue;
+            }
+
+            $chunk = [$humanId];
+            $borrowed = [];
+
+            // Joueurs déjà au même palier (humains + bots).
+            foreach ($this->users as $id => $u) {
+                if ($id === $humanId || $u['status'] !== 'available') {
+                    continue;
+                }
+                if ((float) $u['balance'] + 1e-12 < $bet) {
+                    continue;
+                }
+                if (abs((float) $u['bet'] - $bet) > 1e-12) {
+                    continue;
+                }
+                $chunk[] = $id;
+                if (count($chunk) >= 13) {
+                    break;
+                }
+            }
+
+            // Remplir avec des bots (priorité au palier de base, sans casser un rattrapage).
+            if (count($chunk) < 13) {
+                $candidates = [];
+                foreach ($this->users as $id => $u) {
+                    if (in_array($id, $chunk, true) || ! empty($u['is_human']) || $u['status'] !== 'available') {
+                        continue;
+                    }
+                    if ((float) $u['balance'] + 1e-12 < $bet) {
+                        continue;
+                    }
+                    if ((int) ($u['attempt'] ?? 0) === 1) {
+                        continue;
+                    }
+                    $candidates[] = $id;
+                }
+                usort($candidates, function ($a, $b) {
+                    $da = abs((float) $this->users[$a]['bet'] - (float) $this->users[$a]['base_bet']);
+                    $db = abs((float) $this->users[$b]['bet'] - (float) $this->users[$b]['base_bet']);
+                    return $da <=> $db;
+                });
+                foreach ($candidates as $id) {
+                    $borrowed[$id] = (float) $this->users[$id]['bet'];
+                    $this->users[$id]['bet'] = $bet;
+                    $chunk[] = $id;
+                    if (count($chunk) >= 13) {
+                        break;
+                    }
+                }
+            }
+
+            if (count($chunk) < 13) {
+                foreach ($borrowed as $id => $oldBet) {
+                    $this->users[$id]['bet'] = $oldBet;
+                }
+                $base = (float) $h['base_bet'];
+                if (abs($bet - $base) > 1e-12) {
+                    $this->users[$humanId]['bet'] = $base;
+                }
+                return null;
+            }
+
+            return ['bet' => $bet, 'chunk' => $chunk, 'borrowed' => $borrowed];
         }
-        $base = (float) $this->users[$id]['base_bet'];
-        if ($count < 13 && abs($bet - $base) > 1e-12) {
-            $this->users[$id]['bet'] = $base;
-            Log::info("[SIM-HUMAN] tier {$bet} underfilled ({$count}), reset to base {$base} for user {$id}");
-        }
+
+        return null;
     }
 
     private function persistHuman(int $id, string $phase): void
@@ -656,7 +730,6 @@ class InMemorySimulationService
                 $u['status'] = 'available';
 
                 if ($isHuman) {
-                    $this->ensureHumanPlayableBet($id);
                     $this->persistHuman($id, 'recovery');
                 }
 
