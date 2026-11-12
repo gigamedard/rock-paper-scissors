@@ -1261,3 +1261,27 @@ nonces étaient pourtant égaux → blocage interne, pas un gap on-chain.
   reste un test long (minutes–heures) à laisser tourner (humain de test en cours).
 
 ⇒ **P2.1 fermé** (hors test d'issue longue optionnel). Tous les services en **engine38**.
+
+## 49. UI — les joueurs qui rejoignent via l'UI sont non-autoplay (engine45, 2026-11-12)
+
+**Demande** : tout joueur qui rejoint via l'UI doit être **non-autoplay** par défaut (pour recevoir
+les events live et le flux claim humain), tout en gardant les **bots en autoplay**.
+
+**Modifs** :
+- `resources/js/modules/game.js` (`startSession`) : le POST `/user/pre-moves` envoie
+  **`autoplay: false`**.
+- `PoolAutoMatchController::storePreMoves` : validation `autoplay` (nullable|boolean).
+- `PreMoveService` : lit `autoplay` (défaut **true** → compat scripts bots qui ne l'envoient pas).
+- `UserDataService::registerForAutoplay(..., bool $autoplay = true)` : écrit `autoplay_active`
+  selon le flag.
+- Wallet `0x70FE…` (user 1407) repassé à `autoplay_active=0` (il était autoplay=1).
+
+**Conséquences** :
+- UI humain → `isBot()=false` → events `match_found` / `battle_started` / `fight_result` via outbox,
+  signature/claim humain, cooldown/syncLimits.
+- Scripts bots (`/user/pre-moves` sans flag) → `autoplay_active=1` → fast-path bot inchangé.
+- Les humains non-autoplay restent éligibles aux pools internes
+  (`INTERNAL_INCLUDE_HUMANS=true` + `initial_base_bet`/`target_q`).
+
+**Vérifs** : `registerForAutoplay(false)` → autoplay=0 ; `(true)` → 1 ; bundle contient
+`autoplay:!1` ; headless E2E **24/24**. Déploiement **`battlepool-app:engine45`**. Commit `7be922c`.
