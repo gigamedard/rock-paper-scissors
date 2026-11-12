@@ -1342,3 +1342,14 @@ pour financer le fonds.
 **Cas de ruine précédent** : remboursé à 15 % (0.04218) avant le changement ; le nouveau taux
 100 % s'applique aux **prochains** double-échecs. Fonds actuel ≈ **1.9986 AVAXe** ; un
 remboursement 100 % = 0.2896. Le fonds est alimenté par `F_C+F_R=φ_used·B≈0.0139` par cycle.
+
+## 53. Frontend — toasts au-dessus des overlays + bouton AVAXe après claim (engine52)
+
+- **Toast** : `toast.js` utilise désormais le **top-layer HTML** (`popover="manual"` +
+  `showPopover()`, append sur `<html>`, z-index max) → visible au-dessus des modales/overlays.
+- **Airdrop AVAXe** : `/api/user/status` expose `has_received_avaxe_airdrop` +
+  `avaxe_airdrop_tx_hash` ; le bouton est masqué après le claim (flag local + flag serveur)
+  et l'état localStorage est synchronisé.
+- Backend faucet : secret `faucet_wallet_pk` monté dans le bridge (5 AVAXe envoyés,
+  tx `0x4bae…`).
+- Tests : headless **24/24**, navigateur **23/23**. Déploiement **engine52**.
