@@ -1271,7 +1271,7 @@ les events live et le flux claim humain), tout en gardant les **bots en autoplay
 - `resources/js/modules/game.js` (`startSession`) : le POST `/user/pre-moves` envoie
   **`autoplay: false`**.
 - `PoolAutoMatchController::storePreMoves` : validation `autoplay` (nullable|boolean).
-- `PreMoveService` : lit `autoplay` (défaut **true** → compat scripts bots qui ne l'envoient pas).
+- `PreMoveService` : flag explicite prioritaire ; **sans flag**, défaut = `false` si l'email n'est pas `bot_%` (UI/humain), `true` si `bot_%` (bots). Protège aussi les anciens fronts en cache.
 - `UserDataService::registerForAutoplay(..., bool $autoplay = true)` : écrit `autoplay_active`
   selon le flag.
 - Wallet `0x70FE…` (user 1407) repassé à `autoplay_active=0` (il était autoplay=1).
@@ -1284,4 +1284,4 @@ les events live et le flux claim humain), tout en gardant les **bots en autoplay
   (`INTERNAL_INCLUDE_HUMANS=true` + `initial_base_bet`/`target_q`).
 
 **Vérifs** : `registerForAutoplay(false)` → autoplay=0 ; `(true)` → 1 ; bundle contient
-`autoplay:!1` ; headless E2E **24/24**. Déploiement **`battlepool-app:engine45`**. Commit `7be922c`.
+`autoplay:!1` ; headless E2E **24/24**. Déploiement **`battlepool-app:engine46`**. Commits `7be922c` + `83c840e`.
