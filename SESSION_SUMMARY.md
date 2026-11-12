@@ -1353,3 +1353,19 @@ remboursement 100 % = 0.2896. Le fonds est alimenté par `F_C+F_R=φ_used·B≈0
 - Backend faucet : secret `faucet_wallet_pk` monté dans le bridge (5 AVAXe envoyés,
   tx `0x4bae…`).
 - Tests : headless **24/24**, navigateur **23/23**. Déploiement **engine52**.
+
+## 54. Frontend — première connexion accélérée/robustifiée (engine53)
+
+**Problèmes** : la première connexion était longue (modale de langue bloquante ~77 s dans
+le log) et échouait souvent (doubles clics, nonce expiré, appels wallet redondants, pas de timeout).
+
+**Correctifs** :
+- `i18n` : **plus de modale bloquante** au premier chargement → auto-détection
+  `navigator.language` (fallback `fr`), `?lang=` et réglages conservés.
+- `auth.js` : verrou anti double-clic (`_authInProgress`) ; `eth_accounts` d'abord (pas de
+  popup inutile), `eth_requestAccounts` seulement au premier login ; timeout 20 s sur
+  challenge/verify ; **retry automatique sur nonce expiré** ; TTL nonce backend **900 s**.
+- Boutons Connect : état **« CONNEXION… »** + désactivation pendant le flux.
+- Mesure Playwright (wallet EIP-1193 injecté) : **auth réussie en 2,87 s** (vs ~77 s + auth).
+
+Déploiement **engine53**. Headless **24/24**, navigateur **23/23**.
