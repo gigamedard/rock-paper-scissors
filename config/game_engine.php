@@ -37,4 +37,9 @@ return [
 
     // Dossier d'archive JSONL (audit/équitabilité, en plus de la table fights).
     'archive_dir' => env('GAME_ENGINE_ARCHIVE_DIR', storage_path('app/fights-archive')),
+
+    // Moteur in-memory : inclure aussi les humains UI (autoplay=0) comme joueurs.
+    // À utiliser À LA PLACE de engine + batch-processor.
+    'sim_include_humans' => (bool) env('SIM_INCLUDE_HUMANS', false),
+    'sim_human_refresh_seconds' => (float) env('SIM_HUMAN_REFRESH_SECONDS', 10),
 ];
