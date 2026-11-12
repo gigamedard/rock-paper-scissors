@@ -24,6 +24,14 @@ class RunGameEngine extends Command
 
     public function handle(GameEngineService $engine): int
     {
+        // Garde-fou : si le moteur in-memory est le moteur actif, ne pas lancer
+        // le traitement DB en parallèle (double traitement interdit).
+        if (config('game_engine.sim_memory_active', false)) {
+            $this->warn('sim-memory est actif : game:engine est désactivé (mode exclusif).');
+
+            return self::SUCCESS;
+        }
+
         $lock = Cache::lock('game_engine_tick', 30);
         if (! $lock->get()) {
             $this->warn('Un autre moteur détient le lock, abandon.');
