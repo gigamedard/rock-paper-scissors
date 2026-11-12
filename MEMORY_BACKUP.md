@@ -184,3 +184,13 @@ DB : conteneur `battlepool-db`, base `rock_paper_scissors`, user `rps_app`.
 - Effet : `isBot()=false` pour les humains UI → events live (match_found/battle_started/fight_result),
   signature/claim humain, cooldown/syncLimits ; les pools internes les incluent toujours.
 - Wallet `0x70FE…` (user 1407) passé à `autoplay_active=0`.
+
+## 16. Moteur in-memory pour les humains (engine49)
+- Bascule live : `sim-memory` actif (engine49), `engine`+`batch` arrêtés.
+- `SIM_INCLUDE_HUMANS=true` (refresh 5 s) : humains UI chargés dans le sim.
+- `GAME_ENGINE_SIM_MEMORY=true` : **désactive** `/metrics/collect` + `InternalPoolService` +
+  `BatchProcessingService` (évite le double traitement DB).
+- Humains : P3 persistant après chaque pool, outbox fight events, signature/claim via
+  `SyncUserBalanceJob`, refund sur double échec, famine → reset mise de base.
+- Pour revenir au moteur DB : retirer `GAME_ENGINE_SIM_MEMORY`, arrêter `sim-memory`,
+  démarrer `engine` + `batch-processor`.

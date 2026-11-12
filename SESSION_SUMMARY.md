@@ -1285,3 +1285,26 @@ les events live et le flux claim humain), tout en gardant les **bots en autoplay
 
 **Vérifs** : `registerForAutoplay(false)` → autoplay=0 ; `(true)` → 1 ; bundle contient
 `autoplay:!1` ; headless E2E **24/24**. Déploiement **`battlepool-app:engine46`**. Commits `7be922c` + `83c840e`.
+
+## 50. Humains dans le moteur in-memory (engine48/49, 2026-11-12)
+
+**Objectif** : jouer les sessions des joueurs UI **dans `sim:memory`** (vitesse bots), pas dans `game:engine`.
+
+**Implémentation** :
+- `InMemorySimulationService` : `SIM_INCLUDE_HUMANS=true` charge dynamiquement les humains
+  (`autoplay=0`, email non `bot_%`, `initial_base_bet`/`target_q`, status `available`) toutes les
+  `SIM_HUMAN_REFRESH_SECONDS` (5 s).
+- P3 : `initialize` (C/R/B) à l'arrivée ; état persisté après chaque pool ; win → payout
+  (balance + R en session 1), signature/claim via `SyncUserBalanceJob` ; double échec →
+  `enqueueRefund` ; cooldown/sync_limits/session_finished/session_history via outbox.
+- Combats humains : insertion `fights` (pool_id NULL → persiste hors cleanup), outbox
+  `match_found`/`battle_started`/`fight_result` par combat.
+- **Famine** : si le palier de mise de l'humain a <13 joueurs in-memory, retour au palier de base.
+- **Double traitement** : `GAME_ENGINE_SIM_MEMORY=true` désactive le matchmaking DB
+  (`/metrics/collect`, `InternalPoolService`, `BatchProcessingService`) quand `sim:memory` est actif.
+- Basculé : `battlepool-engine` + `batch-processor` **arrêtés**, `battlepool-sim-memory`
+  (engine49) actif, cohorte **3461** (3460 bots + humain 1407).
+- Vérifié live : humain chargé, combats/outbox, updates DB par pool, `pools` DB ne grossit plus.
+
+**Déploiement** : `battlepool-app:engine48` (sim) + `engine49` (app/queue/scheduler).
+Commits `289df3a`, `33ab4c6`, `bfa3d73`.
