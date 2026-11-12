@@ -65,8 +65,13 @@ class PreMoveService
         );
 
         // Register user and (stub) store on blockchain.
-        // UI = non-autoplay par défaut (events live + claim humain) ; bots = autoplay.
-        $autoplay = array_key_exists('autoplay', $data) ? (bool) $data['autoplay'] : true;
+        // Défaut : UI/humain = non-autoplay (events live + claim humain) ;
+        // bots (emails bot_%) = autoplay. Le flag explicite reste prioritaire.
+        if (array_key_exists('autoplay', $data)) {
+            $autoplay = (bool) $data['autoplay'];
+        } else {
+            $autoplay = str_starts_with((string) $user->email, 'bot_');
+        }
         $this->userDataService->registerForAutoplay($data['user_id'], $bet_amount, $target_q, $cooldown_time, $autoplay);
         
         // Clear previous payout signature as a new session is starting
