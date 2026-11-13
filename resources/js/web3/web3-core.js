@@ -897,6 +897,20 @@ export async function ensurePingalaNetwork() {
     }
 
     await addPingalaNetwork(provider);
+
+    // VÉRIFICATION POST-SWITCH : certains wallets (Core/WC) répondent OK au
+    // switch mais restent sur l'ancienne chaîne → la tx partait sur le mauvais
+    // réseau et `tx.wait()` restait bloqué côté Pingala. On refuse alors le flux.
+    try {
+        const afterChainId = await provider.request({ method: 'eth_chainId' });
+        const after = typeof afterChainId === 'string' ? parseInt(afterChainId, 16) : Number(afterChainId);
+        if (after !== target) {
+            throw new Error(`Le wallet n'a pas basculé sur Pingala (chainId ${after}). Change le réseau dans le wallet puis réessaie.`);
+        }
+    } catch (e) {
+        if (e && /n'a pas basculé/.test(e.message)) throw e;
+        console.warn('[Web3] vérification post-switch impossible:', e);
+    }
     return true;
 }
 

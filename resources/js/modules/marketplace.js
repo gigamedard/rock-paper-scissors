@@ -66,7 +66,7 @@ async function _getFreshNonce() {
 // bouton restait grisé « Création… » des minutes). Tout le cycle
 // send+wait est plafonné : au délai, on jette une erreur claire et
 // réessayable plutôt que de figer l'UI à l'infini.
-const _TX_TIMEOUT_MS = 120000;
+const _TX_TIMEOUT_MS = 60000;
 function _withTimeout(promise, label) {
     return Promise.race([
         promise,
@@ -76,12 +76,33 @@ function _withTimeout(promise, label) {
     ]);
 }
 
-async function _sendWithFreshNonce(sendFn) {
+/**
+ * Attend que l'allowance ERC20 atteigne le montant requis. Plus fiable que
+ * tx.wait() quand le RPC/WalletConnect perd la réponse de minage : si la tx
+ * a bien été minée, l'allowance suffit pour débloquer l'étape suivante.
+ */
+async function _waitForAllowance(contract, owner, spender, minAmount, timeoutMs = 45000) {
+    const started = Date.now();
+    let last = null;
+    while (Date.now() - started < timeoutMs) {
+        try {
+            last = await contract.allowance(owner, spender);
+            if (last >= minAmount) return true;
+        } catch (e) { /* RPC transient : on retente */ }
+        await new Promise((r) => setTimeout(r, 2000));
+    }
+    console.warn('[Marketplace] allowance non confirmée', { last: last?.toString(), min: minAmount.toString() });
+    return false;
+}
+
+async function _sendWithFreshNonce(sendFn, opts = {}) {
     let lastError;
     for (let attempt = 1; attempt <= _MAX_NONCE_RETRIES; attempt++) {
         const nonce = await _getFreshNonce();
         try {
             const tx = await _withTimeout(sendFn({ nonce }), 'envoi de la transaction');
+            console.info(`[TX] envoyée hash=${tx.hash} nonce=${nonce} tentative=${attempt}`);
+            if (opts.waitForReceipt === false) return tx;
             return await _withTimeout(tx.wait(), 'minage de la transaction');
         } catch (e) {
             lastError = e;
@@ -707,11 +728,31 @@ async function handleApprove() {
             return;
         }
 
+        // Vérifie la chaîne réellement active AVANT d'envoyer (switch silencieux
+        // raté = tx sur Avalanche/mainnet et attente infinie côté Pingala).
+        const ethersProvider = await getProvider();
+        const liveChainId = await ethersProvider.send('eth_chainId', []);
+        const liveChain = typeof liveChainId === 'string' ? parseInt(liveChainId, 16) : Number(liveChainId);
+        if (liveChain !== Number(PRANA_NETWORK.chainId)) {
+            throw new Error(`Wallet sur la chaîne ${liveChain}, pas Pingala (${PRANA_NETWORK.chainId}). Change le réseau puis réessaie.`);
+        }
+
         btn.textContent = t('marketplace.approve_confirm_wallet');
         console.info('[Business-MP] approve : tx env (allowance actuelle=', allowance.toString(), ')');
         ensureWalletVisibleForTx('core');
-        await _sendWithFreshNonce((ovr) => sntContract.approve(CONTRACT_ADDRESSES.marketplace, sntAmountWei, ovr));
-        console.info('[Business-MP] approve : tx minée OK');
+        // On n'attend PAS tx.wait() : on récupère le hash puis on surveille
+        // l'allowance (résiste aux réponses de minage perdues en WC/Core).
+        const approveTx = await _sendWithFreshNonce(
+            (ovr) => sntContract.approve(CONTRACT_ADDRESSES.marketplace, sntAmountWei, ovr),
+            { waitForReceipt: false }
+        );
+        btn.textContent = t('marketplace.creating_btn_label');
+        _showMpNotification(`Transaction envoyée (${String(approveTx.hash).slice(0, 10)}…), attente de confirmation…`, 'info');
+        const approved = await _waitForAllowance(sntContract, signerAddr, CONTRACT_ADDRESSES.marketplace, sntAmountWei, 45000);
+        if (!approved) {
+            throw new Error(`Approbation non confirmée (tx ${approveTx.hash}). Vérifie le réseau du wallet puis réessaie : si la tx est passée, l'allowance sera détectée sans nouvelle transaction.`);
+        }
+        console.info('[Business-MP] approve : allowance confirmée OK');
 
         _approvalDone = true;
         createBtn.disabled = false;
