@@ -348,8 +348,8 @@ async function fetchUserStatus() {
             if (data.has_received_avaxe_airdrop !== undefined) {
                 const avaxeBtn = document.getElementById('avaxe-faucet-btn');
                 if (avaxeBtn) {
-                    const claimedAvaxe = data.has_received_avaxe_airdrop || window.__bpAvaxeFaucetClaimed;
-                    avaxeBtn.style.display = claimedAvaxe ? 'none' : 'block';
+                    const notClaimed = data.has_received_avaxe_airdrop === false && !window.__bpAvaxeFaucetClaimed;
+                    avaxeBtn.style.display = notClaimed ? 'block' : 'none';
                 }
                 if (data.has_received_avaxe_airdrop && window.userState.userObject) {
                     window.userState.userObject.has_received_avaxe_airdrop = true;

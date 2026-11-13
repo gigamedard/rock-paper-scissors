@@ -644,6 +644,13 @@ function _showMpNotification(message, type = 'info') {
         banner.style.display = 'block';
         setTimeout(() => { banner.style.display = 'none'; }, 6000);
     }
+    // Aussi en toast global (top-layer, visible au-dessus de la modale marketplace).
+    try {
+        if (typeof window.showToast === 'function') {
+            const tt = type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info');
+            window.showToast(message, tt, 6000);
+        }
+    } catch (e) { /* noop */ }
     // Aussi dans le feed global
     const color = type === 'error' ? 'var(--accent)' : type === 'success' ? 'var(--success)' : 'var(--primary)';
     addToFeed(message, color);

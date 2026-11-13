@@ -222,8 +222,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateFaucetButton(!!(user && user.has_received_airdrop));
         const avaxeBtn = document.getElementById('avaxe-faucet-btn');
         if (avaxeBtn) {
-            const claimed = !!(user && user.has_received_avaxe_airdrop);
-            avaxeBtn.style.display = claimed ? 'none' : 'block';
+            // Masqué par défaut ; affiché uniquement si le serveur dit explicitement
+            // que l'airdrop n'a PAS été réclamé (évite le bouton fantôme).
+            const notClaimed = !!(user && user.has_received_avaxe_airdrop === false);
+            avaxeBtn.style.display = notClaimed ? 'block' : 'none';
         }
     });
 
@@ -593,7 +595,9 @@ function checkAuthSession() {
             const fb = document.getElementById('faucet-claim-btn');
             if (fb && !user.has_received_airdrop) fb.style.display = 'block';
             const avaxeBtn = document.getElementById('avaxe-faucet-btn');
-            if (avaxeBtn && !user.has_received_avaxe_airdrop) avaxeBtn.style.display = 'block';
+            if (avaxeBtn) {
+                avaxeBtn.style.display = (user.has_received_avaxe_airdrop === false) ? 'block' : 'none';
+            }
         } catch(e) {
             console.error("Erreur parsing session:", e);
             localStorage.removeItem('user');
