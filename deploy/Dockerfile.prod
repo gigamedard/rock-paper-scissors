@@ -1,0 +1,80 @@
+# ==========================================
+# Dockerfile.prod — BattlePool VPS image (Laravel + Octane/Swoole + Reverb)
+# ==========================================
+# Copy of the root `Dockerfile` + prod layer:
+#   composer install --no-dev   (vendor/ is NOT tracked in git, so a VPS clone
+#   MUST install PHP deps inside the image — the root Dockerfile only works
+#   because the local build context happens to contain vendor/).
+#   + APP_ENV=staging baked at image level.
+#
+# Build context = repo root (referenced as deploy/Dockerfile.prod from
+# the compose file in /opt/battlepool).
+# ==========================================
+
+# ---------------------------------------------------------
+# STAGE 1: Node builder (Vite frontend bundle)
+# ---------------------------------------------------------
+FROM node:24-slim AS frontend-builder
+
+WORKDIR /app
+
+# Vite build-time variables (WalletConnect/Reown project ID is required for
+# WalletConnect/AppKit; without it the fallback fails with "Project not found").
+ARG VITE_WALLETCONNECT_PROJECT_ID=""
+ARG VITE_APP_NAME="Battlepool"
+ENV VITE_WALLETCONNECT_PROJECT_ID=$VITE_WALLETCONNECT_PROJECT_ID
+ENV VITE_APP_NAME=$VITE_APP_NAME
+
+# Deterministic npm install (lockfile-driven)
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copy source + build (generates /app/public/build)
+COPY . .
+RUN npm run build
+
+# ---------------------------------------------------------
+# STAGE 2: PHP runtime (Swoole + Octane + Reverb)
+# ---------------------------------------------------------
+FROM serversideup/php:8.3-cli
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git curl unzip libzip-dev libicu-dev libgmp-dev \
+    && install-php-extensions gmp pcntl openswoole \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Composer install --no-dev: REQUIRED on VPS (vendor/ not tracked in git).
+# Reproducible: pinned by composer.lock from the repo.
+COPY --chown=www-data:www-data composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+
+# Full app after composer (layer cache: composer layer stable while only
+# app code changes)
+COPY --chown=www-data:www-data . /var/www/html
+
+# Frontend bundle from stage 1 (single source of truth for the served bundle)
+COPY --from=frontend-builder --chown=www-data:www-data /app/public/build /var/www/html/public/build
+
+USER root
+RUN chmod -R 775 storage bootstrap/cache
+
+# Laravel prod caches. config:clear first: APP_KEY arrives at runtime via the
+# security-entrypoint (Docker secret) — never baked/route-cached at build time.
+# route/view caches are secret-independent and safe to bake.
+RUN php artisan config:clear \
+    && php artisan route:cache \
+    && php artisan view:cache
+
+# Security entrypoint: reads /run/secrets/* -> env vars before exec (project
+# standard pattern, see security-entrypoint.sh).
+COPY security-entrypoint.sh /usr/local/bin/security-entrypoint.sh
+USER root
+RUN chmod +x /usr/local/bin/security-entrypoint.sh
+USER www-data
+
+# Defense in depth: staging env even if env_file is misconfigured.
+ENV APP_ENV=staging
+
+ENTRYPOINT ["/usr/local/bin/security-entrypoint.sh"]

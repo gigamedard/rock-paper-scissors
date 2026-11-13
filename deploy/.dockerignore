@@ -1,0 +1,51 @@
+# =====================================================================
+# .dockerignore — build context for `deploy/` variants (VPS production)
+# =====================================================================
+# Copied by deploy_vps.sh to /opt/battlepool/.dockerignore (repo root).
+# Same basis as the root .dockerignore + STRICTER exclusion of secrets:
+# nothing sensitive is ever baked into battlepool-app / battlepool-bridge.
+#
+# SECURITY: secrets travel via tar-over-ssh (deploy_vps.sh step TRANSFER),
+# never through the Docker build context.
+# =====================================================================
+
+node_modules/
+smart_contracts/node_modules/
+battlepool/node_modules/
+
+# vendor/ excluded: the prod image runs `composer install` in-stage 2.
+vendor/
+
+# Git metadata (never in images)
+.git/
+.gitignore
+.gitattributes
+
+# Cache / logs
+.phpunit.result.cache
+.phpunit.cache/
+storage/logs/
+storage/framework/views/*
+storage/framework/cache/data/*
+!storage/framework/cache/data/.gitignore
+
+# Public bundles: rebuilt inside the Node stage, never shipped from host
+public/build/
+public/hot
+
+# ============== SECURITY: no secret material in build context ==============
+.env
+.env.*
+!.env.example
+!.env.staging.example
+
+.secrets/
+.secrets/**
+*.enc
+*.pem
+*.key
+id_ed25519*
+*deploy_key*
+
+# Deploy folder itself (scripts + SSH key must never enter images)
+deploy/

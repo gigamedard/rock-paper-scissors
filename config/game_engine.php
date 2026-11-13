@@ -41,6 +41,9 @@ return [
     // Moteur in-memory : inclure aussi les humains UI (autoplay=0) comme joueurs.
     // À utiliser À LA PLACE de engine + batch-processor.
     'sim_include_humans' => (bool) env('SIM_INCLUDE_HUMANS', false),
+    // Archive JSONL dans le conteneur sim : très volumineuse (dizaines de Go)
+    // → désactivée par défaut ; le scheduler garde le consumer d'audit.
+    'sim_archive_enabled' => (bool) env('SIM_ARCHIVE_ENABLED', false),
     // Quand le moteur in-memory est actif, on désactive le matchmaking DB
     // (metrics tick / batch processor) pour éviter le double traitement.
     'sim_memory_active' => (bool) env('GAME_ENGINE_SIM_MEMORY', false),

@@ -32,11 +32,16 @@ class RunMemorySimulation extends Command
         do {
             $r = $sim->runCycle($pools);
 
-            for ($i = 0; $i < 4; $i++) {
-                try {
-                    (new ArchiveFightStream())->handle();
-                } catch (\Throwable $e) {
-                    break;
+            // Audit JSONL optionnel : le JSONL du sim peut grossir très vite
+            // (dizaines de Go). Désactivé par défaut ; le scheduler garde son
+            // consumer d'audit et la table `fights` pour les humains.
+            if (config('game_engine.sim_archive_enabled', false)) {
+                for ($i = 0; $i < 4; $i++) {
+                    try {
+                        (new ArchiveFightStream())->handle();
+                    } catch (\Throwable $e) {
+                        break;
+                    }
                 }
             }
 
