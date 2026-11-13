@@ -177,3 +177,37 @@ Sauvegarde compose : `docker-compose.prod.yml.bak.faucet.*`.
   `deploy/Dockerfile.prod` + `/opt/battlepool/.env` ; build engine54 avec le ProjectId.
   Plus de `Project not found` ; AppKit/legacy opérationnels.
 - Tests : headless 24/24, navigateur 23/23.
+
+
+## 15. UI feedback user — engine55 (2026-11-13)
+
+**Symptômes signalés** : (a) l'overlay de la modale marketplace cache les messages
+type toast ; (b) le bouton « Réclamer 5 AVAXe » reste visible après claim.
+
+**Constats** :
+- Les captures/logs du user datent du **12/11 16:54** et du **13/11 12:35**, donc
+  **avant** engine54/engine55 et pendant l'incident disque + ProjectId manquant.
+- Le « toast » masqué était la notification **marketplace** (`#mp-notification` via
+  `_showMpNotification`), pas le toast global : elle restait dans la page, sous
+  `.mp-modal-overlay` (z-index 1100).
+- Le bouton AVAXe pouvait être réaffiché par `auth:success`/`checkAuthSession`
+  quand `has_received_avaxe_airdrop` était **absent** (`!undefined === true`).
+
+**Correctifs (engine55, commit `f6aa84d`)** :
+- `_showMpNotification` appelle désormais aussi `window.showToast(...)` (top-layer,
+  popover, z-index max) → message visible au-dessus de la modale.
+- `#avaxe-faucet-btn` est **masqué par défaut** ; affiché uniquement si le serveur dit
+  explicitement `has_received_avaxe_airdrop === false` (auth, session locale, polling).
+- Build/deploy engine55 : app/queue/scheduler/sim/bridge/reverb ; `.env`
+  `GIT_SHA=engine55` ; engine/batch restent Created (profil `db-engine`).
+
+**Vérifications** :
+- Marketplace + modale ouverte + clic « Approuver » sans wallet : toast
+  `bp-toast-1` en `:popover-open`, z-index `2147483647`, `topEl=bp-toast-1`.
+- User test `has_received_avaxe_airdrop=1` : après auth injectée,
+  `#avaxe-faucet-btn` → `display:none` (user test supprimé).
+- Tests : headless **24/24**, navigateur **23/23**.
+
+**Action restante côté user** : **hard refresh / désinscrire le service worker**
+pour charger engine55, puis retester ; le log WalletConnect de 12:35 ne doit plus
+afficher `Project not found`.
