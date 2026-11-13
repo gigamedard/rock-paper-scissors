@@ -6,7 +6,7 @@
 
 - Branche : **`feat/session-recovery`**
 - Commit : **`c296c55`** (`ops(engine): disable game:engine when sim-memory is active`)
-- Tag : **`backend-freeze-2026-11-12.3`** (r1 `.1`, r2 `.2`, r3 `.3`)
+- Tag : **`backend-freeze-2026-11-13`** (r1 `.1`, r2 `.2`, r3 `.3`, r4 engine54)
 - Docs : `FINAL_REPORT.md`, `MEMORY_BACKUP.md`, `SESSION_SUMMARY.md` (§1→§52),
   `ENGINE_ARCHITECTURE.md`, `BACKEND_FREEZE.md`.
 
@@ -14,27 +14,27 @@
 
 | Image | ID | Contenu |
 |---|---|---|
-| `battlepool-app:engine53` | `` | Laravel/Octane + frontend Vite + queue + engine + sim |
-| `battlepool-reverb:engine53` | `` | Même image, commande `reverb:start` |
-| `battlepool-bridge:engine53` | `43e6aa6c4175` | Node bridge/indexer + batch processor |
+| `battlepool-app:engine54` | `` | Laravel/Octane + frontend Vite + queue + engine + sim |
+| `battlepool-reverb:engine54` | `` | Même image, commande `reverb:start` |
+| `battlepool-bridge:engine54` | `43e6aa6c4175` | Node bridge/indexer + batch processor |
 | `mysql:8.0` / `redis:alpine` | — | DB / cache-stream |
 
-`/opt/battlepool/.env` : `GIT_SHA=engine53` ⇒ tout `docker compose up` réutilise ces images.
+`/opt/battlepool/.env` : `GIT_SHA=engine54` ⇒ tout `docker compose up` réutilise ces images.
 
 ## 3. Conteneurs (état figé)
 
 | Service | Image | État | Rôle |
 |---|---|---|---|
-| battlepool-app | app:engine53 | healthy | API/front |
-| battlepool-queue-worker | app:engine53 | healthy | jobs |
-| battlepool-queue-worker-limits-1 | app:engine53 | healthy | jobs limites |
-| battlepool-scheduler | app:engine53 | up | outbox/refund/fights:archive |
-| **battlepool-sim-memory** | app:engine53 | **healthy (moteur actif)** | **jeu in-memory (bots + humains)** |
-| battlepool-bridge | bridge:engine53 | healthy | indexer / signatures / tx |
-| battlepool-reverb | reverb:engine53 | healthy | WebSocket |
+| battlepool-app | app:engine54 | healthy | API/front |
+| battlepool-queue-worker | app:engine54 | healthy | jobs |
+| battlepool-queue-worker-limits-1 | app:engine54 | healthy | jobs limites |
+| battlepool-scheduler | app:engine54 | up | outbox/refund/fights:archive |
+| **battlepool-sim-memory** | app:engine54 | **healthy (moteur actif)** | **jeu in-memory (bots + humains)** |
+| battlepool-bridge | bridge:engine54 | healthy | indexer / signatures / tx |
+| battlepool-reverb | reverb:engine54 | healthy | WebSocket |
 | battlepool-db / redis | mysql/redis | healthy | DB / Redis |
-| battlepool-engine | app:engine53 | **Created/arrêté** (profil `db-engine`) | moteur DB |
-| battlepool-batch-processor | bridge:engine53 | **Created/arrêté** (profil `db-engine`) | pools DB |
+| battlepool-engine | app:engine54 | **Created/arrêté** (profil `db-engine`) | moteur DB |
+| battlepool-batch-processor | bridge:engine54 | **Created/arrêté** (profil `db-engine`) | pools DB |
 
 `/opt/battlepool/docker-compose.prod.yml` : services `engine` et `batch-processor` ont
 `profiles: ["db-engine"]` ⇒ `docker compose up` **ne les démarre pas**. Mode exclusif sim.
@@ -95,7 +95,7 @@ file FIFO sans dette en attente (`pending_refunds=0`).
 - `fights` conservés pour les combats humains (insert `pool_id=null`) ; `f_hists`/IPFS
   restent à corriger (audit incomplet, voir §9).
 
-## 8. Tests (sur engine53)
+## 8. Tests (sur engine54)
 
 - Headless E2E : **24/24**.
 - Navigateur Playwright (SPA/Setup P3) : **23/23**.
@@ -126,7 +126,7 @@ cd /opt/battlepool && docker compose -f docker-compose.prod.yml --profile db-eng
 
 # revenir au in-memory
 docker stop battlepool-engine battlepool-batch-processor
-cd /opt/battlepool && GIT_SHA=engine53 docker compose -f docker-compose.prod.yml up -d --no-deps sim-memory
+cd /opt/battlepool && GIT_SHA=engine54 docker compose -f docker-compose.prod.yml up -d --no-deps sim-memory
 
 # tests
 sh tests/headless_e2e.sh
@@ -147,7 +147,7 @@ affichage P3 (C/R/B/dépôt), events live, claim/sync, cache/hard-refresh, UX mo
 
 **Correctif** :
 - `docker-compose.prod.yml` : secret `faucet_wallet_pk` ajouté au service **bridge** (et au bloc
-  `secrets:` global) ; bridge recréé en `battlepool-bridge:engine53`.
+  `secrets:` global) ; bridge recréé en `battlepool-bridge:engine54`.
 - Bridge configure `faucetWallet = 0xD629…63Ee` (owner) ; AVAXe/TST disponibles.
 - Job `ProcessAvaxeFaucetJob(1407, 5)` rejoué avec succès :
   **5 AVAXe** envoyés, tx `0x4baeec16…b5fb316` ; `has_received_avaxe_airdrop=1`.
@@ -156,7 +156,7 @@ affichage P3 (C/R/B/dépôt), events live, claim/sync, cache/hard-refresh, UX mo
 Sauvegarde compose : `docker-compose.prod.yml.bak.faucet.*`.
 
 
-## 13. Frontend fixes (engine53, 2026-11-12)
+## 13. Frontend fixes (engine54, 2026-11-12)
 
 - **Toasts au-dessus des overlays** : conteneur en **Popup/Popover top-layer**
   (`popover="manual"`, `showPopover()`, append sur `<html>`, z-index max). Vérifié
@@ -165,3 +165,15 @@ Sauvegarde compose : `docker-compose.prod.yml.bak.faucet.*`.
   et via `/api/user/status.has_received_avaxe_airdrop` (nouveau champ backend + tx hash).
   DB : user 1407 `has_received_avaxe_airdrop=1`, tx `0x4bae…`.
 - Tests : headless **24/24**, navigateur **23/23**.
+
+
+## 14. Incident disque + WalletConnect (engine54, 2026-11-13)
+
+- **Disque 100 %** : `battlepool-sim-memory` avait 33 Go de JSONL (`fights-archive`).
+  Nettoyé + `docker builder prune` (~40 Go) → disque ~33 %.
+- **Archive JSONL du sim désactivée** (`SIM_ARCHIVE_ENABLED=false`) ; consumer d'audit
+  conservé dans le scheduler.
+- **WalletConnect/Reown** : `ARG/ENV VITE_WALLETCONNECT_PROJECT_ID` ajouté à
+  `deploy/Dockerfile.prod` + `/opt/battlepool/.env` ; build engine54 avec le ProjectId.
+  Plus de `Project not found` ; AppKit/legacy opérationnels.
+- Tests : headless 24/24, navigateur 23/23.

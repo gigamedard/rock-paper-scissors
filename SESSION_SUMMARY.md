@@ -1369,3 +1369,27 @@ le log) et échouait souvent (doubles clics, nonce expiré, appels wallet redond
 - Mesure Playwright (wallet EIP-1193 injecté) : **auth réussie en 2,87 s** (vs ~77 s + auth).
 
 Déploiement **engine53**. Headless **24/24**, navigateur **23/23**.
+
+## 55. Connexion wallet — WalletConnect ProjectId + disque plein (engine54, 2026-11-13)
+
+**Symptômes** : WalletConnect échouait (`AppKit indisponible — ProjectId manquant`,
+puis `Fatal socket ... 3000 Project not found`) ; connexions/auth instables.
+
+**Causes** :
+1. Le **ProjectId WalletConnect/Reown** n'était **pas injecté au build** : `Dockerfile.prod`
+   ne déclarait pas `ARG VITE_WALLETCONNECT_PROJECT_ID` (le compose le passait dans le vide).
+2. **Disque VPS à 100 %** : le conteneur `sim-memory` avait **33 Go** de JSONL
+   (`storage/app/fights-archive`), ce qui cassait les écritures/auth/DB.
+
+**Correctifs** :
+- `deploy/Dockerfile.prod` : `ARG/ENV VITE_WALLETCONNECT_PROJECT_ID` + `VITE_APP_NAME` avant
+  `npm run build` ; build engine54 avec le ProjectId existant (`e46cab…`). `/opt/.env` contient
+  aussi `VITE_WALLETCONNECT_PROJECT_ID` pour les futurs `docker compose build`.
+- Nettoyage disque : suppression des **33 Go** de JSONL du sim + `docker builder prune -af`
+  (~40 Go libérés) ; disque ~33 %.
+- **Archive JSONL du sim désactivée** (`SIM_ARCHIVE_ENABLED=false`, `RunMemorySimulation`) :
+  elle grossissait de plusieurs Go/heure. Le scheduler garde son consumer d'audit.
+- Le bouton **Connect Wallet (injected)** reste le chemin desktop ; **WalletConnect/AppKit**
+  fonctionne désormais avec le ProjectId (plus de `Project not found`).
+
+**Déploiement** : engine54 (app/reverb/bridge/sim), tests headless **24/24**, navigateur **23/23**.
