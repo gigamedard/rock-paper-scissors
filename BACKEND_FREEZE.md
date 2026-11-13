@@ -211,3 +211,36 @@ type toast ; (b) le bouton « Réclamer 5 AVAXe » reste visible après claim.
 **Action restante côté user** : **hard refresh / désinscrire le service worker**
 pour charger engine55, puis retester ; le log WalletConnect de 12:35 ne doit plus
 afficher `Project not found`.
+
+
+## 16. Marketplace « Confirm in your wallet… » bloqué — engine56 (2026-11-13)
+
+**Symptôme** : après confirmation dans le wallet, la modale « Create Offer » reste
+sur le bouton désactivé « CONFIRM IN YOUR WALLET… » et « CREATE OFFER » grisé.
+
+**Diagnostic on-chain (user 1407)** :
+- nonce Pingala **latest = pending = 184** → **aucune tx approve n'a été broadcastée** ;
+- allowance PRANA→marketplace = **1.7** (< 5 demandés), balance PRANA = 139.7.
+- Le wallet a probablement confirmé le switch réseau / une autre demande, ou la
+  réponse WalletConnect/Core s'est perdue. L'ancien code attendait `tx.wait()`
+  jusqu'à **120 s** sans changer l'UI.
+
+**Correctif (engine56, commit `ba14daf`)** :
+- `ensurePingalaNetwork` **re-vérifie `eth_chainId` après le switch** ; si le wallet
+  n'est pas sur Pingala 99999, erreur immédiate au lieu d'une tx sur le mauvais réseau.
+- `handleApprove` vérifie la chaîne live avant l'envoi, puis envoie l'approve avec
+  `waitForReceipt:false` : hash loggé, label « approbation en cours », puis
+  **polling de l'allowance** (45 s). Si l'allowance atteint le montant, l'étape est
+  validée même si le receipt est perdu (WC/Core).
+- Timeout d'envoi ramené à **60 s** avec reset du bouton ; un retry est sûr : si la
+  tx a été minée, l'allowance est détectée au début sans renvoyer de transaction.
+
+**Vérification** : wallet test approvisionné 0.2 TST, approbation 5 PRANA
+(tx `0x5ceed1c361d2ec14a2c38047b480aa08a08c9c9629df37517dea9794c6878fac`) →
+allowance confirmée, bouton `CREATE OFFER` activé, toast « Approval successful ».
+User test supprimé. Navigateur **23/23**.
+
+**Côté user** : hard refresh, vérifier que Core est bien sur **Pingala Chain
+(99999)**, puis réessayer. Si ça dépasse 60 s, le bouton se réinitialise : cliquer
+à nouveau sur Approuver ; si la tx est passée, l'allowance sera détectée sans
+nouvelle transaction.
