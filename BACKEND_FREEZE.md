@@ -244,3 +244,46 @@ User test supprimé. Navigateur **23/23**.
 (99999)**, puis réessayer. Si ça dépasse 60 s, le bouton se réinitialise : cliquer
 à nouveau sur Approuver ; si la tx est passée, l'allowance sera détectée sans
 nouvelle transaction.
+
+
+## 17. Frontend mobile / PWA — engine60 (2026-11-14)
+
+**Objectif** : réduire les bugs de connexion sur réseau mobile faible, accélérer
+le lancement PWA, rendre l'ouverture du wallet plus fiable et afficher les
+montants AVAXe/TST/PRANA avec **6 décimales**.
+
+**PWA / démarrage**
+- Service Worker **v6** : app shell et bundle Vite en **cache-first + revalidation
+  en arrière-plan** (HTML, `app.js`, CSS, locales) ; pré-cache des assets locaux
+  et des locales `?v=6`. Le cache est invalidé par bump de `CACHE_NAME` à chaque
+  déploiement (cycle install → skipWaiting → reload pwa.js).
+- Installation SW non bloquante : les assets externes Google Fonts sont
+  best-effort, un échec CDN ne bloque plus le SW.
+- i18n : cache `localStorage` (`bp_i18n_v6_<locale>`), URL stable (plus de
+  `?v=Date.now()`), timeout 6 s au premier chargement, refresh arrière-plan.
+- Polices Google non bloquantes + `preconnect` RPC Pingala, relais WalletConnect
+  et API Reown. Warm-up des chunks AppKit/WC dès 1,8 s (plus seulement en idle).
+- Mesure Playwright mobile (390 px, réseau bridé 50 kb/s après 1er chargement) :
+  reload PWA **~313 ms**, aucun débordement horizontal.
+
+**Connexion wallet mobile**
+- Attente de l'URI WalletConnect portée de **8 s → 20 s** (réseau faible).
+- `authFetch` : timeout **30 s**, retry réseau/5xx avec backoff.
+- Ouverture auto du wallet tentée (deeplink natif) puis **bandeau d'action
+  « Ouvrir Core Wallet »** si Safari/iOS ignore le scheme (le geste utilisateur
+  est alors réel) ; même mécanisme pour la signature `personal_sign`.
+- WARM-UP WalletConnect/AppKit renforcé au démarrage et au premier geste.
+
+**Montants**
+- Utilitaire unique `resources/js/core/format.js` (`formatAmount`, 6 décimales).
+- Header (TST/PRANA/AVAXe), arène, claim, P3, marketplace, stats et graphique
+  passent à **6 décimales** ; placeholders HTML alignés.
+
+**Tests**
+- Playwright mobile : auth injectée OK, header `TST 0.198818` / `PRANA 0.000000` /
+  `AVAXe 0.000000`, solde `0.000000 AVAXe`, SW v6 + locales en cache.
+- PWA lente : reload **313 ms** avec cache ; SW controller actif.
+- Headless **24/24**, navigateur **23/23**.
+- Note : un backlog `side_effect_outbox` de ~11 k événements provenait d'un
+  utilisateur humain simulé (user 322, session longue) ; nettoyé pour le test.
+  À surveiller si un utilisateur simulé génère à nouveau un gros volume.
