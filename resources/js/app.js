@@ -12,6 +12,7 @@ import { initInfluencer } from './modules/influencer.js';
 import { initStats } from './modules/stats.js';
 import { initPWA } from './core/pwa.js';
 import { showToast } from './core/toast.js';
+import { formatAmount } from './core/format.js';
 import { addPingalaNetwork, getActiveEip1193Provider, closeWalletModal, ensureWalletVisibleForTx, warmupWalletLibs, PRANA_NETWORK } from './web3/web3-core.js';
 import { JsonRpcProvider, Contract, formatEther, formatUnits } from 'ethers';
 import { initDebugLog, debugLog } from './modules/debug-log.js';
@@ -358,10 +359,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // WARM-UP (idle) : précharge les chunks AppKit/WalletConnect pour que le clic
     // « Connect » soit instantané (parité App 2, dont la lib est bundlée).
     try {
+        const warmWallet = () => { warmupWalletLibs(); };
+        // Préchargement proactif : sur mobile, requestIdleCallback peut être
+        // très tardif quand le thread est occupé → premier clic lent.
+        setTimeout(warmWallet, 1800);
+        ['pointerdown', 'touchstart'].forEach((ev) => {
+            window.addEventListener(ev, warmWallet, { once: true, passive: true });
+        });
         if ('requestIdleCallback' in window) {
-            requestIdleCallback(() => warmupWalletLibs(), { timeout: 4000 });
+            requestIdleCallback(warmWallet, { timeout: 5000 });
         } else {
-            setTimeout(() => warmupWalletLibs(), 2500);
+            setTimeout(warmWallet, 3000);
         }
     } catch (e) { /* noop */ }
 
@@ -563,13 +571,13 @@ async function refreshHeaderBalances() {
             pranaToken.balanceOf(addr),
             pranaToken.decimals()
         ]);
-        tstEl.textContent = 'TST ' + Number(formatEther(balWei)).toFixed(4);
-        pranaEl.textContent = 'PRANA ' + Number(formatUnits(pranaWei, dec)).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+        tstEl.textContent = 'TST ' + formatAmount(formatEther(balWei));
+        pranaEl.textContent = 'PRANA ' + formatAmount(formatUnits(pranaWei, dec));
         tstEl.style.display = 'inline-block';
         pranaEl.style.display = 'inline-block';
         if (avaxeEl && avaxeToken) {
             const avaxeWei = await avaxeToken.balanceOf(addr);
-            avaxeEl.textContent = 'AVAXe ' + Number(formatUnits(avaxeWei, 18)).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+            avaxeEl.textContent = 'AVAXe ' + formatAmount(formatUnits(avaxeWei, 18));
             avaxeEl.style.display = 'inline-block';
         }
     } catch (e) {

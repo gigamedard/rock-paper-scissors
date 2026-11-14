@@ -199,14 +199,100 @@ function _closeAppKitModalIfOpen() {
  * deeplink programmé sans geste est bloqué par Safari.
  * @param {string} [walletKey='core'] cible du deeplink
  */
-export function reopenWalletForSigning(walletKey = 'core') {
+export function reopenWalletForSigning(walletKey = 'core', { universal = false, timeoutMs = 1600 } = {}) {
     const d = WALLET_DEEPLINKS[walletKey] || WALLET_DEEPLINKS.core;
-    let opened = false;
-    const onHide = () => { opened = true; };
-    document.addEventListener('visibilitychange', onHide, { once: true });
-    window.addEventListener('pagehide', onHide, { once: true });
-    window.location.href = d.native;
-    setTimeout(() => { /* noop — scheme ignoré éventuellement */ }, 1000);
+    const link = universal ? d.universal : d.native;
+    return new Promise((resolve) => {
+        let done = false;
+        const finish = (ok) => {
+            if (done) return;
+            done = true;
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.removeEventListener('pagehide', onPageHide);
+            resolve(ok);
+        };
+        const onVisibility = () => { if (document.hidden) finish(true); };
+        const onPageHide = () => finish(true);
+        document.addEventListener('visibilitychange', onVisibility);
+        window.addEventListener('pagehide', onPageHide, { once: true });
+        try { window.location.href = link; } catch (e) { /* scheme refusé */ }
+        setTimeout(() => finish(false), timeoutMs);
+    });
+}
+
+/**
+ * Bandeau d'ouverture manuelle du wallet (fallback UX mobile).
+ * iOS/Safari bloque parfois un deeplink custom (`core://`) déclenché après un
+ * await (le geste utilisateur n'est plus « frais »). On tente l'ouverture auto,
+ * puis on affiche CE bouton — un vrai geste utilisateur, donc fiable.
+ * Le bouton réutilise soit une URI de pairing (connexion), soit le deeplink
+ * de signature (session déjà active).
+ */
+export function showWalletOpenPrompt({ walletKey = 'core', link = null, label = null, timeoutMs = 30000 } = {}) {
+    const existing = document.getElementById('bp-open-wallet-prompt');
+    if (existing) return existing;
+    const target = WALLET_DEEPLINKS[walletKey] || WALLET_DEEPLINKS.core;
+    const box = document.createElement('div');
+    box.id = 'bp-open-wallet-prompt';
+    box.style.cssText = [
+        'position:fixed',
+        'left:12px', 'right:12px',
+        'bottom:calc(12px + env(safe-area-inset-bottom))',
+        'z-index:2147483000',
+        'display:flex', 'align-items:center', 'gap:10px',
+        'padding:10px 12px',
+        'border-radius:12px',
+        'background:rgba(6,24,36,0.97)',
+        'border:1px solid rgba(0,229,255,0.55)',
+        'box-shadow:0 10px 32px rgba(0,0,0,0.6)',
+        'pointer-events:auto'
+    ].join(';');
+    const text = document.createElement('div');
+    text.style.cssText = 'flex:1;color:#aef2ff;font:600 13px/1.25 Rajdhani,system-ui,sans-serif;';
+    text.textContent = label || `Ouvrir ${target.name} pour continuer`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.cssText = [
+        'flex:0 0 auto',
+        'padding:9px 12px',
+        'border-radius:9px',
+        'border:1px solid rgba(0,229,255,0.65)',
+        'background:rgba(0,229,255,0.16)',
+        'color:#aef2ff',
+        'font:700 12px/1 Rajdhani,system-ui,sans-serif',
+        'cursor:pointer'
+    ].join(';');
+    btn.textContent = `Ouvrir ${target.name}`;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Fermer');
+    close.textContent = '✕';
+    close.style.cssText = 'flex:0 0 auto;background:none;border:0;color:rgba(255,255,255,0.55);font-size:16px;padding:4px;cursor:pointer;';
+    const remove = () => box.remove();
+    close.addEventListener('click', remove);
+    btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Ouverture…';
+        if (link) {
+            try { window.location.href = link; } catch (e) { /* noop */ }
+        } else {
+            const ok = await reopenWalletForSigning(walletKey, { universal: false });
+            if (!ok) await reopenWalletForSigning(walletKey, { universal: true });
+        }
+        setTimeout(() => { btn.disabled = false; btn.textContent = `Ouvrir ${target.name}`; }, 2500);
+    });
+    box.appendChild(text);
+    box.appendChild(btn);
+    box.appendChild(close);
+    document.body.appendChild(box);
+    const onHidden = () => { if (document.hidden) remove(); };
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('auth:success', remove, { once: true });
+    setTimeout(() => {
+        document.removeEventListener('visibilitychange', onHidden);
+        remove();
+    }, timeoutMs);
+    return box;
 }
 
 /**
@@ -473,7 +559,7 @@ export async function connectWalletMobile(walletKey = 'core') {
         // trop long » (15 s de poll + 10 min de poll session dans le vide).
         const pollUri = () => {
             if (_lastWcUri) { resolve(_lastWcUri); return; }
-            if (Date.now() - startedAt > 8000) { resolve(null); return; }
+            if (Date.now() - startedAt > 20000) { resolve(null); return; }
             setTimeout(pollUri, 250);
         };
         setTimeout(pollUri, 300);
@@ -512,11 +598,18 @@ export async function connectWalletMobile(walletKey = 'core') {
         console.log(`[Web3] Deep link ${target.name} (${link.slice(0, 40)}…)`);
         console.info('[Web3Mobile] navigation native →', link.slice(0, 52) + '…');
         window.location.href = link;
+        // Si Safari/iOS ignore le scheme (pas de pagehide), proposer un bouton
+        // d'ouverture manuel — mais uniquement après une vraie tentative auto.
+        setTimeout(() => {
+            if (!document.hidden) {
+                showWalletOpenPrompt({ walletKey, link, label: `Ouvrir ${target.name} pour approuver la connexion` });
+            }
+        }, 1800);
     } else {
         // Pas d'URI : AUCUNE invitation n'a été envoyée — attendre l'approbation
         // en boucle n'a aucun sens (le « délai d'attente trop long », journal
         // 2026-10-12). On échoue IMMÉDIATEMENT, message clair + réessayable.
-        console.warn('[Web3Mobile] URI WC non reçue en 8 s — abandon du flux (réessayable).');
+        console.warn('[Web3Mobile] URI WC non reçue en 20 s — abandon du flux (réessayable).');
         try {
             window.showToast?.(
                 window.t ? window.t('errors.network_issue') : 'Connexion lente — réessayez dans quelques secondes.',

@@ -127,14 +127,14 @@ function draw() {
         ctx.fillStyle = rising ? '#00E676' : '#FF0055';
         ctx.beginPath(); ctx.arc(lx, ly, 2.5, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = rising ? '#00E676' : '#FF0055';
-        ctx.fillText(lastVal.toFixed(4), Math.max(padL, Math.min(lx + 4, w - padR - 2)), Math.max(padT, ly - 8));
+        ctx.fillText(lastVal.toFixed(6), Math.max(padL, Math.min(lx + 4, w - padR - 2)), Math.max(padT, ly - 8));
         ctx.restore();
     } else if (history.length === 1) {
         // un seul point : affiche la valeur
         ctx.save();
         ctx.fillStyle = 'rgba(0,229,255,0.95)';
         ctx.beginPath(); ctx.arc(x(0), y(history[0]), 2.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillText(history[0].toFixed(4), Math.min(x(0) + 4, w - padR - 2), Math.max(padT, y(history[0]) - 8));
+        ctx.fillText(history[0].toFixed(6), Math.min(x(0) + 4, w - padR - 2), Math.max(padT, y(history[0]) - 8));
         ctx.restore();
     }
 }

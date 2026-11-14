@@ -17,6 +17,7 @@ import { t } from './i18n.js';
 import { setAppTimer } from '../core/timers.js';
 import { parseRpcError } from '../core/auth.js';
 import { parseEther, formatEther } from 'ethers';
+import { formatAmount } from '../core/format.js';
 
 const SNT_ABI = [
     "function approve(address spender, uint256 amount) returns (bool)",
@@ -588,8 +589,8 @@ async function loadStats() {
         const elSnt   = document.getElementById('mp-stat-snt-volume');
         const elAvax  = document.getElementById('mp-stat-avax-volume');
         if (elTotal) elTotal.textContent = stats.total_trades || 0;
-        if (elSnt)   elSnt.textContent   = parseFloat(stats.total_snt_volume  || 0).toFixed(2) + ' ' + TOKEN_SYMBOL;
-        if (elAvax)  elAvax.textContent  = parseFloat(stats.total_avax_volume || 0).toFixed(4) + ' ' + PRANA_NETWORK.nativeCurrency.symbol;
+        if (elSnt)   elSnt.textContent   = formatAmount(stats.total_snt_volume) + ' ' + TOKEN_SYMBOL;
+        if (elAvax)  elAvax.textContent  = formatAmount(stats.total_avax_volume) + ' ' + PRANA_NETWORK.nativeCurrency.symbol;
     } catch (e) {
         if (getAuthToken()) console.error('[Marketplace] Erreur chargement stats:', e);
     }
@@ -628,9 +629,9 @@ function renderOffers() {
     container.innerHTML = currentOffers.map(offer => `
         <div class="mp-offer-card ${offer.is_own_trade ? 'own-trade' : ''}" data-offer-id="${offer.blockchain_id}">
             <div class="mp-offer-amounts">
-                <span class="mp-snt">${parseFloat(offer.snt_amount).toFixed(2)} <em>${TOKEN_SYMBOL}</em></span>
+                <span class="mp-snt">${formatAmount(offer.snt_amount)} <em>${TOKEN_SYMBOL}</em></span>
                 <span class="mp-arrow">→</span>
-                <span class="mp-avax">${parseFloat(offer.avax_amount).toFixed(4)} <em>${PRANA_NETWORK.nativeCurrency.symbol}</em></span>
+                <span class="mp-avax">${formatAmount(offer.avax_amount)} <em>${PRANA_NETWORK.nativeCurrency.symbol}</em></span>
             </div>
             <div class="mp-offer-meta">
                 <span class="mp-seller">👤 ${offer.seller_address}</span>

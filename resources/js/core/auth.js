@@ -1,5 +1,5 @@
 // resources/js/core/auth.js
-import { getProvider, getSigner, resetProvider, ensurePingalaNetwork, isWalletConnectActive, getWcSessionAddress, reopenWalletForSigning } from '../web3/web3-core.js';
+import { getProvider, getSigner, resetProvider, ensurePingalaNetwork, isWalletConnectActive, getWcSessionAddress, reopenWalletForSigning, showWalletOpenPrompt } from '../web3/web3-core.js';
 import { getAddress, hexlify, toUtf8Bytes } from 'ethers';
 import { secureFetch } from './api.js';
 import { t } from '../modules/i18n.js';
@@ -43,19 +43,37 @@ export function parseRpcError(error) {
 
 let _authInProgress = false;
 
-async function authFetch(url, options = {}, timeoutMs = 20000) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-        return await fetch(url, { ...options, signal: controller.signal });
-    } catch (e) {
-        if (e && e.name === 'AbortError') {
-            throw new Error('Délai serveur dépassé. Vérifiez le réseau puis réessayez.');
+async function authFetch(url, options = {}, timeoutMs = 30000, retries = 1) {
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            // Réseau faible : une 5xx transitoire mérite un nouvel essai.
+            if (response.status >= 500 && attempt < retries) {
+                console.warn(`[Auth] serveur ${response.status} — retry ${attempt + 1}/${retries}`);
+                await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+                continue;
+            }
+            return response;
+        } catch (e) {
+            lastError = e;
+            const isNetwork = e && (e.name === 'AbortError' || e.name === 'TypeError' || /fetch|network/i.test(String(e.message || '')));
+            if (isNetwork && attempt < retries) {
+                console.warn(`[Auth] réseau faible — retry ${attempt + 1}/${retries}`);
+                await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+                continue;
+            }
+            if (e && e.name === 'AbortError') {
+                throw new Error('Délai serveur dépassé. Vérifiez le réseau puis réessayez.');
+            }
+            throw e;
+        } finally {
+            clearTimeout(timer);
         }
-        throw e;
-    } finally {
-        clearTimeout(timer);
     }
+    throw lastError;
 }
 
 export async function connectWallet(providerType = 'injected') {
@@ -205,7 +223,7 @@ async function _authenticateWithAddress(walletAddress, providerType) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ wallet_address: addr })
-            }, 20000);
+            }, 30000);
             const challengeData = await challengeRes.json();
             if (!challengeRes.ok) {
                 throw new Error("Erreur de connexion au serveur. Veuillez réessayer.");
@@ -265,7 +283,7 @@ async function _authenticateWithAddress(walletAddress, providerType) {
             // Toast explicite : le bandeau iOS dira « Ouvrir dans Core ? » sans
             // préciser pourquoi — on annonce la signature (retour utilisateur :
             // « le message devait plutôt dire signer le message dans Core »).
-            showToast(t('sign_in_wallet'), 'info', 3500);
+            showToast(t('sign_in_wallet'), 'info', 2500);
             console.info('[Auth] WC actif → ré-ouverture de Core pour la signature…');
             // PRÉ-SWITCH (capture 11:24 du journal) : le `wallet_switchEthereumChain`
             // envoyé dans `connectWalletMobile` part pendant que Core est en
@@ -279,7 +297,17 @@ async function _authenticateWithAddress(walletAddress, providerType) {
             } catch (e) {
                 console.warn('[Auth] Pré-switch Pingala échoué (Core refus ?):', e?.message || e);
             }
-            reopenWalletForSigning('core');
+            // Tentative AUTO (sans bloquer l'envoi de personal_sign). Si iOS/
+            // Safari ignore le scheme car le geste utilisateur n'est plus frais,
+            // on affiche un bouton d'ouverture actionnable (vrai geste).
+            const openAttempt = reopenWalletForSigning('core');
+            if (openAttempt && typeof openAttempt.then === 'function') {
+                openAttempt.then((opened) => {
+                    if (opened) return;
+                    if (localStorage.getItem('auth_token')) return;
+                    showWalletOpenPrompt({ walletKey: 'core', label: 'Ouvrir Core Wallet pour signer la connexion' });
+                }).catch(() => { /* noop */ });
+            }
         }
 
         // Signature. Si le wallet répond « not part of the active wallet »
@@ -322,7 +350,7 @@ async function _authenticateWithAddress(walletAddress, providerType) {
         const verifyHeaders = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
         let verifyRes = await authFetch('/api/wallet/verify-signature', {
             method: 'POST', headers: verifyHeaders, body: verifyBody()
-        }, 20000);
+        }, 30000);
         let data = await verifyRes.json();
 
         // Nonce expiré (wallet resté ouvert > TTL) : nouveau challenge + nouvelle signature.
@@ -332,7 +360,7 @@ async function _authenticateWithAddress(walletAddress, providerType) {
             signature = await signChallenge(effectiveAddress, message);
             verifyRes = await authFetch('/api/wallet/verify-signature', {
                 method: 'POST', headers: verifyHeaders, body: verifyBody()
-            }, 20000);
+            }, 30000);
             data = await verifyRes.json();
         }
 
@@ -350,6 +378,7 @@ async function _authenticateWithAddress(walletAddress, providerType) {
         };
 
         console.log("✅ Authentifié avec succès :", window.userState.walletAddress);
+        try { document.getElementById('bp-open-wallet-prompt')?.remove(); } catch (e) { /* noop */ }
 
         // Dispatch custom event for successful login (Echo initialization etc.)
         window.dispatchEvent(new CustomEvent('auth:success', { detail: data.user }));
@@ -357,6 +386,7 @@ async function _authenticateWithAddress(walletAddress, providerType) {
         return true;
     } catch (error) {
         console.error("[Auth] Échec (auth par adresse) :", error);
+        try { document.getElementById('bp-open-wallet-prompt')?.remove(); } catch (e) { /* noop */ }
         showToast(t('errors.auth_failed') + ' ' + parseRpcError(error), 'error');
         return false;
     }

@@ -55,18 +55,18 @@ function fmtInt(n) {
     return Math.round(v).toLocaleString('fr-FR', { maximumFractionDigits: 0 });
 }
 
-/** Montant du token de jeu PRANA avec 2 décimales (fr-FR), '' si indisponible. */
+/** Montant du token de jeu PRANA avec 6 décimales (fr-FR), '' si indisponible. */
 function fmtPrana2(n) {
     const v = Number(n);
     if (n === null || n === undefined || n === '' || !Number.isFinite(v)) return '';
-    return v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return v.toLocaleString('fr-FR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
 }
 
-/** Montant TST (gas natif Pingala) avec 4 décimales (fr-FR), '' si indisponible. */
+/** Montant TST (gas natif Pingala) avec 6 décimales (fr-FR), '' si indisponible. */
 function fmtTst4(n) {
     const v = Number(n);
     if (n === null || n === undefined || n === '' || !Number.isFinite(v)) return '';
-    return v.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+    return v.toLocaleString('fr-FR', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
 }
 
 /**

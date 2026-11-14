@@ -42,9 +42,31 @@ export async function initI18n() {
     }
 
     currentLocale = savedLang;
-    await loadTranslations(currentLocale);
-    applyTranslations();
 
+    // DÉMARRAGE PWA RAPIDE : si la langue est déjà en cache local, on applique
+    // immédiatement les traductions (aucune attente réseau) puis on rafraîchit
+    // en arrière-plan. Le premier chargement (sans cache) garde un timeout court
+    // pour ne jamais bloquer l'app sur un réseau mobile faible.
+    const cached = readLocaleCache(currentLocale);
+    if (cached) {
+        translations = cached;
+        applyTranslations();
+        console.log(`[i18n] Langue active (cache) : ${currentLocale}`);
+        fetchTranslations(currentLocale, 8000).then((data) => {
+            if (!data) return;
+            translations = data;
+            writeLocaleCache(currentLocale, data);
+            applyTranslations();
+            window.dispatchEvent(new CustomEvent('i18n:changed', { detail: { locale: currentLocale } }));
+        }).catch(() => { /* offline : le cache suffit */ });
+        return;
+    }
+
+    const ok = await loadTranslations(currentLocale, { timeoutMs: 6000 });
+    if (!ok && currentLocale !== 'en') {
+        await loadTranslations('en', { timeoutMs: 4000 });
+    }
+    applyTranslations();
     console.log(`[i18n] Langue active : ${currentLocale}`);
 }
 
@@ -118,16 +140,45 @@ function promptLanguageSelection() {
     });
 }
 
-async function loadTranslations(locale) {
+// Version du dictionnaire : à incrémenter lors d'un changement de traductions.
+// URL STABLE (pas de Date.now()) → cache HTTP + cache SW + cache localStorage.
+const I18N_VERSION = '6';
+const I18N_CACHE_PREFIX = 'bp_i18n_v' + I18N_VERSION + '_';
+
+function readLocaleCache(locale) {
     try {
-        const res = await fetch(`/locales/${locale}.json?v=${Date.now()}`);
+        const raw = localStorage.getItem(I18N_CACHE_PREFIX + locale);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        return data && typeof data === 'object' ? data : null;
+    } catch (e) { return null; }
+}
+
+function writeLocaleCache(locale, data) {
+    try { localStorage.setItem(I18N_CACHE_PREFIX + locale, JSON.stringify(data)); } catch (e) { /* quota/noop */ }
+}
+
+async function fetchTranslations(locale, timeoutMs = 7000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const res = await fetch(`/locales/${locale}.json?v=${I18N_VERSION}`, { signal: controller.signal });
         if (!res.ok) throw new Error(`Fichier de langue introuvable: ${locale}.json`);
-        translations = await res.json();
+        return await res.json();
     } catch (e) {
-        console.error('[i18n] Erreur de chargement :', e);
-        // Fallback sur les clés brutes si le JSON échoue
-        translations = {};
+        console.warn('[i18n] chargement différé/impossible :', e?.message || e);
+        return null;
+    } finally {
+        clearTimeout(timer);
     }
+}
+
+async function loadTranslations(locale, { timeoutMs = 7000 } = {}) {
+    const data = await fetchTranslations(locale, timeoutMs);
+    if (!data) return false;
+    translations = data;
+    writeLocaleCache(locale, data);
+    return true;
 }
 
 /**
@@ -190,7 +241,7 @@ export async function setLocale(locale) {
     if (!SUPPORTED_LOCALES.includes(locale)) return;
     currentLocale = locale;
     localStorage.setItem('user_locale', locale);
-    await loadTranslations(locale);
+    await loadTranslations(locale, { timeoutMs: 10000 });
     applyTranslations();
     window.dispatchEvent(new CustomEvent('i18n:changed', { detail: { locale } }));
 }

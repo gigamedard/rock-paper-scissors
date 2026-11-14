@@ -140,11 +140,11 @@ export function initGame() {
             }
             // Anime si la valeur a changé, sinon met à jour directement
             if (Math.abs(total - prev) > 0.0001) {
-                animateValue('balance-val', prev, total, 4);
+                animateValue('balance-val', prev, total, 6);
             } else {
                 const el = document.getElementById('balance-val');
                 if (el && !el.classList.contains('animating')) {
-                    el.innerHTML = total.toFixed(4) + ' <span class="unit">' + currencySymbol() + '</span>';
+                    el.innerHTML = formatAmount(total) + ' <span class="unit">' + currencySymbol() + '</span>';
                 }
             }
             updateUI();
@@ -200,14 +200,14 @@ export function initGame() {
                 const claimSection = document.getElementById('claim-section');
                 if (claimSection) {
                     claimSection.style.display = 'block';
-                    document.getElementById('claim-amount-display').innerText = parseFloat(e.detail.user.balance).toFixed(4);
+                    document.getElementById('claim-amount-display').innerText = formatAmount(e.detail.user.balance);
                 }
             }
 
             if (e.detail.reason === 'SUCCESS') {
                 playSound('claim');
-                const profit = (parseFloat(e.detail.user.balance) - parseFloat(window.userState.session_start_balance || 0)).toFixed(4);
-                addToFeed(t('feed.victory', { balance: parseFloat(e.detail.user.balance).toFixed(4), profit: profit }), "var(--success)");
+                const profit = formatAmount(parseFloat(e.detail.user.balance) - parseFloat(window.userState.session_start_balance || 0));
+                addToFeed(t('feed.victory', { balance: formatAmount(e.detail.user.balance), profit: profit }), "var(--success)");
             } else {
                 addToFeed(t('feed.session_ended', { reason: e.detail.reason }), "var(--accent)");
             }
@@ -223,7 +223,7 @@ export function initGame() {
 
         window.addEventListener('game:martingaleUpdated', (e) => {
             const nextBet = parseFloat(e.detail.next_bet) || 0;
-            addToFeed(t('feed.martingale', { nextBet: nextBet.toFixed(4) }), "var(--primary)");
+            addToFeed(t('feed.martingale', { nextBet: formatAmount(nextBet) }), "var(--primary)");
             // L'event contient aussi l'objet user complet → synchro balance + bet en même temps
             if (e.detail.user) {
                 applyBalance(e.detail.user);
@@ -420,7 +420,7 @@ async function fetchUserStatus() {
                     && (b + bb) > 0 && !gameState.hasClaimed;
                 if (gameState.pendingClaim && window.userState.status === 'stopped') {
                     claimSection.style.display = 'block';
-                    document.getElementById('claim-amount-display').innerText = (b + bb).toFixed(4);
+                    document.getElementById('claim-amount-display').innerText = formatAmount(b + bb);
                     if (claimBtn) {
                         claimBtn.disabled = false;
                         if (gameState._claimBtnOrig) claimBtn.innerText = gameState._claimBtnOrig;
@@ -431,7 +431,7 @@ async function fetchUserStatus() {
                     // cacher (bug historique : bouton claim invisible alors que le
                     // target était atteint).
                     claimSection.style.display = 'block';
-                    document.getElementById('claim-amount-display').innerText = (b + bb).toFixed(4);
+                    document.getElementById('claim-amount-display').innerText = formatAmount(b + bb);
                     if (claimBtn) {
                         claimBtn.disabled = true;
                         claimBtn.innerText = 'Génération de votre récompense…';
@@ -546,10 +546,10 @@ function updateFeeDisplay() {
     if (elEff) elEff.innerText = 'x' + effective.toFixed(4) + ' (+' + ((effective - 1) * 100).toFixed(2) + '%)';
 
     if (elCoeff) elCoeff.innerText = coeff;
-    if (elStake) elStake.innerText = stake.toFixed(4) + " " + currencySymbol();
+    if (elStake) elStake.innerText = formatAmount(stake) + " " + currencySymbol();
     if (elFeePct) elFeePct.innerText = feePctUsed;
-    if (elFeeAmt) elFeeAmt.innerText = fee.toFixed(4) + " " + currencySymbol();
-    if (elTotal) elTotal.innerText = total.toFixed(4) + " " + currencySymbol();
+    if (elFeeAmt) elFeeAmt.innerText = formatAmount(fee) + " " + currencySymbol();
+    if (elTotal) elTotal.innerText = formatAmount(total) + " " + currencySymbol();
 
     // P3 : décomposition C / R / B + règle de remboursement.
     const p3 = document.getElementById('p3-breakdown');
@@ -558,9 +558,9 @@ function updateFeeDisplay() {
         if (bankrollOn) {
             const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.innerText = v; };
             const sym = currencySymbol();
-            setTxt('display-session-capital', sessionCapital.toFixed(4) + " " + sym);
-            setTxt('display-recovery-reserve', reserve.toFixed(4) + " " + sym);
-            setTxt('display-bankroll', stake.toFixed(4) + " " + sym);
+            setTxt('display-session-capital', formatAmount(sessionCapital) + " " + sym);
+            setTxt('display-recovery-reserve', formatAmount(reserve) + " " + sym);
+            setTxt('display-bankroll', formatAmount(stake) + " " + sym);
             const rp = Number(gameState.config.bankroll_refund_pct || 0) * 100;
             setTxt('display-refund-policy', rp.toFixed(0) + '% de B si double échec');
         }
@@ -993,11 +993,11 @@ export function updateUI() {
         
         const balanceEl = document.getElementById('balance-val');
         if(balanceEl && !balanceEl.classList.contains('animating')) {
-            balanceEl.innerHTML = displayBalance.toFixed(4) + ' <span class="unit">' + currencySymbol() + '</span>';
+            balanceEl.innerHTML = formatAmount(displayBalance) + ' <span class="unit">' + currencySymbol() + '</span>';
         }
         
         const betEl = document.getElementById('bet-val');
-        if(betEl) betEl.innerHTML = bet.toFixed(4) + ' <span class="unit">' + currencySymbol() + '</span>';
+        if(betEl) betEl.innerHTML = formatAmount(bet) + ' <span class="unit">' + currencySymbol() + '</span>';
 
         // Panneau P3 : bankroll / session / rattrapage / remboursements.
         const p3 = window.userState.p3;
@@ -1012,12 +1012,12 @@ export function updateUI() {
                 else if (Number(p3.session_attempt) === 1) stateTxt = 'Rattrapage';
                 if (Number(p3.refund_pending_count) > 0) stateTxt += ' · remboursement en attente';
                 set('p3-state', stateTxt);
-                set('p3-bankroll', (Number(p3.bankroll_total) || 0).toFixed(4) + ' ' + currencySymbol());
-                set('p3-capital', (Number(p3.session_capital) || 0).toFixed(4) + ' ' + currencySymbol());
-                set('p3-reserve', (Number(p3.recovery_reserve) || 0).toFixed(4) + ' ' + currencySymbol());
+                set('p3-bankroll', formatAmount(p3.bankroll_total) + ' ' + currencySymbol());
+                set('p3-capital', formatAmount(p3.session_capital) + ' ' + currencySymbol());
+                set('p3-reserve', formatAmount(p3.recovery_reserve) + ' ' + currencySymbol());
                 set('p3-refund-count', String(Number(p3.refund_pending_count) || 0));
-                set('p3-refund-total', (Number(p3.refund_pending_total) || 0).toFixed(4) + ' ' + currencySymbol());
-                set('p3-refund-paid', (Number(p3.refund_paid_count) || 0) + ' (' + (Number(p3.refund_paid_total) || 0).toFixed(4) + ' ' + currencySymbol() + ')');
+                set('p3-refund-total', formatAmount(p3.refund_pending_total) + ' ' + currencySymbol());
+                set('p3-refund-paid', (Number(p3.refund_paid_count) || 0) + ' (' + formatAmount(p3.refund_paid_total) + ' ' + currencySymbol() + ')');
                 // Claim : distinguer le remboursement crédité dans le montant retirable.
                 const paidTotal = Number(p3.refund_paid_total) || 0;
                 const claimRefundLine = document.getElementById('claim-refund-line');
@@ -1025,7 +1025,7 @@ export function updateUI() {
                     if (paidTotal > 0) {
                         claimRefundLine.style.display = 'block';
                         const e = document.getElementById('claim-refund-amount');
-                        if (e) e.innerText = paidTotal.toFixed(4);
+                        if (e) e.innerText = formatAmount(paidTotal);
                     } else {
                         claimRefundLine.style.display = 'none';
                     }
@@ -1033,7 +1033,7 @@ export function updateUI() {
                 const list = document.getElementById('p3-refund-list');
                 if (list) {
                     list.innerHTML = (p3.refund_items || [])
-                        .map((it) => '#' + it.id + ' — ' + Number(it.amount).toFixed(4) + ' ' + currencySymbol())
+                        .map((it) => '#' + it.id + ' — ' + formatAmount(it.amount) + ' ' + currencySymbol())
                         .join('<br>');
                 }
                 const note = document.getElementById('p3-refund-note');
@@ -1051,7 +1051,7 @@ export function updateUI() {
         const targetValEl = document.getElementById('balance-target-val');
         if (targetValEl) {
             targetValEl.innerText = tgt
-                ? (tgt.toFixed(4) + ' ' + currencySymbol())
+                ? (formatAmount(tgt) + ' ' + currencySymbol())
                 : '—';
         }
         const progEl = document.getElementById('balance-progress');
@@ -1180,7 +1180,7 @@ function animateValue(id, start, end, decimals) {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
         const val = progress * (eVal - sVal) + sVal;
-        obj.innerHTML = val.toFixed(decimals) + ' <span class="unit">' + currencySymbol() + '</span>';
+        obj.innerHTML = formatAmount(val, decimals) + ' <span class="unit">' + currencySymbol() + '</span>';
         if (progress < 1) window.requestAnimationFrame(step);
         else {
             obj.classList.remove('animating');

@@ -1,20 +1,36 @@
-const CACHE_NAME = 'battlepool-shell-v4';
-const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v4';
+const CACHE_NAME = 'battlepool-shell-v5';
+const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v5';
+const I18N_VERSION = '6';
 
-// Static assets to pre-cache immediately on installation
-const STATIC_ASSETS = [
+// App shell local : pré-caché en priorité (aucun domaine externe ici, sinon
+// `cache.addAll` échoue sur réseau mobile faible et le SW ne s'installe jamais).
+const LOCAL_STATIC_ASSETS = [
   '/',
+  '/manifest.json',
   '/css/style.css',
   '/icon.svg',
   '/pwa_icon_192.png',
   '/pwa_icon_512.png',
   '/favicon.ico',
-  'https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap',
-  'https://unpkg.com/lucide@0.344.0',
-  'https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js'
+  `/locales/fr.json?v=${I18N_VERSION}`,
+  `/locales/en.json?v=${I18N_VERSION}`
 ];
 
-// Exclude these paths from any caching
+// Optionnels : mis en cache en arrière-plan, sans bloquer l'installation.
+// Bundle applicatif à noms fixes (Vite) : pré-caché pour un lancement PWA
+// quasi instantané, même sur réseau mobile faible.
+const APP_ASSETS = [
+  '/build/assets/app.js',
+  '/build/assets/app.css',
+  '/build/assets/marketplace.css',
+  '/build/assets/referral.css',
+  '/build/assets/influencer.css'
+];
+
+const OPTIONAL_EXTERNAL_ASSETS = [
+  'https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap'
+];
+
 const EXCLUDED_PATHS = [
   '/user/',
   '/budget/',
@@ -26,105 +42,125 @@ const EXCLUDED_PATHS = [
   '/broadcasting/'
 ];
 
-// Install Service Worker
+function timeout(ms) {
+  return new Promise((resolve) => setTimeout(() => resolve(null), ms));
+}
+
+async function putInCache(cacheName, request, response) {
+  try {
+    if (response && response.status === 200) {
+      const cache = await caches.open(cacheName);
+      await cache.put(request, response.clone());
+    }
+  } catch (e) { /* quota/opaque : noop */ }
+}
+
+/**
+ * Network-first avec délai court : sur réseau mobile faible, on ne bloque pas
+ * l'ouverture de la PWA ; on sert le cache après `timeoutMs` et la réponse
+ * réseau continue en tâche de fond pour mettre à jour le cache.
+ */
+async function networkFirst(request, cacheName, timeoutMs, fallbackRoot = false) {
+  const cache = await caches.open(cacheName);
+  const networkPromise = fetch(request)
+    .then((response) => {
+      putInCache(cacheName, request, response);
+      return response;
+    })
+    .catch(() => null);
+
+  const early = await Promise.race([networkPromise, timeout(timeoutMs)]);
+  if (early) return early;
+
+  const cached = (await cache.match(request)) || (fallbackRoot ? await caches.match('/') : null);
+  if (cached) return cached;
+
+  // Pas de cache : on attend la fin du réseau (premier chargement).
+  const late = await networkPromise;
+  return late || new Response('Réseau indisponible', { status: 503, statusText: 'Service Unavailable' });
+}
+
+/** Cache-first + revalidation en arrière-plan (assets statiques/locales). */
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const networkPromise = fetch(request)
+    .then((response) => {
+      putInCache(cacheName, request, response);
+      return response;
+    })
+    .catch(() => null);
+
+  if (cached) return cached;
+  const network = await networkPromise;
+  return network || new Response('Asset indisponible hors ligne', { status: 503, statusText: 'Service Unavailable' });
+}
+
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installing...');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Pre-caching app shell...');
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const dynamic = await caches.open(DYNAMIC_CACHE_NAME);
+    // Chaque asset local est indépendant : un 404/erreur ne bloque pas le SW.
+    await Promise.allSettled([
+      ...LOCAL_STATIC_ASSETS.map((url) => cache.add(url)),
+      ...APP_ASSETS.map((url) => dynamic.add(url))
+    ]);
+    // Optionnels en arrière-plan (ne retarde pas l'installation).
+    OPTIONAL_EXTERNAL_ASSETS.forEach((url) => { cache.add(url).catch(() => {}); });
+    await self.skipWaiting();
+  })());
 });
 
-// Activate Service Worker & Clean Up Old Caches
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activating...');
-  event.waitUntil(
-    caches.keys().then((cacheKeys) => {
-      return Promise.all(
-        cacheKeys.map((key) => {
-          if (key !== CACHE_NAME && key !== DYNAMIC_CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache:', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => {
+      if (key !== CACHE_NAME && key !== DYNAMIC_CACHE_NAME) {
+        return caches.delete(key);
+      }
+      return null;
+    }));
+    await self.clients.claim();
+  })());
 });
 
-// Fetch Interception
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // 1. Only handle GET requests
-  if (request.method !== 'GET') {
-    return;
-  }
+  if (request.method !== 'GET') return;
+  if (!request.url.startsWith(self.location.origin) && !request.url.startsWith('http')) return;
 
-  // 2. Ignore Chrome Extensions, WebSockets, or non-http protocols
-  if (!request.url.startsWith(self.location.origin) && !request.url.startsWith('http')) {
-    return;
-  }
+  const isExcluded = EXCLUDED_PATHS.some((path) => url.pathname.includes(path));
+  if (isExcluded) return;
 
-  // 3. Exclude backend API, Web3 auth, and CSRF endpoints
-  const isExcluded = EXCLUDED_PATHS.some(path => url.pathname.includes(path));
-  if (isExcluded) {
-    return;
-  }
-
-  // 4. Strategy: Network-First for Page Navigation (HTML)
+  // Navigation HTML : network-first court, fallback cache (lancement PWA rapide).
   if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/dashboard' || url.pathname === '/autoplay') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Put page in shell cache
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        })
-        .catch(() => {
-          // If network fails, serve from cache
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) return cachedResponse;
-            // Fallback to cached root
-            return caches.match('/');
-          });
-        })
-    );
+    event.respondWith(networkFirst(request, CACHE_NAME, 3500, true));
     return;
   }
 
-  // 4bis. App code (bundle Vite + CSS applicatif) : NETWORK-FIRST.
-  // Le nom app.js n'est pas hashé → cache-first servirait un ancien bundle
-  // après chaque déploiement (sons/graphique absents sur PWA mobile).
+  // Code applicatif Vite (noms fixes, pas de hash) : network-first avec
+  // fallback cache après 2.5 s pour ne pas bloquer sur réseau faible.
   const isAppCode = url.pathname.includes('/build/assets/') || url.pathname === '/css/style.css';
   if (isAppCode) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(DYNAMIC_CACHE_NAME).then((cache) => cache.put(request, responseClone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
+    event.respondWith(networkFirst(request, DYNAMIC_CACHE_NAME, 2500, false));
     return;
   }
 
-  // 5. Strategy: Cache-First for static assets (CSS, JS, Fonts, Images, CDNs)
-  const isStaticAsset = 
-    url.pathname.includes('/build/assets/') || 
-    url.pathname.endsWith('.css') || 
-    url.pathname.endsWith('.js') || 
-    url.pathname.endsWith('.png') || 
-    url.pathname.endsWith('.svg') || 
+  // Locales / manifest : cache-first + revalidation (démarrage i18n instantané).
+  const isLocaleOrManifest = url.pathname.startsWith('/locales/') || url.pathname === '/manifest.json';
+  if (isLocaleOrManifest) {
+    event.respondWith(staleWhileRevalidate(request, DYNAMIC_CACHE_NAME));
+    return;
+  }
+
+  // Assets statiques et CDN : cache-first.
+  const isStaticAsset =
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.svg') ||
     url.pathname.endsWith('.woff2') ||
     request.url.includes('fonts.googleapis.com') ||
     request.url.includes('fonts.gstatic.com') ||
@@ -132,38 +168,10 @@ self.addEventListener('fetch', (event) => {
     request.url.includes('unpkg.com');
 
   if (isStaticAsset) {
-    event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
-        return fetch(request).then((response) => {
-          // Cache successful responses
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return response;
-        }).catch(() => {
-          // Fallback if offline
-          return new Response('Offline asset unavailable', { status: 503, statusText: 'Service Unavailable' });
-        });
-      })
-    );
+    event.respondWith(staleWhileRevalidate(request, DYNAMIC_CACHE_NAME));
     return;
   }
 
-  // 6. Default: Network with Cache Fallback for everything else
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        return response;
-      })
-      .catch(() => {
-        return caches.match(request);
-      })
-  );
+  // Défaut : réseau + cache de secours.
+  event.respondWith(networkFirst(request, DYNAMIC_CACHE_NAME, 4000, false));
 });

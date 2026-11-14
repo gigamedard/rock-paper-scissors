@@ -16,7 +16,12 @@
     <link rel="apple-touch-icon" href="/pwa_icon_192.png">
 
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Chargement non bloquant : sur réseau mobile faible, le rendu de l'app
+         ne doit pas attendre Google Fonts (fallback system-ui/Rajdhani local). -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
     <!-- CSS modules (générés par Vite en prod, sinon dev HMR) -->
 </head>
 <body>
@@ -189,8 +194,8 @@
                                     · <span data-i18n="setup.fee">Matchmaking Fee</span> (<span id="display-fee-percent">---</span>%)
                                 </span>
                                 <span class="fee-val">
-                                    <span id="display-stake">0.0000 TST</span>
-                                    + <span id="display-fee-amount" class="fee-accent">0.0000 TST</span>
+                                    <span id="display-stake">0.000000 TST</span>
+                                    + <span id="display-fee-amount" class="fee-accent">0.000000 TST</span>
                                 </span>
                             </div>
                             <!-- P3 : bankroll = budget de session (C) + réserve de rattrapage (R=C·X) -->
@@ -202,7 +207,7 @@
                             </div>
                             <div class="fee-row fee-total">
                                 <span data-i18n="setup.total_deposit">TOTAL DEPOSIT (une fois):</span>
-                                <span id="display-total-deposit">0.0000 TST</span>
+                                <span id="display-total-deposit">0.000000 TST</span>
                             </div>
                         </div>
 
@@ -217,7 +222,7 @@
                     <div class="arena-grid">
                         <div class="card stat-card pulse-primary">
                             <div class="card-label" data-i18n="dashboard.balance">Main Balance</div>
-                            <div class="card-value" id="balance-val">0.0000 <span class="unit">TST</span></div>
+                            <div class="card-value" id="balance-val">0.000000 <span class="unit">TST</span></div>
                             <div class="card-trend up">↑ Live Sync</div>
                             <canvas id="balance-chart" style="width:100%; height:90px; margin-top:8px; display:block;"></canvas>
                             <div id="balance-target-line" style="font-size:0.78rem; color:var(--text-dim); margin-top:2px;">
@@ -229,7 +234,7 @@
                         </div>
                         <div class="card stat-card">
                             <div class="card-label" data-i18n="dashboard.bet">Current Bet</div>
-                            <div class="card-value" id="bet-val">0.0100 <span class="unit">TST</span></div>
+                            <div class="card-value" id="bet-val">0.010000 <span class="unit">TST</span></div>
                             <div id="status-text" class="battle-status-tag status-online">Available</div>
                         </div>
                     </div>
@@ -246,10 +251,10 @@
                         <div style="margin-top:6px; font-size:0.82rem; color:var(--text-dim);">
                             Remboursements en attente :
                             <b id="p3-refund-count">0</b>
-                            (<span id="p3-refund-total">0.0000</span>)
+                            (<span id="p3-refund-total">0.000000</span>)
                         </div>
                         <div id="p3-refund-list" style="font-size:0.78rem; color:var(--text-dim); margin-top:2px;"></div>
-                        <div class="fee-row" style="margin-top:4px;"><span>Remboursements reçus</span><span id="p3-refund-paid">0 (0.0000)</span></div>
+                        <div class="fee-row" style="margin-top:4px;"><span>Remboursements reçus</span><span id="p3-refund-paid">0 (0.000000)</span></div>
                         <div id="p3-refund-note" style="display:none; font-size:0.75rem; color:var(--gold-primary); margin-top:2px;">
                             Vous pouvez continuer à jouer pendant l'attente.
                         </div>
@@ -274,9 +279,9 @@
                         <!-- Claim Section (Hidden by default) -->
                         <div id="claim-section" class="claim-panel fade-in" style="display: none;">
                             <h3 data-i18n="claim.title">SESSION COMPLETE - REWARDS READY</h3>
-                            <div class="claim-amount"><span id="claim-amount-display">0.0000</span> AVAXe</div>
+                            <div class="claim-amount"><span id="claim-amount-display">0.000000</span> AVAXe</div>
                             <div id="claim-refund-line" style="display:none; font-size:0.78rem; color:var(--gold-primary); margin-top:2px;">
-                                dont remboursement crédité : <b id="claim-refund-amount">0.0000</b> AVAXe
+                                dont remboursement crédité : <b id="claim-refund-amount">0.000000</b> AVAXe
                             </div>
                             <button class="btn-claim" id="claim-btn" data-i18n="claim.btn">CLAIM & WITHDRAW TO WALLET</button>
                         </div>
