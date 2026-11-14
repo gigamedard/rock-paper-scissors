@@ -1,5 +1,5 @@
-const CACHE_NAME = 'battlepool-shell-v5';
-const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v5';
+const CACHE_NAME = 'battlepool-shell-v6';
+const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v6';
 const I18N_VERSION = '6';
 
 // App shell local : pré-caché en priorité (aucun domaine externe ici, sinon
@@ -134,17 +134,20 @@ self.addEventListener('fetch', (event) => {
   const isExcluded = EXCLUDED_PATHS.some((path) => url.pathname.includes(path));
   if (isExcluded) return;
 
-  // Navigation HTML : network-first court, fallback cache (lancement PWA rapide).
+  // Navigation HTML : CACHE-FIRST + revalidation en arrière-plan.
+  // Sur réseau mobile faible, la PWA s'ouvre immédiatement depuis le cache.
+  // Une nouvelle version est prise via le cycle SW (CACHE_NAME bump + update
+  // + reload dans pwa.js), donc pas de risque de bloquer un vieux bundle.
   if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/dashboard' || url.pathname === '/autoplay') {
-    event.respondWith(networkFirst(request, CACHE_NAME, 3500, true));
+    event.respondWith(staleWhileRevalidate(request, CACHE_NAME));
     return;
   }
 
-  // Code applicatif Vite (noms fixes, pas de hash) : network-first avec
-  // fallback cache après 2.5 s pour ne pas bloquer sur réseau faible.
+  // Code applicatif Vite (noms fixes) : CACHE-FIRST + revalidation.
+  // Cache invalidé à chaque déploiement via CACHE_NAME/DYNAMIC_CACHE_NAME.
   const isAppCode = url.pathname.includes('/build/assets/') || url.pathname === '/css/style.css';
   if (isAppCode) {
-    event.respondWith(networkFirst(request, DYNAMIC_CACHE_NAME, 2500, false));
+    event.respondWith(staleWhileRevalidate(request, DYNAMIC_CACHE_NAME));
     return;
   }
 
