@@ -16,6 +16,14 @@
     <link rel="apple-touch-icon" href="/pwa_icon_192.png">
 
     <link rel="stylesheet" href="css/style.css">
+    <!-- Préconnexions réseau : réduit la latence mobile vers le RPC de jeu,
+         le relais WalletConnect et les APIs Reown utilisées au 1er clic wallet. -->
+    <link rel="preconnect" href="https://31.187.72.98.sslip.io" crossorigin>
+    <link rel="dns-prefetch" href="https://31.187.72.98.sslip.io">
+    <link rel="preconnect" href="https://relay.walletconnect.com" crossorigin>
+    <link rel="dns-prefetch" href="https://relay.walletconnect.com">
+    <link rel="preconnect" href="https://api.web3modal.com" crossorigin>
+    <link rel="dns-prefetch" href="https://api.web3modal.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Chargement non bloquant : sur réseau mobile faible, le rendu de l'app
