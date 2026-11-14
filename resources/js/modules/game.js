@@ -7,6 +7,7 @@ import { t } from './i18n.js';
 import { showToast } from '../core/toast.js';
 import { initBalanceChart, pushBalance, resetBalanceChart } from './balance-chart.js';
 import { playSound } from '../core/audio.js';
+import { formatAmount } from '../core/format.js';
 
 const gameState = {
     preMoves: [],
