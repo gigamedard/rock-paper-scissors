@@ -185,6 +185,8 @@
   "claim": {
     "title": "SITZUNG ABGESCHLOSSEN - BELOHNUNGEN BEREIT",
     "btn": "BEANSPRUCHEN & AUSZAHLEN",
+    "claim_amount_btn": "BEANSPRUCHEN {amount} AVAXe",
+    "claim_refund_btn": "BEANSPRUCHEN {amount} AVAXe (inkl. {refund} Rückerstattung)",
     "leave_pool": "Pool verlassen"
   },
   "faucet": {

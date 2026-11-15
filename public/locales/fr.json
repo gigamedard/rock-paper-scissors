@@ -185,6 +185,8 @@
   "claim": {
     "title": "SESSION COMPLETE - GAINS DISPONIBLES",
     "btn": "RÉCLAMER & RETIRER VERS WALLET",
+    "claim_amount_btn": "RÉCLAMER {amount} AVAXe",
+    "claim_refund_btn": "RÉCLAMER {amount} AVAXe (dont {refund} remboursement)",
     "leave_pool": "🚪 Quitter la pool"
   },
   "faucet": {

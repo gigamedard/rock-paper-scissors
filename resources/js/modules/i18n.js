@@ -152,7 +152,7 @@ function promptLanguageSelection() {
 
 // Version du dictionnaire : à incrémenter lors d'un changement de traductions.
 // URL STABLE (pas de Date.now()) → cache HTTP + cache SW + cache localStorage.
-const I18N_VERSION = '6';
+const I18N_VERSION = '7';
 const I18N_CACHE_PREFIX = 'bp_i18n_v' + I18N_VERSION + '_';
 
 function readLocaleCache(locale) {

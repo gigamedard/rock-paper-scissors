@@ -184,6 +184,8 @@
   "claim": {
     "title": "SESSAO COMPLETA - RECOMPENSAS PRONTAS",
     "btn": "RESGATAR PARA CARTEIRA",
+    "claim_amount_btn": "RESGATAR {amount} AVAXe",
+    "claim_refund_btn": "RESGATAR {amount} AVAXe (incl. {refund} reembolso)",
     "leave_pool": "Sair da pool"
   },
   "faucet": {

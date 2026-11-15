@@ -320,6 +320,19 @@ export function initGame() {
     }
 }
 
+/**
+ * Libellé clair du bouton de claim : montant net + remboursement inclus.
+ * Ex. « RÉCLAMER 0.290112 AVAXe (dont 0.289600 remboursement) ».
+ */
+function claimButtonLabel(amount, refundPaid = 0) {
+    const amountTxt = formatAmount(amount);
+    const refund = Number(refundPaid) || 0;
+    if (refund > 0) {
+        return t('claim.claim_refund_btn', { amount: amountTxt, refund: formatAmount(refund) });
+    }
+    return t('claim.claim_amount_btn', { amount: amountTxt });
+}
+
 async function fetchUserStatus() {
     if (!window.userState?.id) return;
     try {
@@ -436,7 +449,12 @@ async function fetchUserStatus() {
                     document.getElementById('claim-amount-display').innerText = formatAmount(b + bb);
                     if (claimBtn) {
                         claimBtn.disabled = false;
-                        if (gameState._claimBtnOrig) claimBtn.innerText = gameState._claimBtnOrig;
+                        // Texte explicite : le remboursement est INCLUS dans le claim.
+                        const refundPaid = Number(data?.p3?.refund_paid_total ?? window.userState.p3?.refund_paid_total ?? 0) || 0;
+                        claimBtn.innerText = claimButtonLabel(b + bb, refundPaid);
+                        claimBtn.title = refundPaid > 0
+                            ? `Montant réclamable ${formatAmount(b + bb)} ${currencySymbol()} — dont remboursement ${formatAmount(refundPaid)} ${currencySymbol()}`
+                            : `Montant réclamable ${formatAmount(b + bb)} ${currencySymbol()}`;
                     }
                 } else if (stoppedWithFunds) {
                     // Signature pas encore prête (rattrapage backend en cours) : on
@@ -957,7 +975,10 @@ async function claim() {
         addToFeed(t('feed.claim_failed', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
         gameState.claimInProgress = false;
-        btn.innerText = "CLAIM & EXIT ARENA";
+        const refundPaid = Number(window.userState.p3?.refund_paid_total) || 0;
+        btn.innerText = gameState.pendingClaim
+            ? claimButtonLabel(gameState.pendingClaim.amount, refundPaid)
+            : (gameState._claimBtnOrig || t('claim.btn'));
         btn.disabled = false;
     }
 }

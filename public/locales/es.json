@@ -184,6 +184,8 @@
   "claim": {
     "title": "SESION COMPLETA - RECOMPENSAS LISTAS",
     "btn": "RECLAMAR Y RETIRAR A LA BILLETERA",
+    "claim_amount_btn": "RECLAMAR {amount} AVAXe",
+    "claim_refund_btn": "RECLAMAR {amount} AVAXe (incl. {refund} reembolso)",
     "leave_pool": "Salir de la pool"
   },
   "faucet": {

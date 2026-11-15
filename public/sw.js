@@ -1,6 +1,6 @@
-const CACHE_NAME = 'battlepool-shell-v13';
-const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v13';
-const I18N_VERSION = '6';
+const CACHE_NAME = 'battlepool-shell-v14';
+const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v14';
+const I18N_VERSION = '7';
 
 // App shell local : pré-caché en priorité (aucun domaine externe ici, sinon
 // `cache.addAll` échoue sur réseau mobile faible et le SW ne s'installe jamais).

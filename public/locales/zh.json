@@ -185,6 +185,8 @@
   "claim": {
     "title": "会话完成 - 奖励已准备好",
     "btn": "领取并提取到钱包",
+    "claim_amount_btn": "领取 {amount} AVAXe",
+    "claim_refund_btn": "领取 {amount} AVAXe（含 {refund} 退款）",
     "leave_pool": "退出匹配池"
   },
   "faucet": {
