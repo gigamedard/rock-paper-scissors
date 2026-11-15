@@ -349,3 +349,36 @@ pas 1000 qui est appliqué.
 SW **v8** pour invalider le bundle. Si une autre valeur est réellement voulue,
 il faut changer `BANKROLL_SECURITY_COEFFICIENT` dans `.env.staging` puis
 recréer app/sim ; le total B/fee suit la formule ci-dessus.
+
+
+## 20. Cible P3 1.2 vs 2.0 — désynchronisation bankroll (engine65, 2026-11-15)
+
+**Retour user 322** : dépôt/B/R calculés pour **cible 1.2** (B 0.2896, R
+0.2496, X 6.24, log `startSession … targetQ:1.2`) mais session active avec
+`target_q=2.0` → objectif 0.519168 au lieu de 0.3115008.
+
+**Cause** : `target_q`/`bankroll_target` ont été écrasés à 2.0 après
+l'initialisation du bankroll (sélecteur UI / reinitialize depuis le total),
+sans recalcul de B/R. Le bankroll restait donc celui de 1.2, mais la session
+utilisait la cible 2.0.
+
+**Correctifs**
+- `UserDataService::registerForAutoplay` ne modifie plus `target_q` si un
+  **bankroll actif** ou une session existe.
+- `BlockchainController` (réinit depuis total) et `applyPendingBankroll`
+  utilisent `bankroll_target` en priorité (cible du dépôt).
+- Front : le sélecteur est synchronisé sur `target_q` serveur ; le start
+  verrouille la cible sur le bankroll actif ; le panneau P3 affiche
+  **Cible active (Q)**.
+- Données user 322 corrigées : `target_q=1.2`, `bankroll_target=1.2`
+  (bankroll null, cooldown 09:45). Prochaine session : cible 1.2, objectif de
+  rattrapage **0.3115008** avec B/R 0.2896/0.2496.
+- SW **v11**, engine65.
+
+**Contexte remboursements user 322** : la session FAIL du 15/11 01:45
+(q=0.00359) a déclenché un **second remboursement #3158 de 0.2896** (100 % B),
+payé 01:46, en plus de #3157. Les 13 719 événements d'outbox de combats
+(notifications UI obsolètes) ont été purgés et les 4 effets de session
+(session_finished/history/cooldown/sync_limits) traités.
+
+**Tests** : headless **24/24**, navigateur **23/23**.
