@@ -644,16 +644,23 @@ async function startSession() {
         // Garde-réseau (une fois par session, pas à chaque tx) : switch/add Pingala.
         // Jette si refus utilisateur (4001) → flux interrompu proprement.
         await ensurePingalaNetwork();
-        console.info('[Business] 2/4 tx : coeff=', gameState.config?.security_coefficient, 'fee=', gameState.config?.smart_contract_fee_percentage, 'addr=', gameState.contractAddress);
-        const provider = await getProvider();
-        const signer = await provider.getSigner();
-        
+
         const bankrollOn = !!gameState.config.bankroll_enabled;
+        // ⚠️ En P3/bankroll, le coefficient utilisé est
+        // `bankroll_security_coefficient` (=100). `security_coefficient` (1000)
+        // est l'ancien champ legacy : il ne doit plus être loggé comme s'il
+        // pilotait le dépôt (confusion UX/user 2026-11-15).
         const securityCoefficient = (bankrollOn
             ? (Number(gameState.config.bankroll_security_coefficient) || gameState.config.security_coefficient)
             : gameState.config.security_coefficient);
         const feePercentage = gameState.config.smart_contract_fee_percentage;
-        
+        console.info('[Business] 2/4 tx : coeff effectif=', securityCoefficient,
+            'legacy=', gameState.config?.security_coefficient,
+            'fee=', feePercentage, 'addr=', gameState.contractAddress);
+
+        const provider = await getProvider();
+        const signer = await provider.getSigner();
+
         const baseBetWei = parseUnits(bet, 18);
         const feeRate = bankrollOn
             ? (Number(gameState.config.bankroll_fee_rate) || (feePercentage / 100))
