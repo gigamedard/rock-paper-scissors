@@ -1409,6 +1409,8 @@ le contrat on-chain `ReferralRewards.sol` (100 SNT/PRANA par référence) n'est 
 
 **État live** : `sim-memory` (engine65, `sim:memory --pools=400 --limit=5000`, `SIM_NO_PAYOUT`)
 tournait **en parallèle** du moteur → **arrêté** (règle : jamais engine + sim simultanément).
+`.env.staging` avait `GAME_ENGINE_SIM_MEMORY=true` (mode exclusif sim) → repassé à **`false`**,
+services recréés : `engine` **healthy**, traite **40 pools/tick**.
 
 **Tests sans le contrat** : `tests/headless_e2e.sh` **24/24** ; `headless_ui.cjs` **23/23**
 (image Playwright v1.47 + `npm i playwright@1.47.0`). `connected_ui.cjs`/`wallet_ui.cjs`
