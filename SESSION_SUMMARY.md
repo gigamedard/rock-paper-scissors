@@ -1393,3 +1393,25 @@ puis `Fatal socket ... 3000 Project not found`) ; connexions/auth instables.
   fonctionne désormais avec le ProjectId (plus de `Project not found`).
 
 **Déploiement** : engine54 (app/reverb/bridge/sim), tests headless **24/24**, navigateur **23/23**.
+
+## 56. Suppression `ReferralRewards.sol` (legacy) + revalidation (engine39, 2026-11-15)
+
+**Décision** : le parrainage effectif est **off-chain en PRANA `locked_balance`** (crédit shop) ;
+le contrat on-chain `ReferralRewards.sol` (100 SNT/PRANA par référence) n'est **pas branché**.
+
+**Vérification avant suppression** : aucune référence runtime (pas d'ABI/adresse dans
+`config.js`/`app.js`/`full_deploy.js`, aucun appel backend/bridge, aucune entrée dans les
+`*_deployments.json`). Mentions restantes = docs/graphify uniquement.
+
+**Action** : `git rm smart_contracts/ReferralRewards.sol` (commit `38411dc`), push
+`feat/session-recovery`. Rebuild `battlepool-app:engine39` depuis `/tmp/deploy-engine`
+(`BUILD=0`), redéploiement `app/queue-worker/queue-worker-limits/scheduler/engine`, santé **200**.
+
+**État live** : `sim-memory` (engine65, `sim:memory --pools=400 --limit=5000`, `SIM_NO_PAYOUT`)
+tournait **en parallèle** du moteur → **arrêté** (règle : jamais engine + sim simultanément).
+
+**Tests sans le contrat** : `tests/headless_e2e.sh` **24/24** ; `headless_ui.cjs` **23/23**
+(image Playwright v1.47 + `npm i playwright@1.47.0`). `connected_ui.cjs`/`wallet_ui.cjs`
+exigent un wallet financé (`PK/ADDRESS/TOKEN`) non fourni → non exécutés, sans lien avec le contrat.
+
+**Aucun impact runtime** : parrainage inchangé (PRANA via `locked_balance`).
