@@ -1119,14 +1119,27 @@ export function updateUI() {
                 ? (formatAmount(tgt) + ' ' + currencySymbol())
                 : '—';
         }
-        const progEl = document.getElementById('balance-progress');
-        if (progEl) {
-            if (tgt && sessionStart > 0 && tgt > sessionStart) {
-                const pct = Math.max(0, Math.min(100, ((displayBalance - sessionStart) / (tgt - sessionStart)) * 100));
-                progEl.innerText = pct.toFixed(0) + '%';
-            } else {
-                progEl.innerText = '—';
+        // Progression SIGNÉE : négative si le solde est sous le départ.
+        let progressPct = null;
+        if (tgt && sessionStart > 0 && tgt > sessionStart) {
+            progressPct = ((displayBalance - sessionStart) / (tgt - sessionStart)) * 100;
+        }
+        const progressText = progressPct === null
+            ? '—'
+            : (progressPct >= 0 ? '+' : '') + progressPct.toFixed(1) + '%';
+        const progressColor = progressPct === null
+            ? 'var(--cyan-spark)'
+            : (progressPct >= 0 ? '#00E676' : '#FF0055');
+        ['balance-progress', 'combat-progress'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerText = progressText;
+                el.style.color = progressColor;
             }
+        });
+        const combatTarget = document.getElementById('combat-target');
+        if (combatTarget) {
+            combatTarget.innerText = tgt ? (formatAmount(tgt) + ' ' + currencySymbol()) : '—';
         }
 
         if (activeView === views['dashboard']) {

@@ -42,6 +42,7 @@ export async function initI18n() {
     }
 
     currentLocale = savedLang;
+    bindLanguageSelector();
 
     // DÉMARRAGE PWA RAPIDE : si la langue est déjà en cache local, on applique
     // immédiatement les traductions (aucune attente réseau) puis on rafraîchit
@@ -68,6 +69,15 @@ export async function initI18n() {
     }
     applyTranslations();
     console.log(`[i18n] Langue active : ${currentLocale}`);
+}
+
+function bindLanguageSelector() {
+    const sel = document.getElementById('lang-select');
+    if (!sel) return;
+    sel.value = currentLocale;
+    sel.onchange = () => {
+        if (sel.value && sel.value !== currentLocale) setLocale(sel.value);
+    };
 }
 
 function promptLanguageSelection() {
@@ -218,6 +228,10 @@ export function applyTranslations() {
 
     // Met à jour l'attribut lang du HTML
     document.documentElement.lang = currentLocale;
+
+    // Sélecteur de langue visible (header) + anciens boutons éventuels.
+    const sel = document.getElementById('lang-select');
+    if (sel) sel.value = currentLocale;
 
     // Met à jour la classe active sur les boutons de langue
     const btnFr = document.getElementById('lang-fr');
