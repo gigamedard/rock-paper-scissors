@@ -1,5 +1,5 @@
-const CACHE_NAME = 'battlepool-shell-v9';
-const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v9';
+const CACHE_NAME = 'battlepool-shell-v10';
+const DYNAMIC_CACHE_NAME = 'battlepool-dynamic-v10';
 const I18N_VERSION = '6';
 
 // App shell local : pré-caché en priorité (aucun domaine externe ici, sinon

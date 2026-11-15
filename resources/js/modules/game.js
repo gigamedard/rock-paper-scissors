@@ -1036,14 +1036,33 @@ export function updateUI() {
             if (hasP3) {
                 p3Panel.style.display = 'block';
                 const set = (id, v) => { const e = document.getElementById(id); if (e) e.innerText = v; };
+                const isRecovery = Number(p3.session_attempt) >= 1;
+                const p3B = Number(p3.bankroll_total) || 0;
+                const p3R = Number(p3.recovery_reserve) || 0;
+                // En rattrapage le backend remplace session_capital par R.
+                // On réaffiche le C INITIAL (B - R) et on nomme R « capital actif ».
+                const p3C = isRecovery ? Math.max(0, p3B - p3R) : (Number(p3.session_capital) || 0);
                 let stateTxt = 'Session 1';
                 if (window.userState.status === 'stopped') stateTxt = 'Session terminée';
-                else if (Number(p3.session_attempt) === 1) stateTxt = 'Rattrapage';
+                else if (isRecovery) stateTxt = 'Rattrapage (capital actif = R)';
                 if (Number(p3.refund_pending_count) > 0) stateTxt += ' · remboursement en attente';
                 set('p3-state', stateTxt);
-                set('p3-bankroll', formatAmount(p3.bankroll_total) + ' ' + currencySymbol());
-                set('p3-capital', formatAmount(p3.session_capital) + ' ' + currencySymbol());
-                set('p3-reserve', formatAmount(p3.recovery_reserve) + ' ' + currencySymbol());
+                set('p3-capital-label', isRecovery ? 'Budget initial (C)' : 'Budget session (C)');
+                set('p3-reserve-label', isRecovery ? 'Capital rattrapage actif (R)' : 'Réserve rattrapage (R)');
+                set('p3-bankroll', formatAmount(p3B) + ' ' + currencySymbol());
+                set('p3-capital', formatAmount(p3C) + ' ' + currencySymbol());
+                set('p3-reserve', formatAmount(p3R) + ' ' + currencySymbol());
+                const recoveryNote = document.getElementById('p3-recovery-note');
+                if (recoveryNote) {
+                    if (isRecovery) {
+                        const tq = Number(window.userState.target_q) || 2;
+                        const feePct = (Number(gameState.config.bankroll_fee_rate) || 0.04) * 100;
+                        recoveryNote.style.display = 'block';
+                        recoveryNote.innerText = `Rattrapage : objectif = capital actif ${formatAmount(p3R)} × cible ${tq} × (1 + ${feePct}% frais)`;
+                    } else {
+                        recoveryNote.style.display = 'none';
+                    }
+                }
                 set('p3-refund-count', String(Number(p3.refund_pending_count) || 0));
                 set('p3-refund-total', formatAmount(p3.refund_pending_total) + ' ' + currencySymbol());
                 set('p3-refund-paid', (Number(p3.refund_paid_count) || 0) + ' (' + formatAmount(p3.refund_paid_total) + ' ' + currencySymbol() + ')');
