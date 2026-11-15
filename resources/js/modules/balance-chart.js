@@ -40,11 +40,23 @@ export function pushBalance(value, targetValue, startValue) {
     if (!Number.isFinite(v)) return;
     if (targetValue !== undefined) {
         const t = Number(targetValue);
-        target = Number.isFinite(t) && t > 0 ? t : null;
+        const nextTarget = Number.isFinite(t) && t > 0 ? t : null;
+        if (nextTarget !== target) {
+            target = nextTarget;
+            // Nouvelle cible / nouveau bankroll : ne pas garder l'historique
+            // d'une session précédente (source des lignes collées/outliers).
+            if (startVal != null) history = [];
+        }
     }
     if (startValue !== undefined) {
         const s = Number(startValue);
-        startVal = Number.isFinite(s) && s > 0 ? s : null;
+        const nextStart = Number.isFinite(s) && s > 0 ? s : null;
+        if (nextStart !== startVal) {
+            startVal = nextStart;
+            // Démarrage/restauration d'une session : on repart de zéro pour
+            // éviter les points à 0/anciens qui écrasent l'échelle du graphe.
+            if (nextStart != null) history = [];
+        }
     }
     const last = history.length ? history[history.length - 1] : null;
     if (last === null || Math.abs(last - v) > 1e-9) history.push(v);
@@ -81,6 +93,16 @@ function draw() {
     const padB = 8;
     let min = Math.min(...vals), max = Math.max(...vals);
     if (!Number.isFinite(min) || !Number.isFinite(max)) { min = 0; max = 1; }
+    if (useProgress) {
+        // Échelle lisible : 0 % et 100 % restent séparés. On garde au moins
+        // 50 points de marge sous le départ, et on borne les outliers
+        // historiques (ancien solde 0 avant session) qui collaient les deux
+        // lignes en haut du graphe.
+        const lastProgress = series.length ? series[series.length - 1] : 0;
+        const floor = Math.min(-50, lastProgress - 10);
+        min = Math.min(0, floor);
+        max = Math.min(200, Math.max(100, max));
+    }
     if (max - min < 1e-9) { max = min + Math.max(1e-6, Math.abs(min) * 0.01); }
     const span = max - min || 1;
     const y = (v) => h - padB - ((v - min) / span) * (h - padT - padB);
