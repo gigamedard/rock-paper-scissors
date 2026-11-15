@@ -339,6 +339,16 @@ async function fetchUserStatus() {
             window.userState.session_start_balance = parseFloat(data.session_start_balance) || 0;
             window.userState.session_start_battle_balance = parseFloat(data.session_start_battle_balance) || 0;
             window.userState.target_q = parseFloat(data.target_q) || 0;
+            // Le sélecteur de cible doit refléter la cible ACTIVE (bankroll),
+            // pas seulement la config par défaut : sinon l'utilisateur croit
+            // avoir choisi 1.2 alors que la session tourne sur 2.0.
+            if (data.target_q) {
+                const qEl = document.getElementById('target-q-input');
+                if (qEl) {
+                    const match = Array.from(qEl.options).find(o => Math.abs(parseFloat(o.value) - parseFloat(data.target_q)) < 1e-9);
+                    if (match) qEl.value = match.value;
+                }
+            }
             window.userState.p3 = data.p3 || null;
             // Afficher/masquer le bouton d'airdrop selon le flag serveur
             // (et le flag local anti-réaffichage après un claim réussi).
@@ -472,7 +482,7 @@ async function fetchConfig() {
             // Aligner le sélecteur de cible sur la cible P3 active (1.05 / 1.2).
             if (gameState.config.bankroll_enabled) {
                 const qEl = document.getElementById('target-q-input');
-                const activeTarget = Number(gameState.config.bankroll_session_target_q || 1.2);
+                const activeTarget = Number(window.userState?.target_q) || Number(gameState.config.bankroll_session_target_q || 1.2);
                 if (qEl) {
                     const match = Array.from(qEl.options).find(o => Math.abs(parseFloat(o.value) - activeTarget) < 1e-9);
                     if (match) qEl.value = match.value;
@@ -624,7 +634,13 @@ async function startSession() {
     }
 
     const bet = document.getElementById('base-bet-input').value;
-    const targetQ = document.getElementById('target-q-input') ? parseFloat(document.getElementById('target-q-input').value) : 2.0;
+    let targetQ = document.getElementById('target-q-input') ? parseFloat(document.getElementById('target-q-input').value) : 1.2;
+    // Un bankroll actif a une cible FIGÉE : on ne la remplace pas par le
+    // sélecteur (source de la confusion 1.2 vs 2.0, 2026-11-15).
+    const activeBankroll = Number(window.userState?.p3?.bankroll_total) || 0;
+    if (activeBankroll > 0 && Number(window.userState.target_q) > 1.0) {
+        targetQ = Number(window.userState.target_q);
+    }
     const cooldownTime = document.getElementById('cooldown-input') ? parseInt(document.getElementById('cooldown-input').value, 10) : 1440;
     console.info('[Business] startSession', { bet, targetQ, cooldownTime, status: window.userState.status, balance: window.userState.balance });
     const btn = document.getElementById('start-session-btn');
@@ -1050,6 +1066,7 @@ export function updateUI() {
                 set('p3-capital-label', isRecovery ? 'Budget initial (C)' : 'Budget session (C)');
                 set('p3-reserve-label', isRecovery ? 'Capital rattrapage actif (R)' : 'Réserve rattrapage (R)');
                 set('p3-bankroll', formatAmount(p3B) + ' ' + currencySymbol());
+                set('p3-target', 'x' + (Number(window.userState.target_q) || Number(p3.bankroll_target) || 1.2).toFixed(2));
                 set('p3-capital', formatAmount(p3C) + ' ' + currencySymbol());
                 set('p3-reserve', formatAmount(p3R) + ' ' + currencySymbol());
                 const recoveryNote = document.getElementById('p3-recovery-note');

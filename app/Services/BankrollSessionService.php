@@ -265,7 +265,7 @@ class BankrollSessionService
             return false;
         }
 
-        $target = (float) ($user->target_q ?? 0);
+        $target = (float) ($user->bankroll_target ?: $user->target_q ?? 0);
         $this->reinitializeFromTotal($user, (float) $user->pending_bankroll_total, $target > 1.0 ? $target : null);
 
         return true;

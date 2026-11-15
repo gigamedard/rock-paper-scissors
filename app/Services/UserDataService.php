@@ -12,14 +12,19 @@ class UserDataService
         if (!$user) {
             throw new \Exception('User not found');
         }
-        $user->update([
+        $update = [
             'autoplay_active' => $autoplay,
             'bet_amount' => $bet_amount,
             'initial_base_bet' => $bet_amount,
             'status' => 'available',
-            'target_q' => $target_q,
             'cooldown_time' => $cooldown_time,
-        ]);
+        ];
+        // La cible d'un bankroll ACTIF est immuable : ne pas l'écraser avec le
+        // sélecteur d'une nouvelle session (bug 1.2 vs 2.0, 2026-11-15).
+        if (!$user->bankroll_total && !$user->session_started) {
+            $update['target_q'] = $target_q;
+        }
+        $user->update($update);
     }
 
     public function unregisterFromAutoplay($user)

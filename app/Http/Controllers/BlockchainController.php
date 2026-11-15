@@ -72,7 +72,9 @@ class BlockchainController extends Controller
                 if ($p3Active) {
                     try {
                         $bs = app(\App\Services\BankrollSessionService::class);
-                        $target = (float) ($user->target_q ?? 0);
+                        // La cible du dépôt/bankroll prime sur un target_q
+                        // modifié après coup par le sélecteur UI.
+                        $target = (float) ($user->bankroll_target ?: $user->target_q ?? 0);
                         $bs->reinitializeFromTotal($user, (float) $balanceEth, $target > 1.0 ? $target : null);
                         $p3Reinit = true;
                         Log::info("P3 bankroll reinitialized from on-chain total", [
