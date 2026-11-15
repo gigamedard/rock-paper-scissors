@@ -54,9 +54,16 @@ const TOAST_STYLES = {
 };
 
 let _toastSeq = 0;
+let _lastToast = { key: '', at: 0 };
 
 function showToast(message, type = 'info', ms = 4000) {
     if (message === null || message === undefined || message === '') return;
+    // Anti-spam mobile : un même message (ex. erreur de claim réessayée par
+    // double-tap) ne doit pas empiler 10 toasts identiques.
+    const key = String(type) + '|' + String(message);
+    const now = Date.now();
+    if (key === _lastToast.key && (now - _lastToast.at) < 1500) return;
+    _lastToast = { key, at: now };
     try { window._bpDebugLogHook?.('TOAST', `${type}: ${message}`); } catch (e) { /* noop */ }
     const container = ensureToastContainer();
     const style = TOAST_STYLES[type] || TOAST_STYLES.info;

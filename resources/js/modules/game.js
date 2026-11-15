@@ -1,8 +1,8 @@
 // resources/js/modules/game.js
 import { Contract, parseUnits, parseEther } from 'ethers';
-import { getProvider, ensurePingalaNetwork, ensureWalletVisibleForTx } from '../web3/web3-core.js';
+import { getProvider, ensurePingalaNetwork, ensureWalletVisibleForTx, restoreWalletConnectionSilently, getActiveEip1193Provider } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
-import { parseRpcError } from '../core/auth.js';
+import { parseRpcError, connectWallet } from '../core/auth.js';
 import { t } from './i18n.js';
 import { showToast } from '../core/toast.js';
 import { initBalanceChart, pushBalance, resetBalanceChart } from './balance-chart.js';
@@ -12,6 +12,8 @@ import { formatAmount } from '../core/format.js';
 const gameState = {
     preMoves: [],
     pendingClaim: null,
+    claimInProgress: false,
+    claimRetryAt: 0,
     config: {},
     contractAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
     // Chantier feat/avaxe-bridge (P3) : devise active "tst" | "avaxe".
@@ -838,13 +840,30 @@ async function sendClaimWithRetry(contract, maxAttempts = 3) {
 
 async function claim() {
     if (!gameState.pendingClaim) return;
+    if (gameState.claimInProgress) return;
+    if (gameState.claimRetryAt && Date.now() < gameState.claimRetryAt) return;
 
     const btn = document.getElementById('claim-btn');
+    gameState.claimInProgress = true;
     btn.innerText = "PROCESSING CLAIM...";
     btn.disabled = true;
     console.info('[Business] claim : pendingClaim=', gameState.pendingClaim);
 
     try {
+        // MOBILE/PWA : le wallet peut être « restauré » côté auth (token) alors
+        // que le provider WC n'existe plus en mémoire (PWA relancée). On tente
+        // une restauration silencieuse, puis on propose/ouvre la reconnexion au
+        // lieu de boucler sur « Aucun provider Web3 détecté ».
+        if (!getActiveEip1193Provider()) {
+            const restored = await restoreWalletConnectionSilently();
+            if (!restored) {
+                showToast('Wallet déconnecté — reconnectez-le pour réclamer.', 'warn', 6000);
+                const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+                const ok = await connectWallet(isMobile ? 'walletconnect' : 'injected');
+                if (!ok) throw new Error('Reconnexion wallet annulée.');
+            }
+        }
+
         // FORCER Pingala AVANT la tx : sinon Core envoie la tx sur le réseau
         // actif (AVAX) où le contrat n'existe pas → « succès » côté wallet mais
         // aucun claim réel (le bouton revient, le solde ne bouge pas).
@@ -910,9 +929,13 @@ async function claim() {
 
     } catch (error) {
         console.error('[Business] claim ÉCHEC:', error);
+        // Anti-spam : si le wallet n'est pas là, on ne relance pas une rafale
+        // de tentatives/erreurs au moindre tap.
+        gameState.claimRetryAt = Date.now() + 3000;
         showToast(t('errors.claim_failed') + parseRpcError(error), 'error');
         addToFeed(t('feed.claim_failed', { error: parseRpcError(error) }), "var(--accent)");
     } finally {
+        gameState.claimInProgress = false;
         btn.innerText = "CLAIM & EXIT ARENA";
         btn.disabled = false;
     }

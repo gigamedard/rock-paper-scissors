@@ -782,6 +782,45 @@ async function _restoreWcSessionIfNeeded() {
 }
 
 /**
+ * RESTAURATION SILENCIEUSE AU BOOT (PWA / retour de session)
+ * Beaucoup d'utilisateurs mobiles reviennent avec un `auth_token` en
+ * localStorage mais SANS provider WalletConnect en mémoire (PWA fermée /
+ * session JS perdue). Sans ce provider, « Claim » échoue en boucle avec
+ * « Aucun provider Web3 détecté ».
+ * Cette fonction ne déclenche AUCUNE modal/deeplink : elle ré-adopte
+ * uniquement une session WC persistée dans le storage.
+ * @returns {Promise<boolean>}
+ */
+export async function restoreWalletConnectionSilently() {
+    if (typeof window !== 'undefined' && typeof window.ethereum !== 'undefined') {
+        if (!_provider) _provider = new BrowserProvider(window.ethereum);
+        return true;
+    }
+    if (_walletConnectProvider && _getSessionAddress(_walletConnectProvider)) return true;
+
+    let hasWcStorage = false;
+    try { hasWcStorage = Object.keys(localStorage || {}).some((k) => String(k).startsWith('wc@2')); } catch (e) { /* noop */ }
+    if (!hasWcStorage && !_walletConnectProvider) return false;
+
+    try {
+        const { provider } = await _getAppKitWithProvider();
+        const addr = _getSessionAddress(provider);
+        if (!addr) {
+            console.info('[Web3] restore silencieux : storage WC présent mais aucune session valide');
+            return false;
+        }
+        _walletConnectProvider = provider;
+        _activeWcSource = 'appkit';
+        _provider = new BrowserProvider(provider);
+        console.info('[Web3] session WC restaurée silencieusement au boot', { addr });
+        return true;
+    } catch (e) {
+        console.warn('[Web3] restore silencieux impossible:', e?.message || e);
+        return false;
+    }
+}
+
+/**
  * Vrai si la connexion active passe par WalletConnect (pas par un wallet
  * injecté). Utilisé par auth.js pour décider s'il faut ré-ouvrir le wallet
  * avant la signature du challenge (sur mobile, le personal_sign arrive dans
@@ -937,6 +976,9 @@ export async function ensurePingalaNetwork() {
     // si la session WC a été nettoyée à tort (socket gelé pendant l'absence
     // dans Core), on la restauration depuis le storage AVANT toute requête.
     await _restoreWcSessionIfNeeded();
+    if (!_getRawProvider() && typeof window.ethereum === 'undefined') {
+        await restoreWalletConnectionSilently();
+    }
 
     let provider = _getRawProvider();
 

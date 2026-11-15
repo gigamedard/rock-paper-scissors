@@ -13,7 +13,7 @@ import { initStats } from './modules/stats.js';
 import { initPWA } from './core/pwa.js';
 import { showToast } from './core/toast.js';
 import { formatAmount } from './core/format.js';
-import { addPingalaNetwork, getActiveEip1193Provider, closeWalletModal, ensureWalletVisibleForTx, warmupWalletLibs, PRANA_NETWORK } from './web3/web3-core.js';
+import { addPingalaNetwork, getActiveEip1193Provider, closeWalletModal, ensureWalletVisibleForTx, warmupWalletLibs, restoreWalletConnectionSilently, PRANA_NETWORK } from './web3/web3-core.js';
 import { JsonRpcProvider, Contract, formatEther, formatUnits } from 'ethers';
 import { initDebugLog, debugLog } from './modules/debug-log.js';
 import { initOnboardingCore } from './modules/onboarding-core.js';
@@ -62,6 +62,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Restauration de session
     checkAuthSession();
 
+    // 2 bis. Restauration SILENCIEUSE du provider WalletConnect au boot PWA.
+    // Un auth_token restauré ne garantit pas que le provider WC soit en
+    // mémoire ; sans lui, Claim/tx échouent avec « Aucun provider Web3 ».
+    if (window.userState?.id && typeof window.ethereum === 'undefined') {
+        restoreWalletConnectionSilently().then((ok) => {
+            if (ok) refreshHeaderBalances();
+            else showReconnectWalletBanner();
+        }).catch(() => { showReconnectWalletBanner(); });
+    }
+
     // 3. Initialisation des modules métier
     initGame();
     initMarketplace();
@@ -73,6 +83,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 4bis. Stats publiques (polling léger + ticker) — si le DOM les porte
     initStats();
+
+    /**
+     * Bandeau de reconnexion : session backend restaurée (auth_token) mais
+     * provider wallet absent (PWA relancée / session WC perdue). Sans ça,
+     * chaque action on-chain échoue avec un toast « Aucun provider Web3 ».
+     */
+    function showReconnectWalletBanner() {
+        if (document.getElementById('bp-reconnect-wallet')) return;
+        if (!window.userState?.id) return;
+        const box = document.createElement('div');
+        box.id = 'bp-reconnect-wallet';
+        box.style.cssText = [
+            'position:fixed', 'left:12px', 'right:12px',
+            'bottom:calc(12px + env(safe-area-inset-bottom))',
+            'z-index:2147483000', 'display:flex', 'align-items:center', 'gap:10px',
+            'padding:10px 12px', 'border-radius:12px',
+            'background:rgba(40,24,6,0.97)', 'border:1px solid rgba(255,199,0,0.65)',
+            'box-shadow:0 10px 32px rgba(0,0,0,0.6)', 'pointer-events:auto'
+        ].join(';');
+        const text = document.createElement('div');
+        text.style.cssText = 'flex:1;color:#ffe9a8;font:600 13px/1.25 Rajdhani,system-ui,sans-serif;';
+        text.textContent = 'Wallet déconnecté — session restaurée sans wallet.';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = 'Reconnecter';
+        btn.style.cssText = 'flex:0 0 auto;padding:9px 12px;border-radius:9px;border:1px solid rgba(255,199,0,0.7);background:rgba(255,199,0,0.16);color:#ffe9a8;font:700 12px/1 Rajdhani,system-ui,sans-serif;cursor:pointer;';
+        const close = document.createElement('button');
+        close.type = 'button'; close.setAttribute('aria-label','Fermer'); close.textContent = '✕';
+        close.style.cssText = 'flex:0 0 auto;background:none;border:0;color:rgba(255,255,255,0.55);font-size:16px;padding:4px;cursor:pointer;';
+        const remove = () => box.remove();
+        close.addEventListener('click', remove);
+        btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            btn.textContent = 'Connexion…';
+            try {
+                const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+                const ok = await connectWallet(isMobile ? 'walletconnect' : 'injected');
+                if (ok) remove();
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Reconnecter';
+            }
+        });
+        box.appendChild(text); box.appendChild(btn); box.appendChild(close);
+        document.body.appendChild(box);
+        window.addEventListener('auth:success', remove, { once: true });
+    }
+    window.__bpShowReconnectWallet = showReconnectWalletBanner;
 
     // 5. Boutons de connexion (état « CONNEXION… » + anti double-clic).
     const handleConnect = (type, btn) => {
