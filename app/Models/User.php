@@ -22,7 +22,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'is_admin',
         'onramp_allowed',
         'is_online',
         'autoplay_active',

@@ -1438,3 +1438,43 @@ Les valeurs P3 du résumé précédent (10 %, security 300, target 1.05, refund 
   build + tests OK.
 
 **Tests** : headless **24/24**, navigateur **23/23** (engine69, sim-memory).
+
+## 58. On-ramp USDT → AVAXe — MVP manuel + bot Telegram (engine70/71, 2026-11-15)
+
+**Périmètre livré** : MVP manuel allowlist, USDT **TRC20 / BEP20 / Polygon PoS**,
+Telegram prioritaire (WhatsApp écarté pour crypto ; Discord plus tard après audit).
+Aucune clé privée dans le bot, aucun crédit automatique.
+
+**Backend**
+- migration `onramp_link_codes`, `onramp_links`, `onramp_orders`, `onramp_events`
+  + `users.onramp_allowed` ;
+- `OnrampService` : code de liaison, liaison chat, acceptation des conditions,
+  création commande, soumission hash USDT, approbation/refus admin, enregistrement
+  du hash de crédit AVAXe (manuel), ledger/événements, limites journalières ;
+- `TelegramService` + `OnrampTelegramBot` : `/start`, `/link`, `/accept`, `/buy`,
+  `/tx`, `/status`, `/help`, admin `/orders`, `/approve`, `/reject`, `/credit`,
+  `/allow`, `/disallow` ; boutons inline ;
+- `TelegramWebhookController` (`POST /api/telegram/webhook`, secret header) ;
+- routes user (`/api/onramp/link-code`, `/onramp/orders`) et admin
+  (`/api/admin/onramp/...`) ;
+- commande `onramp:telegram-set-webhook`.
+
+**Frontend** : bouton « Lier Telegram / acheter des AVAXe » (dashboard), génère
+un code de liaison et un deep link Telegram.
+
+**Sécurité / conformité** : conditions affichées, AVAXe de test non remboursables,
+allowlist obligatoire, validation admin, hash unique, adresses de dépôt par réseau,
+aucun transfert automatique. WhatsApp non utilisé (politique crypto/jeu argent réel).
+
+**Config** (`.env.staging`, désactivé par défaut) : `ONRAMP_ENABLED=false`,
+`ONRAMP_TERMS_*`, `ONRAMP_USDT_{TRC20,BEP20,POLYGON}_ADDRESS`,
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_BOT_USERNAME`,
+`TELEGRAM_ADMIN_IDS`, limites. Migration exécutée en prod.
+
+**Tests** : smoke service lien→commande→review→crédit (10 USDT → 100 AVAXe,
+4 événements, rollback) ; webhook désactivé sans token ; bot `/start`/`/buy`
+simulé avec Http fake ; headless **24/24**, navigateur **23/23**.
+
+**À fournir pour activer** : token/username Telegram, secret webhook, IDs admin,
+adresses USDT par réseau, conditions/URL, allowlist users, puis
+`ONRAMP_ENABLED=true`, recreate app et `onramp:telegram-set-webhook`.
