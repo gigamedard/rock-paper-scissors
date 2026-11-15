@@ -323,3 +323,29 @@ aboutir.
 **Action user** : recharger la PWA (SW v7), puis appuyer sur **Reconnecter**
 (ou Claim, qui déclenche la reconnexion) ; le wallet se rouvre, la signature
 `claimAndExit` peut alors être envoyée.
+
+
+## 19. Coefficient de sécurité — log trompeur (engine62, 2026-11-15)
+
+**Retour user 322** : le log `[Business] 2/4 tx : coeff= 1000` laissait croire
+que le coefficient dépassait la valeur demandée (100).
+
+**Réalité** : il y a deux champs :
+- `security_coefficient = 1000` : ancien champ legacy (GameSetting / artefacts),
+  **non utilisé** par le modèle bankroll P3 ;
+- `bankroll_security_coefficient = 100` : valeur effective
+  (`BANKROLL_SECURITY_COEFFICIENT=100`), affichée dans l'UI `display-coeff`.
+
+Calcul réel du dépôt (baseBet 0.0004, T=1.2, φ=4 %) :
+- C = 0.0004 × 100 = **0.04**
+- X = 6.24 ; R = 0.04 × 6.24 = **0.2496**
+- B = C + R = **0.2896**
+- frais 4 % = **0.011584**
+- total = **0.301184**
+Avec un coefficient 1000, le total serait 3.01184 (10× plus) : ce n'est donc
+pas 1000 qui est appliqué.
+
+**Correctif** : le log affiche désormais `coeff effectif= 100 legacy= 1000`.
+SW **v8** pour invalider le bundle. Si une autre valeur est réellement voulue,
+il faut changer `BANKROLL_SECURITY_COEFFICIENT` dans `.env.staging` puis
+recréer app/sim ; le total B/fee suit la formule ci-dessus.
