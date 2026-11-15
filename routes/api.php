@@ -10,6 +10,8 @@ use App\Http\Controllers\PoolAutoMatchController;
 use App\Http\Controllers\PublicStatsController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\WalletAuthController;
+use App\Http\Controllers\OnrampController;
+use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Controllers\GameMetricsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +28,9 @@ Route::post('/auth/verify', [WalletAuthController::class, 'verifySignature']);  
 Route::get('/wallet/dev-login', [WalletAuthController::class, 'devLogin']);
 Route::post('/login', [WalletAuthController::class, 'login']);                    // Direct login for UI/Bots
 Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);           // Publié pour permettre l'init Web3
+
+// Telegram on-ramp webhook (secret header vérifié dans le contrôleur)
+Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
 // Clé PUBLIQUE Reverb pour le client (WebSocket). Le secret reste serveur.
 // Nécessaire car la clé était scrubée du repo → Echo ne s'authentifiait pas.
@@ -78,6 +83,11 @@ Route::middleware('token.auth')->group(function () {
     Route::post('/user/leave-pool', [\App\Http\Controllers\LeavePoolController::class, 'leave']);
     Route::post('/user/faucet-claim', [\App\Http\Controllers\FaucetController::class, 'claim']);
     Route::post('/user/avaxe-faucet', [\App\Http\Controllers\FaucetController::class, 'avaxeClaim']);
+
+    // On-ramp USDT → AVAXe (MVP manuel)
+    Route::get('/onramp/config', [OnrampController::class, 'config']);
+    Route::post('/onramp/link-code', [OnrampController::class, 'linkCode']);
+    Route::get('/onramp/orders', [OnrampController::class, 'orders']);
     
     // Broadcasting Auth using our custom token authentication (Allow GET and POST to avoid 405)
     Route::match(['get', 'post'], '/broadcasting/auth', function (Request $request) {
@@ -156,6 +166,13 @@ Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function (
     // Settings API
     Route::get('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'index']);
     Route::post('/settings', [\App\Http\Controllers\AdminSettingsController::class, 'update']);
+
+    // --- Admin On-ramp (MVP manuel) ---
+    Route::get('/onramp/orders', [OnrampController::class, 'adminOrders']);
+    Route::post('/onramp/orders/{order}/approve', [OnrampController::class, 'approve']);
+    Route::post('/onramp/orders/{order}/reject', [OnrampController::class, 'reject']);
+    Route::post('/onramp/orders/{order}/credit', [OnrampController::class, 'credit']);
+    Route::post('/onramp/users/{user}/allow', [OnrampController::class, 'allowUser']);
 
     // --- Admin Routes for Cards ---
     Route::get('/cards', [\App\Http\Controllers\Admin\CardController::class, 'index']);

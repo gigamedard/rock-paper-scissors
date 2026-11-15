@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_admin',
+        'onramp_allowed',
         'is_online',
         'autoplay_active',
         'status',
@@ -77,6 +79,8 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'target_q' => 'float',
+        'is_admin' => 'boolean',
+        'onramp_allowed' => 'boolean',
         'cooldown_time' => 'integer',
         'cooldown_until' => 'datetime',
     ];
@@ -127,6 +131,16 @@ class User extends Authenticatable
     public function userSetting()
     {
         return $this->hasOne(UserSetting::class);
+    }
+
+    public function onrampLinks()
+    {
+        return $this->hasMany(\App\Models\OnrampLink::class);
+    }
+
+    public function onrampOrders()
+    {
+        return $this->hasMany(\App\Models\OnrampOrder::class);
     }
 
     public function fights()

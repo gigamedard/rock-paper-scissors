@@ -387,6 +387,77 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // ===== On-ramp USDT → AVAXe (MVP manuel, liaison Telegram) =====
+    const onrampLinkBtn = document.getElementById('onramp-link-btn');
+    function removeOnrampPanel() {
+        document.getElementById('bp-onramp-link-panel')?.remove();
+    }
+    function showOnrampPanel(data) {
+        removeOnrampPanel();
+        const box = document.createElement('div');
+        box.id = 'bp-onramp-link-panel';
+        box.style.cssText = [
+            'position:fixed', 'left:12px', 'right:12px',
+            'bottom:calc(12px + env(safe-area-inset-bottom))',
+            'z-index:2147483000', 'padding:14px',
+            'border-radius:14px', 'background:rgba(6,24,36,0.98)',
+            'border:1px solid rgba(0,229,255,0.55)',
+            'box-shadow:0 12px 40px rgba(0,0,0,0.65)',
+            'color:#aef2ff', 'font:600 13px/1.35 Rajdhani,system-ui,sans-serif',
+            'pointer-events:auto'
+        ].join(';');
+        const title = document.createElement('div');
+        title.style.cssText = 'font:800 14px/1.2 Orbitron,system-ui,sans-serif;color:#00E5FF;margin-bottom:8px;';
+        title.textContent = 'Lier Telegram / acheter des AVAXe';
+        const text = document.createElement('div');
+        text.style.marginBottom = '10px';
+        text.textContent = `Code : ${data.code} — expire dans quelques minutes. Envoie /link ${data.code} au bot Telegram, puis /accept et /buy.`;
+        const codeRow = document.createElement('div');
+        codeRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;';
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button'; copyBtn.textContent = 'Copier le code';
+        const openBtn = document.createElement('button');
+        openBtn.type = 'button'; openBtn.textContent = 'Ouvrir Telegram';
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button'; closeBtn.textContent = 'Fermer';
+        [copyBtn, openBtn, closeBtn].forEach((b) => {
+            b.style.cssText = 'padding:8px 12px;border-radius:8px;border:1px solid rgba(0,229,255,0.5);background:rgba(0,229,255,0.12);color:#aef2ff;font:700 12px Rajdhani,system-ui,sans-serif;cursor:pointer;';
+            codeRow.appendChild(b);
+        });
+        copyBtn.addEventListener('click', async () => {
+            try { await navigator.clipboard.writeText(data.code); showToast('Code copié.', 'success'); } catch (e) { showToast('Copie impossible — code : ' + data.code, 'info', 7000); }
+        });
+        openBtn.addEventListener('click', () => {
+            if (data.telegram_link) window.open(data.telegram_link, '_blank', 'noopener');
+            else showToast(data.instructions || 'Ouvre Telegram et envoie /link ' + data.code, 'info', 7000);
+        });
+        closeBtn.addEventListener('click', removeOnrampPanel);
+        box.appendChild(title); box.appendChild(text); box.appendChild(codeRow);
+        document.body.appendChild(box);
+    }
+    if (onrampLinkBtn) {
+        onrampLinkBtn.addEventListener('click', async () => {
+            if (onrampLinkBtn.disabled) return;
+            onrampLinkBtn.disabled = true;
+            try {
+                const { secureFetch } = await import('./core/api.js');
+                const res = await secureFetch('/onramp/link-code', { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || data.error || 'Code indisponible');
+                showOnrampPanel(data);
+            } catch (e) {
+                showToast('On-ramp : ' + (e.message || e), 'error', 6000);
+            } finally {
+                onrampLinkBtn.disabled = false;
+            }
+        });
+    }
+    const showOnrampButton = () => {
+        if (onrampLinkBtn) onrampLinkBtn.style.display = window.userState?.id ? 'block' : 'none';
+    };
+    window.addEventListener('auth:success', showOnrampButton);
+    showOnrampButton();
+
     // Sélecteur de devise (TST natif ↔ AVAXe ERC-20).
     const currencyTstBtn = document.getElementById('currency-tst-btn');
     const currencyAvaxeBtn = document.getElementById('currency-avaxe-btn');
@@ -657,6 +728,8 @@ function checkAuthSession() {
             console.log("✅ Session restaurée:", window.userState.walletAddress);
             initEcho().catch(e => console.warn("[Echo] init:", e?.message || e));
             refreshHeaderBalances();
+            const onrampBtn = document.getElementById('onramp-link-btn');
+            if (onrampBtn) onrampBtn.style.display = 'block';
             // Afficher le bouton airdrop si non encore réclamé
             const fb = document.getElementById('faucet-claim-btn');
             if (fb && !user.has_received_airdrop) fb.style.display = 'block';
