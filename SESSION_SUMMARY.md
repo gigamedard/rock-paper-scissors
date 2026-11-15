@@ -1417,3 +1417,24 @@ services recréés : `engine` **healthy**, traite **40 pools/tick**.
 exigent un wallet financé (`PK/ADDRESS/TOKEN`) non fourni → non exécutés, sans lien avec le contrat.
 
 **Aucun impact runtime** : parrainage inchangé (PRANA via `locked_balance`).
+
+## 57. Correction d'état : rollback engine39/DB engine annulé (engine69, 2026-11-15)
+
+Le §56 (engine39, `GAME_ENGINE_SIM_MEMORY=false`, moteur DB actif) était le
+résultat d'un contexte **obsolète** : il ne connaissait pas les travaux
+engine60→68 (PWA mobile, claim/refund, cible verrouillée, graphique/HUD/langues).
+Les valeurs P3 du résumé précédent (10 %, security 300, target 1.05, refund 68 %)
+étaient également **périmées**.
+
+**État de référence restauré** :
+- image **engine69** (build depuis le HEAD courant, incluant la suppression
+  `ReferralRewards.sol`) sur app/queue-worker/queue-worker-limits/scheduler/
+  reverb/sim-memory/bridge ;
+- `engine` et `batch-processor` **arrêtés/Created** ; **sim-memory actif** ;
+- `.env.staging` : `GAME_ENGINE_SIM_MEMORY=true`, `SIM_INCLUDE_HUMANS=true` ;
+- config P3 active : **4 %**, **target 1.2**, **security 100**, **refund 100 %** ;
+- `GIT_SHA=engine69` dans `.env` ;
+- `ReferralRewards.sol` reste supprimé : aucune référence runtime, validation
+  build + tests OK.
+
+**Tests** : headless **24/24**, navigateur **23/23** (engine69, sim-memory).
