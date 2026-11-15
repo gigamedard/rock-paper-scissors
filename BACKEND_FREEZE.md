@@ -287,3 +287,39 @@ montants AVAXe/TST/PRANA avec **6 décimales**.
 - Note : un backlog `side_effect_outbox` de ~11 k événements provenait d'un
   utilisateur humain simulé (user 322, session longue) ; nettoyé pour le test.
   À surveiller si un utilisateur simulé génère à nouveau un gros volume.
+
+
+## 18. PWA mobile — session restaurée sans wallet / claim en boucle — engine61 (2026-11-15)
+
+**Log terrain (iPhone PWA, user 322)** : `Session restaurée: 0x1f14…`, puis
+`WC {"hasSession":false,"provider":null}`, et chaque tap sur Claim :
+`switch Pingala échoué Aucun provider Web3 détecté` + toast répété.
+Cause : l'`auth_token` backend est restauré depuis localStorage, mais le
+provider WalletConnect n'existe plus en mémoire après relance de la PWA.
+Sans provider, aucune action on-chain (claim, session, marketplace) ne peut
+aboutir.
+
+**Correctifs**
+- `restoreWalletConnectionSilently()` : au boot (et avant `ensurePingalaNetwork`),
+  ré-adoption **sans modal ni deeplink** d'une session WC persistée
+  (`wc@2`/UniversalProvider) si elle existe.
+- Si aucune session WC persistée : **bandeau “Wallet déconnecté — session
+  restaurée sans wallet” + bouton Reconnecter** (ouvre le flux WalletConnect
+  mobile ou injected selon l'appareil). Retiré sur `auth:success`.
+- Claim : si le provider manque, restauration silencieuse puis **reconnexion
+  automatique** (`connectWallet('walletconnect')` sur mobile) avant de
+  poursuivre le claim. Garde `claimInProgress` + cooldown 3 s : plus de rafale
+  de tentatives/toasts sur double-tap.
+- Toasts : déduplication des messages identiques sur 1,5 s (anti-spam mobile).
+- SW **v7** pour invalider le bundle cache-first (engine61).
+
+**Vérification Playwright mobile**
+- Auth normale OK, puis nouvelle PWA avec `auth_token` restauré et **aucun
+  provider** : bannière `Wallet déconnecté — session restaurée sans wallet. /
+  Reconnecter / ✕` présente, aucun `Aucun provider Web3` au boot, pas d'erreur
+  JS.
+- Navigateur **23/23** ; headless backend **24/24** (hors backlog sim, cf. §17).
+
+**Action user** : recharger la PWA (SW v7), puis appuyer sur **Reconnecter**
+(ou Claim, qui déclenche la reconnexion) ; le wallet se rouvre, la signature
+`claimAndExit` peut alors être envoyée.
