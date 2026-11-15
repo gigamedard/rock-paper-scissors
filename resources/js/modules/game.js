@@ -1,8 +1,8 @@
 // resources/js/modules/game.js
 import { Contract, parseUnits, parseEther } from 'ethers';
-import { getProvider, ensurePingalaNetwork, ensureWalletVisibleForTx, restoreWalletConnectionSilently, getActiveEip1193Provider } from '../web3/web3-core.js';
+import { getProvider, ensurePingalaNetwork, ensureWalletVisibleForTx } from '../web3/web3-core.js';
 import { secureFetch } from '../core/api.js';
-import { parseRpcError, connectWallet } from '../core/auth.js';
+import { parseRpcError, ensureWalletReadyForAction } from '../core/auth.js';
 import { t } from './i18n.js';
 import { showToast } from '../core/toast.js';
 import { initBalanceChart, pushBalance, resetBalanceChart } from './balance-chart.js';
@@ -618,6 +618,10 @@ async function startSession() {
         showToast(t('errors.select_premoves'), 'warn');
         return;
     }
+    if (!(await ensureWalletReadyForAction())) {
+        showToast('Wallet non connecté — reconnectez-le pour démarrer une session.', 'error');
+        return;
+    }
 
     const bet = document.getElementById('base-bet-input').value;
     const targetQ = document.getElementById('target-q-input') ? parseFloat(document.getElementById('target-q-input').value) : 2.0;
@@ -859,16 +863,10 @@ async function claim() {
     try {
         // MOBILE/PWA : le wallet peut être « restauré » côté auth (token) alors
         // que le provider WC n'existe plus en mémoire (PWA relancée). On tente
-        // une restauration silencieuse, puis on propose/ouvre la reconnexion au
-        // lieu de boucler sur « Aucun provider Web3 détecté ».
-        if (!getActiveEip1193Provider()) {
-            const restored = await restoreWalletConnectionSilently();
-            if (!restored) {
-                showToast('Wallet déconnecté — reconnectez-le pour réclamer.', 'warn', 6000);
-                const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-                const ok = await connectWallet(isMobile ? 'walletconnect' : 'injected');
-                if (!ok) throw new Error('Reconnexion wallet annulée.');
-            }
+        // une restauration silencieuse, puis on ouvre la reconnexion au lieu de
+        // boucler sur « Aucun provider Web3 détecté ».
+        if (!(await ensureWalletReadyForAction())) {
+            throw new Error('Reconnexion wallet annulée.');
         }
 
         // FORCER Pingala AVANT la tx : sinon Core envoie la tx sur le réseau

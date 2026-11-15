@@ -1,5 +1,5 @@
 // resources/js/core/auth.js
-import { getProvider, getSigner, resetProvider, ensurePingalaNetwork, isWalletConnectActive, getWcSessionAddress, reopenWalletForSigning, showWalletOpenPrompt } from '../web3/web3-core.js';
+import { getProvider, getSigner, resetProvider, ensurePingalaNetwork, isWalletConnectActive, getWcSessionAddress, reopenWalletForSigning, showWalletOpenPrompt, getActiveEip1193Provider, restoreWalletConnectionSilently } from '../web3/web3-core.js';
 import { getAddress, hexlify, toUtf8Bytes } from 'ethers';
 import { secureFetch } from './api.js';
 import { t } from '../modules/i18n.js';
@@ -89,6 +89,27 @@ export async function connectWallet(providerType = 'injected') {
     } finally {
         _authInProgress = false;
     }
+}
+
+/**
+ * Garantit qu'un provider wallet est disponible AVANT une action on-chain
+ * (claim, achat carte, approbation marketplace, session…).
+ * 1. provider déjà en mémoire ; 2. restauration WC silencieuse ; 3. reconnexion
+ * interactive (WalletConnect mobile / injected desktop).
+ * À utiliser dans un handler déclenché par un geste utilisateur.
+ * @param {{silent?: boolean}} [opts]
+ * @returns {Promise<boolean>}
+ */
+export async function ensureWalletReadyForAction({ silent = false } = {}) {
+    if (getActiveEip1193Provider()) return true;
+    if (await restoreWalletConnectionSilently()) return true;
+    if (silent) return false;
+    try {
+        showToast('Wallet déconnecté — reconnexion en cours…', 'info', 4000);
+    } catch (e) { /* noop */ }
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    const ok = await connectWallet(isMobile ? 'walletconnect' : 'injected');
+    return !!ok && !!getActiveEip1193Provider();
 }
 
 async function _connectWalletImpl(providerType = 'injected') {

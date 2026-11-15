@@ -15,7 +15,7 @@ import { secureFetch, getAuthToken } from '../core/api.js';
 import { addToFeed } from './game.js';
 import { t } from './i18n.js';
 import { setAppTimer } from '../core/timers.js';
-import { parseRpcError } from '../core/auth.js';
+import { parseRpcError, ensureWalletReadyForAction } from '../core/auth.js';
 import { parseEther, formatEther } from 'ethers';
 import { formatAmount } from '../core/format.js';
 
@@ -303,6 +303,10 @@ window.marketplaceBuyCard = async function(cardId, cardPrice, quantity = 1) {
 
     if (!window.userState || !window.userState.walletAddress) {
         _showMpNotification(t('marketplace.sign_buy_wallet'), 'error');
+        return;
+    }
+    if (!(await ensureWalletReadyForAction())) {
+        _showMpNotification('Wallet non connecté — reconnectez-le puis réessayez.', 'error');
         return;
     }
     
@@ -692,6 +696,10 @@ function _safeParseEther(value) {
 // ─── ÉTAPE 1 : APPROBATION ERC20 ──────────────────────────────────────────────
 async function handleApprove() {
     if (!_assertWalletConnected()) return;
+    if (!(await ensureWalletReadyForAction())) {
+        _showMpNotification('Wallet non connecté — reconnectez-le puis réessayez.', 'error');
+        return;
+    }
 
     const sntAmount   = document.getElementById('mp-snt-amount')?.value;
     if (!sntAmount || parseFloat(sntAmount) <= 0) {
@@ -771,6 +779,10 @@ async function handleApprove() {
 // ─── ÉTAPE 2 : CRÉATION DE L'OFFRE ────────────────────────────────────────────
 async function handleCreateOffer() {
     if (!_assertWalletConnected()) return;
+    if (!(await ensureWalletReadyForAction())) {
+        _showMpNotification('Wallet non connecté — reconnectez-le puis réessayez.', 'error');
+        return;
+    }
     if (!_approvalDone) {
         _showMpNotification(t('marketplace.create_offer_approve_first'), 'error');
         return;
@@ -827,6 +839,10 @@ async function handleCreateOffer() {
 // ─── ACHAT D'UNE OFFRE ────────────────────────────────────────────────────────
 window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
     if (!_assertWalletConnected()) return;
+    if (!(await ensureWalletReadyForAction())) {
+        _showMpNotification('Wallet non connecté — reconnectez-le puis réessayez.', 'error');
+        return;
+    }
     if (!CONTRACT_ADDRESSES.marketplace) {
         _showMpNotification(t('marketplace.contract_unavailable'), 'error');
         return;
@@ -854,6 +870,10 @@ window.marketplaceBuyOffer = async function(offerId, avaxAmount) {
 // ─── ANNULATION D'UNE OFFRE ───────────────────────────────────────────────────
 window.marketplaceCancelOffer = async function(offerId) {
     if (!_assertWalletConnected()) return;
+    if (!(await ensureWalletReadyForAction())) {
+        _showMpNotification('Wallet non connecté — reconnectez-le puis réessayez.', 'error');
+        return;
+    }
     if (!CONTRACT_ADDRESSES.marketplace) {
         _showMpNotification(t('marketplace.contract_unavailable'), 'error');
         return;
