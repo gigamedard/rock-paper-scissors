@@ -382,3 +382,22 @@ payé 01:46, en plus de #3157. Les 13 719 événements d'outbox de combats
 (session_finished/history/cooldown/sync_limits) traités.
 
 **Tests** : headless **24/24**, navigateur **23/23**.
+
+
+## 21. HUD progression + graphique signé + langues — engine66 (2026-11-15)
+
+- **HUD combat** : `#combat-progress-hud` ajouté dans `#combat-overlay`
+  (z-index 1001) → objectif + progression visibles même quand l'overlay couvre
+  l'écran. Mis à jour par `updateUI()` avec les mêmes valeurs que
+  `#balance-progress-line`.
+- **Progression signée** : plus de clamp à 0 ; affiche `+x%` / `-x%` et couleur
+  verte (`#00E676`) si ≥ 0, rouge (`#FF0055`) si négatif.
+- **Graphique** : tracé en **progression 0 % → 100 %** (départ/objectif fixes,
+  plus de lignes confondues), zone négative rouge sous le départ, courbe
+  verte/rouge selon le signe, label courant en %.
+- **Multilangue** : sélecteur `#lang-select` réactivé dans le header
+  (fr/en/es/de/pt/zh), synchronisé avec `setLocale`/cache i18n ; `applyTranslations`
+  met à jour la sélection.
+- Vérification mobile Playwright : `-209.9%` rouge, cible `0.311501`,
+  HUD visible overlay ouvert, sélecteur FR→`Arène` + `localStorage=fr`.
+- Tests : headless **24/24**, navigateur **23/23**. SW **v12**, engine66.
