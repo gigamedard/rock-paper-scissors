@@ -190,16 +190,22 @@
       if (action === 'approve') {
         if (!confirm('Approuver cette commande ? Vérifie le dépôt USDT avant.')) return;
         await api(`/admin/onramp/orders/${id}/approve`, { method: 'POST', body: JSON.stringify({ note: 'Approuvée depuis admin web' }) });
+        currentStatus = 'approved';
+        renderTabs();
         toast('Commande approuvée. Envoie les AVAXe puis enregistre le crédit.');
       } else if (action === 'reject') {
         const reason = prompt('Raison du refus :', 'Refusée');
         if (reason === null) return;
         await api(`/admin/onramp/orders/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
+        currentStatus = 'rejected';
+        renderTabs();
         toast('Commande refusée.');
       } else if (action === 'credit') {
         const hash = prompt('Hash de la transaction AVAXe sur Pingala :');
         if (!hash) return;
         await api(`/admin/onramp/orders/${id}/credit`, { method: 'POST', body: JSON.stringify({ credit_tx_hash: hash.trim() }) });
+        currentStatus = 'credited';
+        renderTabs();
         toast('Crédit enregistré.');
       } else if (action === 'allow') {
         await api(`/admin/onramp/users/${userId}/allow`, { method: 'POST', body: JSON.stringify({ allowed: true }) });
