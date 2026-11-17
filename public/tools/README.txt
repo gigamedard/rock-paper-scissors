@@ -17,12 +17,12 @@ OPTION 1 — Interface HTML (recommandé, aucun Node requis)
 OPTION 2 — Script Node.js
 Prérequis : Node.js 18+.
 - Version autonome (aucun npm install) :
-    node derive-wallets.cjs --index 0
+    node derive-wallets.cjs --index 0 --lang fr   # ou --lang en
   ou
-    SEED_PHRASE="mot1 mot2 ..." node derive-wallets.cjs --json
+    SEED_PHRASE="mot1 mot2 ..." node derive-wallets.cjs --json --lang fr
 - Version source (nécessite ethers) :
     npm install ethers
-    SEED_PHRASE="..." node derive-wallets.mjs --index 0
+    SEED_PHRASE="..." node derive-wallets.mjs --index 0 --lang fr
 
 Chemins :
 - EVM : m/44'/60'/0'/0/{index}
