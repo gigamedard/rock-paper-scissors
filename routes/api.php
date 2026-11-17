@@ -169,6 +169,7 @@ Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function (
 
     // --- Admin On-ramp (MVP manuel) ---
     Route::get('/onramp/orders', [OnrampController::class, 'adminOrders']);
+    Route::get('/onramp/users', [OnrampController::class, 'adminUsers']);
     Route::post('/onramp/orders/{order}/approve', [OnrampController::class, 'approve']);
     Route::post('/onramp/orders/{order}/reject', [OnrampController::class, 'reject']);
     Route::post('/onramp/orders/{order}/credit', [OnrampController::class, 'credit']);

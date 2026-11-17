@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Battlepool — Admin on-ramp</title>
+<style>
+  :root{--bg:#0f0c1b;--panel:#1f1b2e;--cyan:#00e5ff;--gold:#ffc700;--red:#ff1744;--green:#00e676;--text:#fff;--dim:#a099b8}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(circle at 50% 0,#1b1630,#0f0c1b 70%);color:var(--text);font:500 14px/1.45 Rajdhani,system-ui,sans-serif;min-height:100vh;padding:14px}
+  .wrap{max-width:1150px;margin:0 auto}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  h1{font:800 20px/1.2 Orbitron,system-ui,sans-serif;color:var(--cyan);margin:0;flex:1}
+  .sub{color:var(--dim);font-size:12px}
+  a{color:var(--cyan)}
+  .card{background:rgba(31,27,46,.95);border:1px solid rgba(123,44,191,.6);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 12px 36px rgba(0,0,0,.45)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button{border:1px solid rgba(0,229,255,.5);background:rgba(0,229,255,.12);color:#aef2ff;border-radius:8px;padding:8px 11px;font:800 12px Rajdhani,system-ui,sans-serif;cursor:pointer}
+  button.primary{background:linear-gradient(90deg,var(--gold),#ff9100);border:0;color:#000}
+  button.danger{background:rgba(255,23,68,.12);border-color:rgba(255,23,68,.5);color:#ffb3c0}
+  button.green{background:rgba(0,230,118,.12);border-color:rgba(0,230,118,.5);color:#a5f3c9}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  input,select{background:#0c1420;color:#fff;border:1px solid rgba(0,229,255,.35);border-radius:8px;padding:8px 10px;font:600 13px Rajdhani,system-ui,sans-serif;outline:none}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .tabs button.active{background:var(--cyan);color:#000;border-color:var(--cyan)}
+  .order{border:1px solid rgba(0,229,255,.22);border-radius:10px;padding:12px;margin:10px 0;background:rgba(0,0,0,.18)}
+  .order h3{margin:0 0 8px;font:800 15px Orbitron,system-ui,sans-serif;color:var(--gold)}
+  .grid{display:grid;grid-template-columns:130px 1fr;gap:5px 10px;font-size:13px}
+  .k{color:var(--dim)}
+  .v{word-break:break-all}
+  .hash{font-family:ui-monospace,monospace;font-size:12px;color:#aef2ff}
+  .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .status{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid}
+  .s-pending_deposit{color:#ffe9a8;border-color:#ffc700;background:rgba(255,199,0,.08)}
+  .s-pending_review{color:#aef2ff;border-color:#00e5ff;background:rgba(0,229,255,.08)}
+  .s-approved{color:#a5f3c9;border-color:#00e676;background:rgba(0,230,118,.08)}
+  .s-credited{color:#a5f3c9;border-color:#00e676;background:rgba(0,230,118,.18)}
+  .s-rejected{color:#ffb3c0;border-color:#ff1744;background:rgba(255,23,68,.08)}
+  .muted{color:var(--dim);font-size:12px}
+  .err{color:#ffb3c0;white-space:pre-wrap}
+  .toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:99999;background:#0a1a28;border:1px solid var(--cyan);color:#aef2ff;padding:9px 14px;border-radius:9px;font-weight:700;display:none;max-width:92vw}
+  .user-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0}
+  .user-row .grow{flex:1;min-width:180px}
+  @media(max-width:600px){.grid{grid-template-columns:1fr}.grid .k{margin-top:4px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Admin on-ramp</h1>
+    <div class="sub">Commandes USDT → AVAXe · manuel</div>
+    <a href="/">← Retour à l’app</a>
+  </header>
+
+  <div class="card" id="authBox">
+    <div class="muted">Vérification de ta session admin…</div>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="card">
+      <div class="tabs" id="tabs"></div>
+      <div class="row">
+        <button id="refresh" type="button">↻ Rafraîchir</button>
+        <span class="muted" id="count"></span>
+      </div>
+      <div id="orders"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px;color:var(--gold);font-family:Orbitron,sans-serif;">Allowlist</h3>
+      <div class="row">
+        <input id="user-search" placeholder="ID, wallet ou email" style="flex:1;min-width:200px">
+        <button id="user-search-btn" type="button">Chercher</button>
+      </div>
+      <div id="users"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const TOKEN = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+  const STATUSES = [
+    ['pending_review', 'À vérifier'],
+    ['pending_deposit', 'En attente dépôt'],
+    ['approved', 'Approuvées'],
+    ['credited', 'Créditées'],
+    ['rejected', 'Refusées'],
+    ['', 'Toutes'],
+  ];
+  let currentStatus = 'pending_review';
+  let timer = null;
+
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function toast(msg, isError = false) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.style.borderColor = isError ? '#ff1744' : '#00e5ff';
+    t.style.color = isError ? '#ffb3c0' : '#aef2ff';
+    t.style.display = 'block';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { t.style.display = 'none'; }, 5000);
+  }
+  function authHeaders() {
+    return { 'Authorization': `Bearer ${TOKEN}`, 'Accept': 'application/json', 'Content-Type': 'application/json' };
+  }
+  async function api(path, options = {}) {
+    if (!TOKEN) throw new Error('AUTH_MISSING');
+    const res = await fetch('/api' + path, { ...options, headers: { ...authHeaders(), ...(options.headers || {}) } });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) throw new Error('AUTH_MISSING');
+    if (res.status === 403) throw new Error('NOT_ADMIN');
+    if (!res.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+    return data;
+  }
+  function showAuthError(message) {
+    $('app').style.display = 'none';
+    $('authBox').style.display = 'block';
+    $('authBox').innerHTML = `<div class="err">${esc(message)}</div>`;
+  }
+  async function checkAuth() {
+    if (!TOKEN) return showAuthError('Connecte ton wallet admin dans l’application Battlepool, puis reviens sur cette page.');
+    try {
+      const user = await api('/user');
+      if (!user || !user.is_admin) return showAuthError('Ce compte n’est pas administrateur.');
+      localStorage.setItem('user', JSON.stringify({ ...(JSON.parse(localStorage.getItem('user') || '{}')), ...user }));
+      $('authBox').style.display = 'none';
+      $('app').style.display = 'block';
+      await Promise.all([loadOrders(), loadUsers()]);
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => { loadOrders(false); }, 30000);
+    } catch (e) {
+      if (e.message === 'AUTH_MISSING') return showAuthError('Session expirée. Reconnecte ton wallet dans l’application, puis reviens ici.');
+      if (e.message === 'NOT_ADMIN') return showAuthError('Accès refusé : compte admin requis.');
+      showAuthError('Erreur : ' + e.message);
+    }
+  }
+
+  function statusBadge(status) {
+    return `<span class="status s-${esc(status)}">${esc(status)}</span>`;
+  }
+  function explorerUrl(order) {
+    const base = order.network === 'bep20' ? 'https://bscscan.com/tx/' : order.network === 'polygon' ? 'https://polygonscan.com/tx/' : '';
+    return order.tx_hash && base ? base + order.tx_hash : '';
+  }
+  function renderOrder(o) {
+    const tx = o.tx_hash ? `<a href="${esc(explorerUrl(o))}" target="_blank" rel="noopener" class="hash">${esc(o.tx_hash)}</a>` : '<span class="muted">—</span>';
+    const credit = o.credit_tx_hash ? `<span class="hash">${esc(o.credit_tx_hash)}</span>` : '<span class="muted">—</span>';
+    const actions = [];
+    if (o.status === 'pending_review') actions.push(`<button class="green" data-action="approve" data-id="${o.id}">✅ Approuver</button>`);
+    if (!['credited', 'rejected'].includes(o.status)) actions.push(`<button class="danger" data-action="reject" data-id="${o.id}">❌ Refuser</button>`);
+    if (o.status === 'approved') actions.push(`<button class="primary" data-action="credit" data-id="${o.id}">💸 Enregistrer crédit</button>`);
+    if (!o.onramp_allowed) actions.push(`<button data-action="allow" data-id="${o.id}" data-user="${o.user_id}">Autoriser user #${o.user_id}</button>`);
+    return `<div class="order">
+      <h3>${esc(o.reference)} ${statusBadge(o.status)}</h3>
+      <div class="grid">
+        <div class="k">User</div><div class="v">#${o.user_id} — ${esc(o.wallet || '')}</div>
+        <div class="k">Réseau</div><div class="v">${esc(o.network)}</div>
+        <div class="k">Montant</div><div class="v"><b>${esc(o.usdt_amount)} USDT</b> → <b>${esc(o.avaxe_amount)} AVAXe</b></div>
+        <div class="k">Dépôt TX</div><div class="v">${tx}</div>
+        <div class="k">Crédit TX</div><div class="v">${credit}</div>
+        <div class="k">Créé</div><div class="v">${esc(o.created_at || '')}</div>
+        <div class="k">Soumis</div><div class="v">${esc(o.submitted_at || '—')}</div>
+        <div class="k">Note admin</div><div class="v">${esc(o.admin_note || '—')}</div>
+      </div>
+      <div class="actions">${actions.join('')}</div>
+    </div>`;
+  }
+  async function loadOrders(showToast = true) {
+    try {
+      const q = currentStatus ? `?status=${encodeURIComponent(currentStatus)}` : '';
+      const data = await api('/admin/onramp/orders' + q);
+      const list = data.orders || [];
+      $('orders').innerHTML = list.length ? list.map(renderOrder).join('') : '<div class="muted">Aucune commande pour ce filtre.</div>';
+      $('count').textContent = `${list.length} commande(s)`;
+      if (showToast) toast('Liste actualisée');
+    } catch (e) {
+      if (e.message === 'AUTH_MISSING') return showAuthError('Session expirée. Reconnecte ton wallet.');
+      if (e.message === 'NOT_ADMIN') return showAuthError('Accès refusé : compte admin requis.');
+      $('orders').innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    }
+  }
+  async function act(action, id, userId) {
+    try {
+      if (action === 'approve') {
+        if (!confirm('Approuver cette commande ? Vérifie le dépôt USDT avant.')) return;
+        await api(`/admin/onramp/orders/${id}/approve`, { method: 'POST', body: JSON.stringify({ note: 'Approuvée depuis admin web' }) });
+        toast('Commande approuvée. Envoie les AVAXe puis enregistre le crédit.');
+      } else if (action === 'reject') {
+        const reason = prompt('Raison du refus :', 'Refusée');
+        if (reason === null) return;
+        await api(`/admin/onramp/orders/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
+        toast('Commande refusée.');
+      } else if (action === 'credit') {
+        const hash = prompt('Hash de la transaction AVAXe sur Pingala :');
+        if (!hash) return;
+        await api(`/admin/onramp/orders/${id}/credit`, { method: 'POST', body: JSON.stringify({ credit_tx_hash: hash.trim() }) });
+        toast('Crédit enregistré.');
+      } else if (action === 'allow') {
+        await api(`/admin/onramp/users/${userId}/allow`, { method: 'POST', body: JSON.stringify({ allowed: true }) });
+        toast(`User #${userId} autorisé pour l’on-ramp.`);
+      }
+      await Promise.all([loadOrders(false), loadUsers(false)]);
+    } catch (e) {
+      toast(e.message || 'Erreur', true);
+    }
+  }
+
+  function renderUser(u) {
+    return `<div class="user-row">
+      <div class="grow">#${u.id} — <span class="hash">${esc(u.wallet_address || '')}</span><br><span class="muted">${esc(u.email || '')} ${u.is_admin ? '· admin' : ''}</span></div>
+      <button class="${u.onramp_allowed ? 'danger' : 'green'}" data-user-action="${u.onramp_allowed ? 'disallow' : 'allow'}" data-user="${u.id}">${u.onramp_allowed ? 'Retirer allowlist' : 'Autoriser'}</button>
+    </div>`;
+  }
+  async function loadUsers(showToast = true) {
+    try {
+      const q = $('user-search').value.trim();
+      const data = await api('/admin/onramp/users' + (q ? '?search=' + encodeURIComponent(q) : ''));
+      const users = data.users || [];
+      $('users').innerHTML = users.length ? users.map(renderUser).join('') : '<div class="muted">Aucun utilisateur.</div>';
+      if (showToast) toast('Utilisateurs actualisés');
+    } catch (e) {
+      $('users').innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    }
+  }
+  async function toggleUser(userId, allow) {
+    try {
+      await api(`/admin/onramp/users/${userId}/allow`, { method: 'POST', body: JSON.stringify({ allowed: allow }) });
+      toast(`User #${userId} ${allow ? 'autorisé' : 'retiré de l’allowlist'}.`);
+      await loadUsers(false);
+    } catch (e) {
+      toast(e.message || 'Erreur', true);
+    }
+  }
+
+  function renderTabs() {
+    $('tabs').innerHTML = STATUSES.map(([s, label]) =>
+      `<button data-status="${s}" class="${s === currentStatus ? 'active' : ''}">${label}</button>`
+    ).join('');
+    $('tabs').querySelectorAll('button').forEach((b) => {
+      b.addEventListener('click', () => {
+        currentStatus = b.dataset.status;
+        renderTabs();
+        loadOrders(false);
+      });
+    });
+  }
+
+  $('orders').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (btn) act(btn.dataset.action, btn.dataset.id, btn.dataset.user);
+  });
+  $('users').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-user-action]');
+    if (btn) toggleUser(btn.dataset.user, btn.dataset.userAction === 'allow');
+  });
+  $('refresh').addEventListener('click', () => { loadOrders(); loadUsers(false); });
+  $('user-search-btn').addEventListener('click', () => loadUsers());
+  $('user-search').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadUsers(); });
+
+  renderTabs();
+  checkAuth();
+})();
+</script>
+</body>
+</html>

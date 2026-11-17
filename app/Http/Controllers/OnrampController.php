@@ -58,6 +58,24 @@ class OnrampController extends Controller
         return response()->json(['orders' => $orders]);
     }
 
+    public function adminUsers(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+        $query = User::query()
+            ->select(['id', 'wallet_address', 'email', 'onramp_allowed', 'is_admin', 'created_at'])
+            ->orderByDesc('id');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('id', $search)
+                    ->orWhere('wallet_address', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%');
+            });
+        }
+
+        return response()->json(['users' => $query->limit(50)->get()]);
+    }
+
     public function approve(Request $request, OnrampOrder $order)
     {
         $data = $request->validate(['note' => 'nullable|string|max:1000']);
@@ -117,6 +135,7 @@ class OnrampController extends Controller
             $data['user_id'] = $order->user_id;
             $data['chat_id'] = $order->chat_id;
             $data['wallet'] = $order->user?->wallet_address;
+            $data['onramp_allowed'] = (bool) $order->user?->onramp_allowed;
             $data['admin_note'] = $order->admin_note;
         }
         return $data;

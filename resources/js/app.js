@@ -32,6 +32,32 @@ window.userState = {
     cooldown_until: null
 };
 
+async function refreshAdminFlags() {
+    const link = document.getElementById('admin-onramp-link');
+    if (!link) return;
+    const token = getAuthToken();
+    if (!token) {
+        link.style.display = 'none';
+        return;
+    }
+    try {
+        const res = await fetch('/api/user', {
+            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+        });
+        if (!res.ok) {
+            link.style.display = 'none';
+            return;
+        }
+        const user = await res.json();
+        const stored = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({ ...stored, ...user }));
+        if (window.userState?.userObject) window.userState.userObject.is_admin = !!user.is_admin;
+        link.style.display = user.is_admin ? 'flex' : 'none';
+    } catch (e) {
+        link.style.display = 'none';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("🚀 Battlepool SPA — Démarrage");
 
@@ -61,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. Restauration de session
     checkAuthSession();
+    refreshAdminFlags();
 
     // 2 bis. Restauration SILENCIEUSE du provider WalletConnect au boot PWA.
     // Un auth_token restauré ne garantit pas que le provider WC soit en
@@ -507,6 +534,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('auth:success', () => {
         try { closeWalletModal(); } catch (e) { /* noop */ }
         try { window.hideLoader && window.hideLoader(); } catch (e) { /* noop */ }
+        refreshAdminFlags();
     });
 
     // Bouton « 🚪 Leave pool » (sortie volontaire, stake remboursé via bridge).
