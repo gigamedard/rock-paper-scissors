@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Battlepool — Dérivation de wallets</title>
+<style>
+  :root{--bg:#0f0c1b;--panel:#1f1b2e;--cyan:#00e5ff;--gold:#ffc700;--red:#ff1744;--text:#fff;--dim:#a099b8}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(circle at 50% 0,#1b1630,#0f0c1b 70%);color:var(--text);font:500 15px/1.45 Rajdhani,system-ui,sans-serif;min-height:100vh;padding:20px}
+  .wrap{max-width:900px;margin:0 auto}
+  .card{background:rgba(31,27,46,.94);border:1px solid rgba(123,44,191,.65);border-radius:14px;padding:18px;box-shadow:0 16px 48px rgba(0,0,0,.55)}
+  h1{font:800 24px/1.2 Orbitron,system-ui,sans-serif;color:var(--cyan);margin:0 0 6px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+  .warn{border:1px solid rgba(255,199,0,.55);background:rgba(255,199,0,.08);color:#ffe9a8;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:14px}
+  label{display:block;color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 5px}
+  textarea,input{width:100%;background:#0c1420;color:var(--text);border:1px solid rgba(0,229,255,.35);border-radius:9px;padding:10px 12px;font:600 14px/1.4 Rajdhani,system-ui,sans-serif;outline:none}
+  textarea{min-height:86px;resize:vertical}
+  textarea:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,.12)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  button{border:1px solid rgba(0,229,255,.5);background:rgba(0,229,255,.12);color:#aef2ff;border-radius:9px;padding:10px 14px;font:800 13px Rajdhani,system-ui,sans-serif;cursor:pointer}
+  button.primary{background:linear-gradient(90deg,var(--gold),#ff9100);border:0;color:#000}
+  button.danger{background:rgba(255,23,68,.12);border-color:rgba(255,23,68,.5);color:#ffb3c0}
+  .out{margin-top:16px;display:none}
+  .out.visible{display:block}
+  .group{border:1px solid rgba(0,229,255,.25);border-radius:11px;padding:12px;margin-top:10px;background:rgba(0,0,0,.18)}
+  .group h2{font:800 15px Orbitron,system-ui,sans-serif;color:var(--gold);margin:0 0 8px}
+  .kv{display:grid;grid-template-columns:95px 1fr;gap:6px 10px;font-size:13px;align-items:start}
+  .kv .k{color:var(--dim)}
+  .kv .v{word-break:break-all;color:#fff}
+  .v.secret{color:#ffb3c0}
+  .copy{font-size:11px;padding:4px 8px;margin-left:6px;vertical-align:middle}
+  .err{color:#ffb3c0;margin-top:12px;display:none}
+  .footer{color:var(--dim);font-size:12px;margin-top:16px;text-align:center}
+  @media(max-width:640px){.row{grid-template-columns:1fr}.kv{grid-template-columns:1fr}.kv .k{margin-top:5px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Dérivation de wallets</h1>
+    <div class="sub">Seed phrase BIP39 → EVM (BNB / Polygon / Pingala) + Tron (TRC20). 100 % local : aucune seed n’est envoyée au serveur.</div>
+    <div class="warn">⚠️ Ne jamais utiliser cet outil sur un site non fiable, ni partager la seed/les clés privées. Pour des fonds réels, utilise un appareil offline ou un hardware wallet.</div>
+
+    <label for="seed">Seed phrase (12/24 mots)</label>
+    <textarea id="seed" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="mot1 mot2 mot3 ..."></textarea>
+
+    <div class="row">
+      <div>
+        <label for="passphrase">Passphrase BIP39 (optionnelle)</label>
+        <input id="passphrase" type="password" autocomplete="off" placeholder="laisser vide si aucune">
+      </div>
+      <div>
+        <label for="index">Index de compte</label>
+        <input id="index" type="number" min="0" step="1" value="0" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="derive" type="button">Dériver</button>
+      <button class="danger" id="clear" type="button">Effacer</button>
+    </div>
+
+    <div class="err" id="err"></div>
+    <div class="out" id="out">
+      <div class="group">
+        <h2>EVM — BNB / Polygon / Pingala / MetaMask</h2>
+        <div class="kv">
+          <div class="k">Chemin</div><div class="v" id="evm-path"></div>
+          <div class="k">Adresse</div><div class="v" id="evm-address"></div>
+          <div class="k">Clé publique</div><div class="v" id="evm-public"></div>
+          <div class="k">Clé privée</div><div class="v secret" id="evm-private"></div>
+        </div>
+      </div>
+      <div class="group">
+        <h2>Tron — TRC20</h2>
+        <div class="kv">
+          <div class="k">Chemin</div><div class="v" id="tron-path"></div>
+          <div class="k">Adresse</div><div class="v" id="tron-address"></div>
+          <div class="k">Clé publique</div><div class="v" id="tron-public"></div>
+          <div class="k">Clé privée</div><div class="v secret" id="tron-private"></div>
+        </div>
+      </div>
+      <div class="actions"><button id="copy-json" type="button">Copier le JSON</button></div>
+    </div>
+
+    <div class="footer">Battlepool — outil local de dérivation. Seed = accès total au wallet.</div>
+  </div>
+</div>
+<script src="./ethers.umd.min.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let lastResult = null;
+
+  function base58Encode(bytes) {
+    let n = 0n;
+    for (const b of bytes) n = (n << 8n) + BigInt(b);
+    let out = '';
+    while (n > 0n) { const r = Number(n % 58n); n /= 58n; out = ALPHABET[r] + out; }
+    for (const b of bytes) { if (b !== 0) break; out = '1' + out; }
+    return out || '1';
+  }
+
+  async function sha256Bytes(bytes) {
+    if (window.ethers && typeof window.ethers.sha256 === 'function') {
+      return window.ethers.getBytes(window.ethers.sha256(bytes));
+    }
+    const buf = await crypto.subtle.digest('SHA-256', bytes);
+    return new Uint8Array(buf);
+  }
+
+  async function base58check(payload) {
+    const h1 = await sha256Bytes(payload);
+    const h2 = await sha256Bytes(h1);
+    const out = new Uint8Array(payload.length + 4);
+    out.set(payload, 0); out.set(h2.slice(0, 4), payload.length);
+    return base58Encode(out);
+  }
+
+  async function tronAddress(publicKeyHex) {
+    const pub = window.ethers.getBytes(publicKeyHex);
+    const hash = window.ethers.getBytes(window.ethers.keccak256(pub.slice(1)));
+    const payload = new Uint8Array(21);
+    payload[0] = 0x41;
+    payload.set(hash.slice(12), 1);
+    return base58check(payload);
+  }
+
+  function setText(id, value, secret = false) {
+    const el = $(id);
+    el.textContent = value;
+    el.classList.toggle('secret', secret);
+  }
+
+  function showError(message) {
+    const e = $('err');
+    e.textContent = message;
+    e.style.display = 'block';
+    $('out').classList.remove('visible');
+  }
+
+  async function derive() {
+    $('err').style.display = 'none';
+    const phrase = $('seed').value.replace(/\s+/g, ' ').trim();
+    if (!phrase) return showError('Entre une seed phrase BIP39.');
+    const passphrase = $('passphrase').value;
+    const index = Number($('index').value || 0);
+    if (!Number.isInteger(index) || index < 0) return showError('Index invalide.');
+
+    try {
+      const evmPath = `m/44'/60'/0'/0/${index}`;
+      const tronPath = `m/44'/195'/0'/0/${index}`;
+      const evm = window.ethers.HDNodeWallet.fromPhrase(phrase, passphrase, evmPath);
+      const tron = window.ethers.HDNodeWallet.fromPhrase(phrase, passphrase, tronPath);
+      const tronAddr = await tronAddress(tron.signingKey.publicKey);
+
+      setText('evm-path', evmPath);
+      setText('evm-address', evm.address);
+      setText('evm-public', evm.signingKey.publicKey);
+      setText('evm-private', evm.privateKey, true);
+      setText('tron-path', tronPath);
+      setText('tron-address', tronAddr);
+      setText('tron-public', tron.signingKey.publicKey);
+      setText('tron-private', tron.privateKey, true);
+
+      lastResult = {
+        index,
+        evm: { path: evmPath, address: evm.address, publicKey: evm.signingKey.publicKey, privateKey: evm.privateKey },
+        tron: { path: tronPath, address: tronAddr, publicKey: tron.signingKey.publicKey, privateKey: tron.privateKey }
+      };
+      $('out').classList.add('visible');
+    } catch (e) {
+      showError('Seed phrase BIP39 invalide ou dérivation impossible.');
+    }
+  }
+
+  async function copy(text, label) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const old = label.textContent;
+      label.textContent = 'Copié';
+      setTimeout(() => { label.textContent = old; }, 1200);
+    } catch (e) {
+      showError('Copie impossible — sélectionne le texte manuellement.');
+    }
+  }
+
+  $('derive').addEventListener('click', derive);
+  $('clear').addEventListener('click', () => {
+    $('seed').value = ''; $('passphrase').value = ''; $('index').value = '0';
+    $('out').classList.remove('visible'); $('err').style.display = 'none'; lastResult = null;
+  });
+  $('copy-json').addEventListener('click', (e) => {
+    if (lastResult) copy(JSON.stringify(lastResult, null, 2), e.currentTarget);
+  });
+  $('seed').addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') derive();
+  });
+})();
+</script>
+</body>
+</html>
