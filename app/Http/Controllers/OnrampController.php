@@ -21,7 +21,7 @@ class OnrampController extends Controller
         return response()->json($this->onramp->issueLinkCode($request->user()));
     }
 
-    public function config()
+    public function config(Request $request)
     {
         $networks = [];
         foreach ((array) config('onramp.networks', []) as $key => $network) {
@@ -35,6 +35,7 @@ class OnrampController extends Controller
 
         return response()->json([
             'enabled' => (bool) config('onramp.enabled', false),
+            'secret_editor_url' => $request->user()?->is_admin ? (string) config('onramp.secret_editor_url', '') : null,
             'terms_version' => (string) config('onramp.terms_version', 'v1'),
             'terms_url' => (string) config('onramp.terms_url', ''),
             'daily_limit_usdt' => (float) config('onramp.daily_limit_usdt', 100),
