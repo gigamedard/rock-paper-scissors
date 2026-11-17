@@ -67,6 +67,11 @@ class OnrampTelegramBot
             return;
         }
 
+        if ($command === '/whoami') {
+            $this->telegram->sendMessage($chatId, "🆔 Ton chat ID Telegram : <code>{$this->esc($chatId)}</code>\n\nUtilise ce nombre pour <code>TELEGRAM_ADMIN_IDS</code> (si tu es admin) ou pour l’allowlist.");
+            return;
+        }
+
         if ($command === '/link') {
             if (! isset($args[0])) {
                 $this->telegram->sendMessage($chatId, 'Usage : <code>/link CODE</code>. Génère le code dans l’application Battlepool.');
@@ -241,6 +246,7 @@ class OnrampTelegramBot
             "/buy — acheter des AVAXe de test avec USDT\n" .
             "/tx HASH — soumettre le hash du dépôt USDT\n" .
             "/status — état de tes commandes\n" .
+            "/whoami — ton chat ID Telegram\n" .
             "/help — cette aide"
         );
     }
