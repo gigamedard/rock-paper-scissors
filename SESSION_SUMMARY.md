@@ -1478,3 +1478,22 @@ simulé avec Http fake ; headless **24/24**, navigateur **23/23**.
 **À fournir pour activer** : token/username Telegram, secret webhook, IDs admin,
 adresses USDT par réseau, conditions/URL, allowlist users, puis
 `ONRAMP_ENABLED=true`, recreate app et `onramp:telegram-set-webhook`.
+
+## 59. On-ramp : packages AVAXe + page admin web (engine80, 2026-11-17)
+
+- Packages désormais définis en **AVAXe** (1 AVAXe = 1 AVAX) :
+  `mini` 0.35 AVAXe (dépôt min session 0.301184 + marge), `starter` 1 AVAXe,
+  `plus` 5 AVAXe. Le montant USDT est calculé avec
+  `ONRAMP_AVAX_USDT_RATE=7.13` (mini 2.50 USDT, starter 7.13, plus 35.65).
+- Ancienne commande `BP-20261117-9Q7F8Q` (10 USDT→100 AVAXe) **refusée/annulée**.
+- **Page admin web** : `/admin/onramp.html` (static, même origine, `noindex`).
+  - auth via `auth_token` + `/api/user` (`is_admin`) ;
+  - filtres commandes, détail wallet/réseau/montants/hash, approve/reject,
+    enregistrement du hash de crédit AVAXe, copie, explorer links ;
+  - allowlist : recherche user, autoriser/retirer ;
+  - auto-refresh 30 s, responsive mobile.
+- API admin ajoutée : `GET /api/admin/onramp/users` (recherche).
+- Lien header **🛡 ADMIN** visible uniquement pour `is_admin` via `/api/user`
+  (user 322 `0x1F14…` : `is_admin=1`, `onramp_allowed=1`).
+- Test Playwright admin : pending_review → approved → credited, lien ADMIN
+  visible, aucune erreur. SW v15.
