@@ -9831,34 +9831,6 @@ zeste
 zoologie`.split("\n");
 
 // scripts/derive-wallets.mjs
-var import_node_crypto = require("node:crypto");
-var ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-function base58Encode(buffer) {
-  let n = BigInt("0x" + Buffer.from(buffer).toString("hex"));
-  let out = "";
-  while (n > 0n) {
-    const r = Number(n % 58n);
-    n /= 58n;
-    out = ALPHABET[r] + out;
-  }
-  for (const byte of buffer) {
-    if (byte !== 0) break;
-    out = "1" + out;
-  }
-  return out || "1";
-}
-function sha2563(buffer) {
-  return (0, import_node_crypto.createHash)("sha256").update(buffer).digest();
-}
-function base58check(payload) {
-  return base58Encode(Buffer.concat([payload, sha2563(sha2563(payload)).subarray(0, 4)]));
-}
-function tronAddressFromPublicKey(publicKeyHex) {
-  const publicKey = Buffer.from(getBytes(publicKeyHex));
-  const hash2 = Buffer.from(getBytes(keccak256(publicKey.subarray(1))));
-  const payload = Buffer.concat([Buffer.from([65]), hash2.subarray(12)]);
-  return base58check(payload);
-}
 function makeFrenchWordlist(words7) {
   const map = /* @__PURE__ */ new Map();
   words7.forEach((w, i) => map.set(w.normalize("NFKD"), i));
@@ -9915,20 +9887,17 @@ async function main() {
   phrase = phrase.replace(/\s+/g, " ").trim();
   const passphrase = process.env.BIP39_PASSPHRASE || "";
   const evmPath = `m/44'/60'/0'/0/${index}`;
-  const tronPath = `m/44'/195'/0'/0/${index}`;
   const wordlist10 = lang === "fr" ? makeFrenchWordlist(wordlist9) : wordlists2.en;
   if (!wordlist10) {
     console.error("Langue BIP39 non support\xE9e (utilise --lang fr ou --lang en).");
     process.exit(1);
   }
   let evm;
-  let tron;
   try {
     if (!Mnemonic.isValidMnemonic(phrase, wordlist10)) {
       throw new Error("checksum");
     }
     evm = HDNodeWallet.fromPhrase(phrase, passphrase, evmPath, wordlist10);
-    tron = HDNodeWallet.fromPhrase(phrase, passphrase, tronPath, wordlist10);
   } catch (e) {
     console.error(`Seed phrase BIP39 ${lang === "fr" ? "fran\xE7aise" : "anglaise"} invalide (mots/checksum/ordre).`);
     process.exit(1);
@@ -9941,12 +9910,6 @@ async function main() {
       address: evm.address,
       publicKey: evm.signingKey.publicKey,
       privateKey: evm.privateKey
-    },
-    tron: {
-      path: tronPath,
-      address: tronAddressFromPublicKey(tron.signingKey.publicKey),
-      publicKey: tron.signingKey.publicKey,
-      privateKey: tron.privateKey
     }
   };
   if (json) {
@@ -9957,17 +9920,11 @@ async function main() {
   console.log(`Langue : ${lang}`);
   console.log(`Index : ${index}`);
   console.log("");
-  console.log("EVM (BNB / Polygon / Pingala / MetaMask)");
+  console.log("EVM (BNB / Polygon / Pingala / Avalanche C-Chain / MetaMask)");
   console.log(`  path       : ${result.evm.path}`);
   console.log(`  address    : ${result.evm.address}`);
   console.log(`  publicKey  : ${result.evm.publicKey}`);
   console.log(`  privateKey : ${result.evm.privateKey}`);
-  console.log("");
-  console.log("Tron (TRC20)");
-  console.log(`  path       : ${result.tron.path}`);
-  console.log(`  address    : ${result.tron.address}`);
-  console.log(`  publicKey  : ${result.tron.publicKey}`);
-  console.log(`  privateKey : ${result.tron.privateKey}`);
 }
 main().catch((e) => {
   console.error("Erreur :", e.message);

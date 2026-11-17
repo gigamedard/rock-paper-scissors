@@ -41,7 +41,7 @@
 <div class="wrap">
   <div class="card">
     <h1>Dérivation de wallets</h1>
-    <div class="sub">Seed phrase BIP39 → EVM (BNB / Polygon / Pingala) + Tron (TRC20). 100 % local : aucune seed n’est envoyée au serveur.</div>
+    <div class="sub">Seed phrase BIP39 → EVM (BNB / Polygon / Pingala / Avalanche C-Chain). 100 % local : aucune seed n’est envoyée au serveur.</div>
     <div class="warn">⚠️ Ne jamais utiliser cet outil sur un site non fiable, ni partager la seed/les clés privées. Pour des fonds réels, utilise un appareil offline ou un hardware wallet.</div>
 
     <label for="lang">Langue de la seed BIP39</label>
@@ -73,21 +73,12 @@
     <div class="err" id="err"></div>
     <div class="out" id="out">
       <div class="group">
-        <h2>EVM — BNB / Polygon / Pingala / MetaMask</h2>
+        <h2>EVM — BNB / Polygon / Pingala / Avalanche C-Chain / MetaMask</h2>
         <div class="kv">
           <div class="k">Chemin</div><div class="v" id="evm-path"></div>
           <div class="k">Adresse</div><div class="v" id="evm-address"></div>
           <div class="k">Clé publique</div><div class="v" id="evm-public"></div>
           <div class="k">Clé privée</div><div class="v secret" id="evm-private"></div>
-        </div>
-      </div>
-      <div class="group">
-        <h2>Tron — TRC20</h2>
-        <div class="kv">
-          <div class="k">Chemin</div><div class="v" id="tron-path"></div>
-          <div class="k">Adresse</div><div class="v" id="tron-address"></div>
-          <div class="k">Clé publique</div><div class="v" id="tron-public"></div>
-          <div class="k">Clé privée</div><div class="v secret" id="tron-private"></div>
         </div>
       </div>
       <div class="actions"><button id="copy-json" type="button">Copier le JSON</button></div>
@@ -101,7 +92,6 @@
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
-  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   let lastResult = null;
 
   function makeFrenchWordlist(words) {
@@ -117,40 +107,6 @@
       split(phrase) { return String(phrase).toLowerCase().split(/\s+/g); },
       join(words) { return words.join(' '); }
     };
-  }
-
-  function base58Encode(bytes) {
-    let n = 0n;
-    for (const b of bytes) n = (n << 8n) + BigInt(b);
-    let out = '';
-    while (n > 0n) { const r = Number(n % 58n); n /= 58n; out = ALPHABET[r] + out; }
-    for (const b of bytes) { if (b !== 0) break; out = '1' + out; }
-    return out || '1';
-  }
-
-  async function sha256Bytes(bytes) {
-    if (window.ethers && typeof window.ethers.sha256 === 'function') {
-      return window.ethers.getBytes(window.ethers.sha256(bytes));
-    }
-    const buf = await crypto.subtle.digest('SHA-256', bytes);
-    return new Uint8Array(buf);
-  }
-
-  async function base58check(payload) {
-    const h1 = await sha256Bytes(payload);
-    const h2 = await sha256Bytes(h1);
-    const out = new Uint8Array(payload.length + 4);
-    out.set(payload, 0); out.set(h2.slice(0, 4), payload.length);
-    return base58Encode(out);
-  }
-
-  async function tronAddress(publicKeyHex) {
-    const pub = window.ethers.getBytes(publicKeyHex);
-    const hash = window.ethers.getBytes(window.ethers.keccak256(pub.slice(1)));
-    const payload = new Uint8Array(21);
-    payload[0] = 0x41;
-    payload.set(hash.slice(12), 1);
-    return base58check(payload);
   }
 
   function setText(id, value, secret = false) {
@@ -199,25 +155,17 @@
       }
 
       const evmPath = `m/44'/60'/0'/0/${index}`;
-      const tronPath = `m/44'/195'/0'/0/${index}`;
       const evm = window.ethers.HDNodeWallet.fromPhrase(phrase, passphrase, evmPath, wordlist);
-      const tron = window.ethers.HDNodeWallet.fromPhrase(phrase, passphrase, tronPath, wordlist);
-      const tronAddr = await tronAddress(tron.signingKey.publicKey);
 
       setText('evm-path', evmPath);
       setText('evm-address', evm.address);
       setText('evm-public', evm.signingKey.publicKey);
       setText('evm-private', evm.privateKey, true);
-      setText('tron-path', tronPath);
-      setText('tron-address', tronAddr);
-      setText('tron-public', tron.signingKey.publicKey);
-      setText('tron-private', tron.privateKey, true);
 
       lastResult = {
         language: lang,
         index,
-        evm: { path: evmPath, address: evm.address, publicKey: evm.signingKey.publicKey, privateKey: evm.privateKey },
-        tron: { path: tronPath, address: tronAddr, publicKey: tron.signingKey.publicKey, privateKey: tron.privateKey }
+        evm: { path: evmPath, address: evm.address, publicKey: evm.signingKey.publicKey, privateKey: evm.privateKey }
       };
       $('out').classList.add('visible');
     } catch (e) {

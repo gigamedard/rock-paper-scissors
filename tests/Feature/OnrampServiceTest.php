@@ -27,7 +27,6 @@ class OnrampServiceTest extends TestCase
     {
         config([
             'onramp.enabled' => true,
-            'onramp.networks.trc20.address' => 'TTRC20TREASURYADDRESS',
             'onramp.networks.bep20.address' => '0xBEP20TREASURYADDRESS',
             'onramp.networks.polygon.address' => '0xPOLYGONTREASURYADDRESS',
             'onramp.packages.starter' => ['label' => '10 USDT', 'usdt' => 10.0, 'avaxe' => 100.0],
@@ -52,7 +51,7 @@ class OnrampServiceTest extends TestCase
         $link = $service->acceptTerms($link);
         $this->assertTrue($link->hasAcceptedTerms());
 
-        $order = $service->createOrder($user, 'trc20', 'starter', 'telegram', '123456');
+        $order = $service->createOrder($user, 'bep20', 'starter', 'telegram', '123456');
         $this->assertSame(OnrampOrder::STATUS_PENDING_DEPOSIT, $order->status);
         $this->assertSame('10.00000000', $order->usdt_amount);
         $this->assertSame('100.00000000', $order->avaxe_amount);

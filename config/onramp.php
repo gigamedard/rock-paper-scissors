@@ -16,12 +16,6 @@ return [
     'max_order_usdt' => (float) env('ONRAMP_MAX_ORDER_USDT', 50),
 
     'networks' => [
-        'trc20' => [
-            'label' => 'Tron (TRC20)',
-            'address' => (string) env('ONRAMP_USDT_TRC20_ADDRESS', ''),
-            'confirmations' => (int) env('ONRAMP_USDT_TRC20_CONFIRMATIONS', 20),
-            'explorer' => env('ONRAMP_USDT_TRC20_EXPLORER', 'https://tronscan.org/#/transaction/'),
-        ],
         'bep20' => [
             'label' => 'BNB Smart Chain (BEP20)',
             'address' => (string) env('ONRAMP_USDT_BEP20_ADDRESS', ''),

@@ -11,8 +11,7 @@ OPTION 1 — Interface HTML (recommandé, aucun Node requis)
 2. Ouvre wallet-derivation.html dans ton navigateur (double-clic).
 3. Colle la seed, choisis l'index, clique Dériver.
 4. Tu obtiens :
-   - EVM (BNB / Polygon / Pingala / MetaMask) : adresse, publique, privée ;
-   - Tron (TRC20) : adresse, publique, privée.
+   - EVM (BNB / Polygon / Pingala / Avalanche C-Chain / MetaMask) : adresse, publique, privée.
 
 OPTION 2 — Script Node.js
 Prérequis : Node.js 18+.
@@ -26,6 +25,5 @@ Prérequis : Node.js 18+.
 
 Chemins :
 - EVM : m/44'/60'/0'/0/{index}
-- Tron : m/44'/195'/0'/0/{index}
 
-Ne donne à l'on-ramp que les ADRESSES PUBLIQUES (T... pour Tron, 0x... pour EVM).
+Ne donne à l'on-ramp que les ADRESSES PUBLIQUES EVM (0x...).
