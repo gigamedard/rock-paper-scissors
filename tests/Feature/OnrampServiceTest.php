@@ -29,7 +29,9 @@ class OnrampServiceTest extends TestCase
             'onramp.enabled' => true,
             'onramp.networks.bep20.address' => '0xBEP20TREASURYADDRESS',
             'onramp.networks.polygon.address' => '0xPOLYGONTREASURYADDRESS',
-            'onramp.packages.starter' => ['label' => '10 USDT', 'usdt' => 10.0, 'avaxe' => 100.0],
+            'onramp.packages.mini' => ['label' => '0.35 AVAXe', 'avaxe' => 0.35],
+            'onramp.packages.starter' => ['label' => '1 AVAXe', 'avaxe' => 1.0],
+            'onramp.avax_usdt_rate' => 7.13,
             'onramp.max_order_usdt' => 50,
             'onramp.daily_limit_usdt' => 100,
         ]);
@@ -51,10 +53,10 @@ class OnrampServiceTest extends TestCase
         $link = $service->acceptTerms($link);
         $this->assertTrue($link->hasAcceptedTerms());
 
-        $order = $service->createOrder($user, 'bep20', 'starter', 'telegram', '123456');
+        $order = $service->createOrder($user, 'bep20', 'mini', 'telegram', '123456');
         $this->assertSame(OnrampOrder::STATUS_PENDING_DEPOSIT, $order->status);
-        $this->assertSame('10.00000000', $order->usdt_amount);
-        $this->assertSame('100.00000000', $order->avaxe_amount);
+        $this->assertSame('2.50000000', $order->usdt_amount);
+        $this->assertSame('0.35000000', $order->avaxe_amount);
 
         $order = $service->submitTx($order, str_repeat('a', 64));
         $this->assertSame(OnrampOrder::STATUS_PENDING_REVIEW, $order->status);
@@ -91,7 +93,7 @@ class OnrampServiceTest extends TestCase
     public function test_daily_limit_is_enforced(): void
     {
         $this->configure();
-        config(['onramp.daily_limit_usdt' => 15]);
+        config(['onramp.daily_limit_usdt' => 10]);
         $service = app(OnrampService::class);
         $user = $this->user('3');
         $issued = $service->issueLinkCode($user);

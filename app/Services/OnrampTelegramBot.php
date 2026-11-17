@@ -298,9 +298,9 @@ class OnrampTelegramBot
         }
 
         $rows = [];
-        foreach ((array) config('onramp.packages', []) as $code => $package) {
+        foreach ($this->onramp->packages() as $code => $package) {
             $label = (string) ($package['label'] ?? $code);
-            $rows[] = [['text' => $label . ' → ' . $this->fmt((float) ($package['avaxe'] ?? 0)) . ' AVAXe', 'callback_data' => "pkg:{$network}:{$code}"]];
+            $rows[] = [['text' => $this->fmt((float) $package['usdt']) . ' USDT → ' . $this->fmt((float) $package['avaxe']) . ' AVAXe', 'callback_data' => "pkg:{$network}:{$code}"]];
         }
         if (! $rows) {
             $this->telegram->sendMessage($chatId, 'Aucun package configuré.');

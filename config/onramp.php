@@ -14,6 +14,10 @@ return [
     'link_code_ttl_minutes' => (int) env('ONRAMP_LINK_CODE_TTL_MINUTES', 15),
     'daily_limit_usdt' => (float) env('ONRAMP_DAILY_LIMIT_USDT', 100),
     'max_order_usdt' => (float) env('ONRAMP_MAX_ORDER_USDT', 50),
+    // Prix de référence AVAX/USDT. 1 AVAXe = 1 AVAX (peg interne) ; ce taux
+    // convertit le package AVAXe en montant USDT à envoyer. À mettre à jour
+    // manuellement (ou via un feed) avant chaque campagne.
+    'avax_usdt_rate' => (float) env('ONRAMP_AVAX_USDT_RATE', 7.13),
 
     'networks' => [
         'bep20' => [
@@ -30,10 +34,13 @@ return [
         ],
     ],
 
+    // Packages définis en AVAXe (pas en USDT) : le montant USDT est calculé
+    // avec `avax_usdt_rate`. `mini` couvre le dépôt minimal d'une session :
+    // C=0.04 + R=0.2496 + frais 4% = 0.301184 AVAXe (0.35 pour la marge).
     'packages' => [
-        'starter' => ['label' => '10 USDT', 'usdt' => 10.0, 'avaxe' => 100.0],
-        'plus' => ['label' => '25 USDT', 'usdt' => 25.0, 'avaxe' => 250.0],
-        'pro' => ['label' => '50 USDT', 'usdt' => 50.0, 'avaxe' => 500.0],
+        'mini' => ['label' => '0.35 AVAXe — session minimum', 'avaxe' => 0.35],
+        'starter' => ['label' => '1 AVAXe', 'avaxe' => 1.0],
+        'plus' => ['label' => '5 AVAXe', 'avaxe' => 5.0],
     ],
 
     'telegram' => [

@@ -31,15 +31,7 @@ class OnrampController extends Controller
                 'configured' => trim((string) ($network['address'] ?? '')) !== '',
             ];
         }
-        $packages = [];
-        foreach ((array) config('onramp.packages', []) as $code => $package) {
-            $packages[] = [
-                'code' => $code,
-                'label' => $package['label'] ?? $code,
-                'usdt' => (float) ($package['usdt'] ?? 0),
-                'avaxe' => (float) ($package['avaxe'] ?? 0),
-            ];
-        }
+        $packages = array_values($this->onramp->packages());
 
         return response()->json([
             'enabled' => (bool) config('onramp.enabled', false),

@@ -110,6 +110,34 @@ class OnrampService
         return $link->refresh();
     }
 
+    /** Packages avec le montant USDT calculé depuis le taux AVAX/USDT. */
+    public function packages(): array
+    {
+        $rate = (float) config('onramp.avax_usdt_rate', 0);
+        if ($rate <= 0) {
+            return [];
+        }
+        $out = [];
+        foreach ((array) config('onramp.packages', []) as $code => $package) {
+            $avaxe = (float) ($package['avaxe'] ?? 0);
+            if ($avaxe <= 0) {
+                continue;
+            }
+            $out[$code] = [
+                'code' => $code,
+                'label' => (string) ($package['label'] ?? $code),
+                'avaxe' => $avaxe,
+                'usdt' => round($avaxe * $rate, 2),
+            ];
+        }
+        return $out;
+    }
+
+    public function packageQuote(string $packageCode): ?array
+    {
+        return $this->packages()[$packageCode] ?? null;
+    }
+
     public function createOrder(User $user, string $network, string $packageCode, string $channel = 'telegram', ?string $chatId = null): OnrampOrder
     {
         if (! (bool) config('onramp.enabled', false)) {
@@ -127,9 +155,9 @@ class OnrampService
             throw ValidationException::withMessages(['network' => 'Adresse de dépôt non configurée pour ce réseau.']);
         }
 
-        $package = config("onramp.packages.{$packageCode}");
+        $package = $this->packageQuote($packageCode);
         if (! is_array($package)) {
-            throw ValidationException::withMessages(['package' => 'Package inconnu.']);
+            throw ValidationException::withMessages(['package' => 'Package inconnu ou taux AVAX/USDT non configuré.']);
         }
 
         $usdt = (float) ($package['usdt'] ?? 0);
