@@ -15,6 +15,9 @@ OPTION 1 — Interface HTML (recommandé, aucun Node requis)
 
 OPTION 2 — Script Node.js
 Prérequis : Node.js 18+.
+Générer une seed (12 ou 24 mots) :
+    node derive-wallets.cjs --generate --lang fr --words 12
+    node derive-wallets.cjs --generate --lang en --words 24
 - Version autonome (aucun npm install) :
     node derive-wallets.cjs --index 0 --lang fr   # ou --lang en
   ou

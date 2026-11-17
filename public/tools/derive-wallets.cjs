@@ -759,8 +759,8 @@ function encodeRlp(object) {
 }
 
 // node_modules/ethers/lib.esm/utils/uuid.js
-function uuidV4(randomBytes4) {
-  const bytes2 = getBytes(randomBytes4, "randomBytes");
+function uuidV4(randomBytes5) {
+  const bytes2 = getBytes(randomBytes5, "randomBytes");
   bytes2[6] = bytes2[6] & 15 | 64;
   bytes2[8] = bytes2[8] & 63 | 128;
   const value = hexlify(bytes2);
@@ -3212,7 +3212,7 @@ function weierstrass(curveDef) {
   function prepSig(msgHash, privateKey, opts = defaultSigOpts) {
     if (["recovered", "canonical"].some((k) => k in opts))
       throw new Error("sign() legacy options not supported");
-    const { hash: hash2, randomBytes: randomBytes4 } = CURVE;
+    const { hash: hash2, randomBytes: randomBytes5 } = CURVE;
     let { lowS, prehash, extraEntropy: ent } = opts;
     if (lowS == null)
       lowS = true;
@@ -3223,7 +3223,7 @@ function weierstrass(curveDef) {
     const d = normPrivateKeyToScalar(privateKey);
     const seedArgs = [int2octets(d), int2octets(h1int)];
     if (ent != null) {
-      const e = ent === true ? randomBytes4(Fp2.BYTES) : ent;
+      const e = ent === true ? randomBytes5(Fp2.BYTES) : ent;
       seedArgs.push(ensureBytes("extraEntropy", e));
     }
     const seed = concatBytes2(...seedArgs);
@@ -9831,6 +9831,7 @@ zeste
 zoologie`.split("\n");
 
 // scripts/derive-wallets.mjs
+var import_node_crypto = require("node:crypto");
 function makeFrenchWordlist(words7) {
   const map = /* @__PURE__ */ new Map();
   words7.forEach((w, i) => map.set(w.normalize("NFKD"), i));
@@ -9847,7 +9848,7 @@ function makeFrenchWordlist(words7) {
       return String(phrase).toLowerCase().split(/\s+/g);
     },
     join(words8) {
-      return words8.join(" ");
+      return words8.map((w) => String(w).normalize("NFC")).join(" ");
     }
   };
 }
@@ -9866,20 +9867,44 @@ function parseArgs() {
   return {
     index: Number(get("--index", process.env.INDEX || "0")),
     lang: String(get("--lang", process.env.BIP39_LANGUAGE || "en")).toLowerCase(),
+    words: Number(get("--words", process.env.BIP39_WORDS || "12")),
+    generate: args.includes("--generate"),
     json: args.includes("--json")
   };
 }
 async function main() {
-  const { index, lang, json } = parseArgs();
+  const { index, lang, words: words7, generate, json } = parseArgs();
   if (!Number.isInteger(index) || index < 0) {
     throw new Error("INDEX invalide (entier >= 0 attendu).");
+  }
+  const wordlist10 = lang === "fr" ? makeFrenchWordlist(wordlist9) : wordlists2.en;
+  if (!wordlist10) {
+    console.error("Langue BIP39 non support\xE9e (utilise --lang fr ou --lang en).");
+    process.exit(1);
+  }
+  if (generate) {
+    const count = words7 === 24 ? 24 : 12;
+    const mnemonic = Mnemonic.fromEntropy((0, import_node_crypto.randomBytes)(count === 24 ? 32 : 16), "", wordlist10);
+    const generated = { language: lang, words: count, mnemonic: mnemonic.phrase.normalize("NFC") };
+    if (json) {
+      console.error("\u26A0\uFE0F  SECRET : ne jamais partager ni committer cette seed.");
+      console.log(JSON.stringify(generated, null, 2));
+    } else {
+      console.log("\u26A0\uFE0F  SECRET : sauvegarde cette seed hors ligne, ne la partage jamais.");
+      console.log(`Langue : ${lang}`);
+      console.log(`Mots : ${count}`);
+      console.log("");
+      console.log(generated.mnemonic);
+    }
+    return;
   }
   let phrase = (process.env.SEED_PHRASE || "").trim();
   if (!phrase && !process.stdin.isTTY) {
     phrase = await readStdin();
   }
   if (!phrase) {
-    console.error('Usage : SEED_PHRASE="mot1 mot2 ..." node scripts/derive-wallets.mjs [--index 0] [--json]');
+    console.error('Usage : SEED_PHRASE="mot1 mot2 ..." node scripts/derive-wallets.mjs [--lang fr|en] [--index 0] [--json]');
+    console.error("Ou : node scripts/derive-wallets.mjs --generate --lang fr --words 12|24");
     console.error("Ou : node scripts/derive-wallets.mjs < seed.txt");
     console.error("Ne jamais coller une seed r\xE9elle dans un shell partag\xE9/historis\xE9.");
     process.exit(1);
@@ -9887,11 +9912,6 @@ async function main() {
   phrase = phrase.replace(/\s+/g, " ").trim();
   const passphrase = process.env.BIP39_PASSPHRASE || "";
   const evmPath = `m/44'/60'/0'/0/${index}`;
-  const wordlist10 = lang === "fr" ? makeFrenchWordlist(wordlist9) : wordlists2.en;
-  if (!wordlist10) {
-    console.error("Langue BIP39 non support\xE9e (utilise --lang fr ou --lang en).");
-    process.exit(1);
-  }
   let evm;
   try {
     if (!Mnemonic.isValidMnemonic(phrase, wordlist10)) {

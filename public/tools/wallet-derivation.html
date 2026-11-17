@@ -70,6 +70,30 @@
       <button class="danger" id="clear" type="button">Effacer</button>
     </div>
 
+    <div class="group" style="margin-top:16px;">
+      <h2>Générer une seed phrase</h2>
+      <div class="row">
+        <div>
+          <label for="gen-words">Nombre de mots</label>
+          <select id="gen-words">
+            <option value="12" selected>12 mots (128 bits)</option>
+            <option value="24">24 mots (256 bits)</option>
+          </select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button class="primary" id="generate" type="button">Générer</button>
+        </div>
+      </div>
+      <label for="generated">Seed générée (ne pas partager)</label>
+      <textarea id="generated" readonly autocomplete="off" spellcheck="false" placeholder="La seed générée apparaîtra ici"></textarea>
+      <div class="actions">
+        <button id="use-generated" type="button" disabled>Utiliser cette seed</button>
+        <button id="copy-generated" type="button" disabled>Copier</button>
+      </div>
+      <div class="warn" style="margin-top:12px;margin-bottom:0;">La seed est générée localement avec le générateur cryptographique du navigateur. Sauvegarde-la hors ligne avant d’envoyer des fonds. Pour des montants réels, préfère un hardware wallet.</div>
+    </div>
+
     <div class="err" id="err"></div>
     <div class="out" id="out">
       <div class="group">
@@ -105,8 +129,15 @@
       },
       getWord(index) { return words[index]; },
       split(phrase) { return String(phrase).toLowerCase().split(/\s+/g); },
-      join(words) { return words.join(' '); }
+      join(words) { return words.map((w) => String(w).normalize('NFC')).join(' '); }
     };
+  }
+
+  function wordlistFor(lang) {
+    if (lang === 'fr') {
+      return Array.isArray(window.BIP39_FRENCH) ? makeFrenchWordlist(window.BIP39_FRENCH) : null;
+    }
+    return window.ethers.wordlists && window.ethers.wordlists.en ? window.ethers.wordlists.en : null;
   }
 
   function setText(id, value, secret = false) {
@@ -137,9 +168,7 @@
     }
 
     const lang = $('lang').value;
-    const wordlist = lang === 'fr'
-      ? (Array.isArray(window.BIP39_FRENCH) ? makeFrenchWordlist(window.BIP39_FRENCH) : null)
-      : (window.ethers.wordlists && window.ethers.wordlists.en ? window.ethers.wordlists.en : null);
+    const wordlist = wordlistFor(lang);
     if (!wordlist) {
       return showError(`Liste BIP39 ${lang === 'fr' ? 'française' : 'anglaise'} indisponible.`);
     }
@@ -173,6 +202,27 @@
     }
   }
 
+  function generateSeed() {
+    $('err').style.display = 'none';
+    const lang = $('lang').value;
+    const wordlist = wordlistFor(lang);
+    if (!wordlist) {
+      return showError(`Liste BIP39 ${lang === 'fr' ? 'française' : 'anglaise'} indisponible.`);
+    }
+    const words = Number($('gen-words').value) === 24 ? 24 : 12;
+    const entropy = new Uint8Array(words === 24 ? 32 : 16);
+    crypto.getRandomValues(entropy);
+    try {
+      const mnemonic = window.ethers.Mnemonic.fromEntropy(entropy, '', wordlist);
+      $('generated').value = mnemonic.phrase;
+      $('use-generated').disabled = false;
+      $('copy-generated').disabled = false;
+      $('out').classList.remove('visible');
+    } catch (e) {
+      showError('Génération impossible.');
+    }
+  }
+
   async function copy(text, label) {
     try {
       await navigator.clipboard.writeText(text);
@@ -184,10 +234,24 @@
     }
   }
 
+  $('generate').addEventListener('click', generateSeed);
+  $('use-generated').addEventListener('click', () => {
+    const seed = $('generated').value.trim();
+    if (!seed) return;
+    $('seed').value = seed;
+    $('seed').focus();
+    showError('');
+    $('err').style.display = 'none';
+  });
+  $('copy-generated').addEventListener('click', (e) => {
+    const seed = $('generated').value.trim();
+    if (seed) copy(seed, e.currentTarget);
+  });
+
   $('derive').addEventListener('click', derive);
   $('clear').addEventListener('click', () => {
     $('seed').value = ''; $('passphrase').value = ''; $('index').value = '0';
-    $('out').classList.remove('visible'); $('err').style.display = 'none'; lastResult = null;
+    $('out').classList.remove('visible'); $('err').style.display = 'none'; lastResult = null; $('generated').value = ''; $('use-generated').disabled = true; $('copy-generated').disabled = true;
   });
   $('copy-json').addEventListener('click', (e) => {
     if (lastResult) copy(JSON.stringify(lastResult, null, 2), e.currentTarget);
