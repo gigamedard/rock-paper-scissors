@@ -1559,3 +1559,18 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   avec un petit dépôt de 2.50 USDT.
 - Tests engine88 : headless **24/24**, navigateur **23/23**.
 - `onramp-deposit-watcher` actif, RPC USDT OK ; premier scan sans erreur.
+
+## 63. Seed HD dépôts accessible via l’éditeur Tailscale (2026-11-18)
+
+- L’éditeur secrets `http://100.120.217.57:4098/` (Basic auth, Tailscale-only)
+  affiche une carte **Seed HD des adresses de dépôt**.
+- La seed n’est **pas** dans la source de la page ; elle est chargée après clic sur
+  `POST /seed/reveal` avec CSRF, puis affichée dans un textarea + bouton Copier.
+- Réponse `Cache-Control: no-store`, `X-Frame-Options: DENY`, audit
+  `seed_reveal` (IP/action, jamais la seed).
+- Fichier : `/opt/battlepool/.secrets/onramp_deposit_seed` (600) ;
+  env systemd `ONRAMP_DEPOSIT_SEED_FILE`.
+- Testé : page 200, seed absente du HTML, reveal authentifié 200 et identique
+  au fichier (SHA-256), sans auth 401.
+- Lecture seule : ne pas remplacer la seed sans sauvegarde + régénération du
+  pool d’adresses.
