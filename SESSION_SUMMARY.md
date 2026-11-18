@@ -1557,3 +1557,5 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   adresses dérivées ; il faudra du gas BNB/POL et un sweeper séparé.
 - ⚠️ Détection d'un vrai dépôt USDT non testée faute de fonds USDT ; à valider
   avec un petit dépôt de 2.50 USDT.
+- Tests engine88 : headless **24/24**, navigateur **23/23**.
+- `onramp-deposit-watcher` actif, RPC USDT OK ; premier scan sans erreur.
