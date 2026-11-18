@@ -92,6 +92,8 @@
     ['pending_review', 'À vérifier'],
     ['pending_deposit', 'En attente dépôt'],
     ['approved', 'Approuvées'],
+    ['crediting', 'Crédit en cours'],
+    ['manual_review', 'Revue manuelle'],
     ['credited', 'Créditées'],
     ['rejected', 'Refusées'],
     ['', 'Toutes'],
@@ -159,7 +161,7 @@
     const actions = [];
     if (o.status === 'pending_review') actions.push(`<button class="green" data-action="approve" data-id="${o.id}">✅ Approuver</button>`);
     if (!['credited', 'rejected'].includes(o.status)) actions.push(`<button class="danger" data-action="reject" data-id="${o.id}">❌ Refuser</button>`);
-    if (o.status === 'approved') actions.push(`<button class="primary" data-action="credit" data-id="${o.id}">💸 Enregistrer crédit</button>`);
+    if (['approved', 'manual_review'].includes(o.status)) actions.push(`<button class="primary" data-action="credit" data-id="${o.id}">💸 Enregistrer crédit</button>`);
     if (!o.onramp_allowed) actions.push(`<button data-action="allow" data-id="${o.id}" data-user="${o.user_id}">Autoriser user #${o.user_id}</button>`);
     return `<div class="order">
       <h3>${esc(o.reference)} ${statusBadge(o.status)}</h3>

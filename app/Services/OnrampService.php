@@ -271,8 +271,8 @@ class OnrampService
 
         return DB::transaction(function () use ($order, $creditTxHash, $adminId) {
             $locked = OnrampOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status !== OnrampOrder::STATUS_APPROVED) {
-                throw ValidationException::withMessages(['order' => 'La commande doit être approuvée avant le crédit.']);
+            if (! in_array($locked->status, [OnrampOrder::STATUS_APPROVED, OnrampOrder::STATUS_MANUAL_REVIEW], true)) {
+                throw ValidationException::withMessages(['order' => 'La commande doit être approuvée (ou en revue manuelle) avant le crédit.']);
             }
             if (OnrampOrder::where('credit_tx_hash', $creditTxHash)->whereKeyNot($locked->id)->exists()) {
                 throw ValidationException::withMessages(['credit_tx_hash' => 'Ce hash de crédit est déjà utilisé.']);
