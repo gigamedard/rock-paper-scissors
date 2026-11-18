@@ -1497,3 +1497,19 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   (user 322 `0x1F14…` : `is_admin=1`, `onramp_allowed=1`).
 - Test Playwright admin : pending_review → approved → credited, lien ADMIN
   visible, aucune erreur. SW v15.
+
+## 60. KYC manuel + pages légales (engine84, 2026-11-18)
+
+- Migration `kyc_profiles` + `users.kyc_status/submitted_at/reviewed_at`.
+- `KycService` / `KycController` : soumission manuelle, statut, liste admin,
+  approbation/rejet ; `id_number` chiffré ; dernière 4 exposée seulement.
+- Onramp : `ONRAMP_REQUIRE_KYC=true` ; une commande exige KYC **approuvé**
+  + allowlist.
+- Page user `/kyc.html` : statut, formulaire, consentement, resoumission après rejet.
+- Admin page : section **KYC à vérifier**, approuver/refuser/autoriser on-ramp.
+- Lien **🪪 KYC** dans le header (connecté) + footer légal.
+- Pages légales statiques : `/legal/terms.html`, `privacy.html`, `kyc-aml.html`,
+  `risk.html` (modèles à compléter/valider par un avocat ; champs `[...]`).
+- `ONRAMP_TERMS_URL` pointe vers `/legal/terms.html`.
+- Testé : KYC unverified → pending via page, approbation API admin → approved,
+  création commande onramp OK ; pages légales 200 ; SW v16.
