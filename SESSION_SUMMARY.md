@@ -1598,3 +1598,5 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Tests : headless **24/24**, navigateur **23/23**, admin page sans erreur.
 - ⚠️ Sweep réel non testé (pas de gas ni d’USDT de test). Alimenter la treasury
   en BNB (BSC) et POL (Polygon) avant le premier dépôt.
+- Trésorerie sweep Polygon alimentée : **8.0 POL** (2026-11-18) ; largement
+  suffisant (0.02 POL/topup). Test réel Polygon en attente du KYC/commande.
