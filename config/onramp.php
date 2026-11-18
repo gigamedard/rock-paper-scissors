@@ -19,6 +19,7 @@ return [
     // manuellement (ou via un feed) avant chaque campagne.
     'avax_usdt_rate' => (float) env('ONRAMP_AVAX_USDT_RATE', 7.13),
     'secret_editor_url' => (string) env('ONRAMP_SECRET_EDITOR_URL', ''),
+    'config_editor_url' => (string) env('APP_CONFIG_EDITOR_URL', ''),
     'treasury_key_path' => (string) env('ONRAMP_TREASURY_KEY_PATH', '/opt/battlepool/.secrets/onramp_treasury_pk'),
 
     'networks' => [
