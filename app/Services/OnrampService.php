@@ -13,14 +13,12 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * MVP on-ramp USDT → AVAXe (manuel + allowlist).
+ * On-ramp USDT → AVAXe.
  *
- * Aucun mouvement de fonds n'est automatisé ici :
- *  - l'utilisateur dépose l'USDT sur l'adresse trésorerie du réseau ;
- *  - l'admin vérifie le hash/confirmations ;
- *  - l'admin approuve ;
- *  - les AVAXe sont envoyés manuellement depuis la trésorerie dédiée ;
- *  - l'admin enregistre le hash de crédit.
+ * Chaque commande reçoit une adresse de dépôt unique issue d'un HD wallet.
+ * Le watcher BSC/Polygon détecte les Transfer USDT confirmés et auto-approuve
+ * les dépôts exacts ≤ plafond ; le worker envoie ensuite les AVAXe.
+ * Les dépôts non conformes restent en revue admin.
  */
 class OnrampService
 {

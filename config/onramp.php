@@ -1,11 +1,11 @@
 <?php
 
 /**
- * On-ramp USDT → AVAXe (MVP manuel, allowlist).
+ * On-ramp USDT → AVAXe (adresse unique par commande + auto-détection).
  *
- * Les adresses de dépôt et le token Telegram sont fournis via l'environnement.
+ * Les RPC/contrats USDT et le token Telegram sont fournis via l'environnement.
  * ONRAMP_ENABLED=false par défaut : aucune commande ne peut être créée tant que
- * les adresses et les conditions ne sont pas validées.
+ * les conditions ne sont pas validées.
  */
 return [
     'enabled' => (bool) env('ONRAMP_ENABLED', false),

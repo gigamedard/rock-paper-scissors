@@ -1534,3 +1534,26 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   et le défaut étaient encore à 2.5 %. Corrigé seeder/config/défaut + DB
   `smart_contract_fee_percentage=4`.
 - Tests : headless **24/24**, navigateur **23/23**.
+
+## 62. Adresses de dépôt uniques + watcher auto (engine88, 2026-11-18)
+
+- Table `onramp_deposit_addresses` : pool HD (index, adresse, order_id, assigned_at).
+- Seed dédié : `/opt/battlepool/.secrets/onramp_deposit_seed` (600). **À sauvegarder
+  hors VPS** ; sans lui, les USDT des adresses dérivées sont inaccessibles.
+- Pool initial : 2000 adresses, dérivation `m/44'/60'/0'/0/{index}`.
+- `OnrampService::createOrder` alloue une adresse libre dans une transaction ;
+  l'ancienne adresse statique n'est plus utilisée pour les nouvelles commandes.
+- Nouveau service `onramp-deposit-watcher` (BSC/Polygon) :
+  - scan `Transfer` USDT vers les adresses uniques, confirmations 15/30 ;
+  - auto-approbation si montant exact, KYC/allowlist OK et ≤ 50 USDT ;
+  - sinon `pending_review` + notification admin ;
+  - tx hash stocké, événements `deposit_confirmed`/`order_auto_approved`.
+- Le worker `onramp-worker` crédite ensuite en AVAXe (déjà en place).
+- RPC : BSC `bsc-rpc.publicnode.com`, Polygon `polygon-bor-rpc.publicnode.com`.
+- Contrats USDT : BSC `0x55d398...7955` (18 dec), Polygon `0xc2132D...8e8F` (6 dec).
+- Ancienne commande pending statique `BP-20261117-9RWGNE` expirée.
+- Test création commande : adresse unique `0x265F...671c`, index 0, pool 2000.
+- ⚠️ Sweep USDT vers trésorerie **non automatisé** : les USDT restent sur les
+  adresses dérivées ; il faudra du gas BNB/POL et un sweeper séparé.
+- ⚠️ Détection d'un vrai dépôt USDT non testée faute de fonds USDT ; à valider
+  avec un petit dépôt de 2.50 USDT.
