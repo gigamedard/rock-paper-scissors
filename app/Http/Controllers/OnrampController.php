@@ -28,7 +28,7 @@ class OnrampController extends Controller
             $networks[] = [
                 'key' => $key,
                 'label' => $network['label'] ?? $key,
-                'configured' => trim((string) ($network['address'] ?? '')) !== '',
+                'configured' => trim((string) ($network['address'] ?? '')) !== '' || $this->onramp->depositAddressPoolSize() > 0,
             ];
         }
         $packages = array_values($this->onramp->packages());
@@ -124,6 +124,7 @@ class OnrampController extends Controller
             'usdt_amount' => (float) $order->usdt_amount,
             'avaxe_amount' => (float) $order->avaxe_amount,
             'status' => $order->status,
+            'deposit_address' => $order->deposit_address,
             'tx_hash' => $order->tx_hash,
             'credit_tx_hash' => $order->credit_tx_hash,
             'created_at' => $order->created_at?->toIso8601String(),

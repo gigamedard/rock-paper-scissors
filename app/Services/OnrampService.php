@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\OnrampDepositAddress;
 use App\Models\OnrampEvent;
 use App\Models\OnrampLink;
 use App\Models\OnrampLinkCode;
@@ -156,10 +157,6 @@ class OnrampService
         if (! is_array($networkConfig)) {
             throw ValidationException::withMessages(['network' => 'Réseau USDT non supporté.']);
         }
-        if (trim((string) ($networkConfig['address'] ?? '')) === '') {
-            throw ValidationException::withMessages(['network' => 'Adresse de dépôt non configurée pour ce réseau.']);
-        }
-
         $package = $this->packageQuote($packageCode);
         if (! is_array($package)) {
             throw ValidationException::withMessages(['package' => 'Package inconnu ou taux AVAX/USDT non configuré.']);
@@ -191,6 +188,17 @@ class OnrampService
                 $reference = 'BP-' . now()->format('Ymd') . '-' . $this->randomCode(6);
             } while (OnrampOrder::where('reference', $reference)->exists());
 
+            $depositAddress = OnrampDepositAddress::whereNull('order_id')
+                ->orderBy('derivation_index')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $depositAddress) {
+                throw ValidationException::withMessages([
+                    'onramp' => 'Aucune adresse de dépôt disponible. Réessaie dans quelques instants.',
+                ]);
+            }
+
             $order = OnrampOrder::create([
                 'reference' => $reference,
                 'user_id' => $user->id,
@@ -200,8 +208,14 @@ class OnrampService
                 'package_code' => $packageCode,
                 'usdt_amount' => $usdt,
                 'avaxe_amount' => $avaxe,
-                'deposit_address' => (string) $networkConfig['address'],
+                'deposit_address' => $depositAddress->address,
+                'deposit_index' => $depositAddress->derivation_index,
                 'status' => OnrampOrder::STATUS_PENDING_DEPOSIT,
+            ]);
+
+            $depositAddress->update([
+                'order_id' => $order->id,
+                'assigned_at' => now(),
             ]);
 
             $this->event($order, 'order_created', 'user', (string) $user->id, [
@@ -209,6 +223,8 @@ class OnrampService
                 'package' => $packageCode,
                 'usdt' => $usdt,
                 'avaxe' => $avaxe,
+                'deposit_index' => $depositAddress->derivation_index,
+                'deposit_address' => $depositAddress->address,
             ]);
 
             return $order;
@@ -347,6 +363,11 @@ class OnrampService
             'actor_id' => $actorId,
             'payload' => $payload ?: null,
         ]);
+    }
+
+    public function depositAddressPoolSize(): int
+    {
+        return OnrampDepositAddress::whereNull('order_id')->count();
     }
 
     private function randomCode(int $length): string

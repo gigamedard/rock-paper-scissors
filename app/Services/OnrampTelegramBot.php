@@ -272,7 +272,7 @@ class OnrampTelegramBot
 
         $rows = [];
         foreach ((array) config('onramp.networks', []) as $key => $network) {
-            if (trim((string) ($network['address'] ?? '')) === '') {
+            if (trim((string) ($network['address'] ?? '')) === '' && $this->onramp->depositAddressPoolSize() === 0) {
                 continue;
             }
             $rows[] = [['text' => (string) ($network['label'] ?? $key), 'callback_data' => 'net:' . $key]];
@@ -332,9 +332,10 @@ class OnrampTelegramBot
                 "Réseau : <b>{$this->esc($label)}</b>\n" .
                 "Montant à envoyer : <b>{$usdt} USDT</b>\n" .
                 "Adresse de dépôt :\n<code>{$this->esc($order->deposit_address)}</code>\n\n" .
-                "Tu recevras <b>{$this->fmt((float) $avaxe)} AVAXe de test</b> après vérification.\n\n" .
-                "Envoie <b>exactement {$usdt} USDT</b> sur ce réseau, puis le hash avec :\n" .
-                "<code>/tx TON_HASH</code>\n\n" .
+                "Envoie <b>exactement {$usdt} USDT</b> sur cette adresse.\n" .
+                "Le dépôt est détecté automatiquement dès qu’il est confirmé.\n\n" .
+                "Tu recevras <b>{$this->fmt((float) $avaxe)} AVAXe de test</b> après confirmation.\n\n" .
+                "Si besoin, tu peux aussi envoyer le hash avec <code>/tx TON_HASH</code>.\n\n" .
                 "⚠️ Ne pas envoyer sur un autre réseau. Les frais de réseau restent à ta charge."
             );
         } catch (ValidationException $e) {
