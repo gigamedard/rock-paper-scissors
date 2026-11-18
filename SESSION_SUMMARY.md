@@ -1600,3 +1600,15 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   en BNB (BSC) et POL (Polygon) avant le premier dépôt.
 - Trésorerie sweep Polygon alimentée : **8.0 POL** (2026-11-18) ; largement
   suffisant (0.02 POL/topup). Test réel Polygon en attente du KYC/commande.
+
+## 65. Rotation wallet admin 322 vers HD index 1 (2026-11-18)
+
+- User admin **322** : ancien wallet `0x1f140e5a3cd2fcd52862084397c2fae172dff4ed`
+  → nouveau wallet HD index 1
+  **`0xc6ba478F12630f66337a0176308a5EA15369cd2A`**.
+- Dérivation : `m/44'/60'/0'/0/1` depuis `onramp_deposit_seed`.
+- Index 1 supprimé du pool d’adresses de dépôt (évite qu’une commande
+  l’utilise) ; pool libre = 1999.
+- 13 tokens API du user 322 révoqués : reconnexion avec le wallet index 1.
+- KYC admin toujours `unverified` → `/buy` bloqué jusqu’à soumission + approbation.
+- Audit : `/root/.onramp-admin-wallet-changes.log`.
