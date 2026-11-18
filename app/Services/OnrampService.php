@@ -146,6 +146,11 @@ class OnrampService
         if (! $user->onramp_allowed) {
             throw ValidationException::withMessages(['onramp' => 'Ton compte n’est pas encore sur l’allowlist on-ramp.']);
         }
+        if ((bool) config('onramp.require_kyc', true) && $user->kyc_status !== 'approved') {
+            throw ValidationException::withMessages([
+                'onramp' => 'KYC requis avant l’on-ramp. Complète la vérification sur ' . rtrim((string) config('app.url'), '/') . '/kyc.html',
+            ]);
+        }
 
         $networkConfig = config("onramp.networks.{$network}");
         if (! is_array($networkConfig)) {

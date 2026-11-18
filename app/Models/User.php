@@ -80,6 +80,8 @@ class User extends Authenticatable
         'target_q' => 'float',
         'is_admin' => 'boolean',
         'onramp_allowed' => 'boolean',
+        'kyc_submitted_at' => 'datetime',
+        'kyc_reviewed_at' => 'datetime',
         'cooldown_time' => 'integer',
         'cooldown_until' => 'datetime',
     ];
@@ -140,6 +142,11 @@ class User extends Authenticatable
     public function onrampOrders()
     {
         return $this->hasMany(\App\Models\OnrampOrder::class);
+    }
+
+    public function kycProfile()
+    {
+        return $this->hasOne(\App\Models\KycProfile::class);
     }
 
     public function fights()

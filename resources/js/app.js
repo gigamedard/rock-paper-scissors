@@ -32,6 +32,12 @@ window.userState = {
     cooldown_until: null
 };
 
+function refreshKycLink() {
+    const link = document.getElementById('kyc-page-link');
+    if (!link) return;
+    link.style.display = window.userState?.id ? 'flex' : 'none';
+}
+
 async function refreshAdminFlags() {
     const link = document.getElementById('admin-onramp-link');
     if (!link) return;
@@ -88,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Restauration de session
     checkAuthSession();
     refreshAdminFlags();
+    refreshKycLink();
 
     // 2 bis. Restauration SILENCIEUSE du provider WalletConnect au boot PWA.
     // Un auth_token restauré ne garantit pas que le provider WC soit en
@@ -535,6 +542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try { closeWalletModal(); } catch (e) { /* noop */ }
         try { window.hideLoader && window.hideLoader(); } catch (e) { /* noop */ }
         refreshAdminFlags();
+        refreshKycLink();
     });
 
     // Bouton « 🚪 Leave pool » (sortie volontaire, stake remboursé via bridge).

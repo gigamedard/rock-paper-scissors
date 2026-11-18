@@ -1,0 +1,105 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Battlepool — Vérification KYC</title>
+<style>
+body{margin:0;background:radial-gradient(circle at 50% 0,#1b1630,#0f0c1b 70%);color:#fff;font:15px/1.55 Rajdhani,system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:760px;margin:0 auto;padding:22px 16px 70px}.card{background:rgba(31,27,46,.96);border:1px solid rgba(123,44,191,.6);border-radius:14px;padding:18px;box-shadow:0 14px 40px rgba(0,0,0,.5);margin-top:14px}
+h1{font:800 22px/1.2 Orbitron,system-ui,sans-serif;color:#00e5ff;margin:0 0 6px}h2{font:800 15px Orbitron,system-ui,sans-serif;color:#ffc700;margin:16px 0 8px}
+p{color:#a099b8;font-size:14px}a{color:#6ea8fe}.warn{border:1px solid rgba(255,199,0,.55);background:rgba(255,199,0,.08);color:#ffe9a8;border-radius:10px;padding:10px 12px;font-size:13px;margin:12px 0}
+.err{color:#ffb3c0;font-size:13px;margin-top:10px}.ok{color:#a5f3c9}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;color:#a099b8;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px}
+input,select,textarea{width:100%;box-sizing:border-box;background:#0c1420;border:1px solid #3a4150;color:#fff;border-radius:8px;padding:9px 11px;font:600 14px Rajdhani,system-ui,sans-serif;outline:none}
+textarea{min-height:70px;resize:vertical}input:focus,select:focus,textarea:focus{border-color:#00e5ff}
+button{border:0;border-radius:9px;padding:11px 16px;background:#ffc700;color:#000;font-weight:800;cursor:pointer;margin-top:14px}
+.status{display:inline-block;padding:3px 10px;border-radius:20px;font-weight:800;font-size:12px;border:1px solid}
+.s-approved{color:#a5f3c9;border-color:#00e676;background:rgba(0,230,118,.12)}.s-pending{color:#aef2ff;border-color:#00e5ff;background:rgba(0,229,255,.1)}.s-unverified{color:#ffe9a8;border-color:#ffc700;background:rgba(255,199,0,.1)}.s-rejected{color:#ffb3c0;border-color:#ff1744;background:rgba(255,23,68,.1)}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:5px 10px;font-size:13px;margin-top:10px}.k{color:#7c8496}.v{word-break:break-word}
+@media(max-width:620px){.grid{grid-template-columns:1fr}.kv{grid-template-columns:1fr}.kv .k{margin-top:5px}}
+</style></head><body><div class="wrap">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><a href="/">← Retour à l’application</a><a href="/legal/terms.html" target="_blank">Conditions</a> <a href="/legal/privacy.html" target="_blank">Confidentialité</a> <a href="/legal/kyc-aml.html" target="_blank">KYC/AML</a></div>
+<div class="card" id="authBox"><div class="warn">Vérification de ta session…</div></div>
+<div id="app" style="display:none">
+  <div class="card">
+    <h1>Vérification KYC</h1>
+    <p>Avant d’acheter des AVAXe avec de l’USDT, une vérification d’identité manuelle est requise.</p>
+    <p>Statut : <span id="status" class="status"></span></p>
+    <div id="statusDetail"></div>
+    <div class="warn">Le module est un <b>KYC manuel</b> : les informations sont examinées par un administrateur. Ne soumets que des informations exactes. Un document supplémentaire pourra être demandé via un canal sécurisé.</div>
+    <div id="formBox" style="display:none">
+      <h2>Informations à fournir</h2>
+      <div class="grid">
+        <div><label for="full_name">Nom complet</label><input id="full_name" autocomplete="name"></div>
+        <div><label for="date_of_birth">Date de naissance</label><input id="date_of_birth" type="date"></div>
+        <div><label for="country">Pays de résidence</label><input id="country" autocomplete="country-name"></div>
+        <div><label for="city">Ville</label><input id="city" autocomplete="address-level2"></div>
+        <div><label for="address">Adresse</label><input id="address" autocomplete="street-address"></div>
+        <div><label for="postal_code">Code postal</label><input id="postal_code" autocomplete="postal-code"></div>
+        <div><label for="id_type">Type de pièce</label><select id="id_type"><option value="passport">Passeport</option><option value="national_id">Carte d’identité</option><option value="driver_license">Permis de conduire</option></select></div>
+        <div><label for="id_number">Numéro de pièce</label><input id="id_number" autocomplete="off"></div>
+        <div><label for="occupation">Profession</label><input id="occupation"></div>
+        <div><label for="source_of_funds">Source des fonds</label><input id="source_of_funds" placeholder="ex. salaire, épargne"></div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:flex-start;text-transform:none;font-size:13px;color:#d9d5e6;"><input id="consent" type="checkbox" style="width:auto;margin-top:3px;"> J’accepte les <a href="/legal/terms.html" target="_blank">conditions</a>, la <a href="/legal/privacy.html" target="_blank">politique de confidentialité</a> et la <a href="/legal/kyc-aml.html" target="_blank">politique KYC/AML</a>.</label>
+      <button id="submit" type="button">Soumettre ma vérification</button>
+      <div id="error" class="err"></div>
+    </div>
+  </div>
+</div>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+  const user = (() => { try { return JSON.parse(localStorage.getItem('user')||'{}'); } catch(e){ return {}; } })();
+  async function api(path, options={}) {
+    const res = await fetch('/api'+path, { ...options, headers:{ 'Authorization':'Bearer '+token, 'Accept':'application/json', 'Content-Type':'application/json', ...(options.headers||{}) } });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.message || data.error || ('HTTP '+res.status));
+    return data;
+  }
+  function showError(msg){ $('error').textContent = msg; }
+  function fillStatus(data) {
+    const s = data.status || 'unverified';
+    const st = $('status'); st.textContent = s; st.className = 'status s-'+s;
+    $('statusDetail').innerHTML = `<div class="kv"><div class="k">Soumis</div><div class="v">${data.submitted_at || '—'}</div><div class="k">Revu</div><div class="v">${data.reviewed_at || '—'}</div>${data.profile?`<div class="k">Pièce</div><div class="v">${data.profile.id_type} — ••••${data.profile.id_number_last4}</div><div class="k">Note</div><div class="v">${data.profile.notes || '—'}</div>`:''}</div>`;
+    $('formBox').style.display = data.can_submit ? 'block' : 'none';
+  }
+  async function load() {
+    if (!token) { $('authBox').innerHTML = '<div class="warn">Connecte ton wallet dans l’application Battlepool, puis reviens ici.</div>'; return; }
+    try {
+      const data = await api('/kyc/status');
+      $('authBox').style.display='none'; $('app').style.display='block';
+      fillStatus(data);
+    } catch(e) {
+      $('authBox').innerHTML = '<div class="warn">Session expirée ou accès impossible. Reconnecte ton wallet dans l’application.</div>';
+      console.warn(e.message);
+    }
+  }
+  $('submit').addEventListener('click', async () => {
+    showError('');
+    const payload = {
+      full_name: $('full_name').value.trim(),
+      date_of_birth: $('date_of_birth').value,
+      country: $('country').value.trim(),
+      city: $('city').value.trim(),
+      address: $('address').value.trim(),
+      postal_code: $('postal_code').value.trim(),
+      id_type: $('id_type').value,
+      id_number: $('id_number').value.trim(),
+      occupation: $('occupation').value.trim(),
+      source_of_funds: $('source_of_funds').value.trim(),
+      consent: $('consent').checked,
+    };
+    if (!payload.full_name || !payload.date_of_birth || !payload.country || !payload.address || !payload.city || !payload.id_number) {
+      return showError('Complète tous les champs obligatoires.');
+    }
+    if (!payload.consent) return showError('Tu dois accepter les conditions et politiques.');
+    $('submit').disabled = true; $('submit').textContent = 'Envoi en cours…';
+    try {
+      const data = await api('/kyc/submit', { method:'POST', body: JSON.stringify(payload) });
+      $('submit').textContent = 'Soumis';
+      fillStatus({ status: data.status, submitted_at: new Date().toISOString(), can_submit:false, profile:data.profile });
+      $('statusDetail').insertAdjacentHTML('beforeend','<div class="warn">✅ Vérification soumise. Un administrateur doit l’approuver avant l’on-ramp.</div>');
+    } catch(e) { showError(e.message); $('submit').disabled=false; $('submit').textContent='Soumettre ma vérification'; }
+  });
+  load();
+})();
+</script></body></html>

@@ -75,6 +75,11 @@
       </div>
       <div id="users"></div>
     </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px;color:var(--gold);font-family:Orbitron,sans-serif;">KYC à vérifier</h3>
+      <div id="kyc-list"><div class="muted">Chargement…</div></div>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -131,7 +136,7 @@
       localStorage.setItem('user', JSON.stringify({ ...(JSON.parse(localStorage.getItem('user') || '{}')), ...user }));
       $('authBox').style.display = 'none';
       $('app').style.display = 'block';
-      await Promise.all([loadOrders(), loadUsers()]);
+      await Promise.all([loadOrders(), loadUsers(), loadKyc()]);
       if (timer) clearInterval(timer);
       timer = setInterval(() => { loadOrders(false); }, 30000);
     } catch (e) {
@@ -244,6 +249,58 @@
     }
   }
 
+  function renderKyc(p) {
+    const actions = [];
+    if (p.status === 'pending') {
+      actions.push(`<button class="green" data-kyc-action="approve" data-kyc-id="${p.id}">✅ Approuver KYC</button>`);
+      actions.push(`<button class="danger" data-kyc-action="reject" data-kyc-id="${p.id}">❌ Refuser</button>`);
+    }
+    if (!p.onramp_allowed) actions.push(`<button data-kyc-action="allow" data-kyc-id="${p.id}" data-user="${p.user_id}">Autoriser on-ramp</button>`);
+    return `<div class="order">
+      <h3>KYC #${p.id} — ${esc(p.full_name)} ${statusBadge(p.status)}</h3>
+      <div class="grid">
+        <div class="k">User</div><div class="v">#${p.user_id} — ${esc(p.wallet || p.wallet_address)}</div>
+        <div class="k">Naissance</div><div class="v">${esc(p.date_of_birth || '—')}</div>
+        <div class="k">Pays</div><div class="v">${esc(p.country || '—')}</div>
+        <div class="k">Adresse</div><div class="v">${esc([p.address,p.city,p.postal_code].filter(Boolean).join(', '))}</div>
+        <div class="k">Pièce</div><div class="v">${esc(p.id_type || '—')} — ••••${esc(p.id_number_last4 || '')}</div>
+        <div class="k">Profession</div><div class="v">${esc(p.occupation || '—')}</div>
+        <div class="k">Fonds</div><div class="v">${esc(p.source_of_funds || '—')}</div>
+        <div class="k">Soumis</div><div class="v">${esc(p.submitted_at || '—')}</div>
+        <div class="k">Note</div><div class="v">${esc(p.notes || '—')}</div>
+      </div>
+      <div class="actions">${actions.join('')}</div>
+    </div>`;
+  }
+  async function loadKyc(showToast = true) {
+    try {
+      const data = await api('/admin/kyc?status=pending');
+      const list = data.profiles || [];
+      $('kyc-list').innerHTML = list.length ? list.map(renderKyc).join('') : '<div class="muted">Aucun KYC en attente.</div>';
+      if (showToast) toast('KYC actualisé');
+    } catch (e) {
+      $('kyc-list').innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    }
+  }
+  async function kycAction(action, id, userId) {
+    try {
+      if (action === 'approve') {
+        if (!confirm('Approuver ce KYC ? Vérifie les informations avant.')) return;
+        await api(`/admin/kyc/${id}/approve`, { method:'POST', body: JSON.stringify({ notes: 'Approuvé depuis admin web' }) });
+        toast('KYC approuvé.');
+      } else if (action === 'reject') {
+        const reason = prompt('Raison du rejet KYC :', 'Informations incomplètes');
+        if (reason === null) return;
+        await api(`/admin/kyc/${id}/reject`, { method:'POST', body: JSON.stringify({ reason }) });
+        toast('KYC refusé.');
+      } else if (action === 'allow') {
+        await api(`/admin/onramp/users/${userId}/allow`, { method:'POST', body: JSON.stringify({ allowed: true }) });
+        toast(`User #${userId} autorisé pour l’on-ramp.`);
+      }
+      await Promise.all([loadKyc(false), loadUsers(false)]);
+    } catch (e) { toast(e.message || 'Erreur KYC', true); }
+  }
+
   function renderTabs() {
     $('tabs').innerHTML = STATUSES.map(([s, label]) =>
       `<button data-status="${s}" class="${s === currentStatus ? 'active' : ''}">${label}</button>`
@@ -268,6 +325,11 @@
   $('refresh').addEventListener('click', () => { loadOrders(); loadUsers(false); });
   $('user-search-btn').addEventListener('click', () => loadUsers());
   $('user-search').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadUsers(); });
+
+  $('kyc-list').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-kyc-action]');
+    if (btn) kycAction(btn.dataset.kycAction, btn.dataset.kycId, btn.dataset.user);
+  });
 
   renderTabs();
   checkAuth();

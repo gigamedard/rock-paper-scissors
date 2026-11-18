@@ -14,6 +14,7 @@ return [
     'link_code_ttl_minutes' => (int) env('ONRAMP_LINK_CODE_TTL_MINUTES', 15),
     'daily_limit_usdt' => (float) env('ONRAMP_DAILY_LIMIT_USDT', 100),
     'max_order_usdt' => (float) env('ONRAMP_MAX_ORDER_USDT', 50),
+    'require_kyc' => (bool) env('ONRAMP_REQUIRE_KYC', true),
     // Prix de référence AVAX/USDT. 1 AVAXe = 1 AVAX (peg interne) ; ce taux
     // convertit le package AVAXe en montant USDT à envoyer. À mettre à jour
     // manuellement (ou via un feed) avant chaque campagne.

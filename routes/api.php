@@ -12,6 +12,7 @@ use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\WalletAuthController;
 use App\Http\Controllers\OnrampController;
 use App\Http\Controllers\TelegramWebhookController;
+use App\Http\Controllers\KycController;
 use App\Http\Controllers\GameMetricsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -88,6 +89,10 @@ Route::middleware('token.auth')->group(function () {
     Route::get('/onramp/config', [OnrampController::class, 'config']);
     Route::post('/onramp/link-code', [OnrampController::class, 'linkCode']);
     Route::get('/onramp/orders', [OnrampController::class, 'orders']);
+
+    // KYC manuel
+    Route::get('/kyc/status', [KycController::class, 'status']);
+    Route::post('/kyc/submit', [KycController::class, 'submit']);
     
     // Broadcasting Auth using our custom token authentication (Allow GET and POST to avoid 405)
     Route::match(['get', 'post'], '/broadcasting/auth', function (Request $request) {
@@ -174,6 +179,11 @@ Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function (
     Route::post('/onramp/orders/{order}/reject', [OnrampController::class, 'reject']);
     Route::post('/onramp/orders/{order}/credit', [OnrampController::class, 'credit']);
     Route::post('/onramp/users/{user}/allow', [OnrampController::class, 'allowUser']);
+
+    // Admin KYC
+    Route::get('/kyc', [KycController::class, 'adminIndex']);
+    Route::post('/kyc/{profile}/approve', [KycController::class, 'approve']);
+    Route::post('/kyc/{profile}/reject', [KycController::class, 'reject']);
 
     // --- Admin Routes for Cards ---
     Route::get('/cards', [\App\Http\Controllers\Admin\CardController::class, 'index']);
