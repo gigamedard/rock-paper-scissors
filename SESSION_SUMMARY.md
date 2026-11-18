@@ -1513,3 +1513,24 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - `ONRAMP_TERMS_URL` pointe vers `/legal/terms.html`.
 - Testé : KYC unverified → pending via page, approbation API admin → approved,
   création commande onramp OK ; pages légales 200 ; SW v16.
+
+## 61. On-ramp semi-auto + alignement frais contrat (engine85/86, 2026-11-18)
+
+- Nouveau worker `smart_contracts/onramp_worker.js` + service compose
+  `onramp-worker` (image bridge, Tailscale/internal, secret
+  `onramp_treasury_pk`).
+- Flux : admin approuve → worker claim la commande `approved` → envoi AVAXe
+  depuis le hot wallet `0x8B21...` → receipt → statut `credited` + hash +
+  événement + notification Telegram.
+- Garde-fous : claim transactionnel, `credit_attempts`, reprise des crédits
+  en cours, timeout receipt, `manual_review` sans renvoi automatique, réserve
+  hot wallet, gas TST, montant max worker, pause env.
+- Statuts admin ajoutés : `crediting`, `manual_review`.
+- Test réel : `BP-20261117-TUTN5B` (0.35 AVAXe, user #322) approuvée la veille
+  a été créditée automatiquement tx
+  `0x1e1651b23c8a2dd5dc4e8addb55668a293f103f7d4557415401a10a8d2c5782c` ;
+  hot wallet 299.65 AVAXe après.
+- Frais contrat : l’on-chain renvoie `feeBasisPoints=400` (4 %) ; le seeder
+  et le défaut étaient encore à 2.5 %. Corrigé seeder/config/défaut + DB
+  `smart_contract_fee_percentage=4`.
+- Tests : headless **24/24**, navigateur **23/23**.

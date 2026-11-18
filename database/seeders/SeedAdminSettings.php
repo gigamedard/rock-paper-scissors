@@ -30,7 +30,7 @@ class SeedAdminSettings extends Seeder
             ],
             [
                 'key' => 'smart_contract_fee_percentage',
-                'value' => '2.5',
+                'value' => '4',
                 'type' => 'float',
                 'group' => 'blockchain',
                 'description' => 'Frais de transaction Smart Contract (%) — doit correspondre à feeBasisPoints/100'

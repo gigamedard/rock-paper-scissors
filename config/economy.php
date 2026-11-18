@@ -22,7 +22,7 @@ return [
 
     // Taux de frais contrat, en pourcentage (doit correspondre à feeBasisPoints/100
     // du contrat Battlepool ; surchargeable par GameSetting 'smart_contract_fee_percentage').
-    'fee_percent' => env('SMART_CONTRACT_FEE_PERCENT', 2.5),
+    'fee_percent' => env('SMART_CONTRACT_FEE_PERCENT', 4.0),
 
     // Parité de référence XOF par AVAX (parité de jeu fixe, utilisée pour
     // l'affichage des mises en franc CFA d'Afrique de l'Ouest).

@@ -26,7 +26,7 @@ class GameSettingSeeder extends Seeder
 
         GameSetting::setValue(
             'smart_contract_fee_percentage',
-            2.5,
+            4.0,
             'float',
             'blockchain',
             'Frais de transaction Smart Contract (%)'
