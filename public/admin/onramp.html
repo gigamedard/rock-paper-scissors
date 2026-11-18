@@ -51,8 +51,6 @@
     <h1>Admin on-ramp</h1>
     <div class="sub">Commandes USDT → AVAXe · manuel</div>
     <a href="/">← Retour à l’app</a>
-    <a id="secret-editor-link" href="#" target="_blank" rel="noopener" style="display:none;background:#4f8cff;color:#fff;padding:8px 11px;border-radius:8px;text-decoration:none;font-weight:700;">🔑 Clé trésorerie</a>
-    <a id="config-editor-link" href="#" target="_blank" rel="noopener" style="display:none;background:#4f8cff;color:#fff;padding:8px 11px;border-radius:8px;text-decoration:none;font-weight:700;">⚙️ Configuration</a>
   </header>
 
   <div class="card" id="authBox">
@@ -133,19 +131,6 @@
       localStorage.setItem('user', JSON.stringify({ ...(JSON.parse(localStorage.getItem('user') || '{}')), ...user }));
       $('authBox').style.display = 'none';
       $('app').style.display = 'block';
-      try {
-        const cfg = await api('/onramp/config');
-        const ed = $('secret-editor-link');
-        if (ed && cfg.secret_editor_url) {
-          ed.href = cfg.secret_editor_url;
-          ed.style.display = 'inline-block';
-        }
-        const ce = $('config-editor-link');
-        if (ce && cfg.config_editor_url) {
-          ce.href = cfg.config_editor_url;
-          ce.style.display = 'inline-block';
-        }
-      } catch (e) { /* non bloquant */ }
       await Promise.all([loadOrders(), loadUsers()]);
       if (timer) clearInterval(timer);
       timer = setInterval(() => { loadOrders(false); }, 30000);
