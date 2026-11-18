@@ -1574,3 +1574,27 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   au fichier (SHA-256), sans auth 401.
 - Lecture seule : ne pas remplacer la seed sans sauvegarde + régénération du
   pool d’adresses.
+
+## 64. Sweeper USDT BNB/POL (engine89, 2026-11-18)
+
+- Migration `onramp_orders` : `sweep_status`, `sweep_tx_hash`, `sweep_amount`,
+  `sweep_attempts`, `sweep_started_at`, `sweep_last_error`, `swept_at`.
+- Nouveau service `onramp-sweeper` (image bridge, seed HD monté en secret).
+- Pour chaque commande `approved/crediting/credited` avec dépôt USDT :
+  1. dérive la clé de l’adresse de dépôt ;
+  2. vérifie le solde USDT ;
+  3. envoie un topup gas natif depuis la treasury si nécessaire ;
+  4. transfère tout l’USDT vers la treasury ;
+  5. statut `swept` + hash + événement + notification admin.
+- Treasury/gas dérivée du seed à l’index **1 000 000** :
+  `0xE4b74c895eA6B5c599AE578859Cce74E9317a40B`
+  (même adresse sur BSC et Polygon ; USDT rapatriés ici).
+- Seuils gas : BSC topup 0.0003 BNB / réserve 0.001 ; Polygon topup 0.02 POL /
+  réserve 0.05. **Trésorerie actuellement à 0 BNB / 0 POL : sweeper en attente
+  de gas.**
+- Admin page : statut/hash de sweep dans les commandes.
+- Garde-fous : `sweeping` transactionnel, `sweep_tx_hash` unique, `manual_review`
+  sans renvoi automatique, reprise des sweeps en cours, notification gas bas.
+- Tests : headless **24/24**, navigateur **23/23**, admin page sans erreur.
+- ⚠️ Sweep réel non testé (pas de gas ni d’USDT de test). Alimenter la treasury
+  en BNB (BSC) et POL (Polygon) avant le premier dépôt.

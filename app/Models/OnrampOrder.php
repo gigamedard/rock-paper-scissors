@@ -19,7 +19,8 @@ class OnrampOrder extends Model
         'reference', 'user_id', 'channel', 'chat_id', 'network', 'package_code',
         'usdt_amount', 'avaxe_amount', 'deposit_address', 'deposit_index', 'deposit_amount', 'deposit_detected_at', 'deposit_confirmed_at', 'tx_hash', 'confirmations',
         'status', 'admin_id', 'admin_note', 'credit_tx_hash', 'credit_attempts', 'credit_started_at', 'credit_last_error', 'submitted_at',
-        'approved_at', 'credited_at', 'rejected_at',
+        'approved_at', 'credited_at', 'rejected_at', 'sweep_status', 'sweep_tx_hash',
+        'sweep_amount', 'sweep_attempts', 'sweep_started_at', 'sweep_last_error', 'swept_at',
     ];
 
     protected $casts = [
@@ -32,6 +33,9 @@ class OnrampOrder extends Model
         'deposit_amount' => 'decimal:8',
         'deposit_detected_at' => 'datetime',
         'deposit_confirmed_at' => 'datetime',
+        'sweep_amount' => 'decimal:8',
+        'sweep_started_at' => 'datetime',
+        'swept_at' => 'datetime',
         'rejected_at' => 'datetime',
     ];
 

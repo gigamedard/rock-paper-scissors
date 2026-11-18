@@ -171,6 +171,7 @@
         <div class="k">Montant</div><div class="v"><b>${esc(o.usdt_amount)} USDT</b> → <b>${esc(o.avaxe_amount)} AVAXe</b></div>
         <div class="k">Dépôt TX</div><div class="v">${tx}</div>
         <div class="k">Crédit TX</div><div class="v">${credit}</div>
+        <div class="k">Sweep USDT</div><div class="v">${esc(o.sweep_status || '—')}${o.sweep_tx_hash ? ` · <span class="hash">${esc(o.sweep_tx_hash)}</span>` : ''}</div>
         <div class="k">Créé</div><div class="v">${esc(o.created_at || '')}</div>
         <div class="k">Soumis</div><div class="v">${esc(o.submitted_at || '—')}</div>
         <div class="k">Note admin</div><div class="v">${esc(o.admin_note || '—')}</div>
