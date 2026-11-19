@@ -51,6 +51,7 @@ class OnrampTelegramBot
             return;
         }
 
+        $text = $this->menuAlias($text);
         [$command, $args] = $this->parseCommand($text);
 
         if ($command === '/start') {
@@ -239,6 +240,7 @@ class OnrampTelegramBot
             "<code>/help</code> pour l’aide.",
             $keyboard
         );
+        $this->sendMenu($chatId);
     }
 
     private function sendHelp(string $chatId): void
@@ -256,6 +258,7 @@ class OnrampTelegramBot
             "/whoami — ton chat ID Telegram\n" .
             "/help — cette aide"
         );
+        $this->sendMenu($chatId);
     }
 
     private function sendNetworkPicker(string $chatId): void
@@ -573,6 +576,25 @@ class OnrampTelegramBot
         // Les admins Telegram ne sont pas forcément des users Laravel : on garde
         // l’ID Telegram comme acteur, sans inventer un user_id.
         return null;
+    }
+
+    private function sendMenu(string $chatId): void
+    {
+        $keyboard = ['keyboard' => [
+            [['text' => '🛒 Acheter AVAXe'], ['text' => '💸 Vendre AVAXe']],
+            [['text' => '📊 Mes commandes'], ['text' => '❓ Aide']],
+        ], 'resize_keyboard' => true];
+        $this->telegram->sendMessage($chatId, 'Menu BattlePool — choisis une action.', $keyboard);
+    }
+
+    private function menuAlias(string $text): string
+    {
+        return [
+            '🛒 Acheter AVAXe' => '/buy',
+            '💸 Vendre AVAXe' => '/sell',
+            '📊 Mes commandes' => '/status',
+            '❓ Aide' => '/help',
+        ][$text] ?? $text;
     }
 
     private function parseCommand(string $text): array

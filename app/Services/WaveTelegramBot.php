@@ -4,11 +4,12 @@ namespace App\Services;
 
 use App\Models\MobileCryptoUser;
 use App\Models\WaveOrder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
-/** Bot MobileCrypto indépendant (Wave XOF ↔ USDT, MVP manuel). */
+/** Bot MobileCrypto indépendant, sans KYC, boutons + petits montants test. */
 class WaveTelegramBot
 {
     public function __construct(
@@ -31,28 +32,44 @@ class WaveTelegramBot
     private function handleMessage(array $message): void
     {
         $chatId = isset($message['chat']['id']) ? (string) $message['chat']['id'] : null;
-        $text = trim((string) ($message['text'] ?? ''));
+        if (! $chatId) return;
         $username = $message['from']['username'] ?? null;
-        if (! $chatId || $text === '') return;
-
         $user = $this->mobile->touch($chatId, $username);
+
+        // Contact partagé pour un ordre de vente en attente.
+        if (isset($message['contact']['phone_number'])) {
+            $this->handleSellContact($chatId, $user, (string) $message['contact']['phone_number']);
+            return;
+        }
+
+        $text = trim((string) ($message['text'] ?? ''));
+        if ($text === '') return;
+        $text = $this->alias($text);
         [$command, $args] = $this->parseCommand($text);
 
         if ($command === '/start') { $this->sendStart($chatId, $user); return; }
-        if ($command === '/register') { $this->register($chatId, $user, $args); return; }
+        if ($command === '/register') { $this->telegram->sendMessage($chatId, 'Pas d’inscription ni de KYC pour cette phase de test. Accepte les conditions avec <code>/accept</code>.'); return; }
         if ($command === '/setwallet') { $this->setWallet($chatId, $user, $args[0] ?? ''); return; }
-        if ($command === '/accept') { $this->acceptTerms($chatId, $user); return; }
+        if ($command === '/wallet') { $this->sendWallet($chatId, $user); return; }
+        if ($command === '/accept') { $this->mobile->acceptTerms($user); $this->telegram->sendMessage($chatId, '✅ Conditions acceptées.'); $this->sendMenu($chatId); return; }
         if ($command === '/profile' || $command === '/status') { $this->sendProfile($chatId, $user); return; }
         if ($command === '/wave') { $this->sendWaveHelp($chatId, $user); return; }
-        if ($command === '/wavebuy') { $this->createWaveBuy($chatId, $user, $args[0] ?? ''); return; }
-        if ($command === '/wavesell') { $this->createWaveSell($chatId, $user, $args); return; }
+        if ($command === '/wavebuy') { if (! isset($args[0])) { $this->sendBuyAmounts($chatId); } else { $this->createWaveBuy($chatId, $user, $args[0]); } return; }
+        if ($command === '/wavesell') { if (! isset($args[0])) { $this->sendSellAmounts($chatId); } else { $this->createWaveSell($chatId, $user, $args[0], $args[1] ?? null); } return; }
         if ($command === '/wavepaid') { $this->submitWaveFiatProof($chatId, $user, $args); return; }
         if ($command === '/wavetx') { $this->submitWaveUsdtTx($chatId, $user, $args); return; }
         if ($command === '/waveorders') { $this->sendWaveOrders($chatId, $user); return; }
         if ($command === '/whoami') { $this->telegram->sendMessage($chatId, "🆔 Chat ID : <code>{$this->esc($chatId)}</code>\nCompte MobileCrypto #{$user->id}"); return; }
-        if ($command === '/link') { $this->telegram->sendMessage($chatId, 'Plus besoin de /link : ce bot est indépendant. Utilise <code>/start</code>.'); return; }
+        if ($command === '/link') { $this->telegram->sendMessage($chatId, 'Aucun lien BattlePool nécessaire : MobileCrypto est indépendant.'); return; }
         if ($command === '/help') { $this->sendHelp($chatId); return; }
-        $this->telegram->sendMessage($chatId, 'Commande inconnue. Utilise <code>/help</code>.');
+
+        // Si un montant de vente est en attente, accepter un numéro tapé.
+        if (($pending = Cache::get($this->sellCacheKey($chatId))) !== null && preg_match('/^(?:\+?225)?0?[0-9]{9,10}$/', preg_replace('/\s+/', '', $text))) {
+            $this->handleSellContact($chatId, $user, $text);
+            return;
+        }
+
+        $this->telegram->sendMessage($chatId, 'Utilise les boutons du menu ou <code>/help</code>.');
     }
 
     private function handleCallback(array $callback): void
@@ -62,50 +79,73 @@ class WaveTelegramBot
         $data = (string) ($callback['data'] ?? '');
         if (! $chatId) return;
         $user = $this->mobile->touch($chatId, $callback['message']['chat']['username'] ?? null);
+
         if ($data === 'terms_accept') {
             $this->mobile->acceptTerms($user);
             $this->telegram->answerCallbackQuery($id, 'Conditions acceptées');
-            $this->telegram->sendMessage($chatId, '✅ Conditions acceptées. Utilise <code>/wave</code>.');
+            $this->telegram->sendMessage($chatId, '✅ Conditions acceptées.');
+            $this->sendMenu($chatId);
+            return;
         }
+        if (str_starts_with($data, 'wb:buy:')) {
+            $this->telegram->answerCallbackQuery($id);
+            $this->createWaveBuy($chatId, $user, substr($data, 7));
+            return;
+        }
+        if (str_starts_with($data, 'wb:sell:')) {
+            $this->telegram->answerCallbackQuery($id);
+            $this->askSellPhone($chatId, substr($data, 8));
+            return;
+        }
+        if ($data === 'wb:wallet') { $this->sendWallet($chatId, $user); $this->telegram->answerCallbackQuery($id); return; }
     }
 
     private function sendStart(string $chatId, MobileCryptoUser $user): void
     {
-        if (! $user->full_name) { $this->sendRegistrationInstructions($chatId); return; }
-        if ($user->kyc_status !== MobileCryptoUser::KYC_APPROVED) {
-            $this->sendProfile($chatId, $user);
-            $this->telegram->sendMessage($chatId, '⏳ KYC MobileCrypto en attente de validation admin.');
+        if (! $user->hasAcceptedTerms()) {
+            $keyboard = ['inline_keyboard' => [[['text' => '✅ J’accepte les conditions', 'callback_data' => 'terms_accept']]]];
+            $this->telegram->sendMessage($chatId,
+                "<b>MobileCrypto — Wave ↔ USDT</b>\n\n" .
+                "Phase de test, petits montants, sans KYC.\n" .
+                "Aucune donnée personnelle n’est demandée ici.\n\n" .
+                "Accepte les conditions pour continuer.",
+                $keyboard
+            );
             return;
         }
-        if (! $user->hasAcceptedTerms()) { $this->sendTerms($chatId); return; }
-        $this->sendWaveHelp($chatId, $user);
+        $this->sendMenu($chatId);
     }
 
-    private function sendRegistrationInstructions(string $chatId): void
+    private function sendMenu(string $chatId): void
+    {
+        $keyboard = ['keyboard' => [
+            [['text' => '💳 Acheter USDT'], ['text' => '💵 Vendre USDT']],
+            [['text' => '👛 Wallet'], ['text' => '📄 Commandes'], ['text' => '❓ Aide']],
+        ], 'resize_keyboard' => true];
+        $this->telegram->sendMessage($chatId, "Menu MobileCrypto — choisis une action.", $keyboard);
+    }
+
+    private function sendHelp(string $chatId): void
     {
         $this->telegram->sendMessage($chatId,
-            "<b>Bienvenue sur MobileCrypto</b>\n\n" .
-            "Service indépendant Wave Côte d’Ivoire ↔ USDT.\n\n" .
-            "1. Enregistre-toi :\n<code>/register NOM COMPLET | 07XXXXXXXX | CI</code>\n\n" .
-            "2. Ajoute ton adresse USDT Polygon (pour les achats) :\n<code>/setwallet 0x...</code>\n\n" .
-            "3. Accepte les conditions : <code>/accept</code>\n" .
-            "4. Attends la validation KYC admin, puis <code>/wave</code>."
+            "<b>MobileCrypto — test</b>\n" .
+            "Sans KYC, petits montants uniquement.\n\n" .
+            "Utilise les boutons : Acheter, Vendre, Wallet, Commandes.\n" .
+            "Achat : lien Wave marchand, montant exact.\n" .
+            "Vente : dépôt USDT Polygon, paiement XOF manuel.\n" .
+            "Taux 1 USDT = 600 XOF · frais 0,5 % · max 10 USDT / 6 000 XOF · 20 USDT/jour.\n\n" .
+            "/setwallet 0x... pour le wallet USDT d’achat."
         );
+        $this->sendMenu($chatId);
     }
 
-    private function register(string $chatId, MobileCryptoUser $user, array $args): void
+    private function sendWallet(string $chatId, MobileCryptoUser $user): void
     {
-        $raw = implode(' ', $args);
-        $parts = array_map('trim', preg_split('/\s*\|\s*/', $raw) ?: []);
-        if (count($parts) < 2) {
-            $this->telegram->sendMessage($chatId, 'Usage : <code>/register NOM COMPLET | 07XXXXXXXX | CI</code>');
-            return;
+        if ($user->payout_address) {
+            $this->telegram->sendMessage($chatId, "👛 Wallet USDT Polygon :\n<code>{$this->esc($user->payout_address)}</code>\nPour le changer : <code>/setwallet 0x...</code>");
+        } else {
+            $this->telegram->sendMessage($chatId, "👛 Aucun wallet USDT enregistré.\nEnvoie : <code>/setwallet 0x...</code>");
         }
-        try {
-            $user = $this->mobile->register($user, $parts[0], $parts[1], $parts[2] ?? 'CI');
-            $this->telegram->sendMessage($chatId, "✅ Compte créé : <b>#{$user->id}</b>.\nKYC en attente. Ajoute ton wallet USDT avec <code>/setwallet 0x...</code>, puis attends l’admin.");
-            $this->telegram->sendAdmin("🆕 KYC MobileCrypto à valider\nUser #{$user->id} · {$user->full_name}\nTel: {$user->phone}\nPays: {$user->country}\nWallet: " . ($user->payout_address ?: 'non renseigné'));
-        } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
     }
 
     private function setWallet(string $chatId, MobileCryptoUser $user, string $address): void
@@ -116,71 +156,50 @@ class WaveTelegramBot
         } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
     }
 
-    private function acceptTerms(string $chatId, MobileCryptoUser $user): void
-    {
-        $this->mobile->acceptTerms($user);
-        $this->telegram->sendMessage($chatId, '✅ Conditions acceptées.');
-    }
-
-    private function sendTerms(string $chatId): void
-    {
-        $terms = (string) config('onramp.terms_url', '');
-        $keyboard = ['inline_keyboard' => [[['text' => '✅ J’accepte les conditions', 'callback_data' => 'terms_accept']]]];
-        $this->telegram->sendMessage($chatId,
-            "Avant d’utiliser MobileCrypto, accepte les conditions.\n" . ($terms ? $terms : ''),
-            $keyboard
-        );
-    }
-
     private function sendProfile(string $chatId, MobileCryptoUser $user): void
     {
         $this->telegram->sendMessage($chatId,
             "<b>Compte MobileCrypto #{$user->id}</b>\n" .
-            "Nom : " . $this->esc($user->full_name ?: '—') . "\n" .
-            "Téléphone : " . $this->esc($user->phone ?: '—') . "\n" .
-            "Pays : " . $this->esc($user->country) . "\n" .
-            "KYC : <b>{$user->kyc_status}</b> · allowlist : " . ($user->allowlist ? 'oui' : 'non') . "\n" .
             "Wallet USDT : " . ($user->payout_address ? "<code>{$this->esc($user->payout_address)}</code>" : 'non renseigné') . "\n" .
-            "Conditions : " . ($user->hasAcceptedTerms() ? 'acceptées' : 'non acceptées') . "\n"
-        );
-    }
-
-    private function sendHelp(string $chatId): void
-    {
-        $this->telegram->sendMessage($chatId,
-            "<b>Commandes MobileCrypto</b>\n" .
-            "/register NOM | TEL | PAYS — créer le compte\n" .
-            "/setwallet 0x... — wallet USDT Polygon\n" .
-            "/accept — conditions\n" .
-            "/profile — état du compte\n" .
-            "/wave — aide Wave\n" .
-            "/wavebuy 300 — acheter USDT avec XOF\n" .
-            "/wavesell 1 07XXXXXXXX — vendre USDT contre XOF\n" .
-            "/wavepaid REF ID — preuve paiement Wave\n" .
-            "/wavetx REF HASH — preuve dépôt USDT\n" .
-            "/waveorders — historique\n" .
-            "/whoami — chat ID\n" .
-            "/help — cette aide"
+            "Conditions : " . ($user->hasAcceptedTerms() ? 'acceptées' : 'non acceptées') . "\n" .
+            "Mode test sans KYC."
         );
     }
 
     private function sendWaveHelp(string $chatId, MobileCryptoUser $user): void
     {
-        if (! $user->isReady()) { $this->sendProfile($chatId, $user); $this->telegram->sendMessage($chatId, '⏳ Termine le KYC/allowlist/conditions avant /wavebuy ou /wavesell.'); return; }
-        $this->telegram->sendMessage($chatId,
-            "<b>Wave Côte d’Ivoire — manuel</b>\n\n" .
-            "<b>Acheter des USDT avec Wave</b>\n<code>/wavebuy 300</code>\nLien de paiement Wave marchand, puis <code>/wavepaid REF ID_TRANSACTION</code>.\n\n" .
-            "<b>Vendre des USDT contre Wave</b>\n<code>/wavesell 1 07XXXXXXXX</code>\nDépôt USDT Polygon, puis <code>/wavetx REF HASH_USDT</code>.\n\n" .
-            "Taux : 1 USDT = 600 XOF · frais 0,5 % · min 0,5 USDT/300 XOF · max 100 USDT/60 000 XOF."
-        );
+        $this->sendHelp($chatId);
+    }
+
+    private function sendBuyAmounts(string $chatId): void
+    {
+        $rows = [];
+        foreach ([300, 600, 1200, 3000, 6000] as $amount) {
+            $rows[] = ['text' => "{$amount} XOF", 'callback_data' => 'wb:buy:' . $amount];
+        }
+        $keyboard = ['inline_keyboard' => array_chunk($rows, 3)];
+        $this->telegram->sendMessage($chatId, "💳 Combien de XOF veux-tu payer via Wave ?", $keyboard);
+    }
+
+    private function sendSellAmounts(string $chatId): void
+    {
+        $rows = [];
+        foreach ([0.5, 1, 2, 5, 10] as $amount) {
+            $rows[] = ['text' => "{$amount} USDT", 'callback_data' => 'wb:sell:' . $amount];
+        }
+        $keyboard = ['inline_keyboard' => array_chunk($rows, 3)];
+        $this->telegram->sendMessage($chatId, "💵 Combien d’USDT veux-tu vendre ?", $keyboard);
     }
 
     private function createWaveBuy(string $chatId, MobileCryptoUser $user, string $rawFiat): void
     {
-        if (! $user->isReady()) { $this->sendProfile($chatId, $user); $this->telegram->sendMessage($chatId, '⏳ Compte non prêt (KYC/allowlist/conditions).'); return; }
-        if (! $user->payout_address) { $this->telegram->sendMessage($chatId, 'Ajoute ton wallet USDT Polygon : <code>/setwallet 0x...</code>'); return; }
+        if (! $user->hasAcceptedTerms()) { $this->telegram->sendMessage($chatId, 'Accepte les conditions avec <code>/accept</code>.'); return; }
+        if (! $user->payout_address) {
+            $this->telegram->sendMessage($chatId, 'Ajoute d’abord ton wallet USDT Polygon : <code>/setwallet 0x...</code>');
+            return;
+        }
         $fiat = (float) str_replace([' ', ','], ['', '.'], trim($rawFiat));
-        if ($fiat <= 0) { $this->telegram->sendMessage($chatId, 'Usage : <code>/wavebuy 300</code>.'); return; }
+        if ($fiat <= 0) { $this->telegram->sendMessage($chatId, 'Montant invalide.'); return; }
         try {
             $o = $this->wave->createBuy($user, $fiat, 'wave_ci', 'telegram', $chatId);
             $link = (string) $o->payment_url;
@@ -190,37 +209,61 @@ class WaveTelegramBot
             ]];
             $text = "🌊 <b>Achat USDT via Wave</b>\nCommande <b>{$this->esc($o->reference)}</b>\n\n" .
                 "Montant exact : <b>{$this->fmt((float) $o->fiat_amount)} XOF</b>\n" .
-                "Clique sur <b>Payer avec Wave</b> ou utilise le lien.\n\n" .
+                "Clique sur <b>Payer avec Wave</b>.\n\n" .
                 "Tu recevras <b>{$this->fmt((float) $o->usdt_amount)} USDT</b> sur <code>{$this->esc($user->payout_address)}</code>.\n" .
                 "Après paiement : <code>/wavepaid {$this->esc($o->reference)} ID_TRANSACTION</code>\n\n⚠️ Validation manuelle.";
             if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) $this->telegram->sendMessage($chatId, $text . "\n\n" . $link);
-            $this->telegram->sendAdmin("🌊 Wave ACHAT\n{$o->reference}\nMobileCrypto #{$user->id} · {$user->full_name}\n{$o->fiat_amount} XOF → {$o->usdt_amount} USDT");
+            $this->telegram->sendAdmin("🌊 Wave ACHAT\n{$o->reference}\nMobileCrypto #{$user->id}\n{$o->fiat_amount} XOF → {$o->usdt_amount} USDT");
         } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
     }
 
-    private function createWaveSell(string $chatId, MobileCryptoUser $user, array $args): void
+    private function askSellPhone(string $chatId, string $amount): void
     {
-        if (! $user->isReady()) { $this->sendProfile($chatId, $user); $this->telegram->sendMessage($chatId, '⏳ Compte non prêt (KYC/allowlist/conditions).'); return; }
-        $usdt = (float) str_replace(',', '.', trim((string) ($args[0] ?? '')));
-        $phone = trim((string) ($args[1] ?? ($user->phone ?: '')));
-        if ($usdt <= 0 || $phone === '') { $this->telegram->sendMessage($chatId, 'Usage : <code>/wavesell 1 07XXXXXXXX</code>.'); return; }
+        $amount = (float) str_replace(',', '.', $amount);
+        if ($amount <= 0) { $this->sendSellAmounts($chatId); return; }
+        Cache::put($this->sellCacheKey($chatId), $amount, now()->addMinutes(10));
+        $keyboard = ['keyboard' => [[['text' => '📱 Partager mon numéro', 'request_contact' => true]]], 'resize_keyboard' => true, 'one_time_keyboard' => true];
+        $this->telegram->sendMessage($chatId, "Pour recevoir les XOF, partage ton numéro Wave avec le bouton ci-dessous, ou tape-le.", $keyboard);
+    }
+
+    private function handleSellContact(string $chatId, MobileCryptoUser $user, string $rawPhone): void
+    {
+        $amount = Cache::pull($this->sellCacheKey($chatId));
+        if ($amount === null) { $this->telegram->sendMessage($chatId, 'Aucune vente en attente.'); return; }
+        $digits = preg_replace('/\D+/', '', $rawPhone);
+        if (str_starts_with($digits, '225') && strlen($digits) === 13) $digits = substr($digits, -10);
+        if (! preg_match('/^0[0-9]{9}$/', $digits)) { $this->telegram->sendMessage($chatId, 'Numéro invalide. Exemple : 07XXXXXXXX.'); return; }
+        $this->createWaveSell($chatId, $user, (string) $amount, $digits);
+    }
+
+    private function createWaveSell(string $chatId, MobileCryptoUser $user, string $rawUsdt, ?string $phone = null): void
+    {
+        if (! $user->hasAcceptedTerms()) { $this->telegram->sendMessage($chatId, 'Accepte les conditions avec <code>/accept</code>.'); return; }
+        $usdt = (float) str_replace(',', '.', trim($rawUsdt));
+        if ($usdt <= 0) { $this->sendSellAmounts($chatId); return; }
+        $phone = $phone ? preg_replace('/\D+/', '', $phone) : null;
+        if ($phone && strlen($phone) === 13 && str_starts_with($phone, '225')) $phone = substr($phone, -10);
+        if (! $phone || ! preg_match('/^0[0-9]{9}$/', $phone)) { $this->askSellPhone($chatId, (string) $usdt); return; }
         try {
             $o = $this->wave->createSell($user, $usdt, $phone, 'wave_ci', 'telegram', $chatId);
             $addr = (string) $o->deposit_address;
-            $keyboard = ['inline_keyboard' => [[['text' => '📋 Copier l’adresse USDT', 'copy_text' => ['text' => $addr]]]]];
+            $keyboard = ['inline_keyboard' => [
+                [['text' => '📋 Copier l’adresse USDT', 'copy_text' => ['text' => $addr]]],
+            ]];
             $text = "🌊 <b>Vente USDT → Wave</b>\nCommande <b>{$this->esc($o->reference)}</b>\n\n" .
                 "Envoie <b>{$this->fmt((float) $o->usdt_amount)} USDT</b> sur <b>Polygon</b> à :\n<pre>" . $this->esc($addr) . "</pre>\n\n" .
                 "Tu recevras <b>{$this->fmt((float) $o->fiat_amount)} XOF</b> sur <code>{$this->esc($phone)}</code>.\n" .
                 "Après envoi : <code>/wavetx {$this->esc($o->reference)} HASH_USDT</code>\n\n⚠️ Polygon uniquement. Validation manuelle.";
             if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) $this->telegram->sendMessage($chatId, $text);
-            $this->telegram->sendAdmin("🌊 Wave VENTE\n{$o->reference}\nMobileCrypto #{$user->id} · {$user->full_name}\n{$o->usdt_amount} USDT → {$o->fiat_amount} XOF\nTel: {$phone}");
+            $this->telegram->sendAdmin("🌊 Wave VENTE\n{$o->reference}\nMobileCrypto #{$user->id}\n{$o->usdt_amount} USDT → {$o->fiat_amount} XOF\nTel: {$phone}");
+            $this->sendMenu($chatId);
         } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
     }
 
     private function submitWaveFiatProof(string $chatId, MobileCryptoUser $user, array $args): void
     {
         $o = $this->wave->latestOrderForChat($chatId, WaveOrder::DIRECTION_BUY_USDT);
-        if (! $o) { $this->telegram->sendMessage($chatId, 'Aucune commande Wave ACHAT en attente.'); return; }
+        if (! $o) { $this->telegram->sendMessage($chatId, 'Aucune commande ACHAT en attente.'); return; }
         $ref = trim(implode(' ', $args));
         try {
             $o = $this->wave->submitFiatProof($o, $ref ?: null);
@@ -233,7 +276,7 @@ class WaveTelegramBot
     {
         $hash = trim((string) ($args[1] ?? $args[0] ?? ''));
         $o = $this->wave->latestOrderForChat($chatId, WaveOrder::DIRECTION_SELL_USDT);
-        if (! $o) { $this->telegram->sendMessage($chatId, 'Aucune commande Wave VENTE en attente.'); return; }
+        if (! $o) { $this->telegram->sendMessage($chatId, 'Aucune commande VENTE en attente.'); return; }
         try {
             $o = $this->wave->submitUsdtTx($o, $hash);
             $this->telegram->sendMessage($chatId, "✅ Dépôt USDT soumis pour <b>{$o->reference}</b>. Vérification admin.");
@@ -251,6 +294,19 @@ class WaveTelegramBot
         }
         $this->telegram->sendMessage($chatId, implode("\n", $lines));
     }
+
+    private function alias(string $text): string
+    {
+        return [
+            '💳 Acheter USDT' => '/wavebuy',
+            '💵 Vendre USDT' => '/wavesell',
+            '👛 Wallet' => '/wallet',
+            '📄 Commandes' => '/waveorders',
+            '❓ Aide' => '/help',
+        ][$text] ?? $text;
+    }
+
+    private function sellCacheKey(string $chatId): string { return 'wave_sell_amount_' . $chatId; }
 
     private function parseCommand(string $text): array
     {

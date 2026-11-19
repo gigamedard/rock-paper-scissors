@@ -1753,3 +1753,18 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - ⚠️ Incident Orange Money signalé par l’utilisateur : surveillance, PIN,
   sessions et contact opérateur recommandés.
 - Tests headless 24/24, navigateur 23/23.
+
+## 74. MobileCrypto sans KYC + navigation boutons (engine100)
+
+- KYC MobileCrypto retiré du bot/admin : plus de nom, téléphone de profil,
+  pays ou validation KYC. Seuls Telegram (chat/username), wallet USDT optionnel
+  et acceptation des conditions sont conservés. Le téléphone n’est saisi que
+  pour un payout vente.
+- Limites test réduites : max **10 USDT / 6 000 XOF** par commande,
+  **20 USDT/jour** ; min inchangé (0.5 USDT / 300 XOF).
+- Menu à boutons MobileCrypto : Acheter USDT, Vendre USDT, Wallet, Commandes,
+  Aide. Montants en boutons inline ; partage du numéro via bouton contact.
+- Menu à boutons BattlePoolBot : Acheter AVAXe, Vendre AVAXe, Commandes, Aide.
+- Achat Wave : lien marchand exact (`payment_url`) ; vente : payout manuel.
+- Tests : headless 24/24, navigateur 23/23 ; webhook Wave OK, 0 pending.
+- Toujours manuel, sans API/webhook Wave.

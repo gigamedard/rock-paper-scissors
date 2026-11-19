@@ -187,8 +187,6 @@ class WaveService
     private function guardUser(MobileCryptoUser $user): void
     {
         if (! (bool) config('wave.enabled', true)) throw ValidationException::withMessages(['wave' => 'Service Wave temporairement désactivé.']);
-        if ($user->kyc_status !== MobileCryptoUser::KYC_APPROVED) throw ValidationException::withMessages(['wave' => 'KYC MobileCrypto requis ou en attente.']);
-        if (! $user->allowlist) throw ValidationException::withMessages(['wave' => 'Compte MobileCrypto non autorisé.']);
         if (! $user->hasAcceptedTerms()) throw ValidationException::withMessages(['wave' => 'Accepte les conditions avec /accept.']);
     }
 

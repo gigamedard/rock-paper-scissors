@@ -34,6 +34,6 @@ class MobileCryptoUser extends Model
 
     public function isReady(): bool
     {
-        return $this->kyc_status === self::KYC_APPROVED && $this->allowlist && $this->hasAcceptedTerms();
+        return $this->hasAcceptedTerms();
     }
 }

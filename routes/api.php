@@ -189,10 +189,6 @@ Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function (
     Route::post('/offramp/orders/{order}/reject', [\App\Http\Controllers\OfframpController::class, 'reject']);
 
     // Admin Wave manual (XOF <-> USDT)
-    Route::get('/wave/users', [\App\Http\Controllers\WaveController::class, 'adminUsers']);
-    Route::post('/wave/users/{user}/approve', [\App\Http\Controllers\WaveController::class, 'approveUser']);
-    Route::post('/wave/users/{user}/reject', [\App\Http\Controllers\WaveController::class, 'rejectUser']);
-    Route::post('/wave/users/{user}/allow', [\App\Http\Controllers\WaveController::class, 'allowUser']);
     Route::get('/wave/orders', [\App\Http\Controllers\WaveController::class, 'adminOrders']);
     Route::post('/wave/orders/{order}/paid', [\App\Http\Controllers\WaveController::class, 'markPaid']);
     Route::post('/wave/orders/{order}/reject', [\App\Http\Controllers\WaveController::class, 'reject']);

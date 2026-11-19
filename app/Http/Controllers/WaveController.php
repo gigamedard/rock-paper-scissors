@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MobileCryptoUser;
 use App\Models\WaveOrder;
-use App\Services\MobileCryptoService;
 use App\Services\TelegramService;
 use App\Services\WaveService;
 use Illuminate\Http\Request;
@@ -13,7 +11,6 @@ class WaveController extends Controller
 {
     public function __construct(
         private WaveService $wave,
-        private MobileCryptoService $mobile,
         private TelegramService $telegram
     ) {
     }
@@ -24,37 +21,6 @@ class WaveController extends Controller
         $orders = $this->wave->ordersForAdmin($status ? (string) $status : null, 100)
             ->map(fn (WaveOrder $o) => $this->serialize($o));
         return response()->json(['orders' => $orders]);
-    }
-
-    public function adminUsers(Request $request)
-    {
-        $status = $request->query('status');
-        $q = MobileCryptoUser::query()->latest('id');
-        if ($status) $q->where('kyc_status', $status);
-        return response()->json(['users' => $q->limit(100)->get()]);
-    }
-
-    public function approveUser(Request $request, MobileCryptoUser $user)
-    {
-        $data = $request->validate(['note' => 'nullable|string|max:1000']);
-        $user = $this->mobile->approveKyc($user, $data['note'] ?? null, true);
-        $this->notifyUser($user, "✅ KYC MobileCrypto validé. Tu peux utiliser /wave.");
-        return response()->json(['user' => $user]);
-    }
-
-    public function rejectUser(Request $request, MobileCryptoUser $user)
-    {
-        $data = $request->validate(['note' => 'nullable|string|max:1000']);
-        $user = $this->mobile->rejectKyc($user, $data['note'] ?? null);
-        $this->notifyUser($user, "❌ KYC MobileCrypto refusé. Motif : " . ($data['note'] ?? 'Refusé'));
-        return response()->json(['user' => $user]);
-    }
-
-    public function allowUser(Request $request, MobileCryptoUser $user)
-    {
-        $data = $request->validate(['allowed' => 'required|boolean']);
-        $user = $this->mobile->setAllowlist($user, (bool) $data['allowed']);
-        return response()->json(['user' => $user]);
     }
 
     public function markPaid(Request $request, WaveOrder $order)
@@ -75,11 +41,6 @@ class WaveController extends Controller
         $order = $this->wave->reject($order, (int) $request->user()->id, $data['reason'] ?? 'Refusée');
         $this->notifyOrder($order, "❌ Commande Wave {$order->reference} refusée. Motif : " . ($data['reason'] ?? 'Refusée'));
         return response()->json(['order' => $this->serialize($order)]);
-    }
-
-    private function notifyUser(MobileCryptoUser $user, string $message): void
-    {
-        $this->telegram->sendMessage((string) $user->telegram_chat_id, $message);
     }
 
     private function notifyOrder(WaveOrder $order, string $message): void
