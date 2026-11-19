@@ -1625,3 +1625,11 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   (indépendant du user lié).
 - Admin web 322 / index 1 reste admin ; son KYC reste `unverified`.
 - Journal : `/root/.onramp-link-changes.log`.
+- **Sweep réel Polygon validé** sur `BP-20261119-S3BZZD` (user 3898) :
+  - topup gas `0x18bc498cc674daff85f64588e4bf4548a27d8198fead7f0e4e16a4b1ae182a09` (0.1 POL)
+  - sweep tx `0x36b40106bc595d375a8ee9d647b3e20c6f8896e9c490a9455a559a0971a3df3c`
+  - 2.5 USDT déposés → treasury ; dépôt USDT = 0 ; receipt status 1.
+- Premier essai échoué avec topup 0.02 POL : `insufficient funds for intrinsic
+  transaction cost` (gas estimé 80 192 × ~273 gwei ≈ 0.0324 POL requis).
+  Corrigé : Polygon gas min 0.05, topup 0.1, reserve 0.2. Trésorerie 7.868 POL,
+  reliquat 0.1015 POL sur l’adresse de dépôt.
