@@ -7,13 +7,15 @@ use Illuminate\Support\Facades\Log;
 
 class TelegramService
 {
-    private string $token;
-    private array $adminIds;
+    protected string $token;
+    protected array $adminIds;
+    protected string $webhookSecret;
 
-    public function __construct()
+    public function __construct(string $configKey = 'onramp.telegram')
     {
-        $this->token = trim((string) config('onramp.telegram.token', ''));
-        $this->adminIds = array_values(array_filter(array_map('strval', (array) config('onramp.telegram.admin_ids', []))));
+        $this->token = trim((string) config($configKey . '.token', ''));
+        $this->adminIds = array_values(array_filter(array_map('strval', (array) config($configKey . '.admin_ids', []))));
+        $this->webhookSecret = (string) config($configKey . '.webhook_secret', '');
     }
 
     public function enabled(): bool
@@ -96,7 +98,7 @@ class TelegramService
         try {
             $res = Http::timeout(15)->post("https://api.telegram.org/bot{$this->token}/setWebhook", [
                 'url' => $url,
-                'secret_token' => (string) config('onramp.telegram.webhook_secret', ''),
+                'secret_token' => $this->webhookSecret,
                 'allowed_updates' => ['message', 'callback_query'],
             ]);
             return $res->json() ?: ['ok' => false, 'status' => $res->status()];

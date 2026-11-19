@@ -1691,3 +1691,17 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - ⚠️ Aucune transaction Wave réelle testée. Bénin/MTN/Moov non activés :
   il manque les numéros/comptes correspondants.
 - Trésorerie USDT Polygon : **1.787 USDT** ; à financer pour les payouts A.
+
+## 70. Séparation WaveBot / BattlePoolBot (engine94, 2026-11-19)
+
+- Bot Wave indépendant **@MobileCryptoXBot** : `WaveTelegramBot`,
+  `WaveTelegramService`, webhook dédié `/api/telegram/wave/webhook`.
+- Commandes `/wave*` retirées de BattlePoolBot.
+- Variables dédiées : `WAVE_TELEGRAM_BOT_TOKEN`,
+  `WAVE_TELEGRAM_WEBHOOK_SECRET` (généré), `WAVE_TELEGRAM_BOT_USERNAME`,
+  `WAVE_TELEGRAM_ADMIN_IDS`.
+- ⚠️ Le token fourni pour MobileCrypto est invalide (401) et son préfixe
+  correspond au même bot ID que BattlePoolBot : token du mauvais bot ou
+  ancien token révoqué. Webhook Wave **non configuré**.
+- En attente : token valide de **@MobileCryptoXBot** (BotFather), à remplacer
+  dans `.env.staging`; puis restart + `setWebhook` + test `/start`.

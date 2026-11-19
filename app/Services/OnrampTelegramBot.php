@@ -22,7 +22,6 @@ class OnrampTelegramBot
     public function __construct(
         private OnrampService $onramp,
         private OfframpService $offramp,
-        private WaveService $wave,
         private TelegramService $telegram
     ) {
     }
@@ -101,31 +100,6 @@ class OnrampTelegramBot
 
         if ($command === '/sell' || $command === '/offramp') {
             $this->createOfframpOrder($chatId, $args[0] ?? '');
-            return;
-        }
-
-        if ($command === '/wave') {
-            $this->sendWaveHelp($chatId);
-            return;
-        }
-        if ($command === '/wavebuy') {
-            $this->createWaveBuy($chatId, $args[0] ?? '');
-            return;
-        }
-        if ($command === '/wavesell') {
-            $this->createWaveSell($chatId, $args);
-            return;
-        }
-        if ($command === '/wavepaid') {
-            $this->submitWaveFiatProof($chatId, $args);
-            return;
-        }
-        if ($command === '/wavetx') {
-            $this->submitWaveUsdtTx($chatId, $args);
-            return;
-        }
-        if ($command === '/waveorders') {
-            $this->sendWaveOrders($chatId);
             return;
         }
 
@@ -277,7 +251,6 @@ class OnrampTelegramBot
             "/accept — accepter les conditions\n" .
             "/buy — acheter des AVAXe de test avec USDT\n" .
             "/sell MONTANT — vendre des AVAXe contre USDT (ex: /sell 0.1)\n" .
-            "/wave — Wave Côte d’Ivoire (XOF ↔ USDT, manuel)\n" .
             "/tx HASH — soumettre le hash du dépôt USDT\n" .
             "/status — état de tes commandes\n" .
             "/whoami — ton chat ID Telegram\n" .
@@ -378,110 +351,6 @@ class OnrampTelegramBot
         } catch (ValidationException $e) {
             $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e));
         }
-    }
-
-    private function sendWaveHelp(string $chatId): void
-    {
-        $this->telegram->sendMessage($chatId,
-            "<b>Wave Côte d’Ivoire → USDT / USDT → Wave</b>\n\n" .
-            "MVP manuel, validation admin.\n\n" .
-            "<b>Acheter des USDT avec Wave</b>\n" .
-            "<code>/wavebuy 300</code> — paie 300 XOF, reçois des USDT Polygon.\n" .
-            "Puis <code>/wavepaid REF ID_TRANSACTION</code>.\n\n" .
-            "<b>Vendre des USDT contre Wave</b>\n" .
-            "<code>/wavesell 1 0758431653</code> — envoie 1 USDT Polygon, reçois des XOF.\n" .
-            "Puis <code>/wavetx REF HASH_USDT</code>.\n\n" .
-            "<code>/waveorders</code> — tes commandes Wave.\n" .
-            "Taux : 1 USDT = 600 XOF · frais 0.5 % · min 0.5 USDT/300 XOF · max 100 USDT/60 000 XOF.\n" .
-            "KYC et allowlist obligatoires."
-        );
-    }
-
-    private function createWaveBuy(string $chatId, string $rawFiat): void
-    {
-        $link = $this->requireLink($chatId);
-        if (! $link) return;
-        if (! $link->hasAcceptedTerms()) { $this->telegram->sendMessage($chatId, 'Accepte d’abord les conditions avec <code>/accept</code>.'); return; }
-        $fiat = (float) str_replace([' ', ','], ['', '.'], trim($rawFiat));
-        if ($fiat <= 0) { $this->telegram->sendMessage($chatId, "Usage : <code>/wavebuy 300</code> (montant en XOF)."); return; }
-        try {
-            $order = $this->wave->createBuy($link->user, $fiat, 'wave_ci', 'telegram', $chatId);
-            $phone = (string) config('wave.operators.wave_ci.phone', '');
-            $keyboard = ['inline_keyboard' => [[['text' => '📋 Copier le numéro Wave', 'copy_text' => ['text' => $phone]]]]];
-            $text = "🌊 <b>Achat USDT via Wave</b>\n" .
-                "Commande <b>{$this->esc($order->reference)}</b>\n\n" .
-                "Envoie <b>{$this->fmt((float) $order->fiat_amount)} XOF</b> au :\n<pre>" . $this->esc($phone) . "</pre>\n" .
-                "(Wave Côte d’Ivoire)\n\n" .
-                "Tu recevras <b>{$this->fmt((float) $order->usdt_amount)} USDT</b> sur Polygon.\n" .
-                "Après paiement : <code>/wavepaid {$this->esc($order->reference)} ID_TRANSACTION</code>\n\n" .
-                "⚠️ Indique la référence <b>{$this->esc($order->reference)}</b> si possible. Validation manuelle.";
-            if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) $this->telegram->sendMessage($chatId, $text);
-            $this->telegram->sendAdmin("🌊 Nouvelle commande Wave ACHAT\n{$order->reference}\nUser #{$order->user_id}\n{$order->fiat_amount} XOF → {$order->usdt_amount} USDT");
-        } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
-    }
-
-    private function createWaveSell(string $chatId, array $args): void
-    {
-        $link = $this->requireLink($chatId);
-        if (! $link) return;
-        if (! $link->hasAcceptedTerms()) { $this->telegram->sendMessage($chatId, 'Accepte d’abord les conditions avec <code>/accept</code>.'); return; }
-        $usdt = (float) str_replace(',', '.', trim((string) ($args[0] ?? '')));
-        $phone = trim((string) ($args[1] ?? ''));
-        if ($usdt <= 0 || $phone === '') { $this->telegram->sendMessage($chatId, "Usage : <code>/wavesell 1 0758431653</code> (USDT + numéro Wave)."); return; }
-        try {
-            $order = $this->wave->createSell($link->user, $usdt, $phone, 'wave_ci', 'telegram', $chatId);
-            $addr = (string) $order->deposit_address;
-            $keyboard = ['inline_keyboard' => [[['text' => '📋 Copier l’adresse USDT', 'copy_text' => ['text' => $addr]]]]];
-            $text = "🌊 <b>Vente USDT → Wave</b>\n" .
-                "Commande <b>{$this->esc($order->reference)}</b>\n\n" .
-                "Envoie <b>{$this->fmt((float) $order->usdt_amount)} USDT</b> sur <b>Polygon</b> à :\n<pre>" . $this->esc($addr) . "</pre>\n\n" .
-                "Tu recevras <b>{$this->fmt((float) $order->fiat_amount)} XOF</b> sur <code>{$this->esc($phone)}</code>.\n" .
-                "Après envoi : <code>/wavetx {$this->esc($order->reference)} HASH_USDT</code>\n\n" .
-                "⚠️ Envoie uniquement sur Polygon. Validation manuelle du dépôt puis paiement Wave.";
-            if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) $this->telegram->sendMessage($chatId, $text);
-            $this->telegram->sendAdmin("🌊 Nouvelle commande Wave VENTE\n{$order->reference}\nUser #{$order->user_id}\n{$order->usdt_amount} USDT → {$order->fiat_amount} XOF\nTel: {$phone}");
-        } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
-    }
-
-    private function submitWaveFiatProof(string $chatId, array $args): void
-    {
-        $link = $this->requireLink($chatId);
-        if (! $link) return;
-        $order = $this->wave->latestOrderForChat($chatId, \App\Models\WaveOrder::DIRECTION_BUY_USDT);
-        if (! $order) { $this->telegram->sendMessage($chatId, 'Aucune commande Wave ACHAT en attente. Utilise <code>/wavebuy 300</code>.'); return; }
-        $ref = trim(implode(' ', $args));
-        try {
-            $order = $this->wave->submitFiatProof($order, $ref ?: null);
-            $this->telegram->sendMessage($chatId, "✅ Preuve de paiement enregistrée pour <b>{$order->reference}</b>. Un admin vérifie le paiement Wave.");
-            $this->telegram->sendAdmin("🔎 Wave ACHAT à vérifier\n{$order->reference}\nUser #{$order->user_id}\n{$order->fiat_amount} XOF\nPreuve: " . ($ref ?: 'non fournie'));
-        } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
-    }
-
-    private function submitWaveUsdtTx(string $chatId, array $args): void
-    {
-        $link = $this->requireLink($chatId);
-        if (! $link) return;
-        $hash = trim((string) ($args[1] ?? $args[0] ?? ''));
-        $order = $this->wave->latestOrderForChat($chatId, \App\Models\WaveOrder::DIRECTION_SELL_USDT);
-        if (! $order) { $this->telegram->sendMessage($chatId, 'Aucune commande Wave VENTE en attente. Utilise <code>/wavesell 1 0758431653</code>.'); return; }
-        try {
-            $order = $this->wave->submitUsdtTx($order, $hash);
-            $this->telegram->sendMessage($chatId, "✅ Dépôt USDT soumis pour <b>{$order->reference}</b>. Un admin vérifie puis paie Wave.");
-            $this->telegram->sendAdmin("🔎 Wave VENTE à vérifier\n{$order->reference}\nUser #{$order->user_id}\n{$order->usdt_amount} USDT\nTx: {$order->usdt_deposit_tx_hash}");
-        } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
-    }
-
-    private function sendWaveOrders(string $chatId): void
-    {
-        $link = $this->requireLink($chatId);
-        if (! $link) return;
-        $orders = $this->wave->ordersForUser($link->user, 10);
-        if ($orders->isEmpty()) { $this->telegram->sendMessage($chatId, 'Aucune commande Wave.'); return; }
-        $lines = ["<b>Tes commandes Wave</b>"];
-        foreach ($orders as $o) {
-            $lines[] = "• <code>{$o->reference}</code> — " . ($o->direction === 'buy_usdt' ? "{$o->fiat_amount} XOF → {$o->usdt_amount} USDT" : "{$o->usdt_amount} USDT → {$o->fiat_amount} XOF") . " — <b>{$o->status}</b>";
-        }
-        $this->telegram->sendMessage($chatId, implode("\n", $lines));
     }
 
     private function createOfframpOrder(string $chatId, string $rawAmount): void

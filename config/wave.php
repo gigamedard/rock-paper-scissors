@@ -12,6 +12,13 @@ return [
     'require_kyc' => (bool) env('WAVE_REQUIRE_KYC', true),
     'payout_network' => (string) env('WAVE_PAYOUT_NETWORK', 'polygon'),
     'usdt_deposit_address' => (string) env('WAVE_USDT_DEPOSIT_ADDRESS', '0xE4b74c895eA6B5c599AE578859Cce74E9317a40B'),
+    'telegram' => [
+        'token' => (string) env('WAVE_TELEGRAM_BOT_TOKEN', ''),
+        'webhook_secret' => (string) env('WAVE_TELEGRAM_WEBHOOK_SECRET', ''),
+        'bot_username' => (string) env('WAVE_TELEGRAM_BOT_USERNAME', 'MobileCryptoXBot'),
+        'admin_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('WAVE_TELEGRAM_ADMIN_IDS', env('TELEGRAM_ADMIN_IDS', '')))))),
+    ],
+
     'operators' => [
         'wave_ci' => [
             'label' => 'Wave Côte d’Ivoire',

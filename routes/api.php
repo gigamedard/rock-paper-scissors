@@ -33,6 +33,9 @@ Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);        
 // Telegram on-ramp webhook (secret header vérifié dans le contrôleur)
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
+// Telegram MobileCrypto Wave bot webhook (secret dédié)
+Route::post('/telegram/wave/webhook', [\App\Http\Controllers\WaveTelegramWebhookController::class, 'handle']);
+
 // Clé PUBLIQUE Reverb pour le client (WebSocket). Le secret reste serveur.
 // Nécessaire car la clé était scrubée du repo → Echo ne s'authentifiait pas.
 Route::get('/broadcasting-key', function () {
