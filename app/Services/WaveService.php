@@ -45,16 +45,19 @@ class WaveService
 
         $quote = $this->quoteBuy($fiat);
         if ($quote['usdt_gross'] < (float) config('wave.min_usdt', 0.5)) throw ValidationException::withMessages(['amount' => 'Montant USDT trop faible.']);
+        $paymentBase = trim((string) config('wave.operators.wave_ci.payment_link_base', ''));
+        if ($paymentBase === '') throw ValidationException::withMessages(['wave' => 'Lien de paiement Wave marchand non configuré.']);
+        $paymentUrl = $paymentBase . (str_contains($paymentBase, '?') ? '&' : '?') . 'amount=' . rawurlencode((string) (int) round($fiat));
         $this->checkDaily($user, $quote['usdt']);
 
-        return DB::transaction(function () use ($user, $fiat, $quote, $op, $operator, $channel, $chatId) {
+        return DB::transaction(function () use ($user, $fiat, $quote, $op, $operator, $channel, $chatId, $paymentUrl) {
             $order = WaveOrder::create([
                 'reference' => $this->reference(), 'mobile_user_id' => $user->id, 'channel' => $channel, 'chat_id' => $chatId,
                 'direction' => WaveOrder::DIRECTION_BUY_USDT, 'operator' => $operator,
                 'country' => $op['country'], 'currency' => $op['currency'],
                 'fiat_amount' => $fiat, 'usdt_amount' => $quote['usdt'], 'usdt_gross' => $quote['usdt_gross'],
                 'rate' => $quote['rate'], 'fee_percent' => $quote['fee_percent'],
-                'status' => WaveOrder::STATUS_PENDING_PAYMENT, 'payment_phone' => $op['phone'],
+                'status' => WaveOrder::STATUS_PENDING_PAYMENT, 'payment_url' => $paymentUrl,
                 'payout_network' => (string) config('wave.payout_network', 'polygon'),
                 'expires_at' => now()->addHours(2),
             ]);
@@ -67,7 +70,7 @@ class WaveService
     {
         $this->guardUser($user);
         $this->operator($operator);
-        if (! preg_match(self::PHONE_REGEX, $phone)) throw ValidationException::withMessages(['phone' => 'Numéro mobile money invalide (10 chiffres, ex: 0758431653).']);
+        if (! preg_match(self::PHONE_REGEX, $phone)) throw ValidationException::withMessages(['phone' => 'Numéro mobile money invalide (10 chiffres, ex: 07XXXXXXXX).']);
         $min = (float) config('wave.min_usdt', 0.5);
         $max = (float) config('wave.max_usdt', 100);
         if ($usdt < $min - 1e-9) throw ValidationException::withMessages(['amount' => "Minimum {$min} USDT."]);

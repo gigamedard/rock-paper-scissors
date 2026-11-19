@@ -19,7 +19,7 @@ class WaveOrder extends Model
     protected $fillable = [
         'reference', 'mobile_user_id', 'channel', 'chat_id', 'direction', 'operator', 'country', 'currency',
         'fiat_amount', 'usdt_amount', 'usdt_gross', 'rate', 'fee_percent', 'status',
-        'payment_phone', 'payout_phone', 'payout_network', 'deposit_address',
+        'payment_phone', 'payout_phone', 'payout_network', 'deposit_address', 'payment_url',
         'payment_ref', 'usdt_deposit_tx_hash', 'usdt_payout_tx_hash', 'fiat_tx_ref',
         'admin_id', 'admin_note', 'verified_at', 'paid_at', 'rejected_at', 'expires_at',
     ];

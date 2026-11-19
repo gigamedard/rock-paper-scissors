@@ -99,6 +99,7 @@ class WaveController extends Controller
             'rate' => (float) $o->rate, 'fee_percent' => (float) $o->fee_percent, 'status' => $o->status,
             'payment_phone' => $o->payment_phone, 'payout_phone' => $o->payout_phone,
             'payout_network' => $o->payout_network, 'deposit_address' => $o->deposit_address,
+            'payment_url' => $o->payment_url,
             'payment_ref' => $o->payment_ref, 'usdt_deposit_tx_hash' => $o->usdt_deposit_tx_hash,
             'usdt_payout_tx_hash' => $o->usdt_payout_tx_hash, 'fiat_tx_ref' => $o->fiat_tx_ref,
             'admin_note' => $o->admin_note, 'created_at' => $o->created_at?->toIso8601String(),

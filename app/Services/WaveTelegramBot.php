@@ -86,7 +86,7 @@ class WaveTelegramBot
         $this->telegram->sendMessage($chatId,
             "<b>Bienvenue sur MobileCrypto</b>\n\n" .
             "Service indépendant Wave Côte d’Ivoire ↔ USDT.\n\n" .
-            "1. Enregistre-toi :\n<code>/register NOM COMPLET | 0758431653 | CI</code>\n\n" .
+            "1. Enregistre-toi :\n<code>/register NOM COMPLET | 07XXXXXXXX | CI</code>\n\n" .
             "2. Ajoute ton adresse USDT Polygon (pour les achats) :\n<code>/setwallet 0x...</code>\n\n" .
             "3. Accepte les conditions : <code>/accept</code>\n" .
             "4. Attends la validation KYC admin, puis <code>/wave</code>."
@@ -98,7 +98,7 @@ class WaveTelegramBot
         $raw = implode(' ', $args);
         $parts = array_map('trim', preg_split('/\s*\|\s*/', $raw) ?: []);
         if (count($parts) < 2) {
-            $this->telegram->sendMessage($chatId, 'Usage : <code>/register NOM COMPLET | 0758431653 | CI</code>');
+            $this->telegram->sendMessage($chatId, 'Usage : <code>/register NOM COMPLET | 07XXXXXXXX | CI</code>');
             return;
         }
         try {
@@ -155,7 +155,7 @@ class WaveTelegramBot
             "/profile — état du compte\n" .
             "/wave — aide Wave\n" .
             "/wavebuy 300 — acheter USDT avec XOF\n" .
-            "/wavesell 1 0758431653 — vendre USDT contre XOF\n" .
+            "/wavesell 1 07XXXXXXXX — vendre USDT contre XOF\n" .
             "/wavepaid REF ID — preuve paiement Wave\n" .
             "/wavetx REF HASH — preuve dépôt USDT\n" .
             "/waveorders — historique\n" .
@@ -169,8 +169,8 @@ class WaveTelegramBot
         if (! $user->isReady()) { $this->sendProfile($chatId, $user); $this->telegram->sendMessage($chatId, '⏳ Termine le KYC/allowlist/conditions avant /wavebuy ou /wavesell.'); return; }
         $this->telegram->sendMessage($chatId,
             "<b>Wave Côte d’Ivoire — manuel</b>\n\n" .
-            "<b>Acheter des USDT avec Wave</b>\n<code>/wavebuy 300</code>\nPaiement XOF au 0758431653, puis <code>/wavepaid REF ID_TRANSACTION</code>.\n\n" .
-            "<b>Vendre des USDT contre Wave</b>\n<code>/wavesell 1 0758431653</code>\nDépôt USDT Polygon, puis <code>/wavetx REF HASH_USDT</code>.\n\n" .
+            "<b>Acheter des USDT avec Wave</b>\n<code>/wavebuy 300</code>\nLien de paiement Wave marchand, puis <code>/wavepaid REF ID_TRANSACTION</code>.\n\n" .
+            "<b>Vendre des USDT contre Wave</b>\n<code>/wavesell 1 07XXXXXXXX</code>\nDépôt USDT Polygon, puis <code>/wavetx REF HASH_USDT</code>.\n\n" .
             "Taux : 1 USDT = 600 XOF · frais 0,5 % · min 0,5 USDT/300 XOF · max 100 USDT/60 000 XOF."
         );
     }
@@ -183,13 +183,17 @@ class WaveTelegramBot
         if ($fiat <= 0) { $this->telegram->sendMessage($chatId, 'Usage : <code>/wavebuy 300</code>.'); return; }
         try {
             $o = $this->wave->createBuy($user, $fiat, 'wave_ci', 'telegram', $chatId);
-            $phone = (string) config('wave.operators.wave_ci.phone', '');
-            $keyboard = ['inline_keyboard' => [[['text' => '📋 Copier le numéro Wave', 'copy_text' => ['text' => $phone]]]]];
+            $link = (string) $o->payment_url;
+            $keyboard = ['inline_keyboard' => [
+                [['text' => '💳 Payer avec Wave', 'url' => $link]],
+                [['text' => '📋 Copier le lien de paiement', 'copy_text' => ['text' => $link]]],
+            ]];
             $text = "🌊 <b>Achat USDT via Wave</b>\nCommande <b>{$this->esc($o->reference)}</b>\n\n" .
-                "Envoie <b>{$this->fmt((float) $o->fiat_amount)} XOF</b> au :\n<pre>" . $this->esc($phone) . "</pre>\n(Wave Côte d’Ivoire)\n\n" .
+                "Montant exact : <b>{$this->fmt((float) $o->fiat_amount)} XOF</b>\n" .
+                "Clique sur <b>Payer avec Wave</b> ou utilise le lien.\n\n" .
                 "Tu recevras <b>{$this->fmt((float) $o->usdt_amount)} USDT</b> sur <code>{$this->esc($user->payout_address)}</code>.\n" .
                 "Après paiement : <code>/wavepaid {$this->esc($o->reference)} ID_TRANSACTION</code>\n\n⚠️ Validation manuelle.";
-            if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) $this->telegram->sendMessage($chatId, $text);
+            if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) $this->telegram->sendMessage($chatId, $text . "\n\n" . $link);
             $this->telegram->sendAdmin("🌊 Wave ACHAT\n{$o->reference}\nMobileCrypto #{$user->id} · {$user->full_name}\n{$o->fiat_amount} XOF → {$o->usdt_amount} USDT");
         } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
     }
@@ -199,7 +203,7 @@ class WaveTelegramBot
         if (! $user->isReady()) { $this->sendProfile($chatId, $user); $this->telegram->sendMessage($chatId, '⏳ Compte non prêt (KYC/allowlist/conditions).'); return; }
         $usdt = (float) str_replace(',', '.', trim((string) ($args[0] ?? '')));
         $phone = trim((string) ($args[1] ?? ($user->phone ?: '')));
-        if ($usdt <= 0 || $phone === '') { $this->telegram->sendMessage($chatId, 'Usage : <code>/wavesell 1 0758431653</code>.'); return; }
+        if ($usdt <= 0 || $phone === '') { $this->telegram->sendMessage($chatId, 'Usage : <code>/wavesell 1 07XXXXXXXX</code>.'); return; }
         try {
             $o = $this->wave->createSell($user, $usdt, $phone, 'wave_ci', 'telegram', $chatId);
             $addr = (string) $o->deposit_address;

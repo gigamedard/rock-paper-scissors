@@ -1675,9 +1675,9 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 
 - MVP **manuel** sans API Wave ; vérification admin.
 - Achat USDT via Wave (A) : `/wavebuy 300` → paiement XOF au
-  **0758431653** (Wave CI), preuve `/wavepaid REF ID`, puis USDT Polygon
+  **07XXXXXXXX** (Wave CI), preuve `/wavepaid REF ID`, puis USDT Polygon
   envoyés manuellement par l’admin.
-- Vente USDT contre Wave (B) : `/wavesell 1 0758431653` → dépôt USDT Polygon
+- Vente USDT contre Wave (B) : `/wavesell 1 07XXXXXXXX` → dépôt USDT Polygon
   sur `0xE4b...`, tx `/wavetx REF HASH`, puis paiement XOF manuel par l’admin.
 - Paramètres : **1 USDT = 600 XOF**, frais **0.5 % par sens**, min **0.5 USDT /
   300 XOF**, max **100 USDT / 60 000 XOF**, plafond **500 USDT/jour**.
@@ -1725,7 +1725,7 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Suppression de `/link` BattlePool pour WaveBot. Comptes indépendants
   `mobile_crypto_users` : chat Telegram, nom, téléphone, pays, KYC, allowlist,
   wallet Polygon, conditions.
-- Onboarding : `/register NOM | 0758431653 | CI`, `/setwallet 0x...`,
+- Onboarding : `/register NOM | 07XXXXXXXX | CI`, `/setwallet 0x...`,
   `/accept`; validation KYC admin via `/admin/wave.html` (section comptes).
 - `wave_orders` / `wave_events` recréés avec `mobile_user_id` (plus de FK
   `users`). Anciennes tables vides supprimées.
@@ -1737,3 +1737,19 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - KYC MobileCrypto manuel (pas de documents automatisés).
 - Tests : headless 24/24, navigateur 23/23.
 - KYC admin et comptes MobileCrypto visibles sur `/admin/wave.html`.
+
+## 73. Wave marchand : lien de paiement, numéro personnel retiré
+
+- Les paiements A (Wave → USDT) n’affichent plus de numéro personnel.
+- Le bot génère un lien marchand Wave avec le montant exact :
+  `https://pay.wave.com/m/M_ci_Orgg9myp4tUY/c/ci/?amount=<XOF>`
+- `wave_orders.payment_url` ajouté ; bouton Telegram « Payer avec Wave » +
+  « Copier le lien » ; admin page affiche le lien.
+- Exemple testé : 300 XOF → lien `...?amount=300`, payout 0.4975 USDT.
+- Le numéro personnel `07XXXXXXXX` a été retiré du code/config/docs courants.
+- B (USDT → Wave) reste manuel : payout depuis le compte marchand, sans
+  numéro plateforme exposé.
+- Aucune API/webhook Wave : confirmation toujours manuelle par l’admin.
+- ⚠️ Incident Orange Money signalé par l’utilisateur : surveillance, PIN,
+  sessions et contact opérateur recommandés.
+- Tests headless 24/24, navigateur 23/23.

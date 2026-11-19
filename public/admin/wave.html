@@ -15,7 +15,8 @@ function render(o){const buy=o.direction==='buy_usdt';const can=o.status==='pend
 <div class="k">Montant</div><div class="v">${buy?`<b>${esc(o.fiat_amount)} XOF</b> → <b>${esc(o.usdt_amount)} USDT</b>`:`<b>${esc(o.usdt_amount)} USDT</b> → <b>${esc(o.fiat_amount)} XOF</b>`} · taux ${esc(o.rate)} · frais ${esc(o.fee_percent)}%</div>
 <div class="k">Wallet USDT</div><div class="v"><code>${esc(o.wallet||'')}</code></div>
 <div class="k">Téléphone</div><div class="v">${esc(buy?(o.payment_phone||''):(o.payout_phone||''))}</div>
-<div class="k">Paiement Wave</div><div class="v">${esc(o.payment_ref||'—')}</div>
+<div class="k">Lien Wave</div><div class="v">${o.payment_url?`<a href="${esc(o.payment_url)}" target="_blank" rel="noopener">Ouvrir le lien</a>`:'—'}</div>
+<div class="k">Preuve Wave</div><div class="v">${esc(o.payment_ref||'—')}</div>
 <div class="k">Dépôt USDT</div><div class="v">${o.usdt_deposit_tx_hash?`<code>${esc(o.usdt_deposit_tx_hash)}</code>`:'—'}</div>
 <div class="k">Payout USDT</div><div class="v">${o.usdt_payout_tx_hash?`<code>${esc(o.usdt_payout_tx_hash)}</code>`:'—'}</div>
 <div class="k">Réf. paiement XOF</div><div class="v">${esc(o.fiat_tx_ref||'—')}</div>
