@@ -1633,3 +1633,12 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   transaction cost` (gas estimé 80 192 × ~273 gwei ≈ 0.0324 POL requis).
   Corrigé : Polygon gas min 0.05, topup 0.1, reserve 0.2. Trésorerie 7.868 POL,
   reliquat 0.1015 POL sur l’adresse de dépôt.
+
+## 67. Message /buy plus court + bouton copier l’adresse (engine90)
+
+- Message de commande Telegram raccourci : référence, montant, réseau, adresse.
+- Adresse affichée seule dans un bloc `<pre>` (copie par tap).
+- Bouton inline **📋 Copier l’adresse** avec `copy_text` (Bot API 7.11).
+- Fallback : si le client/API refuse `copy_text`, le message texte avec `<pre>`
+  est renvoyé sans bouton.
+- Test : headless 24/24, navigateur 23/23.

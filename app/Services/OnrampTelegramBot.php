@@ -326,18 +326,21 @@ class OnrampTelegramBot
             $usdt = (string) ($order->usdt_amount);
             $avaxe = (string) ($order->avaxe_amount);
 
-            $this->telegram->sendMessage(
-                $chatId,
-                "🧾 <b>Commande {$this->esc($order->reference)}</b>\n\n" .
-                "Réseau : <b>{$this->esc($label)}</b>\n" .
-                "Montant à envoyer : <b>{$usdt} USDT</b>\n" .
-                "Adresse de dépôt :\n<code>{$this->esc($order->deposit_address)}</code>\n\n" .
-                "Envoie <b>exactement {$usdt} USDT</b> sur cette adresse.\n" .
-                "Le dépôt est détecté automatiquement dès qu’il est confirmé.\n\n" .
-                "Tu recevras <b>{$this->fmt((float) $avaxe)} AVAXe de test</b> après confirmation.\n\n" .
-                "Si besoin, tu peux aussi envoyer le hash avec <code>/tx TON_HASH</code>.\n\n" .
-                "⚠️ Ne pas envoyer sur un autre réseau. Les frais de réseau restent à ta charge."
-            );
+            $keyboard = ['inline_keyboard' => [[
+                ['text' => '📋 Copier l’adresse', 'copy_text' => ['text' => $order->deposit_address]],
+            ]]];
+
+            $text = "🧾 <b>{$this->esc($order->reference)}</b>\n" .
+                "<b>{$usdt} USDT</b> · {$this->esc($label)}\n\n" .
+                "Adresse de dépôt :\n<pre>{$this->esc($order->deposit_address)}</pre>\n" .
+                "Envoie <b>exactement {$usdt} USDT</b> sur ce réseau.\n" .
+                "Détection automatique après confirmations.\n\n" .
+                "⚠️ Ne pas envoyer sur un autre réseau.";
+
+            if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) {
+                // Fallback for clients / Bot API versions without copy_text.
+                $this->telegram->sendMessage($chatId, $text);
+            }
         } catch (ValidationException $e) {
             $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e));
         }
