@@ -33,6 +33,9 @@ Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);        
 // Telegram on-ramp webhook (secret header vérifié dans le contrôleur)
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
+// Wave Business portal transaction webhook (HMAC)
+Route::post('/wave/portal-webhook', [\App\Http\Controllers\WavePortalWebhookController::class, 'handle']);
+
 // Telegram MobileCrypto Wave bot webhook (secret dédié)
 Route::post('/telegram/wave/webhook', [\App\Http\Controllers\WaveTelegramWebhookController::class, 'handle']);
 
@@ -189,6 +192,7 @@ Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function (
     Route::post('/offramp/orders/{order}/reject', [\App\Http\Controllers\OfframpController::class, 'reject']);
 
     // Admin Wave manual (XOF <-> USDT)
+    Route::get('/wave/portal-events', [\App\Http\Controllers\WaveController::class, 'portalEvents']);
     Route::get('/wave/orders', [\App\Http\Controllers\WaveController::class, 'adminOrders']);
     Route::post('/wave/orders/{order}/paid', [\App\Http\Controllers\WaveController::class, 'markPaid']);
     Route::post('/wave/orders/{order}/reject', [\App\Http\Controllers\WaveController::class, 'reject']);

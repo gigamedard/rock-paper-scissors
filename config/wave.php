@@ -13,6 +13,7 @@ return [
     'max_xof' => (float) env('WAVE_MAX_XOF', 6000),
     'require_kyc' => (bool) env('WAVE_REQUIRE_KYC', false),
     'payout_network' => (string) env('WAVE_PAYOUT_NETWORK', 'polygon'),
+    'portal_webhook_secret' => (string) env('WAVE_PORTAL_WEBHOOK_SECRET', ''),
     'usdt_deposit_address' => (string) env('WAVE_USDT_DEPOSIT_ADDRESS', '0xE4b74c895eA6B5c599AE578859Cce74E9317a40B'),
     'telegram' => [
         'token' => (string) env('TELEGRAM_MOBILECRYPTO_BOT_TOKEN', env('WAVE_TELEGRAM_BOT_TOKEN', '')),

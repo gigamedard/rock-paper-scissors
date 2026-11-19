@@ -1781,3 +1781,21 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Tests : headless 24/24, navigateur 23/23 ; webhook Wave OK.
 - Automatisation complète non faite : il faut l’API/webhook Wave Business
   (confirmation paiement + payout) ; le lien marchand seul ne notifie pas le serveur.
+
+## 76. Webhook portail Wave production (engine103)
+
+- Endpoint public : `POST /api/wave/portal-webhook`.
+- Vérifications : HMAC SHA-256, timestamp ±300 s, nonce anti-replay,
+  `transaction_id` unique, payload minimal sans PII.
+- Table `wave_portal_events`, admin `/api/admin/wave/portal-events` + section
+  sur `/admin/wave.html` (matched/ambiguous/unmatched/outgoing).
+- Matching entrée `in` : commande `buy_usdt` pending_payment, même montant,
+  < 30 min. Si unique → `pending_review` + payment_ref ; sinon `ambiguous` /
+  `unmatched` et notification admin. Aucun payout USDT automatique.
+- Sortie `out` : seulement journalisée ; payout XOF reste manuel.
+- Test HMAC production avec montant unique 321 : matched_pending_review,
+  commande passée en pending_review, données de test nettoyées.
+- Anciennes commandes test 300 en attente expirées pour éviter l’ambiguïté.
+- Secret : `WAVE_PORTAL_WEBHOOK_SECRET` (Tailscale config editor 4099).
+- Extension : passer endpoint production + secret ; auto-refresh 15 s.
+- Tests : headless 24/24, navigateur 23/23.

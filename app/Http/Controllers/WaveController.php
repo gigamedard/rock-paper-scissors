@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WaveOrder;
+use App\Models\WavePortalEvent;
 use App\Services\TelegramService;
 use App\Services\WaveService;
 use Illuminate\Http\Request;
@@ -21,6 +22,23 @@ class WaveController extends Controller
         $orders = $this->wave->ordersForAdmin($status ? (string) $status : null, 100)
             ->map(fn (WaveOrder $o) => $this->serialize($o));
         return response()->json(['orders' => $orders]);
+    }
+
+    public function portalEvents(Request $request)
+    {
+        return response()->json([
+            'events' => WavePortalEvent::latest('id')->limit(100)->get()->map(fn (WavePortalEvent $e) => [
+                'id' => $e->id,
+                'transaction_id' => $e->transaction_id,
+                'direction' => $e->direction,
+                'amount' => (float) $e->amount,
+                'currency' => $e->currency,
+                'status' => $e->status,
+                'matched_order_id' => $e->matched_order_id,
+                'occurred_at' => $e->occurred_at?->toIso8601String(),
+                'received_at' => $e->received_at?->toIso8601String(),
+            ])
+        ]);
     }
 
     public function markPaid(Request $request, WaveOrder $order)
