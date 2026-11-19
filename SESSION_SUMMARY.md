@@ -1705,3 +1705,17 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   ancien token révoqué. Webhook Wave **non configuré**.
 - En attente : token valide de **@MobileCryptoXBot** (BotFather), à remplacer
   dans `.env.staging`; puis restart + `setWebhook` + test `/start`.
+
+## 71. WaveBot MobileCrypto actif (engine95, 2026-11-19)
+
+- Token corrigé : bot réel **@MobileCrypoXBot** (orthographe BotFather, id 9199860506).
+- Secret webhook dédié généré.
+- Webhook configuré :
+  `https://battlepool.31.187.72.98.sslip.io/api/telegram/wave/webhook`
+  → `getWebhookInfo` OK, 0 pending, aucune erreur.
+- Route sans secret : 403.
+- BattlePoolBot intact : webhook principal inchangé, token principal non écrasé.
+- Variables canoniques : `TELEGRAM_MOBILECRYPTO_BOT_TOKEN`,
+  `_WEBHOOK_SECRET`, `_BOT_USERNAME`, `_ADMIN_IDS`.
+- L’admin doit ouvrir **@MobileCrypoXBot**, faire `/start` pour recevoir les
+  notifications, puis `/link CODE`, `/accept`, `/wave`.

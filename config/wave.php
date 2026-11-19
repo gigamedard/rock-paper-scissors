@@ -1,5 +1,7 @@
 <?php
 
+$waveAdminIds = (string) env('TELEGRAM_MOBILECRYPTO_ADMIN_IDS', env('WAVE_TELEGRAM_ADMIN_IDS', env('TELEGRAM_ADMIN_IDS', '')));
+
 return [
     'enabled' => (bool) env('WAVE_ENABLED', true),
     'rate_xof_per_usdt' => (float) env('WAVE_RATE_XOF_PER_USDT', 600),
@@ -13,10 +15,10 @@ return [
     'payout_network' => (string) env('WAVE_PAYOUT_NETWORK', 'polygon'),
     'usdt_deposit_address' => (string) env('WAVE_USDT_DEPOSIT_ADDRESS', '0xE4b74c895eA6B5c599AE578859Cce74E9317a40B'),
     'telegram' => [
-        'token' => (string) env('WAVE_TELEGRAM_BOT_TOKEN', ''),
-        'webhook_secret' => (string) env('WAVE_TELEGRAM_WEBHOOK_SECRET', ''),
-        'bot_username' => (string) env('WAVE_TELEGRAM_BOT_USERNAME', 'MobileCryptoXBot'),
-        'admin_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('WAVE_TELEGRAM_ADMIN_IDS', env('TELEGRAM_ADMIN_IDS', '')))))),
+        'token' => (string) env('TELEGRAM_MOBILECRYPTO_BOT_TOKEN', env('WAVE_TELEGRAM_BOT_TOKEN', '')),
+        'webhook_secret' => (string) env('TELEGRAM_MOBILECRYPTO_WEBHOOK_SECRET', env('WAVE_TELEGRAM_WEBHOOK_SECRET', '')),
+        'bot_username' => (string) env('TELEGRAM_MOBILECRYPTO_BOT_USERNAME', env('WAVE_TELEGRAM_BOT_USERNAME', 'MobileCrypoXBot')),
+        'admin_ids' => array_values(array_filter(array_map('trim', explode(',', $waveAdminIds)))),
     ],
 
     'operators' => [
