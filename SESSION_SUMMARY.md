@@ -1799,3 +1799,21 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Secret : `WAVE_PORTAL_WEBHOOK_SECRET` (Tailscale config editor 4099).
 - Extension : passer endpoint production + secret ; auto-refresh 15 s.
 - Tests : headless 24/24, navigateur 23/23.
+
+## 77. Payout USDT automatique Wave (engine104/105)
+
+- Webhook entrant matché unique → statut `approved` si auto activé
+  (`WAVE_AUTO_PAYOUT_ENABLED=true`, plafond 10 USDT), sinon pending_review.
+- Service `wave-payout` : envoie USDT Polygon depuis la trésorerie seed index
+  1 000 000, lock MySQL partagé, idempotence, recovery, notifications.
+- Statuts ajoutés : approved, paying, payout_deferred, manual_review.
+- Admin events portail + filtres.
+- Correctif parse USDT : arrondi à 6 décimales avant `parseUnits` (Wave
+  0.53398333 ne peut pas être envoyé tel quel).
+- Test réel : commande test 322 XOF → 0.53398333 USDT, tx
+  `0x2b3c3da1dae417700970dd8630b05820183813846ddc67d3c6a3d911b9752a8d`,
+  statut paid ; trésorerie 1.253017 USDT ; user 0x1F14 2.746983 USDT.
+- B (USDT → Wave) reste payout XOF manuel.
+- Matching par montant : si plusieurs commandes même montant → ambiguous,
+  pas de payout automatique.
+- Tests headless 24/24, navigateur 23/23.

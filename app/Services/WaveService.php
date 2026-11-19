@@ -144,7 +144,7 @@ class WaveService
     {
         return DB::transaction(function () use ($order, $adminId, $usdtPayout, $fiatRef, $note) {
             $locked = WaveOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status !== WaveOrder::STATUS_PENDING_REVIEW) {
+            if (! in_array($locked->status, [WaveOrder::STATUS_PENDING_REVIEW, WaveOrder::STATUS_MANUAL_REVIEW], true)) {
                 throw ValidationException::withMessages(['order' => 'La commande doit être en revue.']);
             }
             if ($locked->direction === WaveOrder::DIRECTION_BUY_USDT) {

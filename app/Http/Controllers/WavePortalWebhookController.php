@@ -99,15 +99,24 @@ class WavePortalWebhookController extends Controller
 
             if ($orders->count() === 1) {
                 $order = $orders->first();
+                $auto = (bool) config('wave.auto_payout_enabled', true)
+                    && (float) $order->usdt_amount <= (float) config('wave.auto_payout_max_usdt', 10)
+                    && ! empty($order->mobileUser?->payout_address);
                 $order->update([
-                    'status' => WaveOrder::STATUS_PENDING_REVIEW,
+                    'status' => $auto ? WaveOrder::STATUS_APPROVED : WaveOrder::STATUS_PENDING_REVIEW,
                     'payment_ref' => $event->transaction_id,
                     'verified_at' => now(),
-                    'admin_note' => 'Paiement Wave détecté via portail',
+                    'admin_note' => $auto ? 'Paiement Wave portail: payout USDT auto' : 'Paiement Wave détecté via portail',
                 ]);
-                $event->update(['status' => 'matched_pending_review', 'matched_order_id' => $order->id]);
-                $this->notifyOrder($order, "💳 Paiement Wave détecté pour {$order->reference}. Vérification admin en cours.");
-                $this->telegram->sendAdmin("💳 Paiement Wave entrant\n{$event->transaction_id}\n{$event->amount} XOF\nCommande: {$order->reference}\nStatut: pending_review");
+                $event->update([
+                    'status' => $auto ? 'matched_auto_payout' : 'matched_pending_review',
+                    'matched_order_id' => $order->id,
+                ]);
+                $message = $auto
+                    ? "💳 Paiement Wave détecté pour {$order->reference}. Envoi USDT automatique en cours."
+                    : "💳 Paiement Wave détecté pour {$order->reference}. Vérification admin en cours.";
+                $this->notifyOrder($order, $message);
+                $this->telegram->sendAdmin("💳 Paiement Wave entrant\n{$event->transaction_id}\n{$event->amount} XOF\nCommande: {$order->reference}\nStatut: " . ($auto ? 'auto payout USDT' : 'pending_review'));
                 return;
             }
 

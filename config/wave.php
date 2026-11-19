@@ -13,6 +13,8 @@ return [
     'max_xof' => (float) env('WAVE_MAX_XOF', 6000),
     'require_kyc' => (bool) env('WAVE_REQUIRE_KYC', false),
     'payout_network' => (string) env('WAVE_PAYOUT_NETWORK', 'polygon'),
+    'auto_payout_enabled' => (bool) env('WAVE_AUTO_PAYOUT_ENABLED', true),
+    'auto_payout_max_usdt' => (float) env('WAVE_AUTO_PAYOUT_MAX_USDT', 10),
     'portal_webhook_secret' => (string) env('WAVE_PORTAL_WEBHOOK_SECRET', ''),
     'usdt_deposit_address' => (string) env('WAVE_USDT_DEPOSIT_ADDRESS', '0xE4b74c895eA6B5c599AE578859Cce74E9317a40B'),
     'telegram' => [

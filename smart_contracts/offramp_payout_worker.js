@@ -98,7 +98,7 @@ async function processOrder(order) {
   let to;
   try { to = requireAddress(order.payout_address); } catch { await manual(order, 'Adresse payout invalide.'); return; }
   let amount;
-  try { amount = parseUnits(String(order.usdt_amount), decimals); } catch { await manual(order, 'Montant USDT invalide.'); return; }
+  try { amount = parseUnits(Number(order.usdt_amount).toFixed(decimals), decimals); } catch { await manual(order, 'Montant USDT invalide.'); return; }
   if (amount <= 0n) { await manual(order, 'Montant USDT nul.'); return; }
 
   let usdtBalance, polBalance;
