@@ -1768,3 +1768,16 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Achat Wave : lien marchand exact (`payment_url`) ; vente : payout manuel.
 - Tests : headless 24/24, navigateur 23/23 ; webhook Wave OK, 0 pending.
 - Toujours manuel, sans API/webhook Wave.
+
+## 75. Boutons MobileCrypto : wallet + preuves de paiement (engine101)
+
+- Bouton **👛 Wallet** avec action **Ajouter/Modifier** ; l’adresse se saisit
+  ensuite sans commande `/setwallet`.
+- Commande A : boutons **Payer avec Wave**, **✅ J’ai payé**, **Copier le lien**.
+- Commande B : bouton **✅ J’ai envoyé les USDT** après dépôt.
+- Les boutons passent la commande en `pending_review` ; l’admin vérifie ensuite.
+- Menus à boutons conservés pour MobileCrypto et BattlePoolBot.
+- Pas de KYC ; limites test 10 USDT/6 000 XOF, 20 USDT/jour.
+- Tests : headless 24/24, navigateur 23/23 ; webhook Wave OK.
+- Automatisation complète non faite : il faut l’API/webhook Wave Business
+  (confirmation paiement + payout) ; le lien marchand seul ne notifie pas le serveur.

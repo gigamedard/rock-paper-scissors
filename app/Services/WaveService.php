@@ -127,6 +127,19 @@ class WaveService
         });
     }
 
+    public function submitUsdtProof(WaveOrder $order): WaveOrder
+    {
+        return DB::transaction(function () use ($order) {
+            $locked = WaveOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if ($locked->direction !== WaveOrder::DIRECTION_SELL_USDT || $locked->status !== WaveOrder::STATUS_PENDING_DEPOSIT) {
+                throw ValidationException::withMessages(['order' => 'Cette commande n’attend pas de dépôt USDT.']);
+            }
+            $locked->update(['status' => WaveOrder::STATUS_PENDING_REVIEW, 'verified_at' => now()]);
+            $this->event($locked, 'usdt_proof_submitted', 'user', (string) $locked->mobile_user_id, ['manual' => true]);
+            return $locked;
+        });
+    }
+
     public function markPaid(WaveOrder $order, ?int $adminId = null, ?string $usdtPayout = null, ?string $fiatRef = null, ?string $note = null): WaveOrder
     {
         return DB::transaction(function () use ($order, $adminId, $usdtPayout, $fiatRef, $note) {

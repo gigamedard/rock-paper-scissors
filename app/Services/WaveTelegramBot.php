@@ -45,6 +45,11 @@ class WaveTelegramBot
         $text = trim((string) ($message['text'] ?? ''));
         if ($text === '') return;
         $text = $this->alias($text);
+        if (($pendingWallet = Cache::get($this->walletCacheKey($chatId))) !== null && ! str_starts_with($text, '/')) {
+            Cache::forget($this->walletCacheKey($chatId));
+            $this->setWallet($chatId, $user, $text);
+            return;
+        }
         [$command, $args] = $this->parseCommand($text);
 
         if ($command === '/start') { $this->sendStart($chatId, $user); return; }
@@ -98,6 +103,34 @@ class WaveTelegramBot
             return;
         }
         if ($data === 'wb:wallet') { $this->sendWallet($chatId, $user); $this->telegram->answerCallbackQuery($id); return; }
+        if ($data === 'wb:wallet:set') {
+            Cache::put($this->walletCacheKey($chatId), true, now()->addMinutes(10));
+            $this->telegram->answerCallbackQuery($id, 'Envoie ton adresse Polygon');
+            $this->telegram->sendMessage($chatId, "Envoie ton adresse USDT Polygon (0x...).");
+            return;
+        }
+        if (str_starts_with($data, 'wb:paid:')) {
+            $order = WaveOrder::where('id', (int) substr($data, 8))->where('chat_id', $chatId)->first();
+            if (! $order) { $this->telegram->answerCallbackQuery($id, 'Commande introuvable'); return; }
+            try {
+                $this->wave->submitFiatProof($order, null);
+                $this->telegram->answerCallbackQuery($id, 'Paiement soumis');
+                $this->telegram->sendMessage($chatId, "✅ Paiement soumis pour <b>{$order->reference}</b>. Vérification admin.");
+                $this->telegram->sendAdmin("🔎 Wave ACHAT à vérifier (bouton)\n{$order->reference}\n{$order->fiat_amount} XOF → {$order->usdt_amount} USDT");
+            } catch (ValidationException $e) { $this->telegram->answerCallbackQuery($id, $this->firstError($e)); }
+            return;
+        }
+        if (str_starts_with($data, 'wb:sent:')) {
+            $order = WaveOrder::where('id', (int) substr($data, 8))->where('chat_id', $chatId)->first();
+            if (! $order) { $this->telegram->answerCallbackQuery($id, 'Commande introuvable'); return; }
+            try {
+                $this->wave->submitUsdtProof($order);
+                $this->telegram->answerCallbackQuery($id, 'Dépôt soumis');
+                $this->telegram->sendMessage($chatId, "✅ Dépôt USDT soumis pour <b>{$order->reference}</b>. Vérification admin.");
+                $this->telegram->sendAdmin("🔎 Wave VENTE à vérifier (bouton)\n{$order->reference}\n{$order->usdt_amount} USDT → {$order->fiat_amount} XOF");
+            } catch (ValidationException $e) { $this->telegram->answerCallbackQuery($id, $this->firstError($e)); }
+            return;
+        }
     }
 
     private function sendStart(string $chatId, MobileCryptoUser $user): void
@@ -141,10 +174,11 @@ class WaveTelegramBot
 
     private function sendWallet(string $chatId, MobileCryptoUser $user): void
     {
+        $keyboard = ['inline_keyboard' => [[['text' => '✏️ ' . ($user->payout_address ? 'Modifier le wallet' : 'Ajouter un wallet'), 'callback_data' => 'wb:wallet:set']]]];
         if ($user->payout_address) {
-            $this->telegram->sendMessage($chatId, "👛 Wallet USDT Polygon :\n<code>{$this->esc($user->payout_address)}</code>\nPour le changer : <code>/setwallet 0x...</code>");
+            $this->telegram->sendMessage($chatId, "👛 Wallet USDT Polygon :\n<code>{$this->esc($user->payout_address)}</code>", $keyboard);
         } else {
-            $this->telegram->sendMessage($chatId, "👛 Aucun wallet USDT enregistré.\nEnvoie : <code>/setwallet 0x...</code>");
+            $this->telegram->sendMessage($chatId, "👛 Aucun wallet USDT enregistré.", $keyboard);
         }
     }
 
@@ -195,7 +229,8 @@ class WaveTelegramBot
     {
         if (! $user->hasAcceptedTerms()) { $this->telegram->sendMessage($chatId, 'Accepte les conditions avec <code>/accept</code>.'); return; }
         if (! $user->payout_address) {
-            $this->telegram->sendMessage($chatId, 'Ajoute d’abord ton wallet USDT Polygon : <code>/setwallet 0x...</code>');
+            $keyboard = ['inline_keyboard' => [[['text' => '👛 Ajouter mon wallet', 'callback_data' => 'wb:wallet:set']]]];
+            $this->telegram->sendMessage($chatId, 'Ajoute d’abord ton wallet USDT Polygon.', $keyboard);
             return;
         }
         $fiat = (float) str_replace([' ', ','], ['', '.'], trim($rawFiat));
@@ -205,13 +240,14 @@ class WaveTelegramBot
             $link = (string) $o->payment_url;
             $keyboard = ['inline_keyboard' => [
                 [['text' => '💳 Payer avec Wave', 'url' => $link]],
-                [['text' => '📋 Copier le lien de paiement', 'copy_text' => ['text' => $link]]],
+                [['text' => '✅ J’ai payé', 'callback_data' => 'wb:paid:' . $o->id]],
+                [['text' => '📋 Copier le lien', 'copy_text' => ['text' => $link]]],
             ]];
             $text = "🌊 <b>Achat USDT via Wave</b>\nCommande <b>{$this->esc($o->reference)}</b>\n\n" .
                 "Montant exact : <b>{$this->fmt((float) $o->fiat_amount)} XOF</b>\n" .
                 "Clique sur <b>Payer avec Wave</b>.\n\n" .
                 "Tu recevras <b>{$this->fmt((float) $o->usdt_amount)} USDT</b> sur <code>{$this->esc($user->payout_address)}</code>.\n" .
-                "Après paiement : <code>/wavepaid {$this->esc($o->reference)} ID_TRANSACTION</code>\n\n⚠️ Validation manuelle.";
+                "Après paiement, clique sur <b>✅ J’ai payé</b>.\n\n⚠️ Validation manuelle.";
             if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) $this->telegram->sendMessage($chatId, $text . "\n\n" . $link);
             $this->telegram->sendAdmin("🌊 Wave ACHAT\n{$o->reference}\nMobileCrypto #{$user->id}\n{$o->fiat_amount} XOF → {$o->usdt_amount} USDT");
         } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
@@ -249,11 +285,12 @@ class WaveTelegramBot
             $addr = (string) $o->deposit_address;
             $keyboard = ['inline_keyboard' => [
                 [['text' => '📋 Copier l’adresse USDT', 'copy_text' => ['text' => $addr]]],
+                [['text' => '✅ J’ai envoyé les USDT', 'callback_data' => 'wb:sent:' . $o->id]],
             ]];
             $text = "🌊 <b>Vente USDT → Wave</b>\nCommande <b>{$this->esc($o->reference)}</b>\n\n" .
                 "Envoie <b>{$this->fmt((float) $o->usdt_amount)} USDT</b> sur <b>Polygon</b> à :\n<pre>" . $this->esc($addr) . "</pre>\n\n" .
                 "Tu recevras <b>{$this->fmt((float) $o->fiat_amount)} XOF</b> sur <code>{$this->esc($phone)}</code>.\n" .
-                "Après envoi : <code>/wavetx {$this->esc($o->reference)} HASH_USDT</code>\n\n⚠️ Polygon uniquement. Validation manuelle.";
+                "Après envoi, clique sur <b>✅ J’ai envoyé les USDT</b>.\n\n⚠️ Polygon uniquement. Validation manuelle.";
             if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) $this->telegram->sendMessage($chatId, $text);
             $this->telegram->sendAdmin("🌊 Wave VENTE\n{$o->reference}\nMobileCrypto #{$user->id}\n{$o->usdt_amount} USDT → {$o->fiat_amount} XOF\nTel: {$phone}");
             $this->sendMenu($chatId);
@@ -307,6 +344,7 @@ class WaveTelegramBot
     }
 
     private function sellCacheKey(string $chatId): string { return 'wave_sell_amount_' . $chatId; }
+    private function walletCacheKey(string $chatId): string { return 'wave_wallet_set_' . $chatId; }
 
     private function parseCommand(string $text): array
     {
