@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\WaveEvent;
 use App\Models\WaveOrder;
 use App\Models\MobileCryptoUser;
+use App\Models\WavePortalEvent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -98,13 +99,50 @@ class WaveService
 
     public function submitFiatProof(WaveOrder $order, ?string $ref): WaveOrder
     {
-        return DB::transaction(function () use ($order, $ref) {
+        $tx = trim((string) $ref);
+        if ($tx === '' || ! preg_match('/^[A-Za-z0-9_-]{5,100}$/', $tx)) {
+            throw ValidationException::withMessages(['ref' => 'ID de transaction Wave requis (ex: T_XXXXXXXX).']);
+        }
+
+        return DB::transaction(function () use ($order, $tx) {
             $locked = WaveOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if ($locked->direction !== WaveOrder::DIRECTION_BUY_USDT || $locked->status !== WaveOrder::STATUS_PENDING_PAYMENT) {
-                throw ValidationException::withMessages(['order' => 'Cette commande n’attend pas de preuve de paiement.']);
+            if ($locked->direction !== WaveOrder::DIRECTION_BUY_USDT) {
+                throw ValidationException::withMessages(['order' => 'Cette commande n’est pas un achat USDT.']);
             }
-            $locked->update(['status' => WaveOrder::STATUS_PENDING_REVIEW, 'payment_ref' => $ref ? substr(trim($ref), 0, 120) : null, 'verified_at' => now()]);
-            $this->event($locked, 'fiat_proof_submitted', 'user', (string) $locked->mobile_user_id, ['ref' => $ref]);
+            if ($locked->payment_ref === $tx) return $locked;
+            if ($locked->status !== WaveOrder::STATUS_PENDING_PAYMENT) {
+                throw ValidationException::withMessages(['order' => 'Cette commande n’attend plus de preuve de paiement.']);
+            }
+
+            $portal = WavePortalEvent::where('transaction_id', $tx)
+                ->where('direction', 'in')
+                ->lockForUpdate()
+                ->first();
+            if (! $portal) {
+                throw ValidationException::withMessages(['ref' => 'ID de transaction pas encore reçu. Attends 15 s, recharge le portail, puis réessaie.']);
+            }
+            if ((float) $portal->amount !== (float) $locked->fiat_amount) {
+                throw ValidationException::withMessages(['ref' => 'L’ID existe mais le montant ne correspond pas à la commande.']);
+            }
+            if ($portal->matched_order_id && (int) $portal->matched_order_id !== (int) $locked->id) {
+                throw ValidationException::withMessages(['ref' => 'Cet ID est déjà rattaché à une autre commande.']);
+            }
+
+            $auto = (bool) config('wave.auto_payout_enabled', true)
+                && (float) $locked->usdt_amount <= (float) config('wave.auto_payout_max_usdt', 10)
+                && ! empty($locked->mobileUser?->payout_address);
+
+            $locked->update([
+                'status' => $auto ? WaveOrder::STATUS_APPROVED : WaveOrder::STATUS_PENDING_REVIEW,
+                'payment_ref' => $tx,
+                'verified_at' => now(),
+                'admin_note' => $auto ? 'ID transaction Wave vérifié: payout USDT auto' : 'ID transaction Wave vérifié: revue admin',
+            ]);
+            $portal->update([
+                'status' => $auto ? 'matched_auto_payout' : 'matched_manual_id',
+                'matched_order_id' => $locked->id,
+            ]);
+            $this->event($locked, $auto ? 'fiat_id_matched_auto' : 'fiat_id_matched_manual', 'user', (string) $locked->mobile_user_id, ['transaction_id' => $tx, 'auto' => $auto]);
             return $locked;
         });
     }

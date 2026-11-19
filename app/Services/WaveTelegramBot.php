@@ -50,6 +50,11 @@ class WaveTelegramBot
             $this->setWallet($chatId, $user, $text);
             return;
         }
+        if (($proofOrderId = Cache::get($this->proofCacheKey($chatId))) !== null && ! str_starts_with($text, '/')) {
+            Cache::forget($this->proofCacheKey($chatId));
+            $order = WaveOrder::where('id', (int) $proofOrderId)->where('chat_id', $chatId)->first();
+            if ($order) { $this->submitWaveFiatProof($chatId, $user, [$text], $order); return; }
+        }
         [$command, $args] = $this->parseCommand($text);
 
         if ($command === '/start') { $this->sendStart($chatId, $user); return; }
@@ -112,12 +117,9 @@ class WaveTelegramBot
         if (str_starts_with($data, 'wb:paid:')) {
             $order = WaveOrder::where('id', (int) substr($data, 8))->where('chat_id', $chatId)->first();
             if (! $order) { $this->telegram->answerCallbackQuery($id, 'Commande introuvable'); return; }
-            try {
-                $this->wave->submitFiatProof($order, null);
-                $this->telegram->answerCallbackQuery($id, 'Paiement soumis');
-                $this->telegram->sendMessage($chatId, "✅ Paiement soumis pour <b>{$order->reference}</b>. Vérification admin.");
-                $this->telegram->sendAdmin("🔎 Wave ACHAT à vérifier (bouton)\n{$order->reference}\n{$order->fiat_amount} XOF → {$order->usdt_amount} USDT");
-            } catch (ValidationException $e) { $this->telegram->answerCallbackQuery($id, $this->firstError($e)); }
+            Cache::put($this->proofCacheKey($chatId), $order->id, now()->addMinutes(15));
+            $this->telegram->answerCallbackQuery($id, 'Envoie l’ID de transaction');
+            $this->telegram->sendMessage($chatId, "Envoie maintenant l’ID de transaction Wave de <b>{$order->reference}</b> (ex: <code>T_XXXXXXXX</code>).", ['force_reply' => true, 'input_field_placeholder' => 'T_...']);
             return;
         }
         if (str_starts_with($data, 'wb:sent:')) {
@@ -247,7 +249,7 @@ class WaveTelegramBot
                 "Montant exact : <b>{$this->fmt((float) $o->fiat_amount)} XOF</b>\n" .
                 "Clique sur <b>Payer avec Wave</b>.\n\n" .
                 "Tu recevras <b>{$this->fmt((float) $o->usdt_amount)} USDT</b> sur <code>{$this->esc($user->payout_address)}</code>.\n" .
-                "Après paiement, clique sur <b>✅ J’ai payé</b>.\n\n⚠️ Validation manuelle.";
+                "Après paiement, clique sur <b>✅ J’ai payé</b> puis envoie l’ID de transaction Wave.\n\n⚠️ Validation manuelle.";
             if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) $this->telegram->sendMessage($chatId, $text . "\n\n" . $link);
             $this->telegram->sendAdmin("🌊 Wave ACHAT\n{$o->reference}\nMobileCrypto #{$user->id}\n{$o->fiat_amount} XOF → {$o->usdt_amount} USDT");
         } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
@@ -297,15 +299,18 @@ class WaveTelegramBot
         } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
     }
 
-    private function submitWaveFiatProof(string $chatId, MobileCryptoUser $user, array $args): void
+    private function submitWaveFiatProof(string $chatId, MobileCryptoUser $user, array $args, ?WaveOrder $forcedOrder = null): void
     {
-        $o = $this->wave->latestOrderForChat($chatId, WaveOrder::DIRECTION_BUY_USDT);
+        $o = $forcedOrder ?: $this->wave->latestOrderForChat($chatId, WaveOrder::DIRECTION_BUY_USDT);
         if (! $o) { $this->telegram->sendMessage($chatId, 'Aucune commande ACHAT en attente.'); return; }
         $ref = trim(implode(' ', $args));
         try {
-            $o = $this->wave->submitFiatProof($o, $ref ?: null);
-            $this->telegram->sendMessage($chatId, "✅ Preuve enregistrée pour <b>{$o->reference}</b>. Vérification admin.");
-            $this->telegram->sendAdmin("🔎 Wave ACHAT à vérifier\n{$o->reference}\nMobileCrypto #{$user->id}\n{$o->fiat_amount} XOF\nPreuve: " . ($ref ?: 'non fournie'));
+            $o = $this->wave->submitFiatProof($o, $ref);
+            $msg = $o->status === WaveOrder::STATUS_APPROVED
+                ? "✅ ID de transaction reconnu pour <b>{$o->reference}</b>. Envoi USDT automatique en cours."
+                : "✅ ID de transaction reconnu pour <b>{$o->reference}</b>. Vérification admin.";
+            $this->telegram->sendMessage($chatId, $msg);
+            $this->telegram->sendAdmin("🔎 Wave ACHAT ID reconnu\n{$o->reference}\nMobileCrypto #{$user->id}\n{$o->fiat_amount} XOF\nID: {$ref}\nStatut: {$o->status}");
         } catch (ValidationException $e) { $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e)); }
     }
 
@@ -345,6 +350,7 @@ class WaveTelegramBot
 
     private function sellCacheKey(string $chatId): string { return 'wave_sell_amount_' . $chatId; }
     private function walletCacheKey(string $chatId): string { return 'wave_wallet_set_' . $chatId; }
+    private function proofCacheKey(string $chatId): string { return 'wave_fiat_proof_' . $chatId; }
 
     private function parseCommand(string $text): array
     {

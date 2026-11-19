@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\WaveOrder;
 use App\Models\WavePortalEvent;
-use App\Services\WaveTelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -12,10 +10,6 @@ use Illuminate\Support\Facades\Log;
 
 class WavePortalWebhookController extends Controller
 {
-    public function __construct(private WaveTelegramService $telegram)
-    {
-    }
-
     public function handle(Request $request)
     {
         $secret = (string) config('wave.portal_webhook_secret', '');
@@ -77,65 +71,8 @@ class WavePortalWebhookController extends Controller
             'received_at' => now(),
         ]);
 
-        try {
-            $this->match($event);
-        } catch (\Throwable $e) {
-            $event->update(['status' => 'error', 'error' => substr($e->getMessage(), 0, 250)]);
-            Log::warning('[WavePortalWebhook] match failed: ' . $e->getMessage());
-        }
-
+        // ID-first: l'événement est seulement stocké ici. Le rapprochement
+        // commande ↔ transaction se fait quand le client fournit l'ID.
         return response()->json(['ok' => true, 'status' => $event->fresh()->status]);
-    }
-
-    private function match(WavePortalEvent $event): void
-    {
-        $amount = (float) $event->amount;
-        if ($event->direction === 'in') {
-            $orders = WaveOrder::where('direction', WaveOrder::DIRECTION_BUY_USDT)
-                ->where('status', WaveOrder::STATUS_PENDING_PAYMENT)
-                ->where('fiat_amount', $amount)
-                ->where('created_at', '>=', now()->subMinutes(30))
-                ->get();
-
-            if ($orders->count() === 1) {
-                $order = $orders->first();
-                $auto = (bool) config('wave.auto_payout_enabled', true)
-                    && (float) $order->usdt_amount <= (float) config('wave.auto_payout_max_usdt', 10)
-                    && ! empty($order->mobileUser?->payout_address);
-                $order->update([
-                    'status' => $auto ? WaveOrder::STATUS_APPROVED : WaveOrder::STATUS_PENDING_REVIEW,
-                    'payment_ref' => $event->transaction_id,
-                    'verified_at' => now(),
-                    'admin_note' => $auto ? 'Paiement Wave portail: payout USDT auto' : 'Paiement Wave détecté via portail',
-                ]);
-                $event->update([
-                    'status' => $auto ? 'matched_auto_payout' : 'matched_pending_review',
-                    'matched_order_id' => $order->id,
-                ]);
-                $message = $auto
-                    ? "💳 Paiement Wave détecté pour {$order->reference}. Envoi USDT automatique en cours."
-                    : "💳 Paiement Wave détecté pour {$order->reference}. Vérification admin en cours.";
-                $this->notifyOrder($order, $message);
-                $this->telegram->sendAdmin("💳 Paiement Wave entrant\n{$event->transaction_id}\n{$event->amount} XOF\nCommande: {$order->reference}\nStatut: " . ($auto ? 'auto payout USDT' : 'pending_review'));
-                return;
-            }
-
-            $status = $orders->count() > 1 ? 'ambiguous' : 'unmatched';
-            $event->update(['status' => $status]);
-            $this->telegram->sendAdmin("⚠️ Paiement Wave {$status}\n{$event->transaction_id}\n{$event->amount} XOF\nAucune commande unique correspondante.");
-            return;
-        }
-
-        // Sortie Wave : ne jamais marquer payé automatiquement. On trace pour
-        // que l’admin confirme le payout mobile money.
-        $event->update(['status' => 'outgoing_logged']);
-        $this->telegram->sendAdmin("↔️ Sortie Wave détectée\n{$event->transaction_id}\n{$event->amount} XOF\nÀ rapprocher manuellement.");
-    }
-
-    private function notifyOrder(WaveOrder $order, string $message): void
-    {
-        if ($order->chat_id) {
-            $this->telegram->sendMessage((string) $order->chat_id, $message);
-        }
     }
 }

@@ -1817,3 +1817,18 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Matching par montant : si plusieurs commandes même montant → ambiguous,
   pas de payout automatique.
 - Tests headless 24/24, navigateur 23/23.
+
+## 78. Matching Wave par ID de transaction (engine106)
+
+- Le portail stocke l’événement (`received`) sans matcher par montant.
+- Le client clique **✅ J’ai payé**, puis envoie l’ID `T_...` ; le serveur
+  vérifie : événement extension existant, direction `in`, montant = commande,
+  ID non déjà utilisé.
+- Si valide : commande `approved` (auto payout ≤10 USDT) ou `pending_review`;
+  événement `matched_auto_payout` / `matched_manual_id`.
+- Test ID réel synthétique 323 XOF : webhook `received` → ID → `approved` →
+  payout tx `0xb67e06e5cc1a31c0c0ae98971f1093a55f6cd273481ecc4ed9a7fb56dd185c88`
+  → `paid`.
+- Le matching par montant seul ne déclenche plus de payout.
+- Extension inchangée : endpoint production + secret + auto-refresh 15 s.
+- Tests headless 24/24, navigateur 23/23.
