@@ -1612,3 +1612,16 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - 13 tokens API du user 322 révoqués : reconnexion avec le wallet index 1.
 - KYC admin toujours `unverified` → `/buy` bloqué jusqu’à soumission + approbation.
 - Audit : `/root/.onramp-admin-wallet-changes.log`.
+
+## 66. Diagnostic KYC bot : comptes dupliqués après rotation wallet
+
+- Rotation 322 vers index 1 a laissé l’ancien wallet `0x1F14...` créer un
+  **nouveau user 3898** (KYC soumis + approuvé, profil KYC #2).
+- Le chat Telegram `7386044730` était encore lié au **user 322** (KYC
+  `unverified`) → `/buy` demandait le KYC.
+- Correction : lien Telegram déplacé de 322 vers **user 3898**
+  (`0x1F14...`, KYC approved, onramp_allowed=1, terms acceptés).
+- Admin bot `/orders` `/approve` restent OK via `TELEGRAM_ADMIN_IDS`
+  (indépendant du user lié).
+- Admin web 322 / index 1 reste admin ; son KYC reste `unverified`.
+- Journal : `/root/.onramp-link-changes.log`.
