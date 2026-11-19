@@ -1719,3 +1719,21 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   `_WEBHOOK_SECRET`, `_BOT_USERNAME`, `_ADMIN_IDS`.
 - L’admin doit ouvrir **@MobileCrypoXBot**, faire `/start` pour recevoir les
   notifications, puis `/link CODE`, `/accept`, `/wave`.
+
+## 72. MobileCrypto découplé de BattlePool (engine96, 2026-11-19)
+
+- Suppression de `/link` BattlePool pour WaveBot. Comptes indépendants
+  `mobile_crypto_users` : chat Telegram, nom, téléphone, pays, KYC, allowlist,
+  wallet Polygon, conditions.
+- Onboarding : `/register NOM | 0758431653 | CI`, `/setwallet 0x...`,
+  `/accept`; validation KYC admin via `/admin/wave.html` (section comptes).
+- `wave_orders` / `wave_events` recréés avec `mobile_user_id` (plus de FK
+  `users`). Anciennes tables vides supprimées.
+- Bot : plus aucune dépendance aux comptes BattlePool ; `@MobileCrypoXBot`
+  reste indépendant. BattlePoolBot inchangé.
+- Test : création compte KYC/allowlist/wallet, achat 300 XOF → 0.4975 USDT,
+  vente 1 USDT → 597 XOF ; page admin avec 1 compte + 2 commandes ; données
+  de test supprimées.
+- KYC MobileCrypto manuel (pas de documents automatisés).
+- Tests : headless 24/24, navigateur 23/23.
+- KYC admin et comptes MobileCrypto visibles sur `/admin/wave.html`.

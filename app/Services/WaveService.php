@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\WaveEvent;
 use App\Models\WaveOrder;
-use App\Models\User;
+use App\Models\MobileCryptoUser;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -31,7 +31,7 @@ class WaveService
         return ['usdt' => $usdt, 'fiat_gross' => round($gross, 2), 'fiat' => $fiat, 'rate' => $rate, 'fee_percent' => $fee];
     }
 
-    public function createBuy(User $user, float $fiat, string $operator, string $channel = 'telegram', ?string $chatId = null): WaveOrder
+    public function createBuy(MobileCryptoUser $user, float $fiat, string $operator, string $channel = 'telegram', ?string $chatId = null): WaveOrder
     {
         $this->guardUser($user);
         $op = $this->operator($operator);
@@ -39,13 +39,17 @@ class WaveService
         $max = (float) config('wave.max_xof', 60000);
         if ($fiat < $min - 1e-9) throw ValidationException::withMessages(['amount' => "Minimum {$min} XOF."]);
         if ($max > 0 && $fiat > $max + 1e-9) throw ValidationException::withMessages(['amount' => "Maximum {$max} XOF par commande."]);
+        if (! preg_match('/^0x[0-9a-fA-F]{40}$/', (string) $user->payout_address)) {
+            throw ValidationException::withMessages(['wallet' => 'Ajoute ton adresse USDT Polygon avec /setwallet 0x... avant un achat.']);
+        }
+
         $quote = $this->quoteBuy($fiat);
         if ($quote['usdt_gross'] < (float) config('wave.min_usdt', 0.5)) throw ValidationException::withMessages(['amount' => 'Montant USDT trop faible.']);
         $this->checkDaily($user, $quote['usdt']);
 
         return DB::transaction(function () use ($user, $fiat, $quote, $op, $operator, $channel, $chatId) {
             $order = WaveOrder::create([
-                'reference' => $this->reference(), 'user_id' => $user->id, 'channel' => $channel, 'chat_id' => $chatId,
+                'reference' => $this->reference(), 'mobile_user_id' => $user->id, 'channel' => $channel, 'chat_id' => $chatId,
                 'direction' => WaveOrder::DIRECTION_BUY_USDT, 'operator' => $operator,
                 'country' => $op['country'], 'currency' => $op['currency'],
                 'fiat_amount' => $fiat, 'usdt_amount' => $quote['usdt'], 'usdt_gross' => $quote['usdt_gross'],
@@ -59,7 +63,7 @@ class WaveService
         });
     }
 
-    public function createSell(User $user, float $usdt, string $phone, string $operator = 'wave_ci', string $channel = 'telegram', ?string $chatId = null): WaveOrder
+    public function createSell(MobileCryptoUser $user, float $usdt, string $phone, string $operator = 'wave_ci', string $channel = 'telegram', ?string $chatId = null): WaveOrder
     {
         $this->guardUser($user);
         $this->operator($operator);
@@ -74,7 +78,7 @@ class WaveService
 
         return DB::transaction(function () use ($user, $usdt, $phone, $operator, $quote, $channel, $chatId) {
             $order = WaveOrder::create([
-                'reference' => $this->reference(), 'user_id' => $user->id, 'channel' => $channel, 'chat_id' => $chatId,
+                'reference' => $this->reference(), 'mobile_user_id' => $user->id, 'channel' => $channel, 'chat_id' => $chatId,
                 'direction' => WaveOrder::DIRECTION_SELL_USDT, 'operator' => $operator,
                 'country' => 'CI', 'currency' => 'XOF',
                 'fiat_amount' => $quote['fiat'], 'usdt_amount' => $usdt, 'usdt_gross' => $usdt,
@@ -97,7 +101,7 @@ class WaveService
                 throw ValidationException::withMessages(['order' => 'Cette commande n’attend pas de preuve de paiement.']);
             }
             $locked->update(['status' => WaveOrder::STATUS_PENDING_REVIEW, 'payment_ref' => $ref ? substr(trim($ref), 0, 120) : null, 'verified_at' => now()]);
-            $this->event($locked, 'fiat_proof_submitted', 'user', (string) $locked->user_id, ['ref' => $ref]);
+            $this->event($locked, 'fiat_proof_submitted', 'user', (string) $locked->mobile_user_id, ['ref' => $ref]);
             return $locked;
         });
     }
@@ -115,7 +119,7 @@ class WaveService
                 throw ValidationException::withMessages(['tx' => 'Ce hash USDT est déjà utilisé.']);
             }
             $locked->update(['status' => WaveOrder::STATUS_PENDING_REVIEW, 'usdt_deposit_tx_hash' => $txHash, 'verified_at' => now()]);
-            $this->event($locked, 'usdt_tx_submitted', 'user', (string) $locked->user_id, ['tx_hash' => $txHash]);
+            $this->event($locked, 'usdt_tx_submitted', 'user', (string) $locked->mobile_user_id, ['tx_hash' => $txHash]);
             return $locked;
         });
     }
@@ -153,14 +157,14 @@ class WaveService
         });
     }
 
-    public function ordersForUser(User $user, int $limit = 20)
+    public function ordersForUser(MobileCryptoUser $user, int $limit = 20)
     {
-        return WaveOrder::where('user_id', $user->id)->latest('id')->limit($limit)->get();
+        return WaveOrder::where('mobile_user_id', $user->id)->latest('id')->limit($limit)->get();
     }
 
     public function ordersForAdmin(?string $status = null, int $limit = 100)
     {
-        $q = WaveOrder::with('user')->latest('id');
+        $q = WaveOrder::with('mobileUser')->latest('id');
         if ($status) $q->where('status', $status);
         return $q->limit($limit)->get();
     }
@@ -177,11 +181,12 @@ class WaveService
         WaveEvent::create(['wave_order_id' => $order->id, 'type' => $type, 'actor_type' => $actorType, 'actor_id' => $actorId, 'payload' => $payload ?: null]);
     }
 
-    private function guardUser(User $user): void
+    private function guardUser(MobileCryptoUser $user): void
     {
         if (! (bool) config('wave.enabled', true)) throw ValidationException::withMessages(['wave' => 'Service Wave temporairement désactivé.']);
-        if (! $user->onramp_allowed) throw ValidationException::withMessages(['wave' => 'Ton compte n’est pas sur l’allowlist.']);
-        if ((bool) config('wave.require_kyc', true) && $user->kyc_status !== 'approved') throw ValidationException::withMessages(['wave' => 'KYC requis pour Wave.']);
+        if ($user->kyc_status !== MobileCryptoUser::KYC_APPROVED) throw ValidationException::withMessages(['wave' => 'KYC MobileCrypto requis ou en attente.']);
+        if (! $user->allowlist) throw ValidationException::withMessages(['wave' => 'Compte MobileCrypto non autorisé.']);
+        if (! $user->hasAcceptedTerms()) throw ValidationException::withMessages(['wave' => 'Accepte les conditions avec /accept.']);
     }
 
     private function operator(string $key): array
@@ -191,11 +196,11 @@ class WaveService
         return $op;
     }
 
-    private function checkDaily(User $user, float $usdt): void
+    private function checkDaily(MobileCryptoUser $user, float $usdt): void
     {
         $limit = (float) config('wave.daily_limit_usdt', 500);
         if ($limit <= 0) return;
-        $total = (float) WaveOrder::where('user_id', $user->id)->where('created_at', '>=', now()->startOfDay())
+        $total = (float) WaveOrder::where('mobile_user_id', $user->id)->where('created_at', '>=', now()->startOfDay())
             ->whereNotIn('status', [WaveOrder::STATUS_REJECTED, WaveOrder::STATUS_EXPIRED])->sum('usdt_amount');
         if ($total + $usdt > $limit + 1e-9) throw ValidationException::withMessages(['amount' => "Plafond journalier atteint ({$limit} USDT)."]);
     }

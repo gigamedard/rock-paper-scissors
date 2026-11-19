@@ -17,7 +17,7 @@ class WaveOrder extends Model
     public const STATUS_EXPIRED = 'expired';
 
     protected $fillable = [
-        'reference', 'user_id', 'channel', 'chat_id', 'direction', 'operator', 'country', 'currency',
+        'reference', 'mobile_user_id', 'channel', 'chat_id', 'direction', 'operator', 'country', 'currency',
         'fiat_amount', 'usdt_amount', 'usdt_gross', 'rate', 'fee_percent', 'status',
         'payment_phone', 'payout_phone', 'payout_network', 'deposit_address',
         'payment_ref', 'usdt_deposit_tx_hash', 'usdt_payout_tx_hash', 'fiat_tx_ref',
@@ -36,9 +36,9 @@ class WaveOrder extends Model
         'expires_at' => 'datetime',
     ];
 
-    public function user()
+    public function mobileUser()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(MobileCryptoUser::class, 'mobile_user_id');
     }
 
     public function admin()
