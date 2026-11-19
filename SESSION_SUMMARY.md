@@ -1670,3 +1670,24 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Tests headless **24/24**, navigateur **23/23**, admin off-ramp sans erreur.
 - Limites : BSC pas encore actif ; USDT treasury à financer ; l’utilisateur a
   besoin de TST pour envoyer ses AVAXe.
+
+## 69. Wave Côte d’Ivoire manuel XOF ↔ USDT (engine93, 2026-11-19)
+
+- MVP **manuel** sans API Wave ; vérification admin.
+- Achat USDT via Wave (A) : `/wavebuy 300` → paiement XOF au
+  **0758431653** (Wave CI), preuve `/wavepaid REF ID`, puis USDT Polygon
+  envoyés manuellement par l’admin.
+- Vente USDT contre Wave (B) : `/wavesell 1 0758431653` → dépôt USDT Polygon
+  sur `0xE4b...`, tx `/wavetx REF HASH`, puis paiement XOF manuel par l’admin.
+- Paramètres : **1 USDT = 600 XOF**, frais **0.5 % par sens**, min **0.5 USDT /
+  300 XOF**, max **100 USDT / 60 000 XOF**, plafond **500 USDT/jour**.
+- KYC + allowlist. USDT **Polygon uniquement** ; BSC plus tard.
+- Bot : `/wave`, `/wavebuy`, `/wavesell`, `/wavepaid`, `/wavetx`, `/waveorders`.
+- Admin : `/admin/wave.html` (marquer payé, hash USDT ou référence Wave, refuser).
+- Tables `wave_orders` / `wave_events`, statuts pending_payment / pending_deposit /
+  pending_review / paid / rejected.
+- Testé : création A 300 XOF → **0.4975 USDT**, B 1 USDT → **597 XOF** ;
+  page admin sans erreur ; headless 24/24, navigateur 23/23.
+- ⚠️ Aucune transaction Wave réelle testée. Bénin/MTN/Moov non activés :
+  il manque les numéros/comptes correspondants.
+- Trésorerie USDT Polygon : **1.787 USDT** ; à financer pour les payouts A.

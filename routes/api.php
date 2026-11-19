@@ -185,6 +185,11 @@ Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function (
     Route::post('/offramp/orders/{order}/approve', [\App\Http\Controllers\OfframpController::class, 'approve']);
     Route::post('/offramp/orders/{order}/reject', [\App\Http\Controllers\OfframpController::class, 'reject']);
 
+    // Admin Wave manual (XOF <-> USDT)
+    Route::get('/wave/orders', [\App\Http\Controllers\WaveController::class, 'adminOrders']);
+    Route::post('/wave/orders/{order}/paid', [\App\Http\Controllers\WaveController::class, 'markPaid']);
+    Route::post('/wave/orders/{order}/reject', [\App\Http\Controllers\WaveController::class, 'reject']);
+
     // Admin KYC
     Route::get('/kyc', [KycController::class, 'adminIndex']);
     Route::post('/kyc/{profile}/approve', [KycController::class, 'approve']);
