@@ -180,6 +180,11 @@ Route::prefix('admin')->middleware(['token.auth', 'is_admin'])->group(function (
     Route::post('/onramp/orders/{order}/credit', [OnrampController::class, 'credit']);
     Route::post('/onramp/users/{user}/allow', [OnrampController::class, 'allowUser']);
 
+    // Admin Off-ramp AVAXe -> USDT
+    Route::get('/offramp/orders', [\App\Http\Controllers\OfframpController::class, 'adminOrders']);
+    Route::post('/offramp/orders/{order}/approve', [\App\Http\Controllers\OfframpController::class, 'approve']);
+    Route::post('/offramp/orders/{order}/reject', [\App\Http\Controllers\OfframpController::class, 'reject']);
+
     // Admin KYC
     Route::get('/kyc', [KycController::class, 'adminIndex']);
     Route::post('/kyc/{profile}/approve', [KycController::class, 'approve']);

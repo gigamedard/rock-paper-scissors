@@ -1,0 +1,43 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Admin off-ramp</title>
+<style>
+body{margin:0;background:#0f1115;color:#e7e9ee;font:15px/1.45 system-ui,sans-serif}.wrap{max-width:1100px;margin:0 auto;padding:24px}.card{background:#151922;border:1px solid #2b3242;border-radius:12px;padding:16px;margin:12px 0}.muted{color:#8b93a6}.err{color:#ff7a7a}.ok{color:#63d69b}.order{border-top:1px solid #2b3242;padding:12px 0}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.grid{display:grid;grid-template-columns:130px 1fr;gap:5px 10px;font-size:13px}.k{color:#7c8496}.v{word-break:break-all}.status{font-size:11px;padding:2px 8px;border-radius:99px;background:#243044;color:#9ec1ff}button{border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;background:#4f8cff;color:#fff}button.green{background:#1f9d63}button.red{background:#b33a3a}input,select{background:#0c1420;color:#fff;border:1px solid #3a4150;border-radius:8px;padding:8px}code{color:#9ec1ff}a{color:#6ea8fe}
+</style></head><body><div class="wrap">
+<h1>Admin off-ramp</h1>
+<p class="muted">AVAXe (Pingala) → USDT (Polygon). <a href="/admin/onramp.html">← On-ramp</a></p>
+<div class="card">
+  <label>Filtre statut</label>
+  <select id="status"><option value="">Tous</option><option>pending_deposit</option><option>pending_review</option><option>approved</option><option>paying</option><option>paid</option><option>payout_deferred</option><option>manual_review</option><option>rejected</option><option>expired</option></select>
+  <button id="refresh">Rafraîchir</button>
+  <span id="msg" class="muted"></span>
+</div>
+<div id="orders"></div>
+<script>
+const $=id=>document.getElementById(id); const token=localStorage.getItem('auth_token');
+const user=JSON.parse(localStorage.getItem('user')||'null');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function authHeaders(extra={}){return token?{...extra,'Authorization':'Bearer '+token}:extra;}
+async function api(path,opt={}){const r=await fetch(path,{...opt,headers:authHeaders(opt.headers||{})});if(r.status===401)throw new Error('AUTH_MISSING');if(r.status===403)throw new Error('NOT_ADMIN');const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||('HTTP '+r.status));return d;}
+function status(s){return `<span class="status">${esc(s)}</span>`;}
+function render(o){
+ const pay=o.payout_tx_hash?`<code>${esc(o.payout_tx_hash)}</code>`:'<span class="muted">—</span>';
+ const dep=o.tx_hash?`<code>${esc(o.tx_hash)}</code>`:'<span class="muted">—</span>';
+ const can=o.status==='pending_review'||o.status==='payout_deferred';
+ return `<div class="order card"><div class="row"><b>${esc(o.reference)}</b>${status(o.status)}<span class="muted">#${o.id} · user #${o.user_id}</span><span style="flex:1"></span>
+ ${can?`<button class="green" data-act="approve" data-id="${o.id}">Approuver</button>`:''}
+ ${!['paid','rejected','paying'].includes(o.status)?`<button class="red" data-act="reject" data-id="${o.id}">Refuser</button>`:''}
+ </div><div class="grid" style="margin-top:8px">
+ <div class="k">Montant</div><div class="v"><b>${esc(o.avaxe_amount)} AVAXe</b> → <b>${esc(o.usdt_amount)} USDT</b> (${esc(o.rate)} / frais ${esc(o.fee_percent)}%)</div>
+ <div class="k">Payout</div><div class="v">${esc(o.payout_network)} · <code>${esc(o.payout_address)}</code></div>
+ <div class="k">Dépôt AVAXe</div><div class="v"><code>${esc(o.deposit_address)}</code></div>
+ <div class="k">Dépôt TX</div><div class="v">${dep}</div>
+ <div class="k">Payout TX</div><div class="v">${pay}</div>
+ <div class="k">Sweep</div><div class="v">${esc(o.sweep_status||'—')} ${o.sweep_tx_hash?`<code>${esc(o.sweep_tx_hash)}</code>`:''}</div>
+ <div class="k">Créé</div><div class="v">${esc(o.created_at||'')}</div>
+ </div></div>`;
+}
+async function load(){try{$('msg').textContent='Chargement…';const q=$('status').value;const d=await api('/api/admin/offramp/orders'+(q?'?status='+encodeURIComponent(q):''));$('orders').innerHTML=d.orders.length?d.orders.map(render).join(''):'<div class="card muted">Aucune commande.</div>';$('msg').textContent='';}catch(e){$('msg').innerHTML='<span class="err">'+esc(e.message==='AUTH_MISSING'?'Session expirée. Reconnecte ton wallet.':e.message)+'</span>';}}
+$('refresh').onclick=load;$('status').onchange=load;
+$('orders').addEventListener('click',async e=>{const b=e.target.closest('button[data-act]');if(!b)return;const id=b.dataset.id,act=b.dataset.act;const note=act==='reject'?prompt('Motif du refus :')||'Refusée':null;if(act==='reject'&&!note)return;try{b.disabled=true;await api(`/api/admin/offramp/orders/${id}/${act}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(act==='reject'?{reason:note}:{note:'Approuvée admin'})});await load();}catch(err){alert(err.message);b.disabled=false;}});
+if(!token||!user||!user.is_admin){$('orders').innerHTML='<div class="card err">Connecte-toi avec un compte admin dans l’app, puis reviens ici.</div>';}else{load();}
+</script></div></body></html>

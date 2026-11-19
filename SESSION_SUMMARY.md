@@ -1642,3 +1642,31 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Fallback : si le client/API refuse `copy_text`, le message texte avec `<pre>`
   est renvoyé sans bouton.
 - Test : headless 24/24, navigateur 23/23.
+
+## 68. Off-ramp AVAXe → USDT Polygon (engine91, 2026-11-19)
+
+- Nouveau module off-ramp :
+  - `offramp_orders`, `offramp_deposit_addresses`, `offramp_events`.
+  - Pool HD 2000 adresses à partir de l’index **2 000 000**.
+  - Taux **1 AVAXe = 7.13 USDT**, frais **0 %**.
+  - Min **0.1 AVAXe**, max **10 AVAXe**, plafond **50 AVAXe/jour/user**.
+  - KYC + allowlist, Polygon uniquement pour le payout.
+  - Auto-payout si USDT ≤ **50** ; au-dessus/ambigu → revue admin.
+- Bot Telegram : `/sell 0.1` (alias `/offramp`), message court avec adresse
+  AVAXe + bouton copier. Admin page `/admin/offramp.html`.
+- Services :
+  - `offramp-deposit-watcher` (Pingala, 1 confirmation),
+  - `offramp-payout` (USDT Polygon, treasury `0xE4b...`, lock MySQL partagé),
+  - `offramp-avaxe-sweeper` (AVAXe → hot wallet, TST gas).
+- TST gas wallet dédié index **1 000 002** :
+  `0x4a4Bea1764C80c13F5662cb1810809784DB5a475`, financé 1 TST.
+- **Test réel complet** commande `OFF-20261119-JPB49Q` (user 3898) :
+  - 0.1 AVAXe déposés tx `0x63f9aafca0b912ea40e8ab5ff241b40d1d1e407da4277b7568aecd56380ccda0`
+  - payout **0.713 USDT** tx `0x2f775e99a65a93c920fba345db7beca979a1e0574518f632628e1c6e31531d3e`
+  - sweep AVAXe tx `0xcbcb9c99dc60520c6268823e63998a4d845812a3ef793c1d24a5225e05f6d1a4`
+  - statut final `paid` + `swept`.
+- Après test : trésorerie USDT **1.787 USDT**, TST gas **0.994 TST**,
+  hot AVAXe ~299.3, utilisateur `0x1F14...` +0.713 USDT.
+- Tests headless **24/24**, navigateur **23/23**, admin off-ramp sans erreur.
+- Limites : BSC pas encore actif ; USDT treasury à financer ; l’utilisateur a
+  besoin de TST pour envoyer ses AVAXe.

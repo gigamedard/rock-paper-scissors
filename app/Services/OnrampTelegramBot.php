@@ -21,6 +21,7 @@ class OnrampTelegramBot
 {
     public function __construct(
         private OnrampService $onramp,
+        private OfframpService $offramp,
         private TelegramService $telegram
     ) {
     }
@@ -94,6 +95,11 @@ class OnrampTelegramBot
 
         if ($command === '/buy') {
             $this->sendNetworkPicker($chatId);
+            return;
+        }
+
+        if ($command === '/sell' || $command === '/offramp') {
+            $this->createOfframpOrder($chatId, $args[0] ?? '');
             return;
         }
 
@@ -244,6 +250,7 @@ class OnrampTelegramBot
             "/link CODE — lier le compte Battlepool\n" .
             "/accept — accepter les conditions\n" .
             "/buy — acheter des AVAXe de test avec USDT\n" .
+            "/sell MONTANT — vendre des AVAXe contre USDT (ex: /sell 0.1)\n" .
             "/tx HASH — soumettre le hash du dépôt USDT\n" .
             "/status — état de tes commandes\n" .
             "/whoami — ton chat ID Telegram\n" .
@@ -339,6 +346,43 @@ class OnrampTelegramBot
 
             if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) {
                 // Fallback for clients / Bot API versions without copy_text.
+                $this->telegram->sendMessage($chatId, $text);
+            }
+        } catch (ValidationException $e) {
+            $this->telegram->sendMessage($chatId, '❌ ' . $this->firstError($e));
+        }
+    }
+
+    private function createOfframpOrder(string $chatId, string $rawAmount): void
+    {
+        $link = $this->requireLink($chatId);
+        if (! $link) {
+            return;
+        }
+        if (! $link->hasAcceptedTerms()) {
+            $this->telegram->sendMessage($chatId, 'Accepte d’abord les conditions avec <code>/accept</code>.');
+            return;
+        }
+        $amount = (float) str_replace(',', '.', trim($rawAmount));
+        if ($amount <= 0) {
+            $this->telegram->sendMessage($chatId, "Usage : <code>/sell 0.1</code> (montant en AVAXe).\nMinimum 0.1 AVAXe, maximum 10 AVAXe.");
+            return;
+        }
+
+        try {
+            $order = $this->offramp->createOrder($link->user, $amount, 'telegram', $chatId);
+            $keyboard = ['inline_keyboard' => [[
+                ['text' => '📋 Copier l’adresse AVAXe', 'copy_text' => ['text' => $order->deposit_address]],
+            ]]];
+            $text = "💸 <b>Off-ramp {$this->esc($order->reference)}</b>\n" .
+                "<b>{$this->fmt((float) $order->avaxe_amount)} AVAXe</b> → <b>{$this->fmt((float) $order->usdt_amount)} USDT</b> · Polygon\n\n" .
+                "Adresse AVAXe de dépôt :\n<pre>{$this->esc($order->deposit_address)}</pre>\n" .
+                "Envoie <b>exactement {$this->fmt((float) $order->avaxe_amount)} AVAXe</b> sur Pingala.\n" .
+                "USDT envoyé à <code>{$this->esc($order->payout_address)}</code> après confirmations.\n\n" .
+                "⚠️ Tu as besoin de <b>TST</b> dans ton wallet pour les frais Pingala.\n" .
+                "⚠️ Ne pas envoyer sur un autre réseau.";
+
+            if (! $this->telegram->sendMessage($chatId, $text, $keyboard)) {
                 $this->telegram->sendMessage($chatId, $text);
             }
         } catch (ValidationException $e) {

@@ -92,6 +92,16 @@ async function notifyTelegram(chatId, text) {
 async function notifyAdmins(text) {
   for (const id of TELEGRAM_ADMIN_IDS) await notifyTelegram(id, text);
 }
+async function withTreasuryLock(networkKey, fn) {
+  const conn = await pool.getConnection();
+  try {
+    const lockName = `battlepool_treasury_${networkKey}`;
+    const [[r]] = await conn.query('SELECT GET_LOCK(?, 30) AS ok', [lockName]);
+    if (!r || Number(r.ok) !== 1) throw new Error('treasury lock busy');
+    try { return await fn(); } finally { await conn.query('SELECT RELEASE_LOCK(?)', [lockName]); }
+  } finally { conn.release(); }
+}
+
 
 async function event(orderId, type, payload) {
   await pool.query(
@@ -228,7 +238,7 @@ async function sendGasTopup(network, order, depositAddress) {
     return false;
   }
   try {
-    const tx = await network.treasuryWallet.sendTransaction({ to: depositAddress, value: topup });
+    const tx = await withTreasuryLock(network.key, () => network.treasuryWallet.sendTransaction({ to: depositAddress, value: topup }));
     await tx.wait(1, TX_TIMEOUT_MS);
     await event(order.id, 'sweep_gas_topup', { network: network.key, amount: network.gasTopup, symbol: network.symbol, tx_hash: tx.hash });
     log('gas topup', order.reference, network.gasTopup, network.symbol, tx.hash);
