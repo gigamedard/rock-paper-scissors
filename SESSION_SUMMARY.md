@@ -2040,3 +2040,17 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - PWA/SW **v10**.
 - Trésorerie USDT Polygon vérifiée : **0,919875 USDT** ; la commande test
   0,713 USDT est couverte.
+
+## 96. Correctif pending_verification / montant AVAXe
+
+- BCY6GJ7 : dépôt 0,1 AVAXe valide (tx 0x4475…b71), bloqué en
+  `pending_verification`.
+- Deux causes :
+  - Pingala ne produisait pas de nouveau bloc rapidement ; le worker exigeait
+    2 confirmations. Passage à **1 confirmation Pingala** (comme l'off-ramp).
+  - `parseUnits(Number(x).toFixed(18))` introduisait 6 wei de trop
+    (`0.100000000000000006`) → faux **AVAXe amount too low**. Utilisation de
+    `parseUnits(String(amount), decimals)`.
+- Payout exécuté : **0,713 USDT** tx
+  `0x3023cfcbe755f5fb5ff654435677b7f8a7a12c096c4840e7ec54a41363114a07`.
+- Statut BCY6GJ7 : **completed**. Trésorerie USDT restante ~0,306875.

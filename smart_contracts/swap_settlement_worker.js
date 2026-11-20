@@ -62,9 +62,9 @@ async function processOrder(order) {
     if (conf < net.conf){ await pool.query("UPDATE swap_orders SET status='pending_verification',confirmations=?,updated_at=NOW() WHERE id=? AND status='paying'",[conf,order.id]); return; }
     if (Number(dep.status)!==1) return release(order,'manual_review','USDT deposit reverted');
     const amount = transferTo(dep, net.token, USDT_TREASURY); if(!amount) return release(order,'manual_review','USDT transfer to treasury not found');
-    const decimals = Number(await net.tokenRead.decimals().catch(()=>6)); const expected = parseUnits(Number(order.amount_in).toFixed(decimals), decimals);
+    const decimals = Number(await net.tokenRead.decimals().catch(()=>6)); const expected = parseUnits(String(order.amount_in), decimals);
     if (amount < expected) return release(order,'manual_review','USDT amount too low');
-    const out = parseUnits(Number(order.amount_out).toFixed(18),18);
+    const out = parseUnits(String(order.amount_out),18);
     let tx; try { tx = await avaxeTransfer.transfer(order.payout_address,out); } catch(e){ return release(order,'manual_review',e.shortMessage||e.message); }
     try { await pool.query('UPDATE swap_orders SET payout_tx_hash=?,confirmations=?,verified_at=NOW(),updated_at=NOW() WHERE id=? AND status=\'paying\'',[tx.hash.toLowerCase(),conf,order.id]); const r=await tx.wait(1,TX_TIMEOUT_MS); if(r&&Number(r.status)===1) await complete(order,tx.hash); else await release(order,'manual_review','AVAXe payout failed'); } catch(e){ await release(order,'manual_review','AVAXe payout timeout '+ (e.shortMessage||e.message)); }
     return;
@@ -73,11 +73,11 @@ async function processOrder(order) {
   const pdep = await pingala.getTransactionReceipt(order.deposit_tx_hash);
   if(!pdep){ await pool.query("UPDATE swap_orders SET status='pending_verification',updated_at=NOW() WHERE id=? AND status='paying'",[order.id]); return; }
   const pc = await pingala.getBlockNumber(); const pconf = pc - pdep.blockNumber + 1;
-  if(pconf < Number(process.env.SWAP_PINGALA_CONFIRMATIONS || 2)){ await pool.query("UPDATE swap_orders SET status='pending_verification',confirmations=?,updated_at=NOW() WHERE id=? AND status='paying'",[pconf,order.id]); return; }
+  if(pconf < Number(process.env.SWAP_PINGALA_CONFIRMATIONS || 1)){ await pool.query("UPDATE swap_orders SET status='pending_verification',confirmations=?,updated_at=NOW() WHERE id=? AND status='paying'",[pconf,order.id]); return; }
   if(Number(pdep.status)!==1) return release(order,'manual_review','AVAXe deposit reverted');
   const amount = transferTo(pdep, AVAXE, swapAddress); if(!amount) return release(order,'manual_review','AVAXe transfer to swap address not found');
-  const expected = parseUnits(Number(order.amount_in).toFixed(18),18); if(amount < expected) return release(order,'manual_review','AVAXe amount too low');
-  const decimals = Number(await net.tokenRead.decimals().catch(()=>6)); const out = parseUnits(Number(order.amount_out).toFixed(decimals), decimals);
+  const expected = parseUnits(String(order.amount_in),18); if(amount < expected) return release(order,'manual_review','AVAXe amount too low');
+  const decimals = Number(await net.tokenRead.decimals().catch(()=>6)); const out = parseUnits(String(order.amount_out), decimals);
   let tx;
   try {
     tx = await withTreasuryLock(order.network, async()=>{
