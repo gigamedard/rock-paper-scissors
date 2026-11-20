@@ -30,7 +30,7 @@ export const PRANA_NETWORK = {
     chainIdHex: '0x1869f',
     chainName: 'Pingala Chain',
     nativeCurrency: { name: 'TST', symbol: 'TST', decimals: 18 },
-    rpcUrl: 'https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc',
+    rpcUrl: 'https://pingala.tech/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc',
     // Pas d'explorateur de blocs sur Pingala pour l'instant → les liens
     // d'explorateur de l'UI doivent être conditionnels (voir marketplace.js).
     blockExplorerUrls: []

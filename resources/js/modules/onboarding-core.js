@@ -13,8 +13,8 @@ const QR_DATA = {
     chainId: '0x1869f',       // 99999 décimal
     chainIdDec: '99999',
     chainName: 'Pingala Chain',
-    rpcUrl: 'https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc',
-    rpcUrls: ['https://31.187.72.98.sslip.io/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc'],
+    rpcUrl: 'https://pingala.tech/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc',
+    rpcUrls: ['https://pingala.tech/ext/bc/2bU2988XvYbG4z85k39QxhDNomHWREnTKzYWLViU1RMCeSwEea/rpc'],
     symbol: 'TST',
     nativeCurrency: { name: 'TST', symbol: 'TST', decimals: 18 },
     blockExplorerUrls: null,  // Pingala n'a pas d'explorer public

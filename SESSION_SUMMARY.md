@@ -1864,3 +1864,20 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   rattachés à la bonne commande (`T_DUP_ID_A`/`T_DUP_ID_B`), statuts approved ;
   payout différé car trésorerie 0.219875 USDT.
 - Données de test nettoyées. Tests headless 24/24, navigateur 23/23.
+
+## 81. Domaines battlepool.online + pingala.tech (engine110)
+
+- DNS : battlepool.online, www, pingala.tech, www, rpc.pingala.tech → 31.187.72.98.
+- Caddy : battlepool.online → app 8001 + /app/* Reverb 8008 ;
+  www redirect ; pingala.tech/rpc.pingala.tech → 9650 (Host interne
+  31.187.72.98.sslip.io accepté par le nœud) ; www redirect.
+- TLS Let's Encrypt émis pour battlepool.online.
+- Env : APP_URL=https://battlepool.online,
+  ONRAMP_TERMS_URL=https://battlepool.online/legal/terms.html,
+  PINGALA_RPC_URL/FUJI_RPC_URL=https://pingala.tech/ext/bc/.../rpc.
+- Frontend : RPC/preconnect mis à jour ; APP2_URL reste l’ancien app2 sslip.
+- Webhooks Telegram principal + Wave déplacés sur battlepool.online.
+- Extension Wave v0.3.0 : endpoint production + permission battlepool.online ;
+  zip mis à jour.
+- Tests : battlepool 200, health 200, terms 200, admin 200, RPC chainId
+  0x1869f, www redirects 301, webhooks 0 pending.
