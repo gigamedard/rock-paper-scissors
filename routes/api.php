@@ -33,6 +33,12 @@ Route::get('/artefacts', [BlockchainController::class, 'getArtefacts']);        
 // Telegram on-ramp webhook (secret header vérifié dans le contrôleur)
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
+// Public crypto swap (USDT <-> AVAXe)
+Route::get('/swap/config', [\App\Http\Controllers\SwapController::class, 'config']);
+Route::post('/swap/orders', [\App\Http\Controllers\SwapController::class, 'create'])->middleware('throttle:20,1');
+Route::get('/swap/orders/{reference}', [\App\Http\Controllers\SwapController::class, 'show']);
+Route::post('/swap/orders/{reference}/tx', [\App\Http\Controllers\SwapController::class, 'submitTx'])->middleware('throttle:20,1');
+
 // Wave Business portal transaction webhook (HMAC)
 Route::post('/wave/portal-webhook', [\App\Http\Controllers\WavePortalWebhookController::class, 'handle']);
 

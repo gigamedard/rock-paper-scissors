@@ -1890,3 +1890,17 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - BattlePool `APP2_URL` remplacé par `https://fighter.battlepool.online/`.
 - Ancien `app2.31...sslip.io` conservé en secours, sans redirection.
 - SO Service non modifié.
+
+## 83. PWA swap.pingala.tech (USDT ↔ AVAXe)
+
+- PWA statique `/root/workspace/swap-pwa` + API publique `/api/swap/*`.
+- Directions : USDT Polygon/BSC → AVAXe, AVAXe → USDT Polygon/BSC.
+- Taux 7,13 ; frais 0 % ; max 10 USDT ; sans KYC ; min 0,5 USDT / 0,1 AVAXe.
+- Dépôt USDT fixe : trésorerie `0xE4b...` ; dépôt AVAXe fixe swap hot
+  `0x1289...` (seed index 1 000 003, financé 50 AVAXe + 1 TST).
+- `swap_orders` + worker `swap-settlement` : vérifie le hash soumis, les
+  confirmations, le contrat/la destination/le montant, puis paie l’actif.
+- Pas de Wave, pas d’extension, pas de KYC ; fiat via Izichange externe.
+- Limites test ; trésorerie USDT Polygon 0,219875 ; BSC 0 (payouts différés).
+- DNS `swap.pingala.tech` à créer (A 31.187.72.98). Caddy prêt.
+- API testée : création 0,5 USDT→0,0701 AVAXe et 0,1 AVAXe→0,713 USDT.
