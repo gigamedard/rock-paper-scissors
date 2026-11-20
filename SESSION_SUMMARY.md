@@ -1995,3 +1995,15 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Test Playwright : bundle chargé, `PingalaWC` disponible, chooser visible,
   aucun JS error.
 - PWA v6 / SW v6 ; hard refresh nécessaire.
+
+## 92. Ouverture automatique du wallet au paiement (PWA v7)
+
+- Après WalletConnect, le choix Core/MetaMask est mémorisé.
+- Au clic **Payer avec le wallet** :
+  - lance le switch réseau WalletConnect puis ouvre le wallet via
+    `core://` / `metamask://` ;
+  - lance `eth_sendTransaction` puis rouvre automatiquement le wallet.
+- Session WalletConnect restaurée au retour ; commande courante persistée dans
+  `localStorage` pour survivre au reload du deep link.
+- Fallback navigateur intégré Core/MetaMask si Safari bloque le scheme.
+- Test serveur : PWA/app.js 200, chooser WC chargé sans erreur.
