@@ -2007,3 +2007,13 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   `localStorage` pour survivre au reload du deep link.
 - Fallback navigateur intégré Core/MetaMask si Safari bloque le scheme.
 - Test serveur : PWA/app.js 200, chooser WC chargé sans erreur.
+
+## 93. Refonte visuelle PWA swap v8
+
+- Glassmorphism : cartes translucides, blur 22px, bordures dorées, reflets.
+- Fond abstrait animé : orbes dorés/mauves, anneaux, losange, arc, grille.
+- Palette noir profond + or champagne + crème ; titres serif dorés.
+- Boutons Core Wallet noir/gris, texte blanc ; MetaMask orange, texte noir.
+- Soldes en cartes verre dorées ; champs/états/badges harmonisés.
+- Responsive mobile testé 390x844 ; aucun JS error.
+- PWA v8 / SW v8 ; hard refresh nécessaire.
