@@ -1950,3 +1950,14 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - API test : 0,1 USDT → 0,01402525 AVAXe, commande pending_deposit.
 - Payout AVAXe assuré par le swap hot (50 AVAXe) ; pas de KYC.
 - Commande de test supprimée.
+
+## 88. Bug swap settlement corrigé (engine116)
+
+- Cause du statut `paying` bloqué : la requête du worker ne sélectionnait pas
+  `payout_address`; le transfert AVAXe recevait `undefined`
+  (`unsupported addressable value`).
+- Correction : sélection de `deposit_address`/`payout_address`.
+- Commande utilisateur `SWAP-20261120-D5BBHMT` requeue puis créditée :
+  0,1 USDT → 0,01402525 AVAXe, tx
+  `0x61a5c3f25d19abc24b72b84c2b0e247494db47008277b50d9af59b1ed32dec3e`.
+- Statut final `completed`; worker opérationnel.
