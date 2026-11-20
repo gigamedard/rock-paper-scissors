@@ -2029,3 +2029,14 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   aucun débordement horizontal.
 - Wallet chooser également en popup avec backdrop.
 - PWA/SW v9 ; test Playwright mobile sans erreur JS.
+
+## 95. Correctif réseau Pingala (AVAXe → USDT)
+
+- Cause du message **Réseau inconnu** : `networkParams()` ne cherchait que
+  Polygon/BSC dans `config.networks` ; le sens AVAXe→USDT utilise `pingala`.
+- Ajout explicite du réseau Pingala : chainId `0x1869f` (99999), RPC
+  `config.pingala_rpc`, symbole natif TST.
+- Le wallet demandera d'ajouter/switcher sur Pingala avant la transaction AVAXe.
+- PWA/SW **v10**.
+- Trésorerie USDT Polygon vérifiée : **0,919875 USDT** ; la commande test
+  0,713 USDT est couverte.
