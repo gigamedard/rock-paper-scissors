@@ -1904,3 +1904,15 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Limites test ; trésorerie USDT Polygon 0,219875 ; BSC 0 (payouts différés).
 - DNS `swap.pingala.tech` à créer (A 31.187.72.98). Caddy prêt.
 - API testée : création 0,5 USDT→0,0701 AVAXe et 0,1 AVAXe→0,713 USDT.
+
+## 84. swap.pingala.tech en ligne
+
+- DNS `swap.pingala.tech` → 31.187.72.98, TLS Let’s Encrypt OK.
+- Caddy : `/api/*` → app 8001 ; PWA statique depuis `/var/www/swap-pwa`
+  (source `/root/workspace/swap-pwa`).
+- PWA 200, API `/api/swap/config` 200.
+- Swap hot AVAXe `0x1289E8EfEdcf9d4Cc5ee03A8cA55d34d6664d3B1`
+  financé 50 AVAXe + 1 TST ; worker `swap-settlement` actif.
+- USDT treasury Polygon 0,219875 ; BSC 0 et BNB 0 → payouts
+  AVAXe→USDT différés/manuels jusqu’au financement.
+- Aucun dépôt réel testé ; API création testée.
