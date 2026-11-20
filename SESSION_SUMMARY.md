@@ -1943,3 +1943,10 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Sur mobile hors wallet browser, `window.ethereum` absent → fallback manuel.
   WalletConnect/Reown pourra être ajouté ensuite.
 - PWA v4 / SW v4 ; hard refresh nécessaire.
+
+## 87. Swap min USDT 0,1 (engine115)
+
+- `SWAP_MIN_USDT=0.1` en env/config/service.
+- API test : 0,1 USDT → 0,01402525 AVAXe, commande pending_deposit.
+- Payout AVAXe assuré par le swap hot (50 AVAXe) ; pas de KYC.
+- Commande de test supprimée.

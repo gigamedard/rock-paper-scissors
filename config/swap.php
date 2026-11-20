@@ -4,7 +4,7 @@ return [
     'enabled' => (bool) env('SWAP_ENABLED', true),
     'rate' => (float) env('SWAP_RATE', 7.13),
     'fee_percent' => (float) env('SWAP_FEE_PERCENT', 0),
-    'min_usdt' => (float) env('SWAP_MIN_USDT', 0.5),
+    'min_usdt' => (float) env('SWAP_MIN_USDT', 0.1),
     'max_usdt' => (float) env('SWAP_MAX_USDT', 10),
     'min_avaxe' => (float) env('SWAP_MIN_AVAXE', 0.1),
     'max_avaxe' => (float) env('SWAP_MAX_AVAXE', 1.4025),

@@ -16,7 +16,7 @@ class SwapService
             'enabled' => (bool) config('swap.enabled', true),
             'rate' => (float) config('swap.rate', 7.13),
             'fee_percent' => (float) config('swap.fee_percent', 0),
-            'min_usdt' => (float) config('swap.min_usdt', 0.5),
+            'min_usdt' => (float) config('swap.min_usdt', 0.1),
             'max_usdt' => (float) config('swap.max_usdt', 10),
             'min_avaxe' => (float) config('swap.min_avaxe', 0.1),
             'max_avaxe' => (float) config('swap.max_avaxe', 1.4025),
@@ -36,7 +36,7 @@ class SwapService
     public function createUsdtToAvaxe(string $network, float $amountUsdt, string $payoutAddress): SwapOrder
     {
         $this->guard($network);
-        $min = (float) config('swap.min_usdt', 0.5);
+        $min = (float) config('swap.min_usdt', 0.1);
         $max = (float) config('swap.max_usdt', 10);
         if ($amountUsdt < $min - 1e-9) throw ValidationException::withMessages(['amount' => "Minimum {$min} USDT."]);
         if ($amountUsdt > $max + 1e-9) throw ValidationException::withMessages(['amount' => "Maximum {$max} USDT."]);
