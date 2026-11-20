@@ -301,8 +301,19 @@ class WaveTelegramBot
 
     private function submitWaveFiatProof(string $chatId, MobileCryptoUser $user, array $args, ?WaveOrder $forcedOrder = null): void
     {
-        $o = $forcedOrder ?: $this->wave->latestOrderForChat($chatId, WaveOrder::DIRECTION_BUY_USDT);
-        if (! $o) { $this->telegram->sendMessage($chatId, 'Aucune commande ACHAT en attente.'); return; }
+        $o = $forcedOrder;
+        if (! $o) {
+            $pending = WaveOrder::where('chat_id', $chatId)
+                ->where('direction', WaveOrder::DIRECTION_BUY_USDT)
+                ->where('status', WaveOrder::STATUS_PENDING_PAYMENT)
+                ->latest('id')
+                ->get();
+            if ($pending->count() !== 1) {
+                $this->telegram->sendMessage($chatId, 'Utilise le bouton <b>✅ J’ai payé</b> sur la commande concernée, puis envoie son ID.');
+                return;
+            }
+            $o = $pending->first();
+        }
         $ref = trim(implode(' ', $args));
         try {
             $o = $this->wave->submitFiatProof($o, $ref);

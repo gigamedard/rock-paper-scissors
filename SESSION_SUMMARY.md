@@ -1849,3 +1849,18 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Anciennes commandes test 300 expirées ; données de test nettoyées.
 - Extension inchangée.
 - Tests headless 24/24, navigateur 23/23.
+
+## 80. Correction : matching par ID de transaction (pas montant unique)
+
+- La 79 a été annulée : les montants restent **300/600/etc.**, sans suffixe.
+- La clé est l’ID de transaction : l’extension stocke l’événement ; le client
+  clique **✅ J’ai payé sur la commande concernée** et envoie l’ID.
+- Le serveur rattache l’ID à cette commande, vérifie que l’événement existe et
+  que le montant correspond, puis auto-payout.
+- Plusieurs commandes de même montant sont possibles : c’est le bouton de la
+  commande qui donne le contexte ; `/wavepaid ID` seul est refusé s’il y a
+  plusieurs commandes en attente.
+- Test : deux commandes 300, deux IDs différents → les deux IDs sont bien
+  rattachés à la bonne commande (`T_DUP_ID_A`/`T_DUP_ID_B`), statuts approved ;
+  payout différé car trésorerie 0.219875 USDT.
+- Données de test nettoyées. Tests headless 24/24, navigateur 23/23.
