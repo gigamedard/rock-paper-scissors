@@ -1981,3 +1981,17 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Test Playwright wallet 0x784 : USDT Polygon 0,692563 ; BSC 0 ;
   AVAXe 5,054539 ; aucun JS error.
 - PWA v5 / SW v5, cache no-store shell.
+
+## 91. WalletConnect mobile dans la PWA swap (v6)
+
+- Bundle local `wc-bundle.js` avec `@walletconnect/universal-provider`.
+- Project ID Reown existant ; metadata/redirect PWA ; session eip155 99999/137/56.
+- iPhone Safari : bouton wallet → choix **Core Wallet** / **MetaMask** →
+  deep link natif `core://wc?uri=…` / `metamask://wc?uri=…` avec l’URI WC.
+- Adresse remplie après session ; provider WalletConnect utilisé pour
+  `eth_sendTransaction` et `wallet_switchEthereumChain`.
+- Session WC restaurée au retour dans la PWA ; soldes rafraîchis.
+- Fallback navigateur intégré Core/MetaMask toujours disponible.
+- Test Playwright : bundle chargé, `PingalaWC` disponible, chooser visible,
+  aucun JS error.
+- PWA v6 / SW v6 ; hard refresh nécessaire.
