@@ -22,8 +22,13 @@ class SwapService
             'max_avaxe' => (float) config('swap.max_avaxe', 1.4025),
             'usdt_treasury_address' => (string) config('swap.usdt_treasury_address'),
             'avaxe_hot_address' => (string) config('swap.avaxe_hot_address'),
+            'avaxe_contract' => (string) config('swap.avaxe_contract'),
+            'avaxe_decimals' => (int) config('swap.avaxe_decimals', 18),
+            'pingala_rpc' => (string) config('swap.pingala_rpc'),
             'networks' => collect(config('swap.networks', []))->map(fn ($n, $k) => [
                 'key' => $k, 'label' => $n['label'], 'native' => $n['native'],
+                'chain_id' => (int) ($n['chain_id'] ?? 0), 'usdt_contract' => (string) ($n['usdt'] ?? ''), 'usdt_decimals' => (int) ($n['usdt_decimals'] ?? 6),
+                'rpc' => (string) ($n['rpc'] ?? ''),
             ])->values()->all(),
         ];
     }

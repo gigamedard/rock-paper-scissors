@@ -1927,3 +1927,19 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Caddy sert depuis `/var/www/swap-pwa` (copie de `/root/workspace/swap-pwa`).
 - Test Playwright : création commande 0,5 USDT OK, aucun JS error.
 - Utilisateur doit hard refresh / désinscrire l’ancien service worker.
+
+## 86. Wallet connect dans la PWA swap (v4)
+
+- Connexion wallet injecté MetaMask/Core (`window.ethereum`) dans la PWA.
+- Adresse de réception remplie automatiquement avec le compte connecté.
+- Bouton **Payer avec le wallet** :
+  - switch/add Polygon, BSC ou Pingala ;
+  - envoie le token exact (USDT ou AVAXe) à l’adresse de dépôt ;
+  - récupère le hash et le soumet aussitôt à `/api/swap/orders/{ref}/tx`.
+- Fallback manuel conservé (copie d’adresse + hash).
+- API config enrichie : chain_id, contrats USDT, décimales, RPC Pingala.
+- Test Playwright avec provider injecté simulé : auto-fill, création, envoi,
+  passage en `pending_verification`, aucun JS error.
+- Sur mobile hors wallet browser, `window.ethereum` absent → fallback manuel.
+  WalletConnect/Reown pourra être ajouté ensuite.
+- PWA v4 / SW v4 ; hard refresh nécessaire.
