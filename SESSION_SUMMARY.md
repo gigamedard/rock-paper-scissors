@@ -1832,3 +1832,20 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Le matching par montant seul ne déclenche plus de payout.
 - Extension inchangée : endpoint production + secret + auto-refresh 15 s.
 - Tests headless 24/24, navigateur 23/23.
+
+## 79. Matching automatique par montant unique + ID (engine108)
+
+- Problème : deux commandes même montant → l’ID seul ne sait pas laquelle.
+- Solution : chaque achat Wave reçoit un **montant unique** de rapprochement
+  (base + 0..99 XOF), lien Wave avec ce montant exact ; l’USDT reste basé sur
+  le montant de base.
+- Exemple : deux commandes 300 XOF → 301 et 302 XOF ; l’extension envoie le
+  montant réel ; le client envoie l’ID ; le serveur retrouve la bonne commande
+  par montant+ID, même si le bouton/commande sélectionné est incorrect.
+- `base_fiat_amount` ajouté ; lock MySQL pour éviter deux montants identiques ;
+  plafond 100 commandes actives par montant de base.
+- Test : 301/302, ID fourni avec mauvais contexte de commande → bon match,
+  statuts approved/payout_deferred (trésorerie 0.219875 insuffisante).
+- Anciennes commandes test 300 expirées ; données de test nettoyées.
+- Extension inchangée.
+- Tests headless 24/24, navigateur 23/23.

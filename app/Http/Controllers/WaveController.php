@@ -73,7 +73,7 @@ class WaveController extends Controller
             'mobile_username' => $o->mobileUser?->telegram_username, 'full_name' => $o->mobileUser?->full_name,
             'wallet' => $o->mobileUser?->payout_address, 'chat_id' => $o->chat_id,
             'direction' => $o->direction, 'operator' => $o->operator, 'country' => $o->country,
-            'currency' => $o->currency, 'fiat_amount' => (float) $o->fiat_amount,
+            'currency' => $o->currency, 'fiat_amount' => (float) $o->fiat_amount, 'base_fiat_amount' => $o->base_fiat_amount !== null ? (float) $o->base_fiat_amount : null,
             'usdt_amount' => (float) $o->usdt_amount, 'usdt_gross' => $o->usdt_gross !== null ? (float) $o->usdt_gross : null,
             'rate' => (float) $o->rate, 'fee_percent' => (float) $o->fee_percent, 'status' => $o->status,
             'payment_phone' => $o->payment_phone, 'payout_phone' => $o->payout_phone,

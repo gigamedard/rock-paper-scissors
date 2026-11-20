@@ -44,27 +44,56 @@ class WaveService
             throw ValidationException::withMessages(['wallet' => 'Ajoute ton adresse USDT Polygon avec /setwallet 0x... avant un achat.']);
         }
 
-        $quote = $this->quoteBuy($fiat);
+        $baseFiat = $fiat;
+        $quote = $this->quoteBuy($baseFiat);
         if ($quote['usdt_gross'] < (float) config('wave.min_usdt', 0.5)) throw ValidationException::withMessages(['amount' => 'Montant USDT trop faible.']);
         $paymentBase = trim((string) config('wave.operators.wave_ci.payment_link_base', ''));
         if ($paymentBase === '') throw ValidationException::withMessages(['wave' => 'Lien de paiement Wave marchand non configuré.']);
-        $paymentUrl = $paymentBase . (str_contains($paymentBase, '?') ? '&' : '?') . 'amount=' . rawurlencode((string) (int) round($fiat));
         $this->checkDaily($user, $quote['usdt']);
 
-        return DB::transaction(function () use ($user, $fiat, $quote, $op, $operator, $channel, $chatId, $paymentUrl) {
-            $order = WaveOrder::create([
-                'reference' => $this->reference(), 'mobile_user_id' => $user->id, 'channel' => $channel, 'chat_id' => $chatId,
-                'direction' => WaveOrder::DIRECTION_BUY_USDT, 'operator' => $operator,
-                'country' => $op['country'], 'currency' => $op['currency'],
-                'fiat_amount' => $fiat, 'usdt_amount' => $quote['usdt'], 'usdt_gross' => $quote['usdt_gross'],
-                'rate' => $quote['rate'], 'fee_percent' => $quote['fee_percent'],
-                'status' => WaveOrder::STATUS_PENDING_PAYMENT, 'payment_url' => $paymentUrl,
-                'payout_network' => (string) config('wave.payout_network', 'polygon'),
-                'expires_at' => now()->addHours(2),
-            ]);
-            $this->event($order, 'order_created', 'user', (string) $user->id, ['direction' => 'buy_usdt', 'fiat' => $fiat]);
-            return $order;
-        });
+        $lock = DB::selectOne("SELECT GET_LOCK('wave_payment_amount', 5) AS ok");
+        if (! $lock || (int) $lock->ok !== 1) {
+            throw ValidationException::withMessages(['wave' => 'Création de commande occupée, réessaie.']);
+        }
+        try {
+            return DB::transaction(function () use ($user, $baseFiat, $quote, $op, $operator, $channel, $chatId, $paymentBase) {
+                $paymentAmount = $this->nextPaymentAmount($baseFiat);
+                $paymentUrl = $paymentBase . (str_contains($paymentBase, '?') ? '&' : '?') . 'amount=' . rawurlencode((string) $paymentAmount);
+
+                $order = WaveOrder::create([
+                    'reference' => $this->reference(), 'mobile_user_id' => $user->id, 'channel' => $channel, 'chat_id' => $chatId,
+                    'direction' => WaveOrder::DIRECTION_BUY_USDT, 'operator' => $operator,
+                    'country' => $op['country'], 'currency' => $op['currency'],
+                    'fiat_amount' => $paymentAmount, 'base_fiat_amount' => $baseFiat,
+                    'usdt_amount' => $quote['usdt'], 'usdt_gross' => $quote['usdt_gross'],
+                    'rate' => $quote['rate'], 'fee_percent' => $quote['fee_percent'],
+                    'status' => WaveOrder::STATUS_PENDING_PAYMENT, 'payment_url' => $paymentUrl,
+                    'payout_network' => (string) config('wave.payout_network', 'polygon'),
+                    'expires_at' => now()->addHours(2),
+                ]);
+                $this->event($order, 'order_created', 'user', (string) $user->id, ['direction' => 'buy_usdt', 'base_fiat' => $baseFiat, 'payment_amount' => $paymentAmount]);
+                return $order;
+            });
+        } finally {
+            DB::select("SELECT RELEASE_LOCK('wave_payment_amount')");
+        }
+    }
+
+    private function nextPaymentAmount(float $baseFiat): int
+    {
+        $base = (int) round($baseFiat);
+        $used = WaveOrder::where('direction', WaveOrder::DIRECTION_BUY_USDT)
+            ->whereNotIn('status', [WaveOrder::STATUS_PAID, WaveOrder::STATUS_REJECTED, WaveOrder::STATUS_EXPIRED])
+            ->whereBetween('fiat_amount', [$base, $base + 99])
+            ->pluck('fiat_amount')
+            ->map(fn ($v) => (int) round((float) $v))
+            ->all();
+        $used = array_flip($used);
+        for ($tag = 0; $tag <= 99; $tag++) {
+            $amount = $base + $tag;
+            if (! isset($used[$amount])) return $amount;
+        }
+        throw ValidationException::withMessages(['amount' => 'Trop de commandes en attente sur ce montant. Réessaie dans quelques minutes.']);
     }
 
     public function createSell(MobileCryptoUser $user, float $usdt, string $phone, string $operator = 'wave_ci', string $channel = 'telegram', ?string $chatId = null): WaveOrder
@@ -110,9 +139,6 @@ class WaveService
                 throw ValidationException::withMessages(['order' => 'Cette commande n’est pas un achat USDT.']);
             }
             if ($locked->payment_ref === $tx) return $locked;
-            if ($locked->status !== WaveOrder::STATUS_PENDING_PAYMENT) {
-                throw ValidationException::withMessages(['order' => 'Cette commande n’attend plus de preuve de paiement.']);
-            }
 
             $portal = WavePortalEvent::where('transaction_id', $tx)
                 ->where('direction', 'in')
@@ -121,18 +147,36 @@ class WaveService
             if (! $portal) {
                 throw ValidationException::withMessages(['ref' => 'ID de transaction pas encore reçu. Attends 15 s, recharge le portail, puis réessaie.']);
             }
-            if ((float) $portal->amount !== (float) $locked->fiat_amount) {
-                throw ValidationException::withMessages(['ref' => 'L’ID existe mais le montant ne correspond pas à la commande.']);
+
+            // Le montant unique de la commande Wave identifie la bonne commande,
+            // même si le client a cliqué sur un autre bouton / commande.
+            $target = null;
+            if ((float) $portal->amount === (float) $locked->fiat_amount) {
+                $target = $locked;
+            } else {
+                $candidates = WaveOrder::where('mobile_user_id', $locked->mobile_user_id)
+                    ->where('direction', WaveOrder::DIRECTION_BUY_USDT)
+                    ->where('status', WaveOrder::STATUS_PENDING_PAYMENT)
+                    ->where('fiat_amount', (float) $portal->amount)
+                    ->lockForUpdate()
+                    ->get();
+                if ($candidates->count() !== 1) {
+                    throw ValidationException::withMessages(['ref' => 'Impossible d’identifier la commande correspondant à ce montant.']);
+                }
+                $target = $candidates->first();
             }
-            if ($portal->matched_order_id && (int) $portal->matched_order_id !== (int) $locked->id) {
+            if ($target->status !== WaveOrder::STATUS_PENDING_PAYMENT) {
+                throw ValidationException::withMessages(['order' => 'Cette commande n’attend plus de preuve de paiement.']);
+            }
+            if ($portal->matched_order_id && (int) $portal->matched_order_id !== (int) $target->id) {
                 throw ValidationException::withMessages(['ref' => 'Cet ID est déjà rattaché à une autre commande.']);
             }
 
             $auto = (bool) config('wave.auto_payout_enabled', true)
-                && (float) $locked->usdt_amount <= (float) config('wave.auto_payout_max_usdt', 10)
-                && ! empty($locked->mobileUser?->payout_address);
+                && (float) $target->usdt_amount <= (float) config('wave.auto_payout_max_usdt', 10)
+                && ! empty($target->mobileUser?->payout_address);
 
-            $locked->update([
+            $target->update([
                 'status' => $auto ? WaveOrder::STATUS_APPROVED : WaveOrder::STATUS_PENDING_REVIEW,
                 'payment_ref' => $tx,
                 'verified_at' => now(),
@@ -140,10 +184,10 @@ class WaveService
             ]);
             $portal->update([
                 'status' => $auto ? 'matched_auto_payout' : 'matched_manual_id',
-                'matched_order_id' => $locked->id,
+                'matched_order_id' => $target->id,
             ]);
-            $this->event($locked, $auto ? 'fiat_id_matched_auto' : 'fiat_id_matched_manual', 'user', (string) $locked->mobile_user_id, ['transaction_id' => $tx, 'auto' => $auto]);
-            return $locked;
+            $this->event($target, $auto ? 'fiat_id_matched_auto' : 'fiat_id_matched_manual', 'user', (string) $target->mobile_user_id, ['transaction_id' => $tx, 'auto' => $auto]);
+            return $target;
         });
     }
 

@@ -22,7 +22,7 @@ class WaveOrder extends Model
 
     protected $fillable = [
         'reference', 'mobile_user_id', 'channel', 'chat_id', 'direction', 'operator', 'country', 'currency',
-        'fiat_amount', 'usdt_amount', 'usdt_gross', 'rate', 'fee_percent', 'status',
+        'fiat_amount', 'base_fiat_amount', 'usdt_amount', 'usdt_gross', 'rate', 'fee_percent', 'status',
         'payment_phone', 'payout_phone', 'payout_network', 'deposit_address', 'payment_url',
         'payment_ref', 'usdt_deposit_tx_hash', 'usdt_payout_tx_hash', 'payout_attempts', 'payout_started_at', 'payout_last_error', 'fiat_tx_ref',
         'admin_id', 'admin_note', 'verified_at', 'paid_at', 'rejected_at', 'expires_at',
@@ -30,6 +30,7 @@ class WaveOrder extends Model
 
     protected $casts = [
         'fiat_amount' => 'decimal:2',
+        'base_fiat_amount' => 'decimal:2',
         'usdt_amount' => 'decimal:8',
         'usdt_gross' => 'decimal:8',
         'rate' => 'decimal:8',
