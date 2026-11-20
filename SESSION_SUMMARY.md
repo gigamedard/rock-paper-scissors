@@ -2017,3 +2017,15 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Soldes en cartes verre dorées ; champs/états/badges harmonisés.
 - Responsive mobile testé 390x844 ; aucun JS error.
 - PWA v8 / SW v8 ; hard refresh nécessaire.
+
+## 94. PWA swap v9 — thème clair + modales
+
+- Fond clair blanc/crème, orbes dorés et formes abstraites discrètes.
+- Glassmorphism clair, bordures dorées ; boutons Core noir/blanc et MetaMask
+  orange/noir conservés.
+- Bouton **↻ Actualiser** dans l'en-tête : recharge config, soldes et commande.
+- Commande déplacée dans une **popup modale** ; bouton **Commande** pour la rouvrir.
+- Page principale compacte : aucun scroll vertical à 390x844 ni 390x667 ;
+  aucun débordement horizontal.
+- Wallet chooser également en popup avec backdrop.
+- PWA/SW v9 ; test Playwright mobile sans erreur JS.
