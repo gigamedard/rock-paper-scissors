@@ -2054,3 +2054,14 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - Payout exécuté : **0,713 USDT** tx
   `0x3023cfcbe755f5fb5ff654435677b7f8a7a12c096c4840e7ec54a41363114a07`.
 - Statut BCY6GJ7 : **completed**. Trésorerie USDT restante ~0,306875.
+
+## 97. Remboursement manuel B8UKEQY
+
+- Commande `SWAP-20261120-B8UKEQY` bloquée `manual_review` après un dépôt
+  AVAXe de 0,1 dont le payout USDT n'avait pas été exécuté.
+- Remboursement de **0,1 AVAXe** depuis le hot wallet swap vers
+  `0x784B6426f2A3eC86989E7601C2f64b01f2c15B75`.
+- Tx : `0xdf31b9ee3bb0bb954f7e72736a93faebc3fe88424dab3fe606572743ed36b768`
+  (bloc 8181, statut 1).
+- Commande passée en `refunded`, `payout_tx_hash` renseigné.
+- Nouveau solde AVAXe du wallet : **4,97391825**.
