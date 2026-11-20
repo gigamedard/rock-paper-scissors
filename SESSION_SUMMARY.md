@@ -1971,3 +1971,13 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - `SWAP-20261120-V27DQFJ` : 0,1 USDT → 0,01402525 AVAXe, tx
   `0xa777600d2d5c062f16ceedce8f2ede47ebaa2c75095791687ad0e3af5c398856`,
   statut completed.
+
+## 90. Soldes wallet dans la PWA swap (v5)
+
+- Affichage : USDT Polygon, USDT BSC, AVAXe Pingala.
+- Lecture directe `balanceOf` via RPC publics (CORS OK), sans backend.
+- Rafraîchissement : connexion, changement de réseau, paiement, commande
+  completed, toutes les 15 s et au retour d’onglet.
+- Test Playwright wallet 0x784 : USDT Polygon 0,692563 ; BSC 0 ;
+  AVAXe 5,054539 ; aucun JS error.
+- PWA v5 / SW v5, cache no-store shell.
