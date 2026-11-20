@@ -1881,3 +1881,12 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   zip mis à jour.
 - Tests : battlepool 200, health 200, terms 200, admin 200, RPC chainId
   0x1869f, www redirects 301, webhooks 0 pending.
+
+## 82. fighter.battlepool.online (engine111)
+
+- DNS `fighter.battlepool.online` → 31.187.72.98.
+- Caddy : `/app/*` → Reverb 8009, `/api/*` → API 8000, reste → front 8002 ;
+  TLS Let's Encrypt actif.
+- BattlePool `APP2_URL` remplacé par `https://fighter.battlepool.online/`.
+- Ancien `app2.31...sslip.io` conservé en secours, sans redirection.
+- SO Service non modifié.
