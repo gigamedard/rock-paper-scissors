@@ -1961,3 +1961,13 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
   0,1 USDT → 0,01402525 AVAXe, tx
   `0x61a5c3f25d19abc24b72b84c2b0e247494db47008277b50d9af59b1ed32dec3e`.
 - Statut final `completed`; worker opérationnel.
+
+## 89. Fix statut paying prématuré (engine117)
+
+- Le worker passait la commande en `paying` avant de vérifier les confirmations ;
+  si insuffisant, la commande restait bloquée en paying sans payout.
+- Correction : si receipt absent ou confirmations insuffisantes, retour à
+  `pending_verification` avec `confirmations`.
+- `SWAP-20261120-V27DQFJ` : 0,1 USDT → 0,01402525 AVAXe, tx
+  `0xa777600d2d5c062f16ceedce8f2ede47ebaa2c75095791687ad0e3af5c398856`,
+  statut completed.

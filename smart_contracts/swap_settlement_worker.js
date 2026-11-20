@@ -56,8 +56,10 @@ async function complete(order, txHash) { const [r]=await pool.query(`UPDATE swap
 async function processOrder(order) {
   const net = networks[order.network]; if(!net) return release(order,'manual_review','network missing');
   if (order.direction === 'usdt_to_avaxe') {
-    const dep = await net.provider.getTransactionReceipt(order.deposit_tx_hash); if(!dep) return;
-    const current = await net.provider.getBlockNumber(); const conf = current - dep.blockNumber + 1; if (conf < net.conf) return;
+    const dep = await net.provider.getTransactionReceipt(order.deposit_tx_hash);
+    if(!dep){ await pool.query("UPDATE swap_orders SET status='pending_verification',updated_at=NOW() WHERE id=? AND status='paying'",[order.id]); return; }
+    const current = await net.provider.getBlockNumber(); const conf = current - dep.blockNumber + 1;
+    if (conf < net.conf){ await pool.query("UPDATE swap_orders SET status='pending_verification',confirmations=?,updated_at=NOW() WHERE id=? AND status='paying'",[conf,order.id]); return; }
     if (Number(dep.status)!==1) return release(order,'manual_review','USDT deposit reverted');
     const amount = transferTo(dep, net.token, USDT_TREASURY); if(!amount) return release(order,'manual_review','USDT transfer to treasury not found');
     const decimals = Number(await net.tokenRead.decimals().catch(()=>6)); const expected = parseUnits(Number(order.amount_in).toFixed(decimals), decimals);
@@ -68,8 +70,10 @@ async function processOrder(order) {
     return;
   }
   // avaxe_to_usdt: verify Pingala deposit to swap hot.
-  const pdep = await pingala.getTransactionReceipt(order.deposit_tx_hash); if(!pdep) return;
-  const pc = await pingala.getBlockNumber(); const pconf = pc - pdep.blockNumber + 1; if(pconf < Number(process.env.SWAP_PINGALA_CONFIRMATIONS || 2)) return;
+  const pdep = await pingala.getTransactionReceipt(order.deposit_tx_hash);
+  if(!pdep){ await pool.query("UPDATE swap_orders SET status='pending_verification',updated_at=NOW() WHERE id=? AND status='paying'",[order.id]); return; }
+  const pc = await pingala.getBlockNumber(); const pconf = pc - pdep.blockNumber + 1;
+  if(pconf < Number(process.env.SWAP_PINGALA_CONFIRMATIONS || 2)){ await pool.query("UPDATE swap_orders SET status='pending_verification',confirmations=?,updated_at=NOW() WHERE id=? AND status='paying'",[pconf,order.id]); return; }
   if(Number(pdep.status)!==1) return release(order,'manual_review','AVAXe deposit reverted');
   const amount = transferTo(pdep, AVAXE, swapAddress); if(!amount) return release(order,'manual_review','AVAXe transfer to swap address not found');
   const expected = parseUnits(Number(order.amount_in).toFixed(18),18); if(amount < expected) return release(order,'manual_review','AVAXe amount too low');
