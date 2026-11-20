@@ -1916,3 +1916,14 @@ adresses USDT par réseau, conditions/URL, allowlist users, puis
 - USDT treasury Polygon 0,219875 ; BSC 0 et BNB 0 → payouts
   AVAXe→USDT différés/manuels jusqu’au financement.
 - Aucun dépôt réel testé ; API création testée.
+
+## 85. Fix PWA swap « rien ne se passe »
+
+- L’API et le bouton fonctionnaient en test navigateur ; cause probable côté
+  client = ancien `app.js`/service worker en cache.
+- PWA v3 : `/app.js?v=3`, `/styles.css?v=3`, cache SW `pingala-swap-v3`,
+  Cache-Control no-cache sur le shell.
+- Bouton avec état « Création… », message de résultat et scroll vers la commande.
+- Caddy sert depuis `/var/www/swap-pwa` (copie de `/root/workspace/swap-pwa`).
+- Test Playwright : création commande 0,5 USDT OK, aucun JS error.
+- Utilisateur doit hard refresh / désinscrire l’ancien service worker.
